@@ -93,8 +93,8 @@ Miuix 已提供颜色、文字层级和组件 Defaults，项目只补页面级�
 - 不要求本地下载 Gradle distribution、Android SDK/NDK、Kotlin/Native 全量缓存。
 - 仓库保留 Wrapper 和校验配置，Actions 使用 Wrapper，禁止依赖 runner 全局 Gradle版本。
 - 快速 CI：格式/静态检查、共享业务与 Go 单测、依赖解析；按修改路径组织任务。
-- Android CI：Ubuntu + 兼容 JDK + SDK/NDK → Go Android库 → APK/AAB。
-- iOS CI：macOS + 已验证 Xcode + 兼容 JDK → Go iOS库 → framework + iOS 模拟器构建；分发单独归档签名。
+- Android CI：Ubuntu + 固定 JDK + SDK → 测试证书签名的 Release APK/AAB；Go 尚未接入，不把 Go 构建当成已完成。
+- iOS CI：macOS + 固定 Xcode/JDK → iphoneos/arm64/Release 归档、待用户重签 IPA 与符号包，不分发旧 Debug 模拟器产物；具体边界见 [真机 Release 构建](release-builds.md)。
 - 工作流的 JDK、Go、Xcode、SDK、Gradle等必须固定或受控，不能因“本地忽略版本”而在云端任意使用 latest。
 - 缓存按平台/工具链/依赖锁区分；产物设置短保留期。macOS完整打包可手动触发，避免每个文档改动都启动。
 - PR 不向不可信代码暴露签名与发布 secrets；fork PR 只做不依赖秘密的检查。
