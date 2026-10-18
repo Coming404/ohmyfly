@@ -26,6 +26,12 @@ Status: implemented
 - SharedPreferences＋UserDefaults：平台原生且少依赖，但需两套写入语义；官方多平台 DataStore 提供统一事务与 Flow。
 - 自动选最快镜像：操作少，但违背用户手动选择；仅失败降级，不因探测排序改变选择。
 
+## Build follow-up
+
+用户后续授权提交与双端Release，且每次重建前清理旧Actions记录。首轮真实编译暴露两项静态检查不能发现的问题，现按官方API修正并增加回归守卫：平台顶层文件采用`MirrorTransport.android.kt`／`.ios.kt`，避免JVM facade重名；macOS构建分支用`iosMain.dependencies`惰性访问器添加Darwin，禁止`findByName()?.`静默漏配置。共享测试门槛提高为62项，不用旧的6项门槛掩盖漏跑。
+
+来源：[Kotlin平台文件命名](https://kotlinlang.org/docs/coding-conventions.html#multiplatform-projects)、[iOS源集访问器](https://kotlinlang.org/api/kotlin-gradle-plugin/kotlin-gradle-plugin-api/org.jetbrains.kotlin.gradle.dsl/-kotlin-multiplatform-source-set-conventions/ios-main.html)。编译结果以最终对应run为准；不下载产物，不修改签名。
+
 ## Consequences
 
 - 配置仓库持有schema 1与进程级同路径实例；读取仅回落内存而不写回原件，用户写入在同一DataStore事务内校验。镜像身份、路径大小写和编码模板由同一模型处理。

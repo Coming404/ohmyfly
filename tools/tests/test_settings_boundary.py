@@ -30,6 +30,19 @@ class SettingsBoundaryTests(unittest.TestCase):
             with self.subTest(path=path.relative_to(ROOT)):
                 self.assertLessEqual(len(path.read_text().splitlines()), 500)
 
+    def test_platform_transports_do_not_duplicate_jvm_file_facades(self):
+        self.assertTrue((COMMON / 'mirror/MirrorTransport.kt').is_file())
+        for source, suffix in [('androidMain', 'android'), ('iosMain', 'ios')]:
+            directory = ROOT / f'shared/src/{source}/kotlin/dev/ohmydrift/mirror'
+            self.assertTrue((directory / f'MirrorTransport.{suffix}.kt').is_file())
+            self.assertFalse((directory / 'MirrorTransport.kt').exists())
+
+    def test_darwin_dependency_cannot_be_silently_skipped(self):
+        build = (ROOT / 'shared/build.gradle.kts').read_text()
+        self.assertNotIn('findByName("iosMain")?.dependencies', build)
+        self.assertIn('iosMain.dependencies {', build)
+        self.assertIn('implementation(libs.ktor.client.darwin)', build)
+
     def test_old_settings_entry_does_not_survive_as_second_implementation(self):
         current = (COMMON / 'ui/SettingsScreen.kt').read_text()
         appearance = (COMMON / 'ui/AppearanceSettingsPage.kt').read_text()

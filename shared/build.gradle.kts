@@ -54,8 +54,10 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.activity.compose)
         }
-        findByName("iosMain")?.dependencies {
-            implementation(libs.ktor.client.darwin)
+        if (providers.systemProperty("os.name").get().startsWith("Mac")) {
+            iosMain.dependencies {
+                implementation(libs.ktor.client.darwin)
+            }
         }
         commonTest.dependencies {
             implementation(libs.ktor.client.mock)
