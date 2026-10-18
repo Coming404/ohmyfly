@@ -1,0 +1,112 @@
+# 工程、视觉与验证方案
+
+本文描述当前最小工程和后续实施方案。已创建结构不等于已通过云端编译。需求优先级：用户决定 → 项目规则 → 锁定版本的官方文档/源码。不得擅自替换 Miuix 或增加桌面端。
+
+## 1. 两种“脚手架”分开理解
+
+- **项目工程脚手架**：Gradle、模块、Android/iOS 入口、依赖与工作流。
+- **Miuix Scaffold**：页面布局容器，提供顶栏、底栏、浮动按钮、弹层等插槽。它不是项目生成器，不决定业务架构。
+
+首选工程底座为官方 Kotlin/KMP-App-Template。保留 shared、androidApp、iosApp、Wrapper、版本目录，裁剪 desktopApp、webApp 和展品演示业务。删除不必要的 Koin/Coil/Ktor 示例接入，但不为“精简”破坏平台启动代码。是否引入这些库由实际需求决定。
+
+备选为官方 Kotlin Multiplatform Wizard，选择 Android+iOS 和共享 Compose UI。当前在手机/iSH 工作时，GitHub 模板更便于检查和移交 Actions。Miuix example 只作视觉/API参考，不整包复制：它包含更多平台、构建逻辑和不符合本项目的 iOS 示例部署设置。
+
+## 2. 建议工程形态
+
+```text
+ohmydrift/
+├── androidApp/                 Android Activity、Manifest、系统能力
+├── iosApp/                     Swift 宿主、Xcode 工程、签名配置
+├── shared/
+│   └── src/
+│       ├── commonMain/kotlin/
+│       │   ├── app/            App、主题、导航
+│       │   ├── feature/        订阅、节点、测速、设置
+│       │   ├── core/           业务模型、仓库接口、状态
+│       │   └── designsystem/   页面令牌与少量业务组件
+│       ├── commonMain/composeResources/
+│       ├── commonTest/
+│       ├── androidMain/       Go Android 桥接、文件与安全存储
+│       └── iosMain/           Go Apple 桥接、文件与安全存储
+├── native-core/                Go 封装与必要补丁，独立 go.mod
+├── gradle/libs.versions.toml
+├── gradle/wrapper/
+├── .github/workflows/
+└── docs/
+```
+
+早期一个 shared 模块加 Go 核心即可，不先拆大量空模块。最终目录服从所选模板及 AGP/KMP 插件要求，不能把示意树当作已通过的构建配置。
+
+## 3. Miuix 页面布局
+
+入口使用 MiuixTheme；页面骨架使用 `top.yukonga.miuix.kmp.basic.Scaffold`，不因名称相同误导入 Material Scaffold。
+
+- 顶栏/底栏和主要控件优先使用 Miuix 对应实现。
+- 内容正确应用 Scaffold 提供的 PaddingValues；不要在多个层级重复添加系统边距。
+- Miuix OverlayDialog、OverlayListPopup 等需要位于其 Scaffold 弹层宿主范围内。
+- 顶栏滚动时按文档接入 nestedScroll；键盘、底部手势区、刘海横竖屏分别验证。
+- Scaffold 只解决页面结构，不决定字体、栅格、页面间距或数据流。
+- 文档与 API以锁定的 0.9.4 标签为准，不能直接复制 main 分支新组件。
+- 暂不必需引入 miuix-blur；Android API 31 不满足该独立模块的 minSdk 33。
+
+## 4. 视觉规则
+
+Miuix 已提供颜色、文字层级和组件 Defaults，项目只补页面级规则，不再造一整套平行主题。
+
+**建议项目令牌，尚非官方 Miuix 数值：**
+
+| 用途 | 初始建议 |
+|---|---|
+| 页面水平留白 | 从 16 / 24 / 26dp 中选定语义值，按 Miuix 顶栏和内容视觉对齐后冻结 |
+| 区块间距 | 24dp |
+| 列表间距 | 8 / 12dp，按密度变体统一 |
+| 小间距 | 4 / 8dp |
+| 卡片内部 | 优先组件 Defaults；业务卡片再定义 |
+| 图标 | 沿用组件默认或统一业务尺寸 |
+| 圆角 | 优先组件默认，避免强行统一覆盖所有形状 |
+
+- 文字优先引用 `MiuixTheme.textStyles`，仅为测速大数字等明确用途增加样式。
+- 默认使用平台适配字体；不擅自打包小米专有字体或把字体授权视为组件库授权的一部分。
+- 系统字体放大、长名称、中英文混排、深色模式必须检查；信息不只靠颜色区分。
+- 延迟、吞吐、状态使用稳定语义；单位与数值层级清晰，数值刷新不引起布局抖动。
+- 不把所有 dp/sp 常量机械抽成命名常量。抽出重复或有产品语义的值即可。
+- 不用注解伪造稳定性；只有满足契约时使用 @Immutable/@Stable。
+- 共享视觉不等于共享所有系统行为；iOS 返回/文件选择/分享与权限走平台适配。
+
+设计流程：先定义最少页面令牌 → 使用 Miuix 实现 → 对照真机截图检查对齐、层级与状态 → 按 Apple HIG 检查 iOS 系统交互。
+
+## 5. Go 桥接
+
+先验证 gomobile 窄接口生成 AAR / Apple framework 或 XCFramework，再由 Kotlin Android、Kotlin/Native 接入。若真实阻碍出现，才评估自定义 C ABI；未构建不能宣布某条路线一定可行或不可行。
+
+建议最少接口：初始化沙盒目录、导入配置、启动任务、取消任务、接收事件、释放资源。内部复杂 map/代理对象不直接跨语言暴露。
+
+事件契约包含 sessionId、nodeId、事件类型、数值单位与错误码；Kotlin 将回调转换为 Flow/StateFlow。时间值显式定义毫秒，避免 Go time.Duration 默认 JSON 纳秒语义。不要在回调中直接改 UI 或让主线程执行阻塞测速。
+
+不要把修正解析结果再送入旧 LoadProxies 后重复按 server:port 删除。Mihomo 版本只能维护一套，不同时打包两套核心。提取上游代码后保留来源、补丁、测试和许可证。
+
+## 6. Actions 与本地边界
+
+**用户已明确：完整构建交给 GitHub Actions。本地 JDK 17 保持现状，不作为工程版本限制或验收阻碍。**
+
+- 本地：源码结构、差异、文档与配置检查；可运行的轻量单测按需执行。
+- 不要求本地下载 Gradle distribution、Android SDK/NDK、Kotlin/Native 全量缓存。
+- 仓库保留 Wrapper 和校验配置，Actions 使用 Wrapper，禁止依赖 runner 全局 Gradle版本。
+- 快速 CI：格式/静态检查、共享业务与 Go 单测、依赖解析；按修改路径组织任务。
+- Android CI：Ubuntu + 兼容 JDK + SDK/NDK → Go Android库 → APK/AAB。
+- iOS CI：macOS + 已验证 Xcode + 兼容 JDK → Go iOS库 → framework + iOS 模拟器构建；分发单独归档签名。
+- 工作流的 JDK、Go、Xcode、SDK、Gradle等必须固定或受控，不能因“本地忽略版本”而在云端任意使用 latest。
+- 缓存按平台/工具链/依赖锁区分；产物设置短保留期。macOS完整打包可手动触发，避免每个文档改动都启动。
+- PR 不向不可信代码暴露签名与发布 secrets；fork PR 只做不依赖秘密的检查。
+
+## 7. 验证门槛
+
+P0：双端空 App + Miuix Scaffold 可构建；iOS16/API31约束可满足。
+
+P1：Go 库双端链接成功；启动、事件、取消、连续多次任务无崩溃/泄漏。
+
+P2：订阅格式样本、去重碰撞、单节点测速、错误隔离与流量提示通过。
+
+P3：深浅色、小屏/大字体/长名称/横竖屏真机截图验收。
+
+P4：按选定分发方式完成签名、许可证及源码交付。编译成功不等于 iPhone 可以直接安装；iOS16支持不能只通过最新系统模拟器运行来证明。

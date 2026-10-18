@@ -1,0 +1,36 @@
+=== RUN   TestCompareDifferentCredentialsAndProtocols
+=== RUN   TestCompareDifferentCredentialsAndProtocols/different_uuid
+    clash_dedup_test.go:9: clash_speedtest_retained=1 subs_check_pro_retained=2
+=== RUN   TestCompareDifferentCredentialsAndProtocols/different_protocol
+    clash_dedup_test.go:9: clash_speedtest_retained=1 subs_check_pro_retained=2
+=== RUN   TestCompareDifferentCredentialsAndProtocols/different_ws_path
+    clash_dedup_test.go:9: clash_speedtest_retained=1 subs_check_pro_retained=2
+--- PASS: TestCompareDifferentCredentialsAndProtocols (0.00s)
+    --- PASS: TestCompareDifferentCredentialsAndProtocols/different_uuid (0.00s)
+    --- PASS: TestCompareDifferentCredentialsAndProtocols/different_protocol (0.00s)
+    --- PASS: TestCompareDifferentCredentialsAndProtocols/different_ws_path (0.00s)
+=== RUN   TestFingerprintComparison
+=== RUN   TestFingerprintComparison/case_sensitive_password
+    dedup_test.go:14: fingerprints_equal=true retained=1
+=== RUN   TestFingerprintComparison/same_password_different_username
+    dedup_test.go:14: fingerprints_equal=true retained=1
+=== RUN   TestFingerprintComparison/same_uuid_different_tuic_password
+    dedup_test.go:14: fingerprints_equal=true retained=1
+=== RUN   TestFingerprintComparison/case_sensitive_ws_path
+    dedup_test.go:14: fingerprints_equal=false retained=2
+=== RUN   TestFingerprintComparison/different_ws_query
+    dedup_test.go:14: fingerprints_equal=true retained=1
+=== RUN   TestFingerprintComparison/different_reality_short_id
+    dedup_test.go:14: fingerprints_equal=true retained=1
+=== RUN   TestFingerprintComparison/different_ss_cipher
+    dedup_test.go:14: fingerprints_equal=true retained=1
+--- PASS: TestFingerprintComparison (0.01s)
+    --- PASS: TestFingerprintComparison/case_sensitive_password (0.00s)
+    --- PASS: TestFingerprintComparison/same_password_different_username (0.00s)
+    --- PASS: TestFingerprintComparison/same_uuid_different_tuic_password (0.00s)
+    --- PASS: TestFingerprintComparison/case_sensitive_ws_path (0.00s)
+    --- PASS: TestFingerprintComparison/different_ws_query (0.00s)
+    --- PASS: TestFingerprintComparison/different_reality_short_id (0.00s)
+    --- PASS: TestFingerprintComparison/different_ss_cipher (0.00s)
+PASS
+ok  	_/var/minis/workspace/subs-check-pro-review-evidence/dedup-test	0.104s
