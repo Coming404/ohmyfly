@@ -70,12 +70,6 @@ def package(archive: Path, output: Path) -> None:
         shutil.copytree(app, payload / app.name, symlinks=True)
         subprocess.run(['ditto', '-c', '-k', '--keepParent', str(payload),
                         str(output / 'ohmydrift-release-unsigned.ipa')], check=True)
-    subprocess.run(['ditto', '-c', '-k', '--keepParent', str(archive),
-                    str(output / 'ohmydrift-release-unsigned.xcarchive.zip')], check=True)
-    symbols = archive / 'dSYMs'
-    if symbols.is_dir():
-        subprocess.run(['ditto', '-c', '-k', '--keepParent', str(symbols),
-                        str(output / 'ohmydrift-release-dSYMs.zip')], check=True)
     (output / 'build-info.json').write_text(json.dumps(metadata, indent=2) + '\n')
     print('Validated arm64 iPhoneOS Release archive; IPA requires user re-signing.')
 

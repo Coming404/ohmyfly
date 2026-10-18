@@ -2,7 +2,7 @@
 
 Android / iOS 订阅管理与节点测速应用的最小工程基础。
 
-**Kotlin + Compose Multiplatform + Miuix**；Go核心尚未接入。当前提供三个共享 UI 展示页（概览、节点、外观）、平台宿主、固定版本声明和检查/构建工作流。卡片、分类多选、图标按钮、深浅主题与轻量过渡均使用演示内容；参见 [UI 展示说明](docs/ui-showcase.md)。**尚未运行完整 Gradle/Xcode构建或真机验证，不代表可直接发布。**
+**Kotlin + Compose Multiplatform + Miuix**；Go核心尚未接入。当前提供三个共享 UI 展示页（概览、节点、外观）、平台宿主、固定版本声明和检查/构建工作流。卡片、分类多选、图标按钮、深浅主题与轻量过渡均使用演示内容；参见 [UI 展示说明](docs/ui-showcase.md)。**已完成 Android Release 与 iOS 真机 Release 的云端构建；尚未完成重签安装和最低系统真机验证，不代表可直接发布。**
 
 ## 开始开发
 
@@ -55,5 +55,5 @@ python3 -m unittest discover -s tools/tests -v
 
 - 轻量检查：`.github/workflows/checks.yml`。
 - Release 构建入口：`.github/workflows/build.yml`，手动选择 Android/iOS/both。
-- Android 生成专用测试签名的 Release APK/AAB；iOS 生成 arm64 真机 Release IPA、归档及符号，IPA 需要用户自行重签，不是可直接安装的已签名包。
+- Android 生成专用测试签名的 Release APK/AAB；iOS 只交付 arm64 真机 Release IPA 原文件，不再分发归档 ZIP，IPA 需要用户自行重签，不是可直接安装的已签名包。
 - 应用最终许可与分发方案待定；计划接入的Go上游有GPL义务，模板的Apache许可不替代这些义务。

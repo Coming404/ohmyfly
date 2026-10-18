@@ -16,15 +16,19 @@ kotlin {
             version = release(libs.versions.android.compileSdk.get().toInt())
         }
         minSdk = libs.versions.android.minSdk.get().toInt()
+        withHostTest {}
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_21)
         }
     }
 
-    listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
-        target.binaries.framework {
-            baseName = "Shared"
-            isStatic = true
+    // Apple toolchains require macOS; do not create unbuildable native tasks on Linux CI.
+    if (providers.systemProperty("os.name").get().startsWith("Mac")) {
+        listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
+            target.binaries.framework {
+                baseName = "Shared"
+                isStatic = true
+            }
         }
     }
 

@@ -8,11 +8,19 @@ Status: proposed
 
 ## Proposal
 
-用户明确授权创建 `Coming404/ohmydrift` 私有仓库、推送并触发双端 Actions。Android 生成独立测试签名，保存在本地排除目录和仓库 Actions Secrets，生成已签名 Release APK/AAB。用户选择 iOS 自行重签：使用 iphoneos/arm64/Release archive，产出待重签 IPA、xcarchive 与存在时的 dSYM，不混用模拟器或 Debug 产物，也不声称 unsigned IPA 可直接安装。
+用户明确授权创建 `Coming404/ohmydrift` 私有仓库、推送并触发双端 Actions。Android 生成独立测试签名，保存在本地排除目录和仓库 Actions Secrets，生成已签名 Release APK/AAB。用户选择 iOS 自行重签，并进一步要求直接交付 IPA 而不是 ZIP：使用 iphoneos/arm64/Release archive，只上传待重签 IPA 原文件，xcarchive/dSYM 只作为构建中间结果，不再额外分发 ZIP；不混用模拟器或 Debug 产物，也不声称 unsigned IPA 可直接安装。
 
 固定工具链先核实后用云端构建验证；不在本地下载 Gradle、Android SDK 或 Kotlin/Native。签名密码和令牌不写入源码、日志、Git remote URL 或公共工件。工作流只上传明确收集的分发文件，私有仓库工件保留七天，不创建公开 Release。
 
 文档补充官方中文快速开始与准确查询原则：官方入门文档继续作为入口；涉及具体组件时，用项目锁定版本的源码核对，发现个别示例不同步就按源码调整。
+
+## Warning cleanup
+
+已实际定位 SDK Action 默认安装退役 tools 包、CI 缺少 ripgrep、Git 中 Wrapper 执行位遗漏和 Xcode `-arch`/destination 冲突，并分别按失败日志修复。Android Release 已在 run 39121397470 的 android job 成功，iOS Release 已在 run 39121618951 成功，后续警告修复仍需新 run 复验。
+
+将 Actions 更新为逐一核实过 Node24 运行时的稳定版本，不设置 NODE_NO_WARNINGS。启用 Android host tests 并在 CI 运行共享测试；Apple target 仅在可构建它的 macOS 主机创建，不加忽略禁用目标的属性。Kotlin Xcode 脚本显式声明每次交给 Gradle 做增量判断，避免假输出导致代码变更漏编译。AppIntents 未使用时采用 Swift 官方 llbuild 工程的 `LM_SKIP_METADATA_EXTRACTION=YES` 跳过无用阶段，未来引入 AppIntents 时撤销该配置。测试证书与无签名分发的真实边界保留，不关闭签名验证。
+
+官方 upload-artifact v7.0.2 的 `archive: false` 支持单文件原格式工件；IPA、APK、AAB 分别上传，不再要求用户下载外层 ZIP。来源：[Action 定义](https://github.com/actions/upload-artifact/blob/v7.0.2/action.yml)、[Swift 官方对应变更](https://github.com/swiftlang/swift-llbuild/pull/963)。
 
 ## Alternatives considered
 
