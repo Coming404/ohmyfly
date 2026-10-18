@@ -105,10 +105,11 @@ jobs:
         run: >-
           xcodebuild -project iosApp/iosApp.xcodeproj
           -scheme iosApp -configuration Release
-          -sdk iphoneos -arch arm64
+          -sdk iphoneos
           -destination 'generic/platform=iOS'
           -archivePath build/ios-device/ohmydrift.xcarchive
           -derivedDataPath build/ios-device/DerivedData
+          ARCHS=arm64 ONLY_ACTIVE_ARCH=NO
           IPHONEOS_DEPLOYMENT_TARGET=16.0
           PRODUCT_BUNDLE_IDENTIFIER=dev.ohmydrift.app
           CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
