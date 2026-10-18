@@ -163,7 +163,7 @@ class SettingsCodecTest {
             intPreferencesKey("mirror.count") to 4,
             stringPreferencesKey("mirror.0.id") to "only-id",
             stringPreferencesKey("mirror.1.id") to "ok",
-            stringPreferencesKey("mirror.1.address") to "https://ok.example",
+            stringPreferencesKey("mirror.1.address") to "https://ok.example/{url}",
             stringPreferencesKey("mirror.1.mode") to "template",
             stringPreferencesKey("mirror.2.id") to "direct",
             stringPreferencesKey("mirror.2.address") to "https://direct.example",
@@ -219,7 +219,5 @@ class SettingsCodecTest {
         val decoded = SettingsCodec.decode(target.toPreferences())
         assertEquals(1, decoded.mirrors.size)
         assertEquals("a", decoded.mirrors.single().id)
-    }
-}
     }
 }
