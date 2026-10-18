@@ -13,7 +13,7 @@
 | 0.9.4 工具链参考 | Kotlin 2.4.20、Compose Multiplatform 1.12.0、AGP 9.4.1、Gradle 9.7.1 |
 | 上游构建 JDK | 21；作为 Actions 候选基线，与本地 17 无关 |
 | 上游 Android 核心 minSdk | 24 |
-| 独立 miuix-blur minSdk | 33，与暂定 Android12/API31 不匹配 |
+| 独立 miuix-blur minSdk | 33；用户现已明确最低 Android13/API33，接入同版0.9.4 |
 
 因此“使用稳定版”在本项目中的落地是：**使用官方正式发布、非预发布版本，当前候选 0.9.4；不使用 snapshot/main 分支，不把 0.x 正式发布误称为 API 稳定保证。**若用户要求全依赖树无任何 alpha/rc，需额外审查传递依赖，不能仅看顶层版本号。
 
@@ -27,7 +27,7 @@
 - Miuix 0.9.4未在已查文档中明确给出独立的统一 iOS最低承诺；其示例工程17.6/26.0目标也不等于库下限。
 - 完整App下限取共享框架、Miuix及传递原生依赖、Go库、宿主实际API使用中的最高要求，目前尚未完成链接/可用性验证。
 - 本项目产品目标仍是 **iOS16.0**。不得把“目标16”写成“整个组合已经验证支持16”，也不因示例高版本而自动提高到17。
-- Android API33对应Android13；API31对应Android12。Android最低仍暂定31，未因解释API33而更改需求。
+- Android API33对应Android13；用户已明确将最低版本提升到33，并接入 miuix-blur。API31/Android12不再是当前支持下限。
 
 ## 2. 项目脚手架
 
@@ -63,7 +63,15 @@ https://kmp.jetbrains.com/
 - 新增直接声明 `org.jetbrains.compose.animation:animation:1.12.0`，与项目现有 Compose 版本一致，而非单独升级到索引最新版本。
 - Klibs `searchProjects("compose animation")` 的 AndroidJvm + iOS 真机/arm64 模拟器过滤返回 JetBrains 官方 `compose-multiplatform` 项目与 animation 制品；`getLatestVersion` 返回 latest/latestStable 为 1.12.2，工具链字段 Kotlin2.3.20/Gradle9.5.0。这些是索引最新元数据，不是本项目1.12.0组合的兼容证明。
 - Maven Central 的 [1.12.0 POM](https://repo.maven.apache.org/maven2/org/jetbrains/compose/animation/animation/1.12.0/animation-1.12.0.pom) 确认制品存在，发布方 JetBrains、许可证 Apache-2.0；同版 [Gradle Module Metadata](https://repo.maven.apache.org/maven2/org/jetbrains/compose/animation/animation/1.12.0/animation-1.12.0.module) 列出 `animation-android`、`animation-iosarm64`、`animation-iossimulatorarm64` 变体。完整依赖与最低系统仍需 Actions/真机验证。POM 的 dependencyManagement 含 AndroidX beta 元数据，不能据此声称整棵依赖图无预发布版本。
-- 不选第三方动效库：页面短淡入淡出与尺寸过渡已由官方模块满足；不使用常驻循环动效或 API33 模糊模块。
+- 不选第三方动效库：页面短淡入淡出与尺寸过渡已由官方模块满足；不使用常驻循环动效。新增模糊使用 Miuix 自己的 miuix-blur 0.9.4，而非平行动效库。
+
+### miuix-blur 0.9.4 接入核验
+
+- Klibs MCP `searchProjects("miuix")` / `getLatestVersion(top.yukonga.miuix.kmp:miuix-blur)` 返回0.9.4，`latestStableVersion=null`仍只表示索引未报告稳定版；项目级目标包含 AndroidJvm、ios_arm64、ios_simulator_arm64。
+- 逐制品交叉检查 [Gradle Module Metadata](https://repo.maven.apache.org/maven2/top/yukonga/miuix/kmp/miuix-blur/0.9.4/miuix-blur-0.9.4.module)，确认 android、iosarm64、iossimulatorarm64 真实变体，而不是只凭项目级KMP标记。固定同版版本，不额外直接依赖其 api 传递的 miuix-shader。
+- 上游 [build.gradle.kts](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/miuix-blur/build.gradle.kts) 和 Android AAR manifest 均为minSdk33，因此本项目Android App与shared统一提升到33。模块沿用上游Apache-2.0许可，不表示整个App许可已定。
+- 最小接入为 `rememberLayerBackdrop` + `Modifier.layerBackdrop` + `Modifier.textureBlur`；[blur指南](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/docs/guide/blur.md)与[顶栏示例](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/example/shared/src/commonMain/kotlin/utils/PageUtils.kt)均按固定tag核实。没有臆造 BlurState/blurSource API，不加其他模糊库。
+- iOS走Skiko/SkSL，源码未见高于16的独立系统API要求；不把上游示例17.6/26.0部署值当作库下限。保持产品目标16.0，最低系统实际性能和效果待真机验证。
 
 ## 5. 来源与验证范围
 

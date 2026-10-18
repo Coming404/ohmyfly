@@ -17,6 +17,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
 import dev.ohmydrift.ui.AppearanceScreen
 import dev.ohmydrift.ui.DriftIcons
@@ -27,9 +29,16 @@ import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.blur.BlendColorEntry
+import top.yukonga.miuix.kmp.blur.BlurDefaults
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.blur.textureBlur
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.theme.darkColorScheme
-import top.yukonga.miuix.kmp.theme.lightColorScheme
+import top.yukonga.miuix.kmp.theme.ThemeColorSpec
+import top.yukonga.miuix.kmp.theme.ThemeController
+import top.yukonga.miuix.kmp.theme.ThemePaletteStyle
 
 @Composable
 fun App() {
@@ -43,7 +52,16 @@ fun App() {
     val nodesState = rememberLazyListState()
     val appearanceState = rememberLazyListState()
     val dark = themeMode.isDark(isSystemInDarkTheme())
-    val colors = remember(dark) { if (dark) darkColorScheme() else lightColorScheme() }
+    val themeController = remember(dark) {
+        ThemeController(
+            colorSchemeMode = ColorSchemeMode.MonetSystem,
+            // An explicit seed makes Expressive / Spec2025 effective on both platforms.
+            keyColor = Color(0xFF3482FF),
+            colorSpec = ThemeColorSpec.Spec2025,
+            paletteStyle = ThemePaletteStyle.Expressive,
+            isDark = dark,
+        )
+    }
     val items = remember {
         listOf(
             "概览" to DriftIcons.Overview,
@@ -52,9 +70,29 @@ fun App() {
         )
     }
 
-    MiuixTheme(colors = colors) {
+    MiuixTheme(controller = themeController) {
+        val surface = MiuixTheme.colorScheme.surface
+        val backdrop = rememberLayerBackdrop {
+            drawRect(surface)
+            drawContent()
+        }
+        val blurOverview = selectedTab == 0 && !reduceMotion
+        val blurColors = BlurDefaults.blurColors(
+            blendColors = listOf(BlendColorEntry(surface.copy(alpha = 0.8f))),
+        )
         Scaffold(
-            topBar = { SmallTopAppBar(title = "ohmydrift") },
+            topBar = {
+                Box(
+                    modifier = if (blurOverview) Modifier.textureBlur(
+                        backdrop = backdrop,
+                        shape = RectangleShape,
+                        blurRadius = 25f,
+                        colors = blurColors,
+                    ) else Modifier,
+                ) {
+                    SmallTopAppBar(title = "ohmydrift", color = if (blurOverview) Color.Transparent else surface)
+                }
+            },
             bottomBar = {
                 NavigationBar {
                     items.forEachIndexed { index, (label, icon) ->
@@ -69,38 +107,42 @@ fun App() {
             },
         ) { padding ->
             val page: @Composable (Int) -> Unit = { tab ->
-                when (tab) {
-                    0 -> OverviewScreen(
-                        listState = overviewState,
-                        expanded = expanded,
-                        reduceMotion = reduceMotion,
-                        onExpand = { expanded = !expanded },
-                        onNodes = { selectedTab = 1 },
-                        onAppearance = { selectedTab = 2 },
-                    )
-                    1 -> NodesScreen(
-                        listState = nodesState,
-                        category = category,
-                        selectedIds = selectedIds,
-                        onCategory = { category = it },
-                        onSelection = { selectedIds = it },
-                    )
-                    2 -> AppearanceScreen(
-                        listState = appearanceState,
-                        themeMode = themeMode,
-                        reduceMotion = reduceMotion,
-                        onThemeMode = { themeMode = it },
-                        onReduceMotion = { reduceMotion = it },
-                        onPreview = {
-                            overviewState.requestScrollToItem(0)
-                            expanded = false
-                            selectedTab = 0
-                        },
-                    )
+                Box(modifier = if (tab == 0) Modifier else Modifier.padding(padding)) {
+                    when (tab) {
+                        0 -> OverviewScreen(
+                            modifier = if (blurOverview) Modifier.layerBackdrop(backdrop) else Modifier,
+                            contentPadding = padding,
+                            listState = overviewState,
+                            expanded = expanded,
+                            reduceMotion = reduceMotion,
+                            onExpand = { expanded = !expanded },
+                            onNodes = { selectedTab = 1 },
+                            onAppearance = { selectedTab = 2 },
+                        )
+                        1 -> NodesScreen(
+                            listState = nodesState,
+                            category = category,
+                            selectedIds = selectedIds,
+                            onCategory = { category = it },
+                            onSelection = { selectedIds = it },
+                        )
+                        2 -> AppearanceScreen(
+                            listState = appearanceState,
+                            themeMode = themeMode,
+                            reduceMotion = reduceMotion,
+                            onThemeMode = { themeMode = it },
+                            onReduceMotion = { reduceMotion = it },
+                            onPreview = {
+                                overviewState.requestScrollToItem(0)
+                                expanded = false
+                                selectedTab = 0
+                            },
+                        )
+                    }
                 }
             }
             Box(
-                modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding),
+                modifier = Modifier.fillMaxSize().consumeWindowInsets(padding),
                 contentAlignment = Alignment.TopCenter,
             ) {
                 Box(Modifier.widthIn(max = 760.dp).fillMaxSize()) {

@@ -9,7 +9,7 @@
 ## 2. 平台
 
 - iOS 最低版本：**16.0**，用户已确定。Xcode App target、共享 Kotlin framework、Go 库及其他原生依赖都必须满足；不能只改一个项目设置。
-- Android 最低版本：**暂定 Android 12 / API 31**，可在最终定版前调整。Android 12L 为 API 32。
+- Android 最低版本：**Android 13 / API 33**，用户已确定；接入同版 `miuix-blur`。
 - `minSdk` 与 `compileSdk` / `targetSdk` 是不同概念；最低系统版本不决定使用旧编译 SDK。
 - 第一版以 Android arm64、iOS 真机 arm64、iOS Simulator arm64 为验证重点；其他 ABI 按需要增加。
 - 不把 Desktop、Web、Server 作为第一版交付目标。

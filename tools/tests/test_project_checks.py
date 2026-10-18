@@ -2,6 +2,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / 'check_project.py'
 spec = importlib.util.spec_from_file_location('check_project', MODULE_PATH)
@@ -38,6 +39,15 @@ class MarkdownCheckTests(unittest.TestCase):
             self.assertEqual(module.note_errors(note, root), [])
             note.write_text('# Agent Note: Test\n\nStatus: implemented\n\n## Alternatives considered\n')
             self.assertTrue(module.note_errors(note, root))
+
+    def test_android_minimum_cannot_drop_below_blur_requirement(self):
+        catalog = module.tomllib.loads((module.ROOT / 'gradle/libs.versions.toml').read_text())
+        self.assertEqual(catalog['versions']['android-minSdk'], '33')
+        self.assertEqual(catalog['libraries']['miuix-blur']['version']['ref'], 'miuix')
+        catalog['versions']['android-minSdk'] = '31'
+        with patch.object(module.tomllib, 'loads', return_value=catalog):
+            errors = module.check()
+        self.assertIn('Android minimum must be API 33 / Android 13 for miuix-blur', errors)
 
     def test_missing_structure_is_reported(self):
         with tempfile.TemporaryDirectory() as directory:

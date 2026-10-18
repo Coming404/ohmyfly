@@ -83,8 +83,8 @@ def check(root: Path = ROOT) -> list[str]:
     for key, value in catalog['versions'].items():
         if '+' in value or value.startswith('latest.'):
             errors.append(f'floating version {key}={value}')
-    if catalog['versions']['android-minSdk'] != '31':
-        errors.append('Android provisional minimum changed without updating this check')
+    if catalog['versions']['android-minSdk'] != '33':
+        errors.append('Android minimum must be API 33 / Android 13 for miuix-blur')
     settings = (root / 'settings.gradle.kts').read_text()
     if ':desktopApp' in settings or ':webApp' in settings:
         errors.append('unexpected extra platform')

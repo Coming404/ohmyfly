@@ -34,9 +34,9 @@ third-party/     模板来源与许可证
 
 - 产品名：ohmydrift。
 - iOS deployment target：16.0；依赖和真机兼容待验证。
-- Android minSdk：31 / Android12，**暂定**。
+- Android minSdk：33 / Android13，用户已确定。
 - Kotlin 2.4.20、Compose Multiplatform1.12.0、Miuix0.9.4、AGP9.4.1、Wrapper9.7.1。
-- 独立miuix-blur要求API33，未加入基线。
+- 已引入同版 miuix-blur 0.9.4；Android 最低 API33，iOS 仍为16.0。
 - `dev.ohmydrift.app`仅为开发标识，正式包名/签名团队尚未确定。
 - 参考官方Kotlin/KMP-App-Template的Wrapper和iOS宿主，剔除其他平台及演示业务。来源见 [third-party/README.md](third-party/README.md)。
 

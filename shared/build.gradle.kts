@@ -39,6 +39,7 @@ kotlin {
             implementation(libs.compose.animation)
             implementation(libs.compose.ui)
             implementation(libs.miuix.ui)
+            implementation(libs.miuix.blur)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

@@ -4,14 +4,14 @@
 
 - 双端最小工程结构、Miuix主题/Scaffold与共享品牌顶栏。
 - [UI 展示页](ui-showcase.md)：概览/节点/外观底部导航，卡片、图标按钮、分类多选、主题切换和轻量动画；只用演示数据。
-- Android宿主、iOS Swift/Xcode宿主；iOS部署目标16，Android最低API31暂定。
+- Android宿主、iOS Swift/Xcode宿主；iOS部署目标16，Android最低API33 / Android13。
 - 直接依赖固定版本、Wrapper版本与分发校验值。
 - 项目规则、资料入口、轻量检查与手动云端构建配置。
 
 ## 尚未证明
 
 - Kotlin/AGP/Compose/Miuix整体能在云端编译。
-- iOS16和Android12真机运行正常。
+- iOS16和Android13最低系统真机运行正常。
 - Go核心能跨平台链接、测速、取消并释放全部资源。
 - 许可、签名和分发路径已确定。
 

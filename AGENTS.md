@@ -3,7 +3,7 @@
 ## Scope and source of truth
 
 - Build a Kotlin + Compose Multiplatform app for Android and iOS with shared UI/business logic and Miuix. Use Miuix Scaffold for page structure; do not substitute Material Scaffold or add Desktop/Web targets without a requirement.
-- iOS minimum: 16.0. Android minimum: provisionally API 31 / Android 12. Do not raise either silently. The independent miuix-blur module requires API 33 and is not a baseline dependency.
+- iOS minimum: 16.0. Android minimum: API 33 / Android 13, explicitly approved for miuix-blur integration. Do not change either silently. Keep miuix-ui and miuix-blur on the same pinned version.
 - Read `docs/requirements.md`, `docs/engineering.md`, and existing decisions before changing cross-module contracts.
 - Find upstream documentation and repository entry points in `docs/references.md`. For version-sensitive APIs, inspect the pinned release/tag, not only the latest website or main branch. Add/update the relevant reference when introducing a dependency or integration.
 - `gradle/libs.versions.toml` and the Gradle Wrapper define declared build versions. A declared pin is not proof that the entire transitive graph is locked or that the build passes.
