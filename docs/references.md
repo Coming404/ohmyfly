@@ -19,19 +19,27 @@
 
 MCP版本/目标信息不足以证明许可证或持续维护；缺失字段查官方LICENSE、commits、releases、issues。注意同名fork和`latestStableVersion=null`的语义。
 
+## 设置持久化与镜像
+
+- [设置实现与边界](settings.md)：DataStore版本、沙盒路径、依赖核对与镜像选择／降级契约。
+- [DataStore多平台文档](https://developer.android.com/kotlin/multiplatform/datastore)；[1.2.1发布](https://developer.android.com/jetpack/androidx/releases/datastore#1.2.1)。
+- [Miuix 0.9.4 TextField](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/basic/TextField.kt)：新表单优先state重载，不套用旧教程输入签名。
+
 ## Miuix
 
 - [官方文档](https://compose-miuix-ui.github.io/miuix/)；[中文文档](https://compose-miuix-ui.github.io/miuix/zh_CN/)。
 - [官方中文快速开始](https://compose-miuix-ui.github.io/miuix/zh_CN/guide/getting-started)；[英文入门](https://compose-miuix-ui.github.io/miuix/guide/getting-started.html)。
 - [Scaffold](https://compose-miuix-ui.github.io/miuix/components/scaffold.html)：页面容器、insets和弹层宿主，不是工程模板。
 - [主题](https://compose-miuix-ui.github.io/miuix/guide/theme.html)；[文字样式](https://compose-miuix-ui.github.io/miuix/guide/textstyles.html)。
-- [0.9.4 ThemeController](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/theme/ThemeController.kt)：`MonetSystem + Vibrant + Spec2025` 使用显式种子才进入对应生成分支；不把平台默认动态色当成指定风格已生效。
+- [0.9.4 ThemeController](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/theme/ThemeController.kt)：Android当前以MonetSystem/keyColor=null走系统配色；iOS使用System与默认浅深色回退。非空种子才走指定style/spec生成分支，不把两个分支混为一谈。
 - [组件源码](https://github.com/compose-miuix-ui/miuix/tree/v0.9.4/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp)。
 - [0.9.4完整文档源码](https://github.com/compose-miuix-ui/miuix/tree/v0.9.4/docs)：网站可能比锁定版本更新，标签内文档也可能滞后；以同版本组件源码或发布 sources.jar 为最终签名依据。
 - [0.9.4 基础行 Component](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/basic/Component.kt)、[SmallTitle](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/basic/SmallTitle.kt)、[Card 示例](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/example/shared/src/commonMain/kotlin/component/CardSection.kt)：概览页默认排版依据。
 - [0.9.4 blur 指南](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/docs/guide/blur.md)、[顶栏模糊用法](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/example/shared/src/commonMain/kotlin/utils/PageUtils.kt)：核对真实的 layerBackdrop / textureBlur，而非套用其他库API。
 - [0.9.4 NavigationBar 源码](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/basic/NavigationBar.kt)：使用 `NavigationBar { NavigationBarItem(...) }` 槽位 API，不能照抄旧文档的 `items/selected/onClick` 参数。
-- [0.9.4 基础 Checkbox](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/basic/Checkbox.kt) 与 [Switch](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/basic/Switch.kt)：当前展示使用基础控件；不导入已移除的 `extra.SuperCheckbox/SuperSwitch`，不为演示增加独立 preference 模块。
+- [0.9.4基础Checkbox](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/basic/Checkbox.kt)与[Switch](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/basic/Switch.kt)：当前选择控件使用基础实现与整行语义，不导入已移除的extra.Super*；preference已按全模块要求引入，不等于每行都已迁移。
+- [0.9.4默认颜色与工厂函数](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/theme/Colors.kt)：lightColorScheme/darkColorScheme可自定义完整配色，System只管理明暗选择。
+- [0.9.4 textureBlur真实签名](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/miuix-blur/src/commonMain/kotlin/top/yukonga/miuix/kmp/blur/TextureEffect.kt)、[LayerBackdrop](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/miuix-blur/src/commonMain/kotlin/top/yukonga/miuix/kmp/blur/LayerBackdrop.kt)：blurRadius为dp、noiseCoefficient可设0；无downsampleFactor参数，捕获源复用不等于模糊结果复用。
 - [0.9.4发布模块清单](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/settings.gradle.kts)：正式模块为ui/core/preference/icons/blur/shader/squircle/nav，全部同版；example/docs/baselineprofile不属于App依赖。
 - [0.9.4完整图标文档](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/docs/zh_CN/guide/icons.md)：完整miuix-icons提供扩展图标与五种权重，Basic由miuix-ui提供；不臆造icons-basic或Useful分组。
 - [0.9.4导航模块](https://github.com/compose-miuix-ui/miuix/tree/v0.9.4/miuix-nav)：本版用miuix-nav替代旧navigation3-ui；依赖引入和路由迁移是两项不同任务。

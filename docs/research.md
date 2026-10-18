@@ -17,7 +17,7 @@
 
 因此“使用稳定版”在本项目中的落地是：**使用官方正式发布、非预发布版本，当前候选 0.9.4；不使用 snapshot/main 分支，不把 0.x 正式发布误称为 API 稳定保证。**若用户要求全依赖树无任何 alpha/rc，需额外审查传递依赖，不能仅看顶层版本号。
 
-以上版本已经写入当前工程的直接声明：Kotlin2.4.20、Compose Multiplatform1.12.0、Miuix0.9.4、AGP9.4.1、Gradle Wrapper9.7.1。**尚未通过云端编译，未生成完整传递依赖锁或校验元数据**。Compose Compiler与Kotlin插件同版本。禁止`+`、`latest.release`或自动跟随main；升级需要兼容性验证。Version Catalog并不自动锁死整个传递依赖图。
+以上版本已经写入当前工程的直接声明：Kotlin2.4.20、Compose Multiplatform1.12.0、Miuix0.9.4、AGP9.4.1、Gradle Wrapper9.7.1。**基线9930858已通过双端Release；本轮材质与运行时清理尚未云端编译，未生成完整传递依赖锁或校验元数据**。Compose Compiler与Kotlin插件同版本。禁止`+`、`latest.release`或自动跟随main；升级需要兼容性验证。Version Catalog并不自动锁死整个传递依赖图。
 
 `mavenCentral()` 是依赖仓库地址，不是另一种 Compose 版本，也没有需要指定的“仓库版本”。Android 的 Compose/AndroidX 依赖通常还需 `google()`；插件仓库按实际插件使用配置。Klibs 本轮查到 Compose UI 最新正式版为1.12.2，但不自动取代对齐 Miuix 的1.12.0候选。
 
@@ -57,13 +57,10 @@ https://kmp.jetbrains.com/
 
 产品名已确定，取漂流和轻盈滑行的意象。当前开发标识为`dev.ohmydrift.app`；正式appId/bundleId、签名团队、图标与中文名仍待定，商标/商店重名/域名未查。文档以当前工程`docs/`为唯一维护位置。
 
-## 4. UI 展示与动画依赖
+## 4. UI 依赖与材质
 
-- UI 展示沿用 Miuix 0.9.4；用户后续明确要求引入全部正式模块与完整图标，8模块均显式声明。引入miuix-nav不自动改写现有五个目的地的路由，不新增平行Material页面。底栏/控件签名以锁定标签核对；具体行为见 [ui-showcase.md](ui-showcase.md)。
-- 新增直接声明 `org.jetbrains.compose.animation:animation:1.12.0`，与项目现有 Compose 版本一致，而非单独升级到索引最新版本。
-- Klibs `searchProjects("compose animation")` 的 AndroidJvm + iOS 真机/arm64 模拟器过滤返回 JetBrains 官方 `compose-multiplatform` 项目与 animation 制品；`getLatestVersion` 返回 latest/latestStable 为 1.12.2，工具链字段 Kotlin2.3.20/Gradle9.5.0。这些是索引最新元数据，不是本项目1.12.0组合的兼容证明。
-- Maven Central 的 [1.12.0 POM](https://repo.maven.apache.org/maven2/org/jetbrains/compose/animation/animation/1.12.0/animation-1.12.0.pom) 确认制品存在，发布方 JetBrains、许可证 Apache-2.0；同版 [Gradle Module Metadata](https://repo.maven.apache.org/maven2/org/jetbrains/compose/animation/animation/1.12.0/animation-1.12.0.module) 列出 `animation-android`、`animation-iosarm64`、`animation-iossimulatorarm64` 变体。完整依赖与最低系统仍需 Actions/真机验证。POM 的 dependencyManagement 含 AndroidX beta 元数据，不能据此声称整棵依赖图无预发布版本。
-- 不选第三方动效库：页面短淡入淡出与尺寸过渡已由官方模块满足；不使用常驻循环动效。新增模糊使用 Miuix 自己的 miuix-blur 0.9.4，而非平行动效库。
+- UI沿用Miuix0.9.4全部正式模块与完整图标，8模块均显式声明。miuix-nav不自动改写现有五个目的地的路由，不新增平行Material页面。底栏/控件签名按固定tag核对；具体行为见[UI实现](ui-showcase.md)。
+- 当前已移除全局Crossfade与展开体验，删除不再直接使用的Compose animation目录别名和声明；Miuix自身需要的传递动画依赖不因此被排除。不引入第三方动效库。
 
 ### miuix-blur 0.9.4 接入核验
 
@@ -85,7 +82,7 @@ https://kmp.jetbrains.com/
 
 KMP依赖需先查Klibs，再核对上游许可证与最低系统。所有可查询入口集中在[资料索引](references.md)，不依赖本地调研克隆目录。
 
-已完成：最小工程、Miuix共享展示页、双端宿主、固定直接依赖声明、Wrapper、规则与资料索引，以及原始去重函数边界测试证据归档。上一版6cb51eb的双端Release已通过；本轮五页/全模块改动尚未编译。Go桥接、最低系统真机验证与最终发布许可仍未完成。
+已完成：共享五页、双端宿主、Miuix全模块、固定直接依赖、Wrapper与本地检查。9930858已通过双端Release和8项共享测试；本轮悬浮层与生产源码清理尚未编译。Go桥接、订阅存储、最低系统真机性能与最终发布许可仍未完成。
 
 ## 6. Miuix 0.9.4 全模块与完整图标
 
@@ -108,4 +105,4 @@ KMP依赖需先查Klibs，再核对上游许可证与最低系统。所有可查
 - ui/icons以api传递core，ui传递squircle，blur/squircle传递shader；preference传递ui。引入nav不等于已迁移路由，现有五目的地状态仍保留。
 - [图标文档](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/docs/zh_CN/guide/icons.md)及对应源码核对完整目录：Basic的7个图标由ui提供；icons提供156个扩展图标及五档权重。不存在独立miuix-icons-basic或Useful分组。导航采用Home/Link/Stopwatch/Layers/Settings；原通用自绘路径已删除，Wave品牌保留。
 - Android库通用min24，blur独立min33，项目API33满足声明要求；库未给独立iOS部署下限，保持产品目标16，不把示例或框架最低版本当作组合真机证据。POM许可证Apache-2.0不决定未来Go组合程序的最终许可。
-- 已知传递预发布：ui的material3-window-size-class:1.12.0-alpha03。不能声称整个图无alpha/rc；不为清除该提示擅自替换依赖。新增模块未完整解析/编译，未生成全图锁或校验元数据，iOS16链接与运行仍待验。
+- 已知传递预发布：ui的material3-window-size-class:1.12.0-alpha03。不能声称整个图无alpha/rc；不为该提示擅自替换依赖。8模块已在9930858双端Release解析编译通过；本轮材质/清理未编译，未生成全图锁或校验元数据，最低系统真机性能仍待验。

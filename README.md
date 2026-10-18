@@ -2,7 +2,7 @@
 
 Android / iOS 订阅管理与节点测速应用的最小工程基础。
 
-**Kotlin + Compose Multiplatform + Miuix**；Go核心尚未接入。当前共享 UI 框架包含五个入口：**概览、订阅、测速、节点库、设置**；采用固定品牌顶栏和五项悬浮胶囊导航。节点选择与外观使用演示/会话数据，订阅导入和真实测速尚未接入，参见 [UI 实现说明](docs/ui-showcase.md)和[五页功能分工](docs/page-functions.md)。**上一版 `6cb51eb` 已通过 Android/iOS Release 云端构建；本轮五页改动尚未编译，不代表已完成业务或可直接发布。**
+**Kotlin + Compose Multiplatform + Miuix**；Go核心尚未接入。共享UI包含五个入口：**概览、订阅、测速、节点库、设置**；品牌与底部导航使用统一悬浮材质。运行时目录初始为空，不包含假节点或假测量结果；订阅导入和Go节点测速仍待接通。设置已接DataStore非敏感配置持久化与独立GitHub镜像HTTP探测，详见[设置与镜像](docs/settings.md)。参见[UI实现与验收](docs/ui-showcase.md)和[五页功能分工](docs/page-functions.md)。**上一版 `9930858` 已通过双端Release与8项共享测试；本轮悬浮层、生产界面及设置／镜像实现仅完成本地检查，尚未编译，不代表可发布。**
 
 ## 开始开发
 

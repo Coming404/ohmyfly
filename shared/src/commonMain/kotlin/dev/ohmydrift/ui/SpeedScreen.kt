@@ -10,52 +10,51 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SmallTitle
+import top.yukonga.miuix.kmp.basic.TextButton
 
 @Composable
-internal fun SpeedTestScreen(
+internal fun SpeedScreen(
     listState: LazyListState,
+    nodes: List<NodeSummary>,
     selectedIds: Set<String>,
     onNodes: () -> Unit,
+    contentPadding: PaddingValues = PaddingValues(),
 ) {
-    val selected = demoNodes.filter { it.id in selectedIds }
+    val selected = nodes.filter { it.id in selectedIds }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         state = listState,
-        contentPadding = PaddingValues(vertical = 12.dp),
+        contentPadding = contentPadding.withPageSpacing(LocalLayoutDirection.current),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
             Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
                 BasicComponent(
-                    title = "真实测速尚未接入",
-                    summary = "当前只预览所选演示节点，不会发送测试请求或消耗测试流量。",
-                )
-                BasicComponent(
-                    title = "选择测试节点",
-                    summary = "已选择 ${selected.size} 个演示节点，前往节点库调整。",
+                    title = "测试范围",
+                    summary = if (selected.isEmpty()) "未选择节点" else "已选择 ${selected.size} 个节点",
                     onClick = onNodes,
                     role = Role.Button,
                 )
             }
         }
-        item { SmallTitle("待测节点 · 演示") }
+        item { SmallTitle("待测节点") }
         if (selected.isEmpty()) {
-            item { BasicComponent(summary = "尚未选择节点，请先到节点库选择。") }
+            item { BasicComponent(title = "暂无待测节点") }
         }
         items(selected, key = { it.id }) { node ->
             Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
-                BasicComponent(title = node.name, summary = "${node.region} · ${node.protocol} · 非实测")
+                BasicComponent(title = node.name, summary = "${node.region} · ${node.protocol}")
             }
         }
         item {
-            ActionButton(
-                label = "开始测速（尚未接入）",
-                icon = DriftIcons.Play,
+            TextButton(
+                text = "开始测速",
                 enabled = false,
                 onClick = {},
                 modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth(),

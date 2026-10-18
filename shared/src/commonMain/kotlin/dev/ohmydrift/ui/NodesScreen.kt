@@ -12,66 +12,71 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.runtime.Composable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
+import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.Checkbox
+import top.yukonga.miuix.kmp.basic.SmallTitle
+import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 internal fun NodesScreen(
     listState: LazyListState,
+    nodes: List<NodeSummary>,
     category: String,
     selectedIds: Set<String>,
     onCategory: (String) -> Unit,
     onSelection: (Set<String>) -> Unit,
+    contentPadding: PaddingValues = PaddingValues(),
 ) {
-    val visible = filterNodes(demoNodes, category)
-
+    val visible = filterNodes(nodes, category)
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         state = listState,
-        contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        contentPadding = contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { SectionHeading("挑选你的下一站", "卡片列表 / 分类 / 多选") }
-        item {
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()).selectableGroup(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                nodeCategories.forEach { item ->
-                    ChoiceOption(
-                        label = item,
-                        selected = category == item,
-                        onClick = { onCategory(item) },
+        item { SmallTitle("节点库") }
+        if (nodes.isEmpty()) {
+            item {
+                Card(Modifier.fillMaxWidth()) { BasicComponent(title = "暂无节点") }
+            }
+        } else {
+            item {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()).selectableGroup(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    nodeCategories(nodes).forEach { item ->
+                        ChoiceOption(item, category == item, onClick = { onCategory(item) })
+                    }
+                }
+            }
+            item {
+                Card(Modifier.fillMaxWidth()) {
+                    BasicComponent(
+                        title = "已选择 ${selectedIds.size} / ${nodes.size} 个",
+                        summary = "当前分类 ${visible.size} 个",
                     )
                 }
             }
-        }
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("已选择 ${selectedIds.size} / ${demoNodes.size} 个", style = MiuixTheme.textStyles.title2)
-                    Text("当前分类 ${visible.size} 个；切换分类会保留其他地区的选择。")
-                    Text("顶栏勾选按钮切换当前分类全选；叉号清空所有分类的选择。")
-                }
+            if (visible.isEmpty()) {
+                item { BasicComponent(title = "当前分类暂无节点") }
             }
-        }
-        if (visible.isEmpty()) {
-            item { Text("该分类暂无演示节点。") }
         }
         items(visible, key = { it.id }) { node ->
             val checked = node.id in selectedIds
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier.fillMaxWidth()
                         .toggleable(
@@ -79,14 +84,14 @@ internal fun NodesScreen(
                             role = Role.Checkbox,
                             onValueChange = { onSelection(toggleSelection(selectedIds, node.id)) },
                         )
-                        .padding(20.dp),
+                        .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(node.name, style = MiuixTheme.textStyles.title4)
                         Text(
-                            "${node.region} · ${node.protocol}\n示例延迟 ${node.sampleLatencyMs} ms · 非实测",
+                            "${node.region} · ${node.protocol} · ${node.latencyMs?.let { "$it ms" } ?: "未测速"}",
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                     }
@@ -98,6 +103,5 @@ internal fun NodesScreen(
                 }
             }
         }
-        item { DemoFootnote() }
     }
 }

@@ -34,9 +34,12 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(libs.ktor.client.core)
+            implementation(libs.androidx.datastore.preferences)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.okio)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
-            implementation(libs.compose.animation)
             implementation(libs.compose.ui)
             implementation(libs.miuix.ui)
             implementation(libs.miuix.core)
@@ -47,8 +50,17 @@ kotlin {
             implementation(libs.miuix.squircle)
             implementation(libs.miuix.nav)
         }
+        androidMain.dependencies {
+            implementation(libs.ktor.client.okhttp)
+            implementation(libs.androidx.activity.compose)
+        }
+        findByName("iosMain")?.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
         commonTest.dependencies {
+            implementation(libs.ktor.client.mock)
             implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }

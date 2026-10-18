@@ -64,7 +64,7 @@ Miuix 已提供颜色、文字层级和组件 Defaults，项目只补页面级�
 | 图标 | 业务线条图标24dp，不替换组件内部图标默认值 |
 | 圆角 | Card 默认16dp |
 
-节点库主体暂保留原卡片列表；外观展示已收敛进设置页，移除纯字体/色块展品。禁止通过全局 density/fontScale 缩放掩盖字号和留白问题。共享主题使用 MonetSystem + Vibrant + Spec2025，显式蓝色种子确保指定生成参数生效；模糊仅用于概览顶栏。
+节点库保留卡片列表与选择语义；运行时不包含固定假节点或假延迟，初始为空。禁止通过全局density/fontScale缩放掩盖布局问题。用户已选择系统动态色：Android以MonetSystem/keyColor=null跟随系统；iOS以System使用Miuix默认浅深色回退，不传Vibrant/Spec2025或固定种子。五页使用同一全屏采样源，顶底仅在小胶囊内采用20f模糊、浅0.22/深0.28表面覆盖、noiseCoefficient=0；不透明回退一致。参数是项目取舍，不是Apple材质规范；详见[UI实现](ui-showcase.md)。
 
 - 文字优先引用 `MiuixTheme.textStyles`，仅为测速大数字等明确用途增加样式。
 - 默认使用平台适配字体；不擅自打包小米专有字体或把字体授权视为组件库授权的一部分。
@@ -77,6 +77,8 @@ Miuix 已提供颜色、文字层级和组件 Defaults，项目只补页面级�
 设计流程：先定义最少页面令牌 → 使用 Miuix 实现 → 对照真机截图检查对齐、层级与状态 → 按 Apple HIG 检查 iOS 系统交互。
 
 ## 5. Go 桥接
+
+节点代理连接、吞吐与统计继续由Go负责；GitHub镜像的有界公开小资源HTTP探测是独立控制面操作，不搬运节点测速负载，也不因此提前接入Go核心。设置使用DataStore Preferences存非敏感配置，平台路径与安全边界见[设置与镜像](settings.md)。
 
 先验证 gomobile 窄接口生成 AAR / Apple framework 或 XCFramework，再由 Kotlin Android、Kotlin/Native 接入。若真实阻碍出现，才评估自定义 C ABI；未构建不能宣布某条路线一定可行或不可行。
 

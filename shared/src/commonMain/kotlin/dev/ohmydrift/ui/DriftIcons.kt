@@ -9,7 +9,6 @@ import androidx.compose.ui.graphics.vector.PathBuilder
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.icon.basic.Check
 import top.yukonga.miuix.kmp.icon.basic.Close
 import top.yukonga.miuix.kmp.icon.extended.Home
@@ -22,11 +21,9 @@ import top.yukonga.miuix.kmp.icon.extended.Stopwatch
 internal object DriftIcons {
     val Overview = MiuixIcons.Home
     val Nodes = MiuixIcons.Layers
-    val Theme = MiuixIcons.Settings
     val Subscriptions = MiuixIcons.Link
     val Settings = MiuixIcons.Settings
-    val Play = MiuixIcons.Stopwatch
-    val Arrow = MiuixIcons.Basic.ArrowRight
+    val Speed = MiuixIcons.Stopwatch
     val Clear = MiuixIcons.Basic.Close
     val Check = MiuixIcons.Basic.Check
     val Wave = glyph("Wave") {

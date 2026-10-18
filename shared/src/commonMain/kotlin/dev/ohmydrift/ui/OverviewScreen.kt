@@ -1,12 +1,8 @@
 package dev.ohmydrift.ui
 
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -29,96 +25,63 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 internal fun OverviewScreen(
     listState: LazyListState,
-    expanded: Boolean,
-    reduceMotion: Boolean,
-    onExpand: () -> Unit,
+    nodes: List<NodeSummary>,
+    subscriptionCount: Int,
+    selectedCount: Int,
     onNodes: () -> Unit,
     onSettings: () -> Unit,
     onSubscriptions: () -> Unit,
-    onSpeedTest: () -> Unit,
-    modifier: Modifier = Modifier,
+    onSpeed: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
-    val direction = LocalLayoutDirection.current
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         state = listState,
-        contentPadding = PaddingValues(
-            start = contentPadding.calculateStartPadding(direction),
-            top = contentPadding.calculateTopPadding() + 12.dp,
-            end = contentPadding.calculateEndPadding(direction),
-            bottom = contentPadding.calculateBottomPadding() + 12.dp,
-        ),
+        contentPadding = contentPadding.withPageSpacing(LocalLayoutDirection.current),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Card(
-                modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth()
-                    .animateContentSize(tween(if (reduceMotion) 0 else 240)),
-            ) {
-                BasicComponent(
-                    title = "让连接，轻盈一点。",
-                    summary = "ohmydrift · 界面预览 · 非实测数据",
-                    startAction = { OverviewIcon(DriftIcons.Wave) },
-                )
-                BasicComponent(
-                    title = if (expanded) "收起展示" else "展开动效",
-                    summary = "仅展开说明，不启动真实测速",
-                    onClick = onExpand,
-                    role = Role.Button,
-                )
-                if (expanded) {
-                    BasicComponent(summary = "共享 Miuix 界面，使用固定演示数据，不会发送网络请求或消耗测试流量。")
+            Column {
+                SmallTitle("概况")
+                Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
+                    BasicComponent(title = "订阅来源", endActions = { Text(subscriptionCount.toString()) })
+                    BasicComponent(title = "节点总数", endActions = { Text(nodes.size.toString()) })
+                    BasicComponent(title = "已选择", endActions = { Text(selectedCount.toString()) })
                 }
             }
         }
         item {
             Column {
-                SmallTitle("演示概况")
-                Card(modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
-                    BasicComponent(
-                        title = "演示节点",
-                        endActions = {
-                            Text(demoNodes.size.toString(), color = MiuixTheme.colorScheme.primary)
-                        },
-                    )
-                    BasicComponent(
-                        title = "地区分类",
-                        endActions = {
-                            Text(demoNodes.map { it.region }.distinct().size.toString(), color = MiuixTheme.colorScheme.primary)
-                        },
-                    )
+                SmallTitle("最近测速")
+                Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
+                    BasicComponent(title = "暂无测速记录")
                 }
             }
         }
         item {
             Column {
-                SmallTitle("从这里开始")
-                Card(modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
+                SmallTitle("快捷入口")
+                Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
                     BasicComponent(
-                        title = "管理订阅",
-                        summary = "查看订阅模块的接入状态",
+                        title = "订阅",
                         startAction = { OverviewIcon(DriftIcons.Subscriptions) },
                         onClick = onSubscriptions,
                         role = Role.Button,
                     )
                     BasicComponent(
-                        title = "打开测速",
-                        summary = "查看当前所选节点，真实测速尚未接入",
-                        startAction = { OverviewIcon(DriftIcons.Play) },
-                        onClick = onSpeedTest,
+                        title = "测速",
+                        startAction = { OverviewIcon(DriftIcons.Speed) },
+                        onClick = onSpeed,
                         role = Role.Button,
                     )
                     BasicComponent(
-                        title = "打开节点库",
-                        summary = "分类筛选与节点多选",
+                        title = "节点库",
                         startAction = { OverviewIcon(DriftIcons.Nodes) },
                         onClick = onNodes,
                         role = Role.Button,
                     )
                     BasicComponent(
-                        title = "打开设置",
-                        summary = "明暗模式与减少动态效果",
+                        title = "设置",
                         startAction = { OverviewIcon(DriftIcons.Settings) },
                         onClick = onSettings,
                         role = Role.Button,
@@ -126,28 +89,10 @@ internal fun OverviewScreen(
                 }
             }
         }
-        item {
-            Column {
-                SmallTitle("本次预览")
-                Card(modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
-                    BasicComponent(
-                        title = "Miuix 默认组件排版",
-                        summary = "默认文字层级、行内距和卡片圆角",
-                        startAction = { OverviewIcon(DriftIcons.Overview) },
-                    )
-                    BasicComponent(
-                        title = "Vibrant · Spec2025",
-                        summary = "MonetSystem · 蓝色种子生成 · 跟随系统明暗",
-                        startAction = { OverviewIcon(DriftIcons.Theme) },
-                    )
-                }
-            }
-        }
-        item { BasicComponent(summary = "演示界面，尚未接入订阅与真实测速。") }
     }
 }
 
 @Composable
 private fun OverviewIcon(icon: ImageVector) {
-    Icon(icon, contentDescription = null, tint = MiuixTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+    Icon(icon, contentDescription = null, tint = MiuixTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
 }

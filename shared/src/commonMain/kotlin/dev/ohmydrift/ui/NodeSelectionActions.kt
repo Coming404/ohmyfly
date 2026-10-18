@@ -4,11 +4,12 @@ import androidx.compose.runtime.Composable
 
 @Composable
 internal fun NodeSelectionActions(
+    nodes: List<NodeSummary>,
     category: String,
     selectedIds: Set<String>,
     onSelection: (Set<String>) -> Unit,
 ) {
-    val visibleIds = filterNodes(demoNodes, category).map { it.id }.toSet()
+    val visibleIds = filterNodes(nodes, category).map { it.id }.toSet()
     val allSelected = visibleIds.isNotEmpty() && selectedIds.containsAll(visibleIds)
     HeaderAction(
         label = if (allSelected) "取消当前分类全选" else "全选当前分类",
