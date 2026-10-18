@@ -51,6 +51,22 @@ jobs:
           ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
           ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
         run: ./gradlew :shared:testAndroidHostTest :androidApp:assembleRelease :androidApp:bundleRelease --stacktrace
+      - name: Confirm shared test results
+        run: |
+          python3 - <<'PY'
+          import os, subprocess, xml.etree.ElementTree as ET
+          from pathlib import Path
+          paths = subprocess.check_output(['rg', '--files', 'shared/build/test-results', '-g', 'TEST-*.xml'], text=True).splitlines()
+          results = [ET.parse(path).getroot() for path in paths]
+          total = sum(int(result.get('tests', '0')) for result in results)
+          failed = sum(int(result.get('failures', '0')) + int(result.get('errors', '0')) + int(result.get('skipped', '0')) for result in results)
+          if total < 6 or failed:
+              raise SystemExit(f'Expected at least six passing shared tests, got {total} with {failed} failed/skipped')
+          summary = f'Kotlin commonTest: {total} passed, no failures or skips.\n'
+          print(summary)
+          with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as output:
+              output.write(summary)
+          PY
       - name: Verify signatures and collect Release artifacts
         shell: bash
         env:
@@ -68,10 +84,14 @@ jobs:
           if rg -q '^application-debuggable' "$RUNNER_TEMP/apk-badging.txt"; then
             echo 'Refusing to publish a debuggable APK'; exit 1
           fi
-          jarsigner -verify -keystore "$ANDROID_KEYSTORE_PATH" -storepass:env ANDROID_RELEASE_STORE_PASSWORD "${aab[0]}" | tee "$RUNNER_TEMP/bundle-verification.txt"
+          python3 tools/normalize_aab.py "${aab[0]}" "$RUNNER_TEMP/ohmydrift-release-normalized.aab"
+          jarsigner -verify -strict -keystore "$ANDROID_KEYSTORE_PATH" -storepass:env ANDROID_RELEASE_STORE_PASSWORD "$RUNNER_TEMP/ohmydrift-release-normalized.aab" | tee "$RUNNER_TEMP/bundle-verification.txt"
           rg -q 'jar verified' "$RUNNER_TEMP/bundle-verification.txt"
+          if rg -q '^Warning:' "$RUNNER_TEMP/bundle-verification.txt"; then
+            echo 'AAB verification still reports warnings'; exit 1
+          fi
           cp "${apk[0]}" build/release/android/ohmydrift-release.apk
-          cp "${aab[0]}" build/release/android/ohmydrift-release.aab
+          cp "$RUNNER_TEMP/ohmydrift-release-normalized.aab" build/release/android/ohmydrift-release.aab
           (cd build/release/android && sha256sum *.apk *.aab > SHA256SUMS.txt)
           cat build/release/android/SHA256SUMS.txt >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7.0.2

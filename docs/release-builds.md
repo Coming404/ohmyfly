@@ -33,7 +33,7 @@ Gradle 通过上述密码/别名和构建时的 `ANDROID_KEYSTORE_PATH` 读取�
 
 ## 构建与验证边界
 
-- Android：`assembleRelease` + `bundleRelease`；校验证书签名，拒绝带 `application-debuggable` 标记的 APK。
+- Android：`testAndroidHostTest` + `assembleRelease` + `bundleRelease`；校验证书签名，拒绝带 `application-debuggable` 标记的 APK。`tools/normalize_aab.py` 只规范化 AAB 的签名条目顺序与非签名 ZIP 属性，逐项核对内容 SHA-256，再用原测试签名执行 `jarsigner -verify -strict`；绝不处理 APK。这个标准库工具是 CI 的格式校验工具，不是 App 依赖。
 - iOS：Xcode `Release`、`iphoneos`、`arm64`、`archive`，关闭代码签名。`tools/package_ios_release.py` 在打包前检查 App 元数据、Mach-O CPU 与 iOS device 平台，拒绝 arm64 模拟器冒充真机包。
 - `tools/package_ios_release.py` 是 CI 所需的保留工具：校验部分只用 Python 标准库，归档打包使用 macOS 自带 `ditto`。不是 App 运行依赖。
 - 本地只运行 `python3 tools/check_project.py` 和 `python3 -m unittest discover -s tools/tests -v`，不下载完整移动端工具链。打包验证测试可以在 Linux 运行，不声称本地运行了 Xcode。
