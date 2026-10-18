@@ -39,7 +39,13 @@ kotlin {
             implementation(libs.compose.animation)
             implementation(libs.compose.ui)
             implementation(libs.miuix.ui)
+            implementation(libs.miuix.core)
+            implementation(libs.miuix.preference)
+            implementation(libs.miuix.icons)
             implementation(libs.miuix.blur)
+            implementation(libs.miuix.shader)
+            implementation(libs.miuix.squircle)
+            implementation(libs.miuix.nav)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

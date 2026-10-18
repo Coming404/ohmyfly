@@ -2,7 +2,7 @@
 
 Android / iOS 订阅管理与节点测速应用的最小工程基础。
 
-**Kotlin + Compose Multiplatform + Miuix**；Go核心尚未接入。当前提供三个共享 UI 展示页（概览、节点、外观）、平台宿主、固定版本声明和检查/构建工作流。卡片、分类多选、图标按钮、深浅主题与轻量过渡均使用演示内容；参见 [UI 展示说明](docs/ui-showcase.md)。**已完成 Android Release 与 iOS 真机 Release 的云端构建；尚未完成重签安装和最低系统真机验证，不代表可直接发布。**
+**Kotlin + Compose Multiplatform + Miuix**；Go核心尚未接入。当前共享 UI 框架包含五个入口：**概览、订阅、测速、节点库、设置**；采用固定品牌顶栏和五项悬浮胶囊导航。节点选择与外观使用演示/会话数据，订阅导入和真实测速尚未接入，参见 [UI 实现说明](docs/ui-showcase.md)和[五页功能分工](docs/page-functions.md)。**上一版 `6cb51eb` 已通过 Android/iOS Release 云端构建；本轮五页改动尚未编译，不代表已完成业务或可直接发布。**
 
 ## 开始开发
 
@@ -36,7 +36,7 @@ third-party/     模板来源与许可证
 - iOS deployment target：16.0；依赖和真机兼容待验证。
 - Android minSdk：33 / Android13，用户已确定。
 - Kotlin 2.4.20、Compose Multiplatform1.12.0、Miuix0.9.4、AGP9.4.1、Wrapper9.7.1。
-- 已引入同版 miuix-blur 0.9.4；Android 最低 API33，iOS 仍为16.0。
+- Miuix 0.9.4 的全部正式模块均显式引入：ui、core、preference、icons、blur、shader、squircle、nav；图标使用完整 miuix-icons，不限于 Basic。Android 最低 API33，iOS 仍为16.0。
 - `dev.ohmydrift.app`仅为开发标识，正式包名/签名团队尚未确定。
 - 参考官方Kotlin/KMP-App-Template的Wrapper和iOS宿主，剔除其他平台及演示业务。来源见 [third-party/README.md](third-party/README.md)。
 

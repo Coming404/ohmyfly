@@ -10,7 +10,7 @@ Status: implemented
 
 用共享 Compose/Miuix 实现「概览、节点、外观」三个底部导航目的地，顶部始终显示 ohmydrift 品牌。展示品牌卡、统计卡、卡片列表、带图标的按钮、分类筛选、多选和文字层级。演示节点与数值明确标识，不发送网络请求。
 
-状态由共享入口持有，切换导航不清除分类、多选与外观设置；状态仅会话内有效，不引入持久化、导航框架、DI 或数据库。动效使用现有 Compose 同版本的官方 animation 模块，提供减少动态效果开关，不加入自动循环或 Material 页面组件。静态色板和最初不引入模糊的选择由[Expressive 概览预览](2026-10-18-expressive-overview.md)部分取代；原有三页与选择交互仍保留。
+状态由共享入口持有，切换导航不清除分类、多选与外观设置；状态仅会话内有效，不引入持久化、导航框架、DI 或数据库。动效使用现有 Compose 同版本的官方 animation 模块，提供减少动态效果开关，不加入自动循环或 Material 页面组件。静态色板和最初不引入模糊的选择由[Expressive 概览预览](2026-10-18-expressive-overview.md)部分取代；[五入口悬浮导航](2026-10-18-five-destinations.md)替代三页和底栏形态，原有演示数据与选择交互仍保留。
 
 ## Review follow-up
 
@@ -21,7 +21,7 @@ Status: implemented
 ## Alternatives considered
 
 - 保留单页并堆叠全部控件：代码最少，但无法观察底部导航与独立页面层级，不符合本次要求。
-- 引入导航框架和完整图标包：更适合复杂路由和大图标目录，但三个本地目的地不需要；采用本地选择状态与少量共享矢量图标。
+- 引入导航框架和完整图标包：早期三个本地目的地不需要，最初采用本地选择状态与少量矢量图标；用户后续要求[全模块及完整图标](2026-10-18-miuix-full-modules.md)，该依赖范围由新决定替代，路由仍未擅自迁移。
 - 另写 HTML 或 iOS 原生展示：可快速在浏览器查看或获得原生效果，但会形成不参与实际 App 的平行实现，不采用。
 
 ## Consequences
@@ -30,7 +30,7 @@ Status: implemented
 - 分类批量操作只改变可见项，其他分类选择保持；有明确的全局清空。纯逻辑的 6 个 commonTest 覆盖筛选、增删、跨分类全选、空集合、数据标识与三种主题模式，尚未运行 Kotlin 测试。
 - 浅色、深色、跟随系统可切换；自定义页面过渡 180ms、卡片尺寸过渡 240ms，可通过设置跳过，不声称 Miuix 全局无动画。
 - 本地项目检查与 4 个 Python 检查器测试通过；未运行完整 Gradle、Xcode 或真机检查，不生成未经构建的效果截图。
-- Miuix 0.9.4 的底栏使用 `NavigationBar { NavigationBarItem(...) }`；同标签旧文档的 `items/selected/onClick` 示例不适用。旧 `extra.SuperCheckbox/SuperSwitch` 已移除，采用基础 Checkbox/Switch 配合可访问整行 toggleable，不增加 preference 模块。
+- Miuix 0.9.4 的标准底栏使用 `NavigationBar { NavigationBarItem(...) }`；同标签旧文档的 `items/selected/onClick` 示例不适用。旧 `extra.SuperCheckbox/SuperSwitch` 已移除，当前用基础 Checkbox/Switch 配合整行toggleable；后续[全模块接入](2026-10-18-miuix-full-modules.md)包含preference依赖，但不伪称已经迁移每个设置控件。
 - 动画模块与现有 Compose 对齐 1.12.0，Klibs/POM/目标变体核验见 [依赖记录](../../../../docs/research.md)。实现说明和真机步骤见 [UI 展示](../../../../docs/ui-showcase.md)。
 
 ## Risks

@@ -59,7 +59,7 @@ https://kmp.jetbrains.com/
 
 ## 4. UI 展示与动画依赖
 
-- UI 展示沿用 Miuix 0.9.4，不额外引入 Material、导航库或整包图标。底栏与控件签名以锁定标签源码核对；具体行为见 [ui-showcase.md](ui-showcase.md)。
+- UI 展示沿用 Miuix 0.9.4；用户后续明确要求引入全部正式模块与完整图标，8模块均显式声明。引入miuix-nav不自动改写现有五个目的地的路由，不新增平行Material页面。底栏/控件签名以锁定标签核对；具体行为见 [ui-showcase.md](ui-showcase.md)。
 - 新增直接声明 `org.jetbrains.compose.animation:animation:1.12.0`，与项目现有 Compose 版本一致，而非单独升级到索引最新版本。
 - Klibs `searchProjects("compose animation")` 的 AndroidJvm + iOS 真机/arm64 模拟器过滤返回 JetBrains 官方 `compose-multiplatform` 项目与 animation 制品；`getLatestVersion` 返回 latest/latestStable 为 1.12.2，工具链字段 Kotlin2.3.20/Gradle9.5.0。这些是索引最新元数据，不是本项目1.12.0组合的兼容证明。
 - Maven Central 的 [1.12.0 POM](https://repo.maven.apache.org/maven2/org/jetbrains/compose/animation/animation/1.12.0/animation-1.12.0.pom) 确认制品存在，发布方 JetBrains、许可证 Apache-2.0；同版 [Gradle Module Metadata](https://repo.maven.apache.org/maven2/org/jetbrains/compose/animation/animation/1.12.0/animation-1.12.0.module) 列出 `animation-android`、`animation-iosarm64`、`animation-iossimulatorarm64` 变体。完整依赖与最低系统仍需 Actions/真机验证。POM 的 dependencyManagement 含 AndroidX beta 元数据，不能据此声称整棵依赖图无预发布版本。
@@ -85,4 +85,27 @@ https://kmp.jetbrains.com/
 
 KMP依赖需先查Klibs，再核对上游许可证与最低系统。所有可查询入口集中在[资料索引](references.md)，不依赖本地调研克隆目录。
 
-已完成：最小工程、Miuix共享展示页、双端宿主、固定直接依赖声明、Wrapper、规则与资料索引，以及原始去重函数边界测试证据归档。未完成：云端编译、Go桥接、签名安装、最低系统真机验证。
+已完成：最小工程、Miuix共享展示页、双端宿主、固定直接依赖声明、Wrapper、规则与资料索引，以及原始去重函数边界测试证据归档。上一版6cb51eb的双端Release已通过；本轮五页/全模块改动尚未编译。Go桥接、最低系统真机验证与最终发布许可仍未完成。
+
+## 6. Miuix 0.9.4 全模块与完整图标
+
+用户明确要求全部正式模块，不使用基础子集。核验先查配置好的klibs MCP，后查固定tag与Maven POM/module元数据；实现决定见[全模块接入](../.agents/notes/implemented/feature/2026-10-18-miuix-full-modules.md)。
+
+| 正式artifact（group均为top.yukonga.miuix.kmp） | 用途 |
+|---|---|
+| miuix-ui | 基础UI，含Basic图标 |
+| miuix-core | 共享工具与MiuixIcons根对象 |
+| miuix-preference | 设置偏好行组件 |
+| miuix-icons | 完整扩展图标与Light/Normal/Regular/Medium/Demibold权重 |
+| miuix-blur | 模糊 |
+| miuix-shader | shader底层 |
+| miuix-squircle | 平滑圆角 |
+| miuix-nav | 本版独立导航运行时 |
+
+- 8个模块均显式声明、统一version.ref=miuix=0.9.4。core/squircle/shader本来可由ui/blur传递获得；显式列全是为审计用户的全模块要求，不是Gradle会加载多份同版依赖。
+- Klibs项目命中compose-miuix-ui/miuix；逐artifact getLatestVersion均0.9.4，latestStableVersion均null，工具链Kotlin2.4.20/Gradle9.7.1。项目目标含AndroidJvm、ios_arm64、ios_simulator_arm64；逐artifact Maven module变体亦已核对。MCP不提供完整最低系统、许可证、依赖图和模块删除状态，不能仅凭索引决定。
+- 固定tag的[settings](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/settings.gradle.kts)与[发布说明](https://github.com/compose-miuix-ui/miuix/releases/tag/v0.9.4)确认miuix-nav取代miuix-navigation3-ui。旧navigation3-ui只到0.9.3，不混入0.9.4；shapes等历史模块也不属于本版。
+- ui/icons以api传递core，ui传递squircle，blur/squircle传递shader；preference传递ui。引入nav不等于已迁移路由，现有五目的地状态仍保留。
+- [图标文档](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/docs/zh_CN/guide/icons.md)及对应源码核对完整目录：Basic的7个图标由ui提供；icons提供156个扩展图标及五档权重。不存在独立miuix-icons-basic或Useful分组。导航采用Home/Link/Stopwatch/Layers/Settings；原通用自绘路径已删除，Wave品牌保留。
+- Android库通用min24，blur独立min33，项目API33满足声明要求；库未给独立iOS部署下限，保持产品目标16，不把示例或框架最低版本当作组合真机证据。POM许可证Apache-2.0不决定未来Go组合程序的最终许可。
+- 已知传递预发布：ui的material3-window-size-class:1.12.0-alpha03。不能声称整个图无alpha/rc；不为清除该提示擅自替换依赖。新增模块未完整解析/编译，未生成全图锁或校验元数据，iOS16链接与运行仍待验。

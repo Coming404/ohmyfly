@@ -35,8 +35,6 @@ internal fun NodesScreen(
     onSelection: (Set<String>) -> Unit,
 ) {
     val visible = filterNodes(demoNodes, category)
-    val visibleIds = visible.map { it.id }.toSet()
-    val allVisibleSelected = visibleIds.isNotEmpty() && selectedIds.containsAll(visibleIds)
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -64,18 +62,7 @@ internal fun NodesScreen(
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("已选择 ${selectedIds.size} / ${demoNodes.size} 个", style = MiuixTheme.textStyles.title2)
                     Text("当前分类 ${visible.size} 个；切换分类会保留其他地区的选择。")
-                    ActionButton(
-                        label = if (allVisibleSelected) "取消本类全选" else "全选当前分类",
-                        icon = DriftIcons.Check,
-                        enabled = visibleIds.isNotEmpty(),
-                        onClick = { onSelection(toggleVisibleSelection(selectedIds, visibleIds)) },
-                    )
-                    ActionButton(
-                        label = "清空所有选择",
-                        icon = DriftIcons.Clear,
-                        enabled = selectedIds.isNotEmpty(),
-                        onClick = { onSelection(emptySet()) },
-                    )
+                    Text("顶栏勾选按钮切换当前分类全选；叉号清空所有分类的选择。")
                 }
             }
         }
@@ -110,15 +97,6 @@ internal fun NodesScreen(
                     )
                 }
             }
-        }
-        item {
-            ActionButton(
-                label = "真实测速尚未接入",
-                icon = DriftIcons.Play,
-                enabled = false,
-                onClick = {},
-                modifier = Modifier.fillMaxWidth(),
-            )
         }
         item { DemoFootnote() }
     }

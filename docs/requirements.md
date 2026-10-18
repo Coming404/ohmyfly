@@ -12,6 +12,7 @@
 - Android 最低版本：**Android 13 / API 33**，用户已确定；接入同版 `miuix-blur`。
 - `minSdk` 与 `compileSdk` / `targetSdk` 是不同概念；最低系统版本不决定使用旧编译 SDK。
 - 第一版以 Android arm64、iOS 真机 arm64、iOS Simulator arm64 为验证重点；其他 ABI 按需要增加。
+- 共享 UI 的五个一级入口已确定为 **概览、订阅、测速、节点库、设置**；入口形态不代表业务已经接通，功能规划与当前实现见[五页分工](page-functions.md)。
 - 不把 Desktop、Web、Server 作为第一版交付目标。
 - 不假设 Miuix 示例项目的最低系统等于库最低系统。其 iOS 示例含 17.6 / 26.0 设置，不能直接照抄到本项目。
 

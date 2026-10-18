@@ -8,15 +8,17 @@ Status: implemented
 
 ## Decision
 
-- 共享入口使用 ThemeController 的 MonetSystem、Expressive、Spec2025；既有蓝色 0xFF3482FF 作为种子，使样式和规范在 Android/iOS 都进入 colorsFromSeed 路径。未指定种子时平台动态色分支不消费这两个参数，不能声称已生效。跟随系统指明暗模式，而非读取 iOS 壁纸。
+- 共享入口使用 ThemeController 的 MonetSystem、Vibrant、Spec2025（用户后续将调色板从 Expressive 改为 Vibrant）；既有蓝色 0xFF3482FF 暂保留为种子，使样式和规范在 Android/iOS 都进入 colorsFromSeed 路径。种子来源不必固定，但0.9.4在 keyColor 为空时转入 platformDynamicColors，不消费所传 paletteStyle/colorSpec；当前没有接入动态种子来源，不通过删除参数假装保持 Vibrant。跟随系统指明暗模式，而非读取 iOS 壁纸。
 - 仅重排概览内容，采用官方 SmallTitle / BasicComponent / Card 默认字号、内距、圆角，卡片外侧与间距参考同 tag example 的12dp；不自造全局缩放，不改变另外两页布局或字体家族。
 - 同版本 miuix-blur 0.9.4 用于概览顶栏。滚动层的 layerBackdrop 先绘制不透明表面色，再由透明顶栏的 textureBlur 采样；采用官方示例25f半径与0.8表面色覆盖。Scaffold 边距交给概览列表 contentPadding 而不是裁切 viewport，让内容实际滚入顶栏下方。减少动态效果开关同时停用模糊，其他页使用不透明顶栏。
-- Android App 与共享库 minSdk 都由版本目录中的33驱动，不提升iOS16.0目标。Klibs与真实变体、Android AAR/源码门槛及iOS验证边界见[依赖记录](../../../../docs/research.md)。不直接增加传递的miuix-shader或其他模糊库。
+- Android App 与共享库 minSdk 都由版本目录中的33驱动，不提升iOS16.0目标。Klibs与真实变体、Android AAR/源码门槛及iOS验证边界见[依赖记录](../../../../docs/research.md)。初次模糊接入依赖传递shader；后续用户要求[全部模块](2026-10-18-miuix-full-modules.md)，现已显式声明，不增加其他模糊库。
 - 用户授权构建前删除全部旧 Actions runs，10条记录已删除并确认剩余0；Git历史与签名备份保留。新安装包只留GitHub，不下载。
 
 ## Related decisions
 
 [原 UI 展示决定](2026-10-18-ui-showcase.md)部分被本篇取代：三页、演示数据、状态、无后端与选择语义仍保留，静态色板和不引入模糊的约束由新需求替换。架构笔记与基础提案描述初建阶段，不属于本次全部重写范围。当前需求文档、工程规范、依赖记录和最低版本检查同步。
+
+[五入口悬浮导航](2026-10-18-five-destinations.md)在本篇基础上扩展概览快捷入口并将外观页收敛为设置页；主题与概览模糊边界继续保留。
 
 ## Alternatives considered
 

@@ -33,7 +33,9 @@ internal fun OverviewScreen(
     reduceMotion: Boolean,
     onExpand: () -> Unit,
     onNodes: () -> Unit,
-    onAppearance: () -> Unit,
+    onSettings: () -> Unit,
+    onSubscriptions: () -> Unit,
+    onSpeedTest: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
@@ -94,17 +96,31 @@ internal fun OverviewScreen(
                 SmallTitle("从这里开始")
                 Card(modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
                     BasicComponent(
-                        title = "查看节点",
+                        title = "管理订阅",
+                        summary = "查看订阅模块的接入状态",
+                        startAction = { OverviewIcon(DriftIcons.Subscriptions) },
+                        onClick = onSubscriptions,
+                        role = Role.Button,
+                    )
+                    BasicComponent(
+                        title = "打开测速",
+                        summary = "查看当前所选节点，真实测速尚未接入",
+                        startAction = { OverviewIcon(DriftIcons.Play) },
+                        onClick = onSpeedTest,
+                        role = Role.Button,
+                    )
+                    BasicComponent(
+                        title = "打开节点库",
                         summary = "分类筛选与节点多选",
                         startAction = { OverviewIcon(DriftIcons.Nodes) },
                         onClick = onNodes,
                         role = Role.Button,
                     )
                     BasicComponent(
-                        title = "调整外观",
+                        title = "打开设置",
                         summary = "明暗模式与减少动态效果",
-                        startAction = { OverviewIcon(DriftIcons.Theme) },
-                        onClick = onAppearance,
+                        startAction = { OverviewIcon(DriftIcons.Settings) },
+                        onClick = onSettings,
                         role = Role.Button,
                     )
                 }
@@ -120,7 +136,7 @@ internal fun OverviewScreen(
                         startAction = { OverviewIcon(DriftIcons.Overview) },
                     )
                     BasicComponent(
-                        title = "Expressive · Spec2025",
+                        title = "Vibrant · Spec2025",
                         summary = "MonetSystem · 蓝色种子生成 · 跟随系统明暗",
                         startAction = { OverviewIcon(DriftIcons.Theme) },
                     )
