@@ -99,6 +99,7 @@ private fun resolveRelative(base: String, location: String): String? {
     if (location.isEmpty()) return null
     if (location.startsWith("https://", ignoreCase = true)) return location
     if (location.startsWith("//")) return "https:$location"
+    if (Regex("^[A-Za-z][A-Za-z0-9+.-]*:").containsMatchIn(location)) return null
     val bare = base.substringBefore('#')
     val authorEnd = bare.indexOf('/', 8).let { if (it < 0) bare.length else it }
     val prefix = bare.substring(0, authorEnd)
