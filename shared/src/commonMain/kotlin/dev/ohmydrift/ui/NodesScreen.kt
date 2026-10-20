@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Checkbox
-import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -46,7 +45,6 @@ internal fun NodesScreen(
         contentPadding = contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { SmallTitle("节点库") }
         if (nodes.isEmpty()) {
             item {
                 Card(Modifier.fillMaxWidth()) { BasicComponent(title = "暂无节点") }

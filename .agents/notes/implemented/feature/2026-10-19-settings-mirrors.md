@@ -10,11 +10,13 @@ Status: implemented
 
 - 用单一共享设置模型和 DataStore Preferences 1.2.1（klibs 已核对 Android、ios_arm64、ios_simulator_arm64 与稳定版本）存非敏感参数及镜像配置，不上 SQLite，不存订阅凭据。
 - Android 位于应用 filesDir/datastore，iOS 位于 Library/Application Support/ohmydrift。异步读写和原子更新；读取失败不以默认值覆盖原件，保存失败反馈。
-- 设置七入口，参数校验、草稿保存、重置、主题即时生效；节点和媒体参数只是配置层，不虚构引擎能力。
+- 设置七类能力，参数校验、草稿保存、重置、主题即时生效；节点和媒体参数只是配置层，不虚构引擎能力。[设置首页与折叠单选](2026-10-19-settings-home.md)将外观迁入首页，其他六类仍为子页，不保留旧外观路由。
 - 镜像 HTTP 探测是独立网络操作，不承载节点测速负载。小型固定公开资源＋哈希校验，有限并发、超时、取消、真实 TTFB 排序。
 - 手动选定项不被排序切换；资源请求失败后按持久化手动顺序降级，禁止凭据转发与静默第三方请求。
 
 ## Existing decisions audit
+
+- [设置NavDisplay接入](../architecture/2026-10-20-settings-navdisplay.md)替代本篇单值页分发与旧平台返回适配：六入口与全部配置/保存/网络契约保留，编辑时页面滑退禁用，标题返回/共享预测返回优先关闭编辑器；取消不丢稿。路由JSON仅属于NavBackStack Saver，不改变本篇DataStore格式；“无全局导航/JSON库”为本篇初始阶段边界，后续授权范围由新决定说明。
 
 - [生产UI清理](../../implemented/simplification/2026-10-19-production-ui.md)：部分重叠，保留无假数据边界；仅设置／镜像新能力替代其“无持久化”的现状。
 - [UI初始状态](../../implemented/feature/2026-10-18-ui-showcase.md)：部分重叠，会话内主题由持久化替代；展示阶段的历史理由保留。

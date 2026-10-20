@@ -43,13 +43,19 @@ class SettingsBoundaryTests(unittest.TestCase):
         self.assertIn('iosMain.dependencies {', build)
         self.assertIn('implementation(libs.ktor.client.darwin)', build)
 
-    def test_old_settings_entry_does_not_survive_as_second_implementation(self):
+    def test_old_appearance_page_does_not_survive_as_second_implementation(self):
         current = (COMMON / 'ui/SettingsScreen.kt').read_text()
-        appearance = (COMMON / 'ui/AppearanceSettingsPage.kt').read_text()
+        home = (COMMON / 'ui/settings/SettingsHome.kt').read_text()
+        pages = (COMMON / 'ui/settings/SettingsPage.kt').read_text()
         self.assertIn('SettingsPage.Mirrors', current)
         self.assertIn('SettingsPage.Media', current)
-        self.assertIn('fun AppearanceSettingsPage(', appearance)
-        self.assertNotIn('fun SettingsScreen(', appearance)
+        self.assertIn('SettingsPage.Home -> SettingsHome(settings, onChange, onPage, version', current)
+        self.assertIn('ChoiceSetting("明暗模式"', home)
+        self.assertIn('it.copy(themeMode = ThemeMode.valueOf(name))', home)
+        self.assertIn('it.copy(reduceTransparency = enabled)', home)
+        self.assertNotIn('SettingsPage.Appearance', current)
+        self.assertNotIn('Appearance(', pages)
+        self.assertFalse((COMMON / 'ui/AppearanceSettingsPage.kt').exists())
 
 
 if __name__ == '__main__':

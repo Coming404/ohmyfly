@@ -41,6 +41,45 @@ class ProductionUiTests(unittest.TestCase):
             with self.subTest(path=path.relative_to(ROOT)):
                 self.assertNotRegex(path.read_text(), markers)
 
+    def test_dynamic_seed_is_connected_without_wallpaper_permissions(self):
+        shared = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+        host = (ROOT / 'androidApp/src/main/kotlin/dev/ohmydrift/app/MainActivity.kt').read_text()
+        app = (shared / 'App.kt').read_text()
+        theme = (shared / 'ui/AppTheme.kt').read_text()
+        ios = (ROOT / 'shared/src/iosMain/kotlin/dev/ohmydrift/MainViewController.kt').read_text()
+        manifest = (ROOT / 'androidApp/src/main/AndroidManifest.xml').read_text()
+        self.assertIn('system_accent1_500', host)
+        self.assertRegex(host, r'(?s)override fun onResume\(\).*?dynamicColorSeed = Color\(getColor\(android.R.color.system_accent1_500\)\)')
+        self.assertIn('App(dynamicColorSeed = dynamicColorSeed', host)
+        self.assertIn('AppTheme(dynamicColorSeed, dark)', app)
+        self.assertIn('remember(dark, dynamicColorSeed)', theme)
+        self.assertIn('appThemeController(dynamicColorSeed, dark)', theme)
+        self.assertIn('keyColor = dynamicColorSeed', theme)
+        self.assertIn('ThemePaletteStyle.Neutral', theme)
+        self.assertIn('ThemeColorSpec.Spec2025', theme)
+        self.assertIn('App(dynamicColorSeed = null', ios)
+        self.assertNotRegex(manifest, r'READ_MEDIA|READ_EXTERNAL_STORAGE|READ_WALLPAPER')
+    def test_settings_cards_share_one_surface_and_squircle_border(self):
+        shared = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+        app = (shared / 'App.kt').read_text()
+        theme = (shared / 'ui/AppTheme.kt').read_text()
+        controls = (shared / 'ui/settings/SettingsControls.kt').read_text()
+        self.assertIn('LocalAppSurfaceColors.current.page', app)
+        self.assertIn('drawRect(background)', app)
+        self.assertIn('.background(background)', app)
+        self.assertIn('CompositionLocalProvider(', theme)
+        self.assertIn('LocalAppSurfaceColors provides surfaces', theme)
+        self.assertIn('CardDefaults.defaultColors(color = surfaces.card, contentColor = surfaces.onCard)', controls)
+        self.assertIn('.squircleBorder(', controls)
+        self.assertIn('width = 0.5.dp', controls)
+        self.assertIn('cornerRadius = CardDefaults.CornerRadius', controls)
+        for path in self.sources:
+            is_settings = path.parent == shared / 'ui/settings' or path.name == 'SettingsScreen.kt'
+            if not is_settings or path.name == 'SettingsControls.kt':
+                continue
+            with self.subTest(path=path.relative_to(ROOT)):
+                self.assertNotRegex(path.read_text(), r'(?<![\w])Card\(')
+
 
 if __name__ == '__main__':
     unittest.main()

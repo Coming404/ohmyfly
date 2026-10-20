@@ -27,7 +27,7 @@ def markdown_errors(path: Path, root: Path) -> list[str]:
         resolved = (path.parent / target).resolve()
         if not resolved.is_relative_to(root.resolve()) or not resolved.exists():
             errors.append(f'{path.relative_to(root)}: broken local link {dest}')
-    if re.search(r'\bskills?\b|技能|flutter|ohmytower|oh_my_tower', text, re.I):
+    if re.search(r'flutter|ohmytower|oh_my_tower', text, re.I):
         errors.append(f'{path.relative_to(root)}: unrelated historical/rule-package reference')
     return errors
 

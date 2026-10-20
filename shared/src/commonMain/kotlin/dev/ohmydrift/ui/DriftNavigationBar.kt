@@ -1,12 +1,20 @@
 package dev.ohmydrift.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
-import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
-import top.yukonga.miuix.kmp.basic.TooltipBox
+import dev.ohmydrift.settings.MaterialMode
+import dev.ohmydrift.ui.glass.GlassNavigationSurface
 import top.yukonga.miuix.kmp.blur.Backdrop
 
 @Composable
@@ -16,22 +24,22 @@ internal fun DriftNavigationBar(
     backdrop: Backdrop,
     glassEnabled: Boolean,
     dark: Boolean,
+    materialMode: MaterialMode,
 ) {
-    FloatingNavigationBar(
-        modifier = Modifier.chromeMaterial(backdrop, glassEnabled, dark),
-        color = Color.Transparent,
-        cornerRadius = ChromeCornerRadius,
-        shadowElevation = 0.dp,
+    Box(
+        modifier = Modifier.fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
+            .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        AppDestination.entries.forEach { item ->
-            TooltipBox(text = item.label) {
-                FloatingNavigationBarItem(
-                    selected = destination == item,
-                    onClick = { onDestination(item) },
-                    icon = item.icon,
-                    label = item.label,
-                )
-            }
-        }
+        GlassNavigationSurface(
+            destination = destination,
+            onDestination = onDestination,
+            backdrop = backdrop,
+            enabled = glassEnabled,
+            dark = dark,
+            materialMode = materialMode,
+            modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth(),
+        )
     }
 }

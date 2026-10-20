@@ -12,6 +12,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,39 +28,55 @@ import dev.ohmydrift.ui.OverviewScreen
 import dev.ohmydrift.ui.SettingsScreen
 import dev.ohmydrift.ui.SpeedScreen
 import dev.ohmydrift.ui.SubscriptionsScreen
+import dev.ohmydrift.ui.AppTheme
+import dev.ohmydrift.ui.AppMotion
+import dev.ohmydrift.ui.LocalAppSurfaceColors
+import dev.ohmydrift.ui.rememberSystemReduceTransparency
 import dev.ohmydrift.settings.AppSettings
+import dev.ohmydrift.ui.glass.glassEffectsEnabled
+import dev.ohmydrift.ui.glass.glassShaderSupported
 import dev.ohmydrift.ui.settings.SettingsPage
-import dev.ohmydrift.ui.settings.SettingsBackHandler
+import dev.ohmydrift.ui.settings.openSettingsPage
+import dev.ohmydrift.ui.settings.popSettingsPage
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
-import top.yukonga.miuix.kmp.theme.ColorSchemeMode
-import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.theme.ThemeController
+import top.yukonga.miuix.kmp.nav.core.rememberNavBackStack
 
 @Composable
-fun App(useSystemDynamicColors: Boolean, settingsPath: String, version: String) {
+fun App(dynamicColorSeed: Color?, settingsPath: String, version: String) {
     PersistedSettings(settingsPath) { settings, onChange, writeError, onDismissError ->
-        AppContent(useSystemDynamicColors, settings, onChange, version, writeError, onDismissError)
+        AppMotion(settings.reduceMotion) {
+            AppContent(dynamicColorSeed, settings, onChange, version, writeError, onDismissError)
+        }
     }
 }
 
 @Composable
 private fun AppContent(
-    useSystemDynamicColors: Boolean,
+    dynamicColorSeed: Color?,
     settings: AppSettings,
     onChange: ((AppSettings) -> AppSettings) -> Unit,
     version: String,
     writeError: String?,
     onDismissError: () -> Unit,
 ) {
-    var destination by remember { mutableStateOf(AppDestination.Overview) }
-    var settingsPage by remember { mutableStateOf(SettingsPage.Home) }
+    var destination by rememberSaveable(
+        stateSaver = Saver<AppDestination, String>(
+            save = { it.name },
+            restore = { name -> AppDestination.entries.firstOrNull { it.name == name } ?: AppDestination.Overview },
+        ),
+    ) { mutableStateOf(AppDestination.Overview) }
+    val settingsStack = rememberNavBackStack<SettingsPage>(SettingsPage.Home)
+    val settingsPage = settingsStack.last() as SettingsPage
+    var mirrorEditorBack by remember { mutableStateOf<(() -> Unit)?>(null) }
     val themeMode = settings.themeMode
     val reduceTransparency = settings.reduceTransparency
+    val systemReduceTransparency by rememberSystemReduceTransparency()
     val settingsChild = destination == AppDestination.Settings && settingsPage != SettingsPage.Home
-    val settingsBack: (() -> Unit)? = if (settingsChild) ({ settingsPage = SettingsPage.Home }) else null
-    SettingsBackHandler(settingsChild) { settingsPage = SettingsPage.Home }
+    val settingsBack: (() -> Unit)? = if (settingsChild) {
+        { mirrorEditorBack?.invoke() ?: settingsStack.popSettingsPage() }
+    } else null
     var category by remember { mutableStateOf("全部") }
     var selectedIds by remember { mutableStateOf(emptySet<String>()) }
     val nodes = emptyList<NodeSummary>()
@@ -68,37 +86,35 @@ private fun AppContent(
     val nodesState = rememberLazyListState()
     val settingsState = rememberLazyListState()
     val dark = themeMode.isDark(isSystemInDarkTheme())
-    val themeController = remember(dark, useSystemDynamicColors) {
-        ThemeController(
-            colorSchemeMode = if (useSystemDynamicColors) ColorSchemeMode.MonetSystem else ColorSchemeMode.System,
-            keyColor = null,
-            isDark = dark,
-        )
-    }
 
-    MiuixTheme(controller = themeController) {
-        val background = MiuixTheme.colorScheme.surface
+    AppTheme(dynamicColorSeed, dark) {
+        val background = LocalAppSurfaceColors.current.page
         val backdrop = rememberLayerBackdrop {
             drawRect(background)
             drawContent()
         }
-        val glassEnabled = !reduceTransparency
+        val glassEnabled = glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
-                DriftTopBar(destination, backdrop, glassEnabled, dark,
+                DriftTopBar(
                     title = if (settingsChild) settingsPage.title else destination.label,
+                    backdrop = backdrop,
+                    glassEnabled = glassEnabled,
+                    dark = dark,
+                    materialMode = settings.materialMode,
                     onBack = settingsBack,
-                ) {
-                    if (destination == AppDestination.NodeLibrary) {
-                        NodeSelectionActions(
-                            nodes = nodes,
-                            category = category,
-                            selectedIds = selectedIds,
-                            onSelection = { selectedIds = it },
-                        )
-                    }
-                }
+                    actions = if (destination == AppDestination.NodeLibrary) {
+                        {
+                            NodeSelectionActions(
+                                nodes = nodes,
+                                category = category,
+                                selectedIds = selectedIds,
+                                onSelection = { selectedIds = it },
+                            )
+                        }
+                    } else null,
+                )
             },
             bottomBar = {
                 if (!settingsChild) DriftNavigationBar(
@@ -107,6 +123,7 @@ private fun AppContent(
                     backdrop = backdrop,
                     glassEnabled = glassEnabled,
                     dark = dark,
+                    materialMode = settings.materialMode,
                 )
             },
         ) { padding ->
@@ -150,8 +167,11 @@ private fun AppContent(
                             listState = settingsState,
                             settings = settings,
                             onChange = onChange,
-                            page = settingsPage,
-                            onPage = { settingsPage = it },
+                            backStack = settingsStack,
+                            onPage = { settingsStack.openSettingsPage(it) },
+                            onBack = { settingsStack.popSettingsPage() },
+                            editorBackActive = mirrorEditorBack != null,
+                            onEditorBackChange = { mirrorEditorBack = it },
                             version = version,
                             writeError = writeError,
                             onDismissError = onDismissError,

@@ -1,23 +1,21 @@
 package dev.ohmydrift.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
-import top.yukonga.miuix.kmp.basic.Icon
+import androidx.compose.ui.unit.sp
+import top.yukonga.miuix.kmp.basic.RadioButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -40,11 +38,7 @@ internal fun ChoiceOption(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(Modifier.size(20.dp).border(1.dp, MiuixTheme.colorScheme.onSurfaceVariantSummary, CircleShape)) {
-            if (selected) {
-                Icon(DriftIcons.Check, contentDescription = null, modifier = Modifier.size(20.dp))
-            }
-        }
-        Text(label)
+        RadioButton(selected = selected, onClick = null, modifier = Modifier.clearAndSetSemantics {})
+        Text(label, fontSize = 16.sp)
     }
 }

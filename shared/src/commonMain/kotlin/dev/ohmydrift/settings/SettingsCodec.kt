@@ -20,7 +20,9 @@ internal object SettingsCodec {
 
     private val schema = intPreferencesKey("schema.version")
     private val theme = stringPreferencesKey("ui.themeMode")
+    private val materialMode = stringPreferencesKey("ui.materialMode")
     private val reduceTransparency = booleanPreferencesKey("ui.reduceTransparency")
+    private val reduceMotion = booleanPreferencesKey("ui.reduceMotion")
     private val speedMode = stringPreferencesKey("speed.mode")
     private val latencyUrl = stringPreferencesKey("speed.latencyUrl")
     private val downloadUrl = stringPreferencesKey("speed.downloadUrl")
@@ -57,7 +59,9 @@ internal object SettingsCodec {
     fun write(target: MutablePreferences, settings: AppSettings) {
         target[schema] = CURRENT_SCHEMA_VERSION
         target[theme] = settings.themeMode.name
+        target[materialMode] = settings.materialMode.name
         target[reduceTransparency] = settings.reduceTransparency
+        target[reduceMotion] = settings.reduceMotion
         val speed = settings.speed
         target[speedMode] = speed.mode.name
         target[latencyUrl] = speed.latencyUrl
@@ -104,7 +108,9 @@ internal object SettingsCodec {
         val mirrors = MirrorCodec.read(preferences)
         return AppSettings(
             themeMode = preferences.readOrNull(theme).toEnumOr(ThemeMode.System),
+            materialMode = preferences.readOrNull(materialMode).toEnumOr(defaults.materialMode),
             reduceTransparency = preferences.read(reduceTransparency, defaults.reduceTransparency),
+            reduceMotion = preferences.read(reduceMotion, defaults.reduceMotion),
             speed = SpeedSettings(
                 mode = preferences.readOrNull(speedMode).toEnumOr(speed.mode),
                 latencyUrl = SettingsLimits.urlOr(preferences.readOrNull(latencyUrl) ?: speed.latencyUrl, speed.latencyUrl),
@@ -179,16 +185,13 @@ internal object SettingsCodec {
     private inline fun <reified E : Enum<E>> String?.toEnumOr(fallback: E): E =
         this?.let { raw -> enumEntries<E>().firstOrNull { it.name.equals(raw, ignoreCase = true) } } ?: fallback
 
-    private fun <T> Preferences.read(key: Preferences.Key<T>, fallback: T): T =
-        try {
-            this[key] ?: fallback
-        } catch (_: Exception) {
-            fallback
-        }
+    private inline fun <reified T> Preferences.read(key: Preferences.Key<T>, fallback: T): T =
+        readOrNull(key) ?: fallback
 
-    private fun <T> Preferences.readOrNull(key: Preferences.Key<T>): T? =
+    private inline fun <reified T> Preferences.readOrNull(key: Preferences.Key<T>): T? =
         try {
-            this[key]
+            val value: Any? = this[key]
+            value as? T
         } catch (_: Exception) {
             null
         }

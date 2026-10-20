@@ -7,7 +7,9 @@ import dev.ohmydrift.ui.ThemeMode
 
 internal data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.System,
+    val materialMode: MaterialMode = MaterialMode.LiquidGlass,
     val reduceTransparency: Boolean = false,
+    val reduceMotion: Boolean = false,
     val speed: SpeedSettings = SpeedSettings(),
     val media: MediaSettings = MediaSettings(),
     val subscription: SubscriptionSettings = SubscriptionSettings(),

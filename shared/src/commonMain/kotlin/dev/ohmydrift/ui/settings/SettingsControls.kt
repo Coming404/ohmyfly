@@ -2,6 +2,8 @@ package dev.ohmydrift.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,7 +14,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
@@ -27,13 +30,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import dev.ohmydrift.ui.ChoiceOption
+import dev.ohmydrift.ui.LocalAppSurfaceColors
 import dev.ohmydrift.ui.withPageSpacing
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
+import top.yukonga.miuix.kmp.squircle.squircleBorder
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -49,43 +58,39 @@ internal fun SettingsList(
     LazyColumn(
         modifier = Modifier.fillMaxSize().imePadding(),
         state = state,
-        contentPadding = padding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = padding.withPageSpacing(LocalLayoutDirection.current, horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         content = content,
     )
 }
 
 @Composable
-internal fun SettingsCard(content: @Composable () -> Unit) {
-    Card(Modifier.fillMaxWidth()) { Column { content() } }
+internal fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
+    val surfaces = LocalAppSurfaceColors.current
+    Card(
+        modifier = Modifier.fillMaxWidth().squircleBorder(
+            width = 0.5.dp,
+            color = surfaces.cardOutline,
+            cornerRadius = CardDefaults.CornerRadius,
+        ),
+        colors = CardDefaults.defaultColors(color = surfaces.card, contentColor = surfaces.onCard),
+        content = content,
+    )
 }
 
 @Composable
-internal fun ToggleSetting(title: String, summary: String, value: Boolean, onChange: (Boolean) -> Unit) {
+internal fun ToggleSetting(title: String, summary: String = "", value: Boolean, onChange: (Boolean) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().toggleable(value, role = Role.Switch, onValueChange = onChange).padding(16.dp),
+        Modifier.fillMaxWidth().heightIn(min = 56.dp)
+            .toggleable(value, role = Role.Switch, onValueChange = onChange).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, style = MiuixTheme.textStyles.title4)
-            Text(summary, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+            Text(title, fontSize = 16.sp)
+            if (summary.isNotBlank()) Text(summary, fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
         }
         Switch(checked = value, onCheckedChange = null, modifier = Modifier.clearAndSetSemantics {})
-    }
-}
-
-@Composable
-internal fun ChoiceSetting(title: String, value: String, options: List<Pair<String, String>>, onChange: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    BasicComponent(title = title, summary = options.firstOrNull { it.first == value }?.second ?: value,
-        onClick = { expanded = !expanded }, role = Role.Button)
-    if (expanded) {
-        Column(Modifier.fillMaxWidth().selectableGroup().padding(horizontal = 16.dp)) {
-            options.forEach { (id, label) ->
-                ChoiceOption(label, value == id, onClick = { onChange(id); expanded = false }, modifier = Modifier.fillMaxWidth())
-            }
-        }
     }
 }
 
@@ -101,18 +106,20 @@ internal fun TextSetting(
     var editing by remember { mutableStateOf(false) }
     val draft = remember(value, editing) { TextFieldState(value) }
     val input = draft.text.toString()
-    val error = validate(input)
+    val validationError = validate(input)
     LaunchedEffect(value) { editing = false }
     BasicComponent(title = title, summary = value.ifBlank { "未设置" }, onClick = { editing = !editing }, role = Role.Button)
     if (editing) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextField(state = draft, label = title, modifier = Modifier.fillMaxWidth(),
+            TextField(state = draft, label = title, modifier = Modifier.fillMaxWidth().semantics {
+                validationError?.let { error(it) }
+            },
                 lineLimits = TextFieldLineLimits.SingleLine,
                 keyboardOptions = KeyboardOptions(keyboardType = keyboard, autoCorrectEnabled = false))
             if (hint.isNotEmpty()) Text(hint, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-            if (error != null) Text(error)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TextButton(text = "保存", enabled = error == null && input != value, onClick = { onSave(input) })
+            if (validationError != null) Text(validationError, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(text = "保存", enabled = validationError == null && input != value, onClick = { onSave(input) })
                 TextButton(text = "取消", onClick = { editing = false })
             }
         }
@@ -139,7 +146,8 @@ internal fun ResetSettings(title: String = "恢复本页默认", onReset: () -> 
     if (confirm) {
         SettingsCard {
             BasicComponent(title = "确认恢复默认？", summary = "仅重置设置，不删除订阅、节点、自定义镜像或历史。")
-            Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(text = "恢复默认", onClick = { onReset(); confirm = false })
                 TextButton(text = "取消", onClick = { confirm = false })
             }

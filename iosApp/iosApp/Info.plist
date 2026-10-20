@@ -22,6 +22,8 @@
 	<true/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSMotionUsageDescription</key>
+	<string>用于随设备倾斜调整玻璃高光，不记录或上传运动数据。</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

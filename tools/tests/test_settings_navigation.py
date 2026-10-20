@@ -1,0 +1,95 @@
+"""NavDisplay integration guards, not Kotlin compilation or device gesture tests."""
+from pathlib import Path
+import re
+import subprocess
+import unittest
+
+ROOT = Path(__file__).resolve().parents[2]
+COMMON = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+
+
+class SettingsNavigationTests(unittest.TestCase):
+    def test_saved_stack_replaces_independent_current_page(self):
+        app = (COMMON / 'App.kt').read_text()
+        routes = (COMMON / 'ui/settings/SettingsPage.kt').read_text()
+        self.assertIn('rememberNavBackStack<SettingsPage>(SettingsPage.Home)', app)
+        self.assertIn('val settingsPage = settingsStack.last() as SettingsPage', app)
+        self.assertNotIn('mutableStateOf(SettingsPage.', app)
+        self.assertIn('backStack = settingsStack', app)
+        self.assertIn('onDestination = { destination = it }', app)
+        self.assertIn('Saver<AppDestination, String>', app)
+        self.assertIn('save = { it.name }', app)
+        self.assertIn('@Serializable', routes)
+        self.assertIn('SettingsPage(val title: String) : NavKey', routes)
+        self.assertIn('lastOrNull() == SettingsPage.Home && page != SettingsPage.Home', routes)
+        self.assertIn('if (size > 1) removeAt(lastIndex)', routes)
+
+    def test_navdisplay_really_hosts_all_routes_in_existing_scaffold(self):
+        screen = (COMMON / 'ui/SettingsScreen.kt').read_text()
+        app = (COMMON / 'App.kt').read_text()
+        self.assertIn('NavDisplay(', screen)
+        self.assertIn('backStack = backStack', screen)
+        self.assertIn('onBack = onBack', screen)
+        self.assertIn('entry<SettingsPage>(swipeDismiss = swipeDirection)', screen)
+        for page in ('Home', 'Speed', 'Media', 'Subscription', 'Mirrors', 'Privacy', 'About'):
+            self.assertIn(f'SettingsPage.{page} ->', screen)
+        self.assertNotIn('key(page)', screen)
+        self.assertNotIn('Scaffold(', screen)
+        self.assertIn('.background(background)', screen)
+        self.assertIn('summary = writeError', screen)
+        self.assertIn('onClick = onDismissError', screen)
+        self.assertEqual(1, app.count('Scaffold('))
+        self.assertIn('Modifier.layerBackdrop(backdrop)', app)
+
+    def test_shared_official_transitions_and_directional_swipe(self):
+        screen = (COMMON / 'ui/SettingsScreen.kt').read_text()
+        self.assertIn('transition = if (motionAllowed) NavTransitions.MiuixDefault else NavTransitions.None', screen)
+        self.assertIn('enableCornerClip = false', screen)
+        self.assertIn('blockInputDuringTransition = true', screen)
+        self.assertIn('editorBackActive || !motionAllowed -> NavSwipeDirection.None', screen)
+        self.assertIn('direction == LayoutDirection.Rtl -> NavSwipeDirection.RightToLeft', screen)
+        self.assertIn('else -> NavSwipeDirection.LeftToRight', screen)
+        self.assertNotIn('Crossfade', screen)
+        self.assertNotIn('pointerInput', screen)
+
+    def test_mirror_editor_back_precedes_route_and_preserves_cancelled_gestures(self):
+        mirror = (COMMON / 'ui/settings/MirrorSettingsPage.kt').read_text()
+        app = (COMMON / 'App.kt').read_text()
+        self.assertIn('mirrorEditorBack?.invoke() ?: settingsStack.popSettingsPage()', app)
+        self.assertIn('editorBackActive = mirrorEditorBack != null', app)
+        self.assertIn('onEditorBackChange = { mirrorEditorBack = it }', app)
+        self.assertIn('rememberUpdatedState(onEditorBackChange)', mirror)
+        self.assertIn('reportEditorBack(if (editorOpen) closeEditor else null)', mirror)
+        self.assertIn('onDispose { reportEditorBack(null) }', mirror)
+        self.assertIn('PredictiveBackHandler(', mirror)
+        self.assertIn('enabled = editorOpen', mirror)
+        self.assertIn('onProgress = { events -> events.collect {} }', mirror)
+        self.assertIn('onCommit = closeEditor', mirror)
+        self.assertIn('onCancel = {}', mirror)
+        self.assertIn('storedMatches(it, pending)', mirror)
+        for source in ('commonMain', 'androidMain', 'iosMain'):
+            path = ROOT / f'shared/src/{source}/kotlin/dev/ohmydrift/ui/settings/SettingsBackHandler.kt'
+            self.assertFalse(path.exists())
+
+    def test_serialization_plugin_matches_kotlin_and_tests_match_ci_gate(self):
+        catalog = (ROOT / 'gradle/libs.versions.toml').read_text()
+        build = (ROOT / 'shared/build.gradle.kts').read_text()
+        root_build = (ROOT / 'build.gradle.kts').read_text()
+        self.assertIn('id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin"', catalog)
+        self.assertIn('serialization = "1.11.0"', catalog)
+        self.assertIn('implementation(libs.kotlinx.serialization.json)', build)
+        self.assertIn('alias(libs.plugins.kotlinSerialization)', build)
+        self.assertIn('alias(libs.plugins.kotlinSerialization) apply false', root_build)
+        self.assertNotIn('implementation(libs.androidx.activity.compose)', build)
+        test_file = ROOT / 'shared/src/commonTest/kotlin/dev/ohmydrift/ui/settings/SettingsNavigationTest.kt'
+        self.assertEqual(6, test_file.read_text().count('@Test'))
+        files = subprocess.check_output(
+            ['rg', '--files', str(ROOT / 'shared/src/commonTest'), '-g', '*.kt'], text=True,
+        ).splitlines()
+        count = sum(Path(p).read_text().count('@Test') for p in files)
+        gate = (ROOT / '.github/workflows/build.yml').read_text()
+        self.assertEqual(count, int(re.search(r'if total < (\d+) or failed', gate).group(1)))
+
+
+if __name__ == '__main__':
+    unittest.main()

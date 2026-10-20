@@ -12,7 +12,6 @@ import dev.ohmydrift.mirror.MirrorEntry
 import dev.ohmydrift.settings.AppSettings
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -20,7 +19,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 internal fun CurrentMirrorCard(settings: AppSettings, selectedId: String?) {
     val custom = settings.mirrors.firstOrNull { it.id == selectedId }
-    Card(Modifier.fillMaxWidth()) {
+    SettingsCard {
         BasicComponent(title = "当前使用", summary = custom?.let { "${it.name} · ${it.address}" } ?: "直连")
         MirrorRouteCheck(settings)
     }

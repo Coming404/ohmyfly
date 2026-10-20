@@ -24,7 +24,9 @@ class SettingsCodecTest {
     fun roundTripKeepsEveryField() {
         val settings = AppSettings(
             themeMode = ThemeMode.Dark,
+            materialMode = MaterialMode.SoftGlass,
             reduceTransparency = true,
+            reduceMotion = true,
             speed = SpeedSettings(
                 mode = SpeedMode.Full,
                 latencyUrl = "https://example.com/204",
@@ -71,7 +73,9 @@ class SettingsCodecTest {
         val decoded = SettingsCodec.decode(SettingsCodec.encode(settings))
 
         assertEquals(settings.themeMode, decoded.themeMode)
+        assertEquals(settings.materialMode, decoded.materialMode)
         assertEquals(settings.reduceTransparency, decoded.reduceTransparency)
+        assertEquals(settings.reduceMotion, decoded.reduceMotion)
         assertEquals(settings.speed, decoded.speed)
         assertEquals(fractionalSpeed, decoded.speed.minDownloadMiBps, 0.0)
         assertEquals(settings.subscription, decoded.subscription)

@@ -18,6 +18,8 @@ Status: implemented
 
 ## Related decisions
 
+Android配色生成现已由[动态来源与Neutral 2025](../feature/2026-10-19-dynamic-neutral-theme.md)部分替代：保留系统来源，不再直接沿用keyColor=null的平台整套配色。品牌胶囊布局现由[紧凑页面标题与纯图标返回](../feature/2026-10-19-compact-page-header.md)替代：页名18sp、标题无胶囊，只有实际功能控件沿用原材质；单一Backdrop、列表视口与其余材质参数继续保留。
+
 已检索活跃笔记：与[五入口导航](../../implemented/feature/2026-10-18-five-destinations.md)和[概览主题](../../implemented/feature/2026-10-18-expressive-overview.md)部分重叠；新悬浮布局替代全宽SmallTopAppBar，新系统色策略替代Vibrant蓝种子，新统一材质替代概览单页模糊。五页业务边界和全模块要求保留，不新增导航框架或订阅/测速后端。
 
 ## Alternatives considered

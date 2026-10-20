@@ -2,45 +2,53 @@ package dev.ohmydrift.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.unit.dp
+import dev.ohmydrift.settings.MaterialMode
+import dev.ohmydrift.ui.glass.GlassShape
+import dev.ohmydrift.ui.glass.InteractiveHighlight
+import dev.ohmydrift.ui.glass.rememberAnimatedGlassPreset
+import dev.ohmydrift.ui.glass.glassSurface
+import dev.ohmydrift.ui.glass.rememberGlassHighlight
+import dev.ohmydrift.ui.LocalAppMotionAllowed
 import top.yukonga.miuix.kmp.blur.Backdrop
-import top.yukonga.miuix.kmp.blur.BlendColorEntry
-import top.yukonga.miuix.kmp.blur.BlurDefaults
-import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal val ChromeCornerRadius = 50.dp
+private val ChromeShape = GlassShape(ChromeCornerRadius)
 
-/** One material policy, applied separately to each small control surface. */
+/** The same preset/effect policy as the navigation shell, on actual back/action surfaces. */
 @Composable
 internal fun Modifier.chromeMaterial(
     backdrop: Backdrop,
     enabled: Boolean,
     dark: Boolean,
+    materialMode: MaterialMode,
+    shape: GlassShape = ChromeShape,
 ): Modifier {
-    val shape = RoundedCornerShape(ChromeCornerRadius)
     val surface = MiuixTheme.colorScheme.surface
-    val colors = BlurDefaults.blurColors(
-        blendColors = listOf(BlendColorEntry(surface.copy(alpha = if (dark) 0.28f else 0.22f))),
-    )
+    val motion = LocalAppMotionAllowed.current
+    val preset = rememberAnimatedGlassPreset(materialMode, dark, enabled, motion)
+    val highlight = rememberGlassHighlight(enabled, motion, preset)
+    val spot = if (enabled && preset.liquidResponse && motion) {
+        val scope = rememberCoroutineScope()
+        remember(scope) { InteractiveHighlight(scope) }
+    } else null
     val base = this
         .dropShadow(shape = shape, shadow = Shadow(radius = 8.dp, color = Color.Black, alpha = 0.12f))
         .clip(shape)
     val material = if (enabled) {
-        base.textureBlur(
-            backdrop = backdrop,
-            shape = shape,
-            blurRadius = 20f,
-            noiseCoefficient = 0f,
-            colors = colors,
-        )
+        base.glassSurface(
+            backdrop, shape, preset, surface, highlight,
+            pressProgress = { spot?.pressProgress ?: 0f },
+        ).then(spot?.modifier ?: Modifier).then(spot?.trackingGestureModifier ?: Modifier)
     } else {
         base.background(surface)
     }

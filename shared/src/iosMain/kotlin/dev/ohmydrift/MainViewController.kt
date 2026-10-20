@@ -10,6 +10,6 @@ fun MainViewController(): platform.UIKit.UIViewController {
     val name = bundle.objectForInfoDictionaryKey("CFBundleShortVersionString") as? String ?: "未知版本"
     val build = bundle.objectForInfoDictionaryKey("CFBundleVersion") as? String ?: "?"
     return ComposeUIViewController {
-        App(useSystemDynamicColors = false, settingsPath = path, version = "$name ($build) · iOS")
+        App(dynamicColorSeed = null, settingsPath = path, version = "$name ($build) · iOS")
     }
 }

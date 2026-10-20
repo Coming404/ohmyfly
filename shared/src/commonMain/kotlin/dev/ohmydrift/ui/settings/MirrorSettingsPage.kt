@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -27,10 +29,11 @@ import dev.ohmydrift.settings.AppSettings
 import dev.ohmydrift.ui.ChoiceOption
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
+import kotlinx.coroutines.flow.collect
+import top.yukonga.miuix.kmp.nav.gesture.PredictiveBackHandler
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
@@ -46,6 +49,7 @@ internal fun MirrorSettingsPage(
     settings: AppSettings,
     onChange: ((AppSettings) -> AppSettings) -> Unit,
     contentPadding: PaddingValues,
+    onEditorBackChange: ((() -> Unit)?) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val runner = remember(scope) { MirrorProbeRunner(MirrorProbe(createMirrorTransport()), scope) }
@@ -77,7 +81,18 @@ internal fun MirrorSettingsPage(
         }
     }
 
-    SettingsBackHandler(editorOpen) { pendingSave = null; editorOpen = false; editing = null }
+    val reportEditorBack by rememberUpdatedState(onEditorBackChange)
+    val closeEditor: () -> Unit = { pendingSave = null; editorOpen = false; editing = null }
+    DisposableEffect(editorOpen) {
+        reportEditorBack(if (editorOpen) closeEditor else null)
+        onDispose { reportEditorBack(null) }
+    }
+    PredictiveBackHandler(
+        enabled = editorOpen,
+        onProgress = { events -> events.collect {} },
+        onCommit = closeEditor,
+        onCancel = {},
+    )
     if (editorOpen) {
         MirrorEditor(
             existing = editing,
@@ -118,7 +133,7 @@ internal fun MirrorSettingsPage(
         item { ProbeActions(runner, settings.mirrors, onAdd = { editing = null; editorOpen = true }) }
         item { SmallTitle("排序") }
         item {
-            Card(Modifier.fillMaxWidth()) {
+            SettingsCard {
                 Column(
                     Modifier.padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -136,7 +151,7 @@ internal fun MirrorSettingsPage(
         }
         item { SmallTitle("线路") }
         item {
-            Card(Modifier.fillMaxWidth()) {
+            SettingsCard {
                 MirrorDirectRow(
                     selected = selectedId == null,
                     result = runner.result(DIRECT_MIRROR_KEY),
@@ -148,7 +163,7 @@ internal fun MirrorSettingsPage(
             }
         }
         items(shown, key = { it.id }) { entry ->
-            Card(Modifier.fillMaxWidth()) {
+            SettingsCard {
                 MirrorEntryRow(
                     entry = entry,
                     selected = entry.id == selectedId,
@@ -217,7 +232,7 @@ private fun DeleteMirrorCard(
     onClose: () -> Unit,
 ) {
     val entry = settings.mirrors.firstOrNull { it.id == id }
-    Card(Modifier.fillMaxWidth()) {
+    SettingsCard {
         BasicComponent(
             title = "删除「${entry?.name ?: "该镜像"}」？",
             summary = when {

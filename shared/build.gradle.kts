@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
@@ -49,10 +50,11 @@ kotlin {
             implementation(libs.miuix.shader)
             implementation(libs.miuix.squircle)
             implementation(libs.miuix.nav)
+            implementation(libs.androidx.lifecycle.runtime.compose)
+            implementation(libs.kotlinx.serialization.json)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
-            implementation(libs.androidx.activity.compose)
         }
         if (providers.systemProperty("os.name").get().startsWith("Mac")) {
             iosMain.dependencies {

@@ -47,6 +47,7 @@ ohmydrift/
 - 顶栏滚动时按文档接入 nestedScroll；键盘、底部手势区、刘海横竖屏分别验证。
 - Scaffold 只解决页面结构，不决定字体、栅格、页面间距或数据流。
 - 文档与 API以锁定的 0.9.4 标签为准，不能直接复制 main 分支新组件。
+- 设置子页当前使用已固定的miuix-nav 0.9.4 NavDisplay与可保存NavBackStack；五个一级入口仍互斥切换，底栏外观与路由运行时分开。路由键复用SettingsPage枚举的稳定名字，启用同Kotlin版本的序列化插件与上游同版JSON1.11.0；不将草稿/凭据放入导航栈，也不改DataStore格式。旧三端SettingsBackHandler已删除，系统/预测返回共享库事件链，镜像编辑优先关闭/取消保留；决定和未实测边界见[设置路由](../.agents/notes/implemented/architecture/2026-10-20-settings-navdisplay.md)。
 - 用户已要求引入 miuix-blur 0.9.4，Android 最低版本相应提升到 API33 / Android13；iOS 保持16.0。
 
 ## 4. 视觉规则
@@ -64,7 +65,7 @@ Miuix 已提供颜色、文字层级和组件 Defaults，项目只补页面级�
 | 图标 | 业务线条图标24dp，不替换组件内部图标默认值 |
 | 圆角 | Card 默认16dp |
 
-节点库保留卡片列表与选择语义；运行时不包含固定假节点或假延迟，初始为空。禁止通过全局density/fontScale缩放掩盖布局问题。用户已选择系统动态色：Android以MonetSystem/keyColor=null跟随系统；iOS以System使用Miuix默认浅深色回退，不传Vibrant/Spec2025或固定种子。五页使用同一全屏采样源，顶底仅在小胶囊内采用20f模糊、浅0.22/深0.28表面覆盖、noiseCoefficient=0；不透明回退一致。参数是项目取舍，不是Apple材质规范；详见[UI实现](ui-showcase.md)。
+节点库保留卡片列表与选择语义；运行时不包含固定假节点或假延迟，初始为空。禁止通过全局density/fontScale缩放掩盖布局问题。用户已选择系统动态来源：Android提供系统动态代表色，以MonetSystem＋非空动态种子＋Neutral＋Spec2025生成；iOS以System使用Miuix默认浅深色，不读取壁纸或使用固定种子。五页使用同一全屏采样源，顶底仅在小胶囊内采用20f模糊、浅0.22/深0.28表面覆盖、noiseCoefficient=0；不透明回退一致。参数是项目取舍，不是Apple材质规范；详见[UI实现](ui-showcase.md)。
 
 - 文字优先引用 `MiuixTheme.textStyles`，仅为测速大数字等明确用途增加样式。
 - 默认使用平台适配字体；不擅自打包小米专有字体或把字体授权视为组件库授权的一部分。

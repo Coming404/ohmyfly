@@ -21,6 +21,17 @@ class MarkdownCheckTests(unittest.TestCase):
             doc.write_text('[missing](missing.md)')
             self.assertTrue(module.markdown_errors(doc, root))
 
+    def test_miuix_skill_is_allowed_but_unrelated_references_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            doc = root / 'AGENTS.md'
+            doc.write_text('优先使用 miuix Skill（技能），不足时用 EXA MCP。')
+            self.assertEqual(module.markdown_errors(doc, root), [])
+            for marker in ('flutter', 'ohmytower', 'oh_my_tower'):
+                with self.subTest(marker=marker):
+                    doc.write_text(marker)
+                    self.assertTrue(module.markdown_errors(doc, root))
+
     def test_path_cannot_escape_project(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / 'project'

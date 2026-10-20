@@ -25,7 +25,6 @@ import dev.ohmydrift.mirror.validateMirror
 import dev.ohmydrift.ui.ChoiceOption
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -59,7 +58,7 @@ internal fun MirrorEditor(
     SettingsList(contentPadding) {
         item { SmallTitle(if (existing == null) "添加镜像" else "编辑镜像") }
         item {
-            Card(Modifier.fillMaxWidth()) {
+            SettingsCard {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     TextField(
                         state = draft.name,

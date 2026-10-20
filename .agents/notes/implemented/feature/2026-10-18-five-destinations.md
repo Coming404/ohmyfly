@@ -16,6 +16,8 @@ Status: implemented
 
 ## Related decisions
 
+[紧凑五入口底栏](2026-10-20-stacked-bottom-navigation.md)替代本篇FloatingNavigationBar/Item图标专用布局：上图下文、标签常显、选中加粗、24dp平滑形状；保留五入口、官方图标与App唯一导航状态。[紧凑页面标题](2026-10-19-compact-page-header.md)替代固定品牌/副标题顶栏。
+
 [统一悬浮材质与系统配色](../bug-fix/2026-10-19-floating-chrome.md)替代本篇的全宽SmallTopAppBar、仅概览模糊及全局Crossfade；[生产界面清理](../simplification/2026-10-19-production-ui.md)移除运行时夹具与开发提示。五个目的地、选择契约和完整模块要求保留。
 
 检索现有活跃笔记：与[共享 UI 展示](../../implemented/feature/2026-10-18-ui-showcase.md)部分重叠，保留会话状态、演示数据、无后端和选择语义；新的五页/导航形态替代三页。与[Expressive 概览](../../implemented/feature/2026-10-18-expressive-overview.md)部分重叠，保留主题与模糊，更新快捷入口。基础架构提案和工程底座继续有效；Release流程提案与本次导航无关，不重写。
