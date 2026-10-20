@@ -17,6 +17,9 @@ class GlassPipelineTests(unittest.TestCase):
         self.assertIn('!reduceTransparency && !systemReduceTransparency && shaderSupported', presets)
         self.assertIn('MotionDurationScale', (COMMON / 'ui/AppMotion.kt').read_text())
         self.assertNotIn('rememberGlassMotionAllowed', presets)
+        catalog = (ROOT / 'gradle/libs.versions.toml').read_text()
+        self.assertIn('androidx-lifecycle-runtime-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }', catalog)
+        self.assertIn('implementation(libs.androidx.lifecycle.runtime.compose)', (ROOT / 'shared/build.gradle.kts').read_text())
         for operation in ('colorControls(', 'blur(preset.blur.dp.toPx())', 'lens('):
             self.assertIn(operation, effects)
         self.assertEqual(1, effects.count('effects = { glassEffects('))
