@@ -2,9 +2,7 @@ package dev.ohmydrift.ui.glass
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.ohmydrift.ui.NavigationBarShape
 import kotlin.test.Test
@@ -56,12 +54,11 @@ class GlassShapeTest {
     }
 
     @Test
-    fun navigationRetainsGenericSmoothOutlineInBothDirections() {
-        val density = Density(1f)
-        val size = Size(320f, 64f)
-        val ltr = assertIs<Outline.Generic>(NavigationBarShape.createOutline(size, LayoutDirection.Ltr, density))
-        val rtl = assertIs<Outline.Generic>(NavigationBarShape.createOutline(size, LayoutDirection.Rtl, density))
-        assertEquals(ltr.path.getBounds(), rtl.path.getBounds())
-        assertEquals(24.dp, NavigationBarShape.radius)
+    fun navigationShapeKeepsSharedRadiusAndDensityScaling() {
+        val shape = assertIs<GlassShape>(NavigationBarShape)
+        assertEquals(24.dp, shape.radius)
+        assertEquals(26.4f, shape.tile(Size(320f, 64f), Density(1f)), 0.0001f)
+        assertEquals(52.8f, shape.tile(Size(640f, 128f), Density(2f)), 0.0001f)
+        assertEquals(10f, shape.tile(Size(320f, 20f), Density(1f)))
     }
 }

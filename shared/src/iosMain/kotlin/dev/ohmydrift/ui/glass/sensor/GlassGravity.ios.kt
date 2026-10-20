@@ -22,8 +22,11 @@ import platform.UIKit.UIApplication
 import platform.UIKit.UIApplicationDidBecomeActiveNotification
 import platform.UIKit.UIApplicationState
 import platform.UIKit.UIApplicationWillResignActiveNotification
-import platform.UIKit.UIInterfaceOrientation
-import platform.UIKit.UISceneActivationState
+import platform.UIKit.UIInterfaceOrientationLandscapeLeft
+import platform.UIKit.UIInterfaceOrientationLandscapeRight
+import platform.UIKit.UIInterfaceOrientationPortrait
+import platform.UIKit.UIInterfaceOrientationPortraitUpsideDown
+import platform.UIKit.UISceneActivationStateForegroundActive
 import platform.UIKit.UISceneDidActivateNotification
 import platform.UIKit.UISceneWillDeactivateNotification
 import platform.darwin.NSObjectProtocol
@@ -56,7 +59,7 @@ internal actual fun rememberGlassGravity(enabled: Boolean): State<Offset> {
             lifecycle.currentState == Lifecycle.State.RESUMED &&
                 UIApplication.sharedApplication.applicationState == UIApplicationState.UIApplicationStateActive &&
                 controller.view.window?.windowScene?.activationState ==
-                    UISceneActivationState.UISceneActivationStateForegroundActive &&
+                    UISceneActivationStateForegroundActive &&
                 !UIAccessibilityIsReduceMotionEnabled()
 
         fun updateMotion() {
@@ -68,10 +71,10 @@ internal actual fun rememberGlassGravity(enabled: Boolean): State<Offset> {
                         stopMotion()
                     } else {
                         quarterTurns = when (controller.view.window?.windowScene?.interfaceOrientation) {
-                            UIInterfaceOrientation.UIInterfaceOrientationPortrait -> 0
-                            UIInterfaceOrientation.UIInterfaceOrientationLandscapeRight -> 1
-                            UIInterfaceOrientation.UIInterfaceOrientationPortraitUpsideDown -> 2
-                            UIInterfaceOrientation.UIInterfaceOrientationLandscapeLeft -> 3
+                            UIInterfaceOrientationPortrait -> 0
+                            UIInterfaceOrientationLandscapeRight -> 1
+                            UIInterfaceOrientationPortraitUpsideDown -> 2
+                            UIInterfaceOrientationLandscapeLeft -> 3
                             else -> quarterTurns
                         }
                         gravity.value = screenGlassGravity(device, quarterTurns)

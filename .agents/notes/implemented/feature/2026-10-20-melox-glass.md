@@ -37,6 +37,7 @@ Status: implemented
 - 新增4个glass commonTest类，共22个`@Test`（预设/门控6、tab/RTL几何6、cubic形状6、重力量化4），不包含sensor owner的测试；本轮未运行Kotlin测试。
 - `python3 tools/check_project.py` 已通过；`git diff --check` 已通过。初次全量Python为59项，57通过，玻璃头部归属守卫及CI @Test总量守卫失败；补齐文件归属后定向`test_glass_pipeline.py` 3/3通过。CI门槛需要由主代理按最终commonTest总数更新（该次快照为131、门槛仍109），本owner不修改Python/Gradle/CI。
 - 所有本任务运行时代码文件均小于500行；未运行Gradle、CI、Xcode、Android/iOS截图、读屏/键盘实机或性能验收，静态通过不代表编译或实际视觉效果通过。
+- 后续授权Release的`45b96b2`已执行146项共享测试，145通过，唯一失败是commonTest直接构建Android Path触发无实现的宿主框架桩，而非几何断言失败。该项改为验证真实NavigationBarShape的共享类型、24dp半径、密度缩放与窄尺寸clamp；cubic端点/单调/对称/控制点测试保留，源码守卫确认生产端仍用Generic Path和官方addSquircleRect。测试不跳过、不设置returnDefaultValues、不为此引入Robolectric或修改生产渲染；实际LTR/RTL轮廓边界继续留设备验收。[Android官方单测限制](https://developer.android.com/training/testing/local-tests)说明宿主框架方法没有实现。同期补齐已有lifecycle2.11.0的目录别名，并将iOS方向/Scene常量改为平台顶层导入，保持原映射与采集策略。
 
 ## Consequences
 

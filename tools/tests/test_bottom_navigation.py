@@ -83,6 +83,8 @@ class BottomNavigationTests(unittest.TestCase):
         self.assertIn('rememberGlassNavigationGesture(', surface)
         self.assertIn('InteractiveHighlight', ch + (GLASS / 'InteractiveHighlight.kt').read_text())
         self.assertIn('internal open class GlassShape', shape)
+        self.assertIn('Outline.Generic(Path().apply {', shape)
+        self.assertIn('addSquircleRect(size.width, size.height', shape)
         self.assertIn('fun tile(', shape)
         for shared in ('rememberAnimatedGlassPreset(materialMode, dark, enabled, motion)', 'glassSurface(', 'rememberGlassHighlight('):
             with self.subTest(shared=shared):
