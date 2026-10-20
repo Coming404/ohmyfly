@@ -1,6 +1,6 @@
 # UI 实现与验收
 
-Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留五个入口：概览、订阅、测速、节点库、设置。生产源码不包含固定假节点、固定延迟、开发状态页脚或占位文件名。当前目录初始为空；订阅读取、安全凭据存储、Go节点测速尚未接入。设置DataStore与独立镜像HTTP探测在6b24994已通过双端构建和62项共享测试；本轮主题/表面/设置首页/顶底栏/NavDisplay及材质配置接入仅完成本地检查，尚未重新编译或真机验收，不代表节点／媒体业务完成。
+Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留五个入口：概览、订阅、测速、节点库、设置。生产源码不包含固定假节点、固定延迟、开发状态页脚或占位文件名。当前目录初始为空；订阅读取、安全凭据存储、Go节点测速尚未接入。本轮主题/表面/设置首页/顶底栏/NavDisplay、玻璃及双端传感器、自有运动策略已在78d80bd通过[双端Release构建](https://github.com/Coming404/ohmydrift/actions/runs/39426815748)，146项共享测试全部通过，无失败或跳过；视觉、无障碍、传感器与性能仍待真机验收，不代表节点／媒体业务完成。
 
 ## 页面与状态
 
@@ -36,7 +36,7 @@ Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留五个入口�
 | 圆角 | 顶栏 50dp、底栏 24dp，均基于官方 addSquircleRect 的共享 cubic；Lens、高光、裁剪和阴影同形 |
 | 回退 | 应用或 iOS 系统启用减少透明效果，或 RuntimeShader 不可用时，统一使用实体表面并停止采样/图文录制/传感器；保留已选材质 |
 
-四种预设来自同一参数表：高斯突出均匀模糊、高光玻璃清晰背景加明显边缘光、柔光玻璃柔和混浊感、液态玻璃完整折射与交互。Melox 移植来源、Apache 头与 GPL 说明见 `third-party/README.md`。设备倾斜高光优先读取 draw 阶段重力状态，Android 复用 Miuix 传感器并做屏幕方向映射；iOS 使用 Core Motion，后台/离页/减少动态或实体模式停止采集。当前尚无原生编译或真机像素证据，不能据此宣称视觉验收通过。
+四种预设来自同一参数表：高斯突出均匀模糊、高光玻璃清晰背景加明显边缘光、柔光玻璃柔和混浊感、液态玻璃完整折射与交互。Melox 移植来源、Apache 头与 GPL 说明见 `third-party/README.md`。设备倾斜高光优先读取 draw 阶段重力状态，Android 复用 Miuix 传感器并做屏幕方向映射；iOS 使用 Core Motion，后台/离页/减少动态或实体模式停止采集。当前已有双端原生编译通过记录，但尚无真机像素证据，不能据此宣称视觉验收通过。
 
 ## 配色
 
@@ -92,7 +92,7 @@ ThemeController根仍负责生成与动态标记；仅在其内使用官方color
 - `ui/PagePadding.kt`：逻辑方向安全区和内容留白合并。
 - `ui/{NodeSummary,NodeSelection,NodeSelectionActions,ChoiceOption}.kt`：节点摘要、选择逻辑和控件。
 - `ui/{OverviewScreen,SubscriptionsScreen,SpeedScreen,NodesScreen,SettingsScreen}.kt`：五页。
-- `commonTest`：NodeSelectionTest、PagePaddingTest、AppDestinationTest、ThemeModeTest等，SettingsNavigationTest六项覆盖开页/防重/根保护/序列化；MaterialSettingsTest新增六项覆盖材质默认/往返/旧值迁移/损坏回退/透明度偏好保留，SettingsCodecTest补非默认材质往返。当前共146项声明，尚未运行；真实测试保留标准命名。
+- `commonTest`：NodeSelectionTest、PagePaddingTest、AppDestinationTest、ThemeModeTest等，SettingsNavigationTest六项覆盖开页/防重/根保护/序列化；MaterialSettingsTest新增六项覆盖材质默认/往返/旧值迁移/损坏回退/透明度偏好保留，SettingsCodecTest补非默认材质往返。当前146项已在78d80bd的Android host任务执行且全部通过，无失败或跳过；真实测试保留标准命名。
 
 ## 验收清单
 
