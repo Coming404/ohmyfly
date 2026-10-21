@@ -32,6 +32,10 @@ import dev.ohmydrift.ui.AppTheme
 import dev.ohmydrift.ui.AppMotion
 import dev.ohmydrift.ui.LocalAppSurfaceColors
 import dev.ohmydrift.ui.rememberSystemReduceTransparency
+import androidx.compose.ui.draw.blur
+import dev.ohmydrift.settings.SettingsSession
+import dev.ohmydrift.ui.HeaderAction
+import dev.ohmydrift.ui.settings.MirrorIcons
 import dev.ohmydrift.settings.AppSettings
 import dev.ohmydrift.ui.glass.glassEffectsEnabled
 import dev.ohmydrift.ui.glass.glassShaderSupported
@@ -45,9 +49,9 @@ import top.yukonga.miuix.kmp.nav.core.rememberNavBackStack
 
 @Composable
 fun App(dynamicColorSeed: Color?, settingsPath: String, version: String) {
-    PersistedSettings(settingsPath) { settings, onChange, writeError, onDismissError ->
+    PersistedSettings(settingsPath) { settings, onChange, writeError, onDismissError, session ->
         AppMotion(settings.reduceMotion) {
-            AppContent(dynamicColorSeed, settings, onChange, version, writeError, onDismissError)
+            AppContent(dynamicColorSeed, settings, onChange, version, writeError, onDismissError, session)
         }
     }
 }
@@ -60,6 +64,7 @@ private fun AppContent(
     version: String,
     writeError: String?,
     onDismissError: () -> Unit,
+    settingsSession: SettingsSession,
 ) {
     var destination by rememberSaveable(
         stateSaver = Saver<AppDestination, String>(
@@ -70,6 +75,9 @@ private fun AppContent(
     val settingsStack = rememberNavBackStack<SettingsPage>(SettingsPage.Home)
     val settingsPage = settingsStack.last() as SettingsPage
     var mirrorEditorBack by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var mirrorAdd by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var mirrorOverlay by remember { mutableStateOf(false) }
+    val mirrorPage = destination == AppDestination.Settings && settingsPage == SettingsPage.Mirrors
     val themeMode = settings.themeMode
     val reduceTransparency = settings.reduceTransparency
     val systemReduceTransparency by rememberSystemReduceTransparency()
@@ -94,11 +102,13 @@ private fun AppContent(
             drawContent()
         }
         val glassEnabled = glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)
+        val depth = if (mirrorPage && mirrorOverlay && glassEnabled) 4.dp else 0.dp
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
+                Box(Modifier.blur(depth)) {
                 DriftTopBar(
-                    title = if (settingsChild) settingsPage.title else destination.label,
+                    title = if (mirrorPage) "" else if (settingsChild) settingsPage.title else destination.label,
                     backdrop = backdrop,
                     glassEnabled = glassEnabled,
                     dark = dark,
@@ -113,8 +123,11 @@ private fun AppContent(
                                 onSelection = { selectedIds = it },
                             )
                         }
+                    } else if (mirrorPage) {
+                        { HeaderAction("添加镜像", MirrorIcons.Add, onClick = { mirrorAdd?.invoke() }, enabled = mirrorAdd != null) }
                     } else null,
                 )
+                }
             },
             bottomBar = {
                 if (!settingsChild) DriftNavigationBar(
@@ -130,6 +143,7 @@ private fun AppContent(
             Box(
                 modifier = Modifier.fillMaxSize().consumeWindowInsets(padding)
                     .then(if (glassEnabled) Modifier.layerBackdrop(backdrop) else Modifier)
+                    .blur(depth)
                     .background(background),
                 contentAlignment = Alignment.TopCenter,
             ) {
@@ -172,6 +186,12 @@ private fun AppContent(
                             onBack = { settingsStack.popSettingsPage() },
                             editorBackActive = mirrorEditorBack != null,
                             onEditorBackChange = { mirrorEditorBack = it },
+                            session = settingsSession,
+                            backdrop = backdrop,
+                            glassEnabled = glassEnabled,
+                            dark = dark,
+                            onMirrorAddChange = { mirrorAdd = it },
+                            onMirrorOverlayChange = { mirrorOverlay = it },
                             version = version,
                             writeError = writeError,
                             onDismissError = onDismissError,

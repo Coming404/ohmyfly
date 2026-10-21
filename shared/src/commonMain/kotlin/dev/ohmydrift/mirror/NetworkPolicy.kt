@@ -1,17 +1,22 @@
 package dev.ohmydrift.mirror
 
-/**
- * Parses only absolute HTTPS URLs with a public host. Returns null for anything else;
- * user-visible validation layers add their own Chinese explanations.
- */
-internal data class HttpsUrl(val host: String, val port: Int, val path: String)
+/** Parsed public HTTP(S) endpoint. GitHub originals still require parseHttpsUrl. */
+internal data class PublicHttpUrl(val host: String, val port: Int, val path: String, val scheme: String)
 
-internal fun parseHttpsUrl(raw: String): HttpsUrl? {
-    if (raw.length !in 9..MAX_URL_LENGTH) return null
-    if (raw.any { it.isWhitespace() || it.isControl() }) return null
-    if (!raw.startsWith("https://", ignoreCase = true)) return null
+internal fun parseHttpsUrl(raw: String): PublicHttpUrl? =
+    raw.takeIf { it.startsWith("https://", ignoreCase = true) }?.let(::parseHttpUrl)
+
+internal fun parseHttpUrl(raw: String): PublicHttpUrl? {
+    if (raw.length !in 8..MAX_URL_LENGTH) return null
+    if (raw.any { it.isWhitespace() || it.isControl() } || '\\' in raw) return null
+    val scheme = when {
+        raw.startsWith("https://", ignoreCase = true) -> "https"
+        raw.startsWith("http://", ignoreCase = true) -> "http"
+        else -> return null
+    }
     if ('@' in raw || '#' in raw) return null
-    val rest = raw.substring(8)
+    val defaultPort = if (scheme == "https") 443 else 80
+    val rest = raw.substring(scheme.length + 3)
     val authority = rest.substringBefore('/').substringBefore('?')
     if (authority.isEmpty()) return null
     val host: String
@@ -22,18 +27,18 @@ internal fun parseHttpsUrl(raw: String): HttpsUrl? {
         host = authority.substring(1, end).lowercase()
         val tail = authority.substring(end + 1)
         port = when {
-            tail.isEmpty() -> 443
+            tail.isEmpty() -> defaultPort
             tail.startsWith(":") -> tail.substring(1).toIntOrNull() ?: return null
             else -> return null
         }
     } else {
         host = authority.substringBefore(':').lowercase()
         val rawPort = authority.substringAfter(':', "")
-        port = if (':' in authority) rawPort.toIntOrNull() ?: return null else 443
+        port = if (':' in authority) rawPort.toIntOrNull() ?: return null else defaultPort
     }
     if (port !in 1..65535) return null
     if (!isPublicHost(host)) return null
-    return HttpsUrl(host, port, rest.substring(authority.length))
+    return PublicHttpUrl(host, port, rest.substring(authority.length), scheme)
 }
 
 internal fun validatePublicHttps(raw: String): String? = when {
@@ -88,20 +93,23 @@ internal fun githubResourceError(raw: String): String? {
  */
 internal fun resolveRedirect(currentUrl: String, location: String): String? {
     val absolute = resolveRelative(currentUrl, location.trim()) ?: return null
-    val parsed = parseHttpsUrl(absolute) ?: return null
-    val current = parseHttpsUrl(currentUrl) ?: return null
-    val sameOrigin = parsed.host == current.host && parsed.port == current.port
-    if (!sameOrigin && (parsed.port != 443 || !isAllowedGitHubHost(parsed.host))) return null
+    val parsed = parseHttpUrl(absolute) ?: return null
+    val current = parseHttpUrl(currentUrl) ?: return null
+    if (current.scheme == "https" && parsed.scheme != "https") return null
+    val sameOrigin = parsed.host == current.host && parsed.port == current.port && parsed.scheme == current.scheme
+    val sameHostUpgrade = parsed.host == current.host && current.scheme == "http" && current.port == 80 &&
+        parsed.scheme == "https" && parsed.port == 443
+    if (!sameOrigin && !sameHostUpgrade && (parsed.scheme != "https" || parsed.port != 443 || !isAllowedGitHubHost(parsed.host))) return null
     return absolute
 }
 
 private fun resolveRelative(base: String, location: String): String? {
     if (location.isEmpty()) return null
-    if (location.startsWith("https://", ignoreCase = true)) return location
-    if (location.startsWith("//")) return "https:$location"
+    if (location.startsWith("https://", ignoreCase = true) || location.startsWith("http://", ignoreCase = true)) return location
+    if (location.startsWith("//")) return base.substringBefore(':') + ":$location"
     if (Regex("^[A-Za-z][A-Za-z0-9+.-]*:").containsMatchIn(location)) return null
     val bare = base.substringBefore('#')
-    val authorEnd = bare.indexOf('/', 8).let { if (it < 0) bare.length else it }
+    val authorEnd = bare.indexOf('/', bare.indexOf("://") + 3).let { if (it < 0) bare.length else it }
     val prefix = bare.substring(0, authorEnd)
     return when {
         location.startsWith("/") -> prefix + location

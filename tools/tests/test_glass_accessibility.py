@@ -14,7 +14,8 @@ class GlassAccessibilityTests(unittest.TestCase):
         self.assertIn('val systemReduceTransparency by rememberSystemReduceTransparency()', app)
         self.assertIn('glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)', app)
         self.assertIn('!reduceTransparency && !systemReduceTransparency && shaderSupported', preset)
-        self.assertEqual(2, app.count('glassEnabled = glassEnabled,'))
+        self.assertEqual(3, app.count('glassEnabled = glassEnabled,'))
+        self.assertIn('mirrorPage && mirrorOverlay && glassEnabled', app)
         # System accessibility input never replaces the saved application choice.
         self.assertNotIn('copy(reduceTransparency', app)
         for file in ('settings/AppSettings.kt', 'settings/SettingsCodec.kt'):
@@ -63,7 +64,8 @@ class GlassAccessibilityTests(unittest.TestCase):
 
     def test_settings_errors_are_associated_with_input_and_actions_can_wrap(self):
         controls = (COMMON / 'ui/settings/SettingsControls.kt').read_text()
-        self.assertIn('TextField(state = draft, label = title, modifier = Modifier.fillMaxWidth().semantics', controls)
+        self.assertIn('TextField(value = draft, onValueChange = { draft = it }, label = title, modifier = Modifier.fillMaxWidth().semantics', controls)
+        self.assertIn('SettingsInputMenu {', controls)
         self.assertIn('validationError?.let { error(it) }', controls)
         self.assertIn('liveRegion = LiveRegionMode.Polite', controls)
         self.assertEqual(2, controls.count('FlowRow('))

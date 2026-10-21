@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -74,7 +75,7 @@ internal fun DriftTopBar(
                 )
             }
         }
-        Text(
+        if (title.isNotEmpty()) Text(
             title,
             modifier = Modifier.weight(1f).semantics { heading() },
             fontSize = 18.sp,
@@ -82,7 +83,7 @@ internal fun DriftTopBar(
             color = MiuixTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-        )
+        ) else Spacer(Modifier.weight(1f))
         if (actions != null) {
             Row(
                 modifier = Modifier.chromeMaterial(backdrop, glassEnabled, dark, materialMode),

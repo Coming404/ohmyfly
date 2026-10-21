@@ -9,11 +9,11 @@ import io.ktor.http.Url
 internal fun validateMirror(entry: MirrorEntry): String? {
     if (entry.id.isBlank() || entry.id.equals(DIRECT_MIRROR_ID, true) || entry.id.length > 128 || entry.id.any { it.isWhitespace() || it.isControl() }) return "镜像标识无效"
     if (entry.name.isBlank() || entry.name.length > 64 || entry.name.any { it.isControl() }) return "镜像名称需为 1–64 个可见字符"
-    val address = entry.address
+    val address = normalizedMirrorInput(entry.address)
     if (address.isBlank()) return "镜像地址不能为空"
     if (address.length > MAX_URL_LENGTH) return "镜像地址过长"
     if (address.any { it.isWhitespace() || it.isControl() }) return "镜像地址不能包含空白或控制字符"
-    if (!address.startsWith("https://", ignoreCase = true)) return "镜像地址必须以 https:// 开头"
+    if (!address.startsWith("https://", ignoreCase = true) && !address.startsWith("http://", ignoreCase = true)) return "仅支持 HTTP 或 HTTPS 地址"
     if ('@' in address) return "镜像地址不能包含用户名或密码"
     if ('#' in address) return "镜像地址不能包含片段"
     if (occurrences(address, "{url}") > 1) return "模板只能包含一个 {url}"
@@ -25,8 +25,9 @@ internal fun validateMirror(entry: MirrorEntry): String? {
         MirrorMode.Template -> {
             val placeholder = address.indexOf("{url}")
             if (placeholder < 0) return "模板必须包含一个 {url}"
-            val authorityEnd = address.substring(8).let { rest ->
-                rest.indexOfFirst { it == '/' || it == '?' }.let { if (it < 0) rest.length else it + 8 }
+            val authorityStart = address.indexOf("://") + 3
+            val authorityEnd = address.substring(authorityStart).let { rest ->
+                rest.indexOfFirst { it == '/' || it == '?' }.let { if (it < 0) address.length else it + authorityStart }
             }
             if (placeholder < authorityEnd) return "模板占位符不能出现在主机名中"
             if (address.replace("{url}", "").any { it == '{' || it == '}' }) return "只支持 {url} 占位符"
@@ -35,13 +36,22 @@ internal fun validateMirror(entry: MirrorEntry): String? {
             if (parameters.any { it.lowercase() in setOf("token", "access_token", "auth", "authorization", "api_key", "apikey", "password", "signature", "key", "sig") }) return "镜像网址不能保存认证参数"
         }
     }
-    parseHttpsUrl(address) ?: return "镜像地址必须是有效的公网 HTTPS 地址"
+    parseHttpUrl(address) ?: return "请输入有效的公网 HTTP 或 HTTPS 地址"
     return null
+}
+
+/** A bare domain defaults to HTTPS. Explicit/unknown schemes are never silently rewritten. */
+internal fun normalizedMirrorInput(raw: String): String {
+    val value = raw.trim()
+    if (value.isEmpty()) return value
+    val scheme = Regex("^[A-Za-z][A-Za-z0-9+.-]*:")
+    val hostPort = Regex("^[A-Za-z0-9.-]+:[0-9]+(?:/.*)?$")
+    return if (scheme.containsMatchIn(value) && !hostPort.matches(value)) value else "https://$value"
 }
 
 /** Forgiving normalization for previews, dedupe and storage; never throws on a draft value. */
 internal fun normalizedMirrorAddress(entry: MirrorEntry): String {
-    val normalized = normalizeHostCase(entry.address.trim())
+    val normalized = normalizeHostCase(normalizedMirrorInput(entry.address))
     return when (entry.mode) {
         MirrorMode.Prefix -> normalized.trimEnd('/') + "/"
         MirrorMode.Template -> normalized
@@ -60,9 +70,10 @@ private fun normalizeHostCase(address: String): String {
     val rest = address.substring(schemeEnd + 3)
     val authorityEnd = rest.indexOfFirst { it == '/' || it == '?' || it == '#' }
         .let { if (it < 0) rest.length else it }
-    return address.substring(0, schemeEnd).lowercase() + "://" +
-        rest.substring(0, authorityEnd).lowercase().removeSuffix(":443") +
-        rest.substring(authorityEnd)
+    val scheme = address.substring(0, schemeEnd).lowercase()
+    val authority = rest.substring(0, authorityEnd).lowercase()
+        .removeSuffix(if (scheme == "http") ":80" else ":443")
+    return scheme + "://" + authority + rest.substring(authorityEnd)
 }
 
 internal fun percentEncode(value: String): String = buildString {

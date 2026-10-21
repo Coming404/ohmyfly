@@ -40,7 +40,8 @@ class PageHeaderTests(unittest.TestCase):
     def test_titles_and_back_share_the_existing_navigation_state(self):
         app = (COMMON / 'App.kt').read_text()
         screen = (UI / 'SettingsScreen.kt').read_text()
-        self.assertIn('title = if (settingsChild) settingsPage.title else destination.label', app)
+        self.assertIn('title = if (mirrorPage) "" else if (settingsChild) settingsPage.title else destination.label', app)
+        self.assertIn('if (title.isNotEmpty()) Text(', (UI / 'DriftTopBar.kt').read_text())
         self.assertIn('onBack = settingsBack', app)
         self.assertIn('val settingsPage = settingsStack.last() as SettingsPage', app)
         self.assertIn('mirrorEditorBack?.invoke() ?: settingsStack.popSettingsPage()', app)

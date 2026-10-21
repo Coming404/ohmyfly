@@ -21,35 +21,58 @@ import kotlinx.coroutines.sync.withPermit
 /** The direct connection shares the probe result map with mirrors under this fixed key. */
 internal const val DIRECT_MIRROR_KEY = "direct"
 
-internal enum class MirrorTestPhase { Idle, Queued, Running }
+internal enum class MirrorTestPhase { Idle, Queued, Running, Stopped }
 
-internal enum class MirrorTone { Normal, Active, Error }
+/** [Muted] is "no measurement yet", [Normal] is a measured pass, [Active] is a live probe. */
+internal enum class MirrorTone { Muted, Normal, Active, Error }
 
-/** Only claims what the probe returned; a timeout is never rendered as 0 ms. */
+/** Row-sized status: one short token; [mirrorStatusDetail] carries the full reason for readers. */
 internal fun mirrorStatusText(result: MirrorProbeResult?, phase: MirrorTestPhase): String = when {
     phase == MirrorTestPhase.Queued -> "排队中"
     phase == MirrorTestPhase.Running -> "测试中…"
+    phase == MirrorTestPhase.Stopped -> "已停止"
     result == null -> "未测试"
-    result.status == ProbeStatus.Success -> buildString {
-        append(result.latencyMs?.let { "HTTP 首字节 $it ms" } ?: "内容校验通过")
-        if (result.successes > 0) append(" · 成功 ${result.successes} 次")
-    }
+    result.status == ProbeStatus.Success -> result.latencyMs?.let { "$it ms" } ?: "已通过"
     result.status == ProbeStatus.Timeout -> "请求超时"
-    result.status == ProbeStatus.InvalidContent -> "内容校验未通过"
-    else -> result.detail.takeIf { it.isNotBlank() }?.let { "失败：$it" } ?: "请求失败"
+    else -> "不可用"
 }
 
-internal fun mirrorTone(result: MirrorProbeResult?, phase: MirrorTestPhase): MirrorTone = when {
-    phase != MirrorTestPhase.Idle -> MirrorTone.Active
-    result == null -> MirrorTone.Normal
-    result.status == ProbeStatus.Success -> MirrorTone.Active
-    else -> MirrorTone.Error
+/** Full reason for the accessibility label; never a placeholder and never a zero-millisecond pass. */
+internal fun mirrorStatusDetail(result: MirrorProbeResult?, phase: MirrorTestPhase): String = when (phase) {
+    MirrorTestPhase.Queued -> "排队等待测试"
+    MirrorTestPhase.Running -> "正在测试固定样本"
+    MirrorTestPhase.Stopped -> "已停止，未完成本轮测试"
+    MirrorTestPhase.Idle -> when {
+        result == null -> "尚未测试"
+        result.status == ProbeStatus.Success -> buildString {
+            append(result.latencyMs?.let { "HTTP 首字节 $it ms" } ?: "内容校验通过")
+            if (result.successes > 0) append("，成功 ${result.successes} 次")
+            if (result.detail.isNotBlank()) append("，${result.detail}")
+        }
+        result.status == ProbeStatus.Timeout -> "请求超时"
+        result.status == ProbeStatus.InvalidContent -> result.detail.ifBlank { "返回内容与固定样本不一致" }
+        else -> result.detail.ifBlank { "请求失败" }
+    }
+}
+
+internal fun mirrorTone(result: MirrorProbeResult?, phase: MirrorTestPhase): MirrorTone = when (phase) {
+    MirrorTestPhase.Queued, MirrorTestPhase.Running -> MirrorTone.Active
+    MirrorTestPhase.Stopped -> MirrorTone.Muted
+    MirrorTestPhase.Idle -> when {
+        result == null -> MirrorTone.Muted
+        result.status == ProbeStatus.Success -> MirrorTone.Normal
+        else -> MirrorTone.Error
+    }
 }
 
 /**
  * Runs at most four probes at once. Each row commits and returns to Idle as soon as its own
  * probe finishes, so ordering updates during a batch. Starting a batch drops the targets'
  * previous results, so a stopped run never presents stale numbers as this run's output.
+ *
+ * Stopping is asynchronous: finished rows keep their result, unfinished rows become
+ * [MirrorTestPhase.Stopped], and [running] stays true until the cancelled job has really
+ * finished, so a new batch cannot overlap the cleanup or be overwritten by the old run.
  */
 @Stable
 internal class MirrorProbeRunner(
@@ -61,6 +84,8 @@ internal class MirrorProbeRunner(
     var phases by mutableStateOf<Map<String, MirrorTestPhase>>(emptyMap())
         private set
     var running by mutableStateOf(false)
+        private set
+    var stopping by mutableStateOf(false)
         private set
     var stopped by mutableStateOf(false)
         private set
@@ -86,20 +111,36 @@ internal class MirrorProbeRunner(
     }
 
     fun measure(key: String, entry: MirrorEntry?) {
-        if (!running) start(listOf(key to entry))
+        if (!running && !stopping) start(listOf(key to entry))
     }
 
     fun measureAll(targets: List<Pair<String, MirrorEntry?>>) {
-        if (!running && targets.isNotEmpty()) start(targets)
+        if (!running && !stopping && targets.isNotEmpty()) start(targets)
     }
 
     fun stop() {
-        if (!running) return
+        if (!running || stopping) return
+        val current = job ?: return
         runId += 1L
-        job?.cancel()
-        running = false
-        stopped = true
-        phases = emptyMap()
+        val unfinished = phases
+            .filterValues { it == MirrorTestPhase.Queued || it == MirrorTestPhase.Running }
+            .keys
+        if (unfinished.isNotEmpty()) {
+            phases = phases.mapValues { (key, phase) ->
+                if (key in unfinished) MirrorTestPhase.Stopped else phase
+            }
+        }
+        stopped = unfinished.isNotEmpty()
+        stopping = true
+        current.cancel()
+        scope.launch {
+            current.join()
+            if (job === current) {
+                job = null
+                running = false
+                stopping = false
+            }
+        }
     }
 
     private fun start(targets: List<Pair<String, MirrorEntry?>>) {
@@ -107,6 +148,7 @@ internal class MirrorProbeRunner(
         runId += 1L
         val id = runId
         running = true
+        stopping = false
         stopped = false
         completed = 0
         total = targets.size

@@ -4,122 +4,122 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import dev.ohmydrift.mirror.MirrorEntry
+import androidx.compose.ui.unit.sp
 import dev.ohmydrift.mirror.MirrorProbeResult
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.RadioButton
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** Row actions are grouped so the row itself stays a plain, stateless composable. */
-internal class MirrorRowActions(
-    val select: () -> Unit,
-    val test: () -> Unit,
-    val menu: () -> Unit,
-    val edit: () -> Unit,
-    val moveUp: () -> Unit,
-    val moveDown: () -> Unit,
-    val delete: () -> Unit,
-)
-
+/**
+ * One mirror source. The whole row selects; the trailing `⋯` is the only management entry and
+ * never selects. The radio glyph is decorative because the row itself carries the radio role.
+ *
+ * [selectionEnabled] false means the mirror switch is off: the stored choice is kept, the row
+ * cannot be selected, and a selected row reads "已保留" instead of pretending to be in use.
+ * [menuFocusRequester] lets the owner return keyboard focus to this row's `⋯` after a dialog
+ * finishes dismissing; when null the button keeps its normal traversal position.
+ */
 @Composable
-internal fun MirrorDirectRow(
+internal fun MirrorRow(
+    name: String,
+    address: String,
     selected: Boolean,
+    selectionEnabled: Boolean,
     result: MirrorProbeResult?,
     phase: MirrorTestPhase,
-    testing: Boolean,
     onSelect: () -> Unit,
-    onTest: () -> Unit,
+    onMenu: () -> Unit,
+    modifier: Modifier = Modifier,
+    menuFocusRequester: FocusRequester? = null,
 ) {
     Row(
-        Modifier.fillMaxWidth()
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onSelect)
-            .padding(16.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .selectable(
+                selected = selected,
+                enabled = selectionEnabled,
+                role = Role.RadioButton,
+                onClick = onSelect,
+            )
+            .semantics {
+                if (!selectionEnabled && selected) stateDescription = "已保留"
+            }
+            .padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        RadioButton(selected = selected, onClick = null, modifier = Modifier.clearAndSetSemantics {})
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("直连", style = MiuixTheme.textStyles.title4)
-            Text("直接获取公开 GitHub 样本，不经镜像。", color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-            MirrorStatus(result, phase)
-        }
-        TextButton(text = "测此项", enabled = !testing, onClick = onTest)
-    }
-}
-
-@Composable
-internal fun MirrorEntryRow(
-    entry: MirrorEntry,
-    selected: Boolean,
-    result: MirrorProbeResult?,
-    phase: MirrorTestPhase,
-    menuOpen: Boolean,
-    manualOrder: Boolean,
-    canMoveUp: Boolean,
-    canMoveDown: Boolean,
-    testing: Boolean,
-    actions: MirrorRowActions,
-) {
-    Row(
-        Modifier.fillMaxWidth()
-            .selectable(selected = selected, role = Role.RadioButton, onClick = actions.select)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        RadioButton(selected = selected, onClick = null, modifier = Modifier.clearAndSetSemantics {})
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(entry.name, style = MiuixTheme.textStyles.title4)
-            Text(entry.address, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-            MirrorStatus(result, phase)
-        }
-        TextButton(text = "测此项", enabled = !testing, onClick = actions.test)
-        TextButton(text = if (menuOpen) "收起" else "管理", onClick = actions.menu)
-    }
-    if (!menuOpen) return
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-        if (!manualOrder) {
+        RadioButton(
+            selected = selected,
+            onClick = null,
+            modifier = Modifier.clearAndSetSemantics {},
+        )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                "切换为手动排序后可上下移动。",
+                text = name,
+                fontSize = 15.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = address,
+                fontSize = 12.sp,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                style = MiuixTheme.textStyles.footnote1,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            TextButton(text = "编辑", onClick = actions.edit)
-            TextButton(text = "上移", enabled = manualOrder && canMoveUp, onClick = actions.moveUp)
-            TextButton(text = "下移", enabled = manualOrder && canMoveDown, onClick = actions.moveDown)
-            TextButton(
-                text = "删除",
-                onClick = actions.delete,
-                colors = ButtonDefaults.textButtonColors(
-                    textColor = MiuixTheme.colorScheme.error,
-                ),
+        MirrorStatusLabel(result, phase)
+        IconButton(
+            onClick = onMenu,
+            minWidth = 44.dp,
+            minHeight = 44.dp,
+            modifier = if (menuFocusRequester != null) Modifier.focusRequester(menuFocusRequester) else Modifier,
+        ) {
+            Icon(
+                imageVector = MirrorIcons.More,
+                contentDescription = "管理$name",
+                tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                modifier = Modifier.size(20.dp),
             )
         }
     }
 }
 
+/** Short visible token; the measured reason and its samples are exposed to the reader instead. */
 @Composable
-internal fun MirrorStatus(result: MirrorProbeResult?, phase: MirrorTestPhase) {
-    val tone = mirrorTone(result, phase)
+private fun MirrorStatusLabel(result: MirrorProbeResult?, phase: MirrorTestPhase) {
+    val color = when (mirrorTone(result, phase)) {
+        MirrorTone.Muted -> MiuixTheme.colorScheme.onSurfaceVariantSummary
+        MirrorTone.Normal -> MiuixTheme.colorScheme.onSurface
+        MirrorTone.Active -> MiuixTheme.colorScheme.primary
+        MirrorTone.Error -> MiuixTheme.colorScheme.error
+    }
     Text(
         text = mirrorStatusText(result, phase),
-        color = when (tone) {
-            MirrorTone.Error -> MiuixTheme.colorScheme.error
-            MirrorTone.Active -> MiuixTheme.colorScheme.primary
-            MirrorTone.Normal -> MiuixTheme.colorScheme.onSurfaceVariantSummary
+        fontSize = 12.sp,
+        color = color,
+        maxLines = 1,
+        modifier = Modifier.clearAndSetSemantics {
+            contentDescription = mirrorStatusDetail(result, phase)
         },
-        style = MiuixTheme.textStyles.footnote1,
     )
 }

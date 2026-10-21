@@ -27,7 +27,8 @@ class SettingsHomeTests(unittest.TestCase):
         self.assertIn('ChoiceSetting("界面材质", settings.materialMode.name', home)
         self.assertIn('it.copy(materialMode = MaterialMode.valueOf(name))', home)
         self.assertNotIn('  ›', home)
-        self.assertIn('value = settings.mirrors.firstOrNull', home)
+        self.assertIn('value = if (!settings.mirrorEnabled) "已关闭"', home)
+        self.assertIn('settings.mirrors.firstOrNull()?.name ?: "暂无镜像源"', home)
 
     def test_action_rows_are_navigation_only(self):
         row = (SETTINGS / 'SettingsActionRow.kt').read_text()

@@ -10,6 +10,7 @@ internal data class AppSettings(
     val materialMode: MaterialMode = MaterialMode.LiquidGlass,
     val reduceTransparency: Boolean = false,
     val reduceMotion: Boolean = false,
+    val mirrorEnabled: Boolean = true,
     val speed: SpeedSettings = SpeedSettings(),
     val media: MediaSettings = MediaSettings(),
     val subscription: SubscriptionSettings = SubscriptionSettings(),

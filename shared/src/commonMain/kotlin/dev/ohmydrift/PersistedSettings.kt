@@ -23,12 +23,12 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
  * 设置读取与保存的唯一入口：点击经校验后由 [SettingsSession] 立即更新界面，
- * DataStore 事务在后台排队完成；content 的签名保持不变，仍拿到当前设置、变更函数、错误与关闭动作。
+ * DataStore 事务在后台排队完成；向镜像页透传同一个会话以等待真实写入确认。
  */
 @Composable
 internal fun PersistedSettings(
     path: String,
-    content: @Composable (AppSettings, ((AppSettings) -> AppSettings) -> Unit, String?, () -> Unit) -> Unit,
+    content: @Composable (AppSettings, ((AppSettings) -> AppSettings) -> Unit, String?, () -> Unit, SettingsSession) -> Unit,
 ) {
     var retry by remember { mutableStateOf(0) }
     val repository = remember(path, retry) { runCatching { createSettingsRepository(path) }.getOrNull() }
@@ -38,7 +38,7 @@ internal fun PersistedSettings(
     LaunchedEffect(session) { session?.run() }
     val state = session?.state ?: SettingsUiState(readFailed = true)
     val current = state.settings
-    if (current == null || state.readFailed) {
+    if (current == null) {
         MiuixTheme {
             Column(
                 Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp),
@@ -55,6 +55,7 @@ internal fun PersistedSettings(
             { transform -> checkNotNull(session).change(transform) },
             state.error,
             { checkNotNull(session).dismissError() },
+            checkNotNull(session),
         )
     }
 }

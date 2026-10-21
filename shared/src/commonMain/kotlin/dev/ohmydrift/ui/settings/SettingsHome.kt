@@ -62,7 +62,9 @@ internal fun SettingsHome(
             SettingsCard {
                 SettingsActionRow(SettingsPage.Subscription.title, onClick = { onPage(SettingsPage.Subscription) })
                 SettingsActionRow(SettingsPage.Mirrors.title,
-                    value = settings.mirrors.firstOrNull { it.id == settings.selectedMirrorId }?.name ?: "直连",
+                    value = if (!settings.mirrorEnabled) "已关闭" else
+                        settings.mirrors.firstOrNull { it.id == settings.selectedMirrorId }?.name
+                            ?: settings.mirrors.firstOrNull()?.name ?: "暂无镜像源",
                     onClick = { onPage(SettingsPage.Mirrors) })
             }
         }

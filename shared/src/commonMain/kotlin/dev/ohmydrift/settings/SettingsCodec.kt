@@ -111,6 +111,8 @@ internal object SettingsCodec {
             materialMode = preferences.readOrNull(materialMode).toEnumOr(defaults.materialMode),
             reduceTransparency = preferences.read(reduceTransparency, defaults.reduceTransparency),
             reduceMotion = preferences.read(reduceMotion, defaults.reduceMotion),
+            // 启用开关由 MirrorCodec 独占 `mirror.enabled`，避免两个 Codec 各读一份。
+            mirrorEnabled = mirrors.enabled,
             speed = SpeedSettings(
                 mode = preferences.readOrNull(speedMode).toEnumOr(speed.mode),
                 latencyUrl = SettingsLimits.urlOr(preferences.readOrNull(latencyUrl) ?: speed.latencyUrl, speed.latencyUrl),

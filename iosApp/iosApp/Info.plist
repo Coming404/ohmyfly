@@ -24,6 +24,13 @@
 	<true/>
 	<key>NSMotionUsageDescription</key>
 	<string>用于随设备倾斜调整玻璃高光，不记录或上传运动数据。</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- User-entered public HTTP mirror hosts cannot be enumerated at build time.
+		     Mirror transport still validates public hosts, credentials and every redirect. -->
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

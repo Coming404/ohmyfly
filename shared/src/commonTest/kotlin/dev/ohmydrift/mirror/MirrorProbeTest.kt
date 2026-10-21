@@ -65,15 +65,17 @@ class MirrorProbeTest {
     }
 
     @Test
-    fun directSelectionReallyStartsWithDirect() = runTest {
+    fun absentSelectionStartsWithMirrorsAndDirectIsOnlyTheFinalFallback() = runTest {
         val calls = mutableListOf<String>()
         val result = MirrorResourceFetcher(fake { url, _, _ ->
-            calls += parseHttpsUrl(url)!!.host
-            if (calls.size == 1) ProbeResponse(500, byteArrayOf(), 1) else ProbeResponse(200, MirrorSample.bytes, 10)
+            val host = parseHttpsUrl(url)!!.host
+            calls += host
+            if (host == "raw.githubusercontent.com") ProbeResponse(200, MirrorSample.bytes, 10)
+            else ProbeResponse(500, byteArrayOf(), 1)
         }).fetch(MirrorProbeTarget.url, null, mirrors(), expectedSha256 = MirrorProbeTarget.sha256)
-        assertEquals(listOf("raw.githubusercontent.com", "a.example.com"), calls)
-        assertEquals("a", result.usedMirrorId)
-        assertEquals(listOf("direct"), result.failedMirrorIds)
+        assertEquals(listOf("a.example.com", "b.example.com", "c.example.com", "raw.githubusercontent.com"), calls)
+        assertNull(result.usedMirrorId)
+        assertEquals(listOf("a", "b", "c"), result.failedMirrorIds)
     }
 
     @Test
@@ -95,6 +97,61 @@ class MirrorProbeTest {
         val fetcher = MirrorResourceFetcher(fake { _, _, _ -> calls++; throw CancellationException("cancel") })
         assertFailsWith<CancellationException> { fetcher.fetch(MirrorProbeTarget.url, "a", mirrors()) }
         assertEquals(1, calls)
+    }
+
+    @Test
+    fun disabledMirrorsOnlyUseDirectEvenWithAStaleSelection() = runTest {
+        val calls = mutableListOf<String>()
+        val result = MirrorResourceFetcher(fake { url, _, _ ->
+            calls += parseHttpsUrl(url)!!.host
+            ProbeResponse(200, MirrorSample.bytes, 12)
+        }).fetch(
+            originalUrl = MirrorProbeTarget.url,
+            // 停用后仍保留的旧选择：既不能参与排序，也不能报“选中的镜像不存在”。
+            selectedMirrorId = "gone",
+            mirrors = mirrors(),
+            expectedSha256 = MirrorProbeTarget.sha256,
+            enabled = false,
+        )
+        assertEquals(listOf("raw.githubusercontent.com"), calls)
+        assertNull(result.usedMirrorId)
+        assertTrue(result.failedMirrorIds.isEmpty())
+    }
+
+    @Test
+    fun disabledDirectFailureDoesNotFallBackToMirrors() = runTest {
+        var calls = 0
+        val fetcher = MirrorResourceFetcher(fake { _, _, _ -> calls++; ProbeResponse(503, byteArrayOf(), 1) })
+        assertFailsWith<MirrorFetchException> { fetcher.fetch(MirrorProbeTarget.url, "a", mirrors(), enabled = false) }
+        assertEquals(1, calls)
+    }
+
+    @Test
+    fun disabledStillKeepsUrlSafetyAndCancellation() = runTest {
+        var calls = 0
+        val fetcher = MirrorResourceFetcher(fake { _, _, _ -> calls++; ProbeResponse(200, MirrorSample.bytes, 1) })
+        assertFailsWith<MirrorFetchException> {
+            fetcher.fetch("http://raw.githubusercontent.com/a/b/c/d", null, mirrors(), enabled = false)
+        }
+        assertEquals(0, calls)
+
+        val cancelling = MirrorResourceFetcher(fake { _, _, _ -> throw CancellationException("cancel") })
+        assertFailsWith<CancellationException> {
+            cancelling.fetch(MirrorProbeTarget.url, "a", mirrors(), enabled = false)
+        }
+    }
+
+    @Test
+    fun staleSelectionStartsWithFirstMirrorAndHttpRewriteIsUsed() = runTest {
+        val calls = mutableListOf<String>()
+        val entries = mirrors().map { it.copy(address = it.address.replace("https://", "http://")) }
+        val result = MirrorResourceFetcher(fake { url, _, _ ->
+            calls += url
+            ProbeResponse(200, MirrorSample.bytes, 5)
+        }).fetch(MirrorProbeTarget.url, "deleted", entries, expectedSha256 = MirrorProbeTarget.sha256)
+        assertEquals("a", result.usedMirrorId)
+        assertEquals(1, calls.size)
+        assertTrue(calls.single().startsWith("http://a.example.com/https://"))
     }
 
     private fun mirrors() = listOf("a", "b", "c").map { MirrorEntry(it, it.uppercase(), "https://$it.example.com/") }

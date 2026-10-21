@@ -17,13 +17,36 @@ class MirrorPolicyTest {
     @Test
     fun mirrorsRejectSecretsAndInvalidPlaceholders() {
         val base = MirrorEntry("a", "A", "https://example.com/")
-        listOf("http://example.com/", "https://user:pass@example.com/", "https://127.0.0.1/", "https://example.com/#fragment").forEach {
+        listOf("ftp://example.com/", "https://user:pass@example.com/", "https://127.0.0.1/", "https://example.com/#fragment").forEach {
             assertNotNull(validateMirror(base.copy(address = it)))
         }
         assertNotNull(validateMirror(base.copy(id = "direct")))
         assertNotNull(validateMirror(base.copy(address = "https://example.com/?token=secret&url={url}", mode = MirrorMode.Template)))
         assertNotNull(validateMirror(base.copy(address = "https://example.com/{url}/{url}", mode = MirrorMode.Template)))
         assertNotNull(validateMirror(base.copy(address = "https://{url}.example.com/", mode = MirrorMode.Template)))
+    }
+
+    @Test
+    fun mirrorInputsSupportHttpHttpsAndBareDomainsWithoutRemovingWww() {
+        val base = MirrorEntry("m", "M", "")
+        val cases = mapOf(
+            "http://WWW.Example.com:80/Path" to "http://www.example.com/Path/",
+            "https://Example.com:443/Path" to "https://example.com/Path/",
+            "www.example.com/Path" to "https://www.example.com/Path/",
+            "example.com" to "https://example.com/",
+            "example.com:8080/Base" to "https://example.com:8080/Base/",
+            "http://example.com:443/" to "http://example.com:443/",
+        )
+        cases.forEach { (input, expected) ->
+            assertNull(validateMirror(base.copy(address = input)), input)
+            assertEquals(expected, normalizedMirrorAddress(base.copy(address = input)))
+        }
+        listOf("http://127.0.0.1/", "localhost", "http://192.168.1.1/", "ftp://example.com/", "https://user:pass@example.com/")
+            .forEach { assertNotNull(validateMirror(base.copy(address = it))) }
+        assertNull(resolveRedirect("https://example.com/file", "http://example.com/next"))
+        assertEquals("http://example.com/next", resolveRedirect("http://example.com/file", "/next"))
+        assertEquals("https://example.com/next", resolveRedirect("http://example.com/file", "https://example.com/next"))
+        assertNotNull(githubResourceError("http://github.com/a/b/archive/main.zip"))
     }
 
     @Test

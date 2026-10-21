@@ -8,4 +8,5 @@ internal data class MirrorState(
     val mirrors: List<MirrorEntry>,
     val selectedMirrorId: String?,
     val order: MirrorOrder,
+    val enabled: Boolean,
 )

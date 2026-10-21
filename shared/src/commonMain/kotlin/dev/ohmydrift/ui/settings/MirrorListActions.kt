@@ -1,7 +1,14 @@
 package dev.ohmydrift.ui.settings
 
 import dev.ohmydrift.mirror.MirrorEntry
+import dev.ohmydrift.mirror.MirrorOrder
 import dev.ohmydrift.mirror.buildMirrorUrl
+
+internal fun nextDisplayOrder(order: MirrorOrder): MirrorOrder = when (order) {
+    MirrorOrder.Manual -> MirrorOrder.LatencyAscending
+    MirrorOrder.LatencyAscending -> MirrorOrder.LatencyDescending
+    MirrorOrder.LatencyDescending -> MirrorOrder.Manual
+}
 
 internal fun movedMirror(entries: List<MirrorEntry>, id: String, delta: Int): List<MirrorEntry> {
     val from = entries.indexOfFirst { it.id == id }

@@ -14,12 +14,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.vector.ImageVector
+import top.yukonga.miuix.kmp.basic.Icon
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.TextFieldLineLimits
-import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -79,18 +81,26 @@ internal fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-internal fun ToggleSetting(title: String, summary: String = "", value: Boolean, onChange: (Boolean) -> Unit) {
+internal fun ToggleSetting(
+    title: String,
+    summary: String = "",
+    value: Boolean,
+    leadingIcon: ImageVector? = null,
+    enabled: Boolean = true,
+    onChange: (Boolean) -> Unit,
+) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 56.dp)
-            .toggleable(value, role = Role.Switch, onValueChange = onChange).padding(horizontal = 16.dp, vertical = 12.dp),
+            .toggleable(value, enabled = enabled, role = Role.Switch, onValueChange = onChange).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        if (leadingIcon != null) Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(24.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, fontSize = 16.sp)
             if (summary.isNotBlank()) Text(summary, fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
         }
-        Switch(checked = value, onCheckedChange = null, modifier = Modifier.clearAndSetSemantics {})
+        Switch(checked = value, enabled = enabled, onCheckedChange = null, modifier = Modifier.clearAndSetSemantics {})
     }
 }
 
@@ -104,18 +114,20 @@ internal fun TextSetting(
     onSave: (String) -> Unit,
 ) {
     var editing by remember { mutableStateOf(false) }
-    val draft = remember(value, editing) { TextFieldState(value) }
-    val input = draft.text.toString()
+    var draft by remember(value, editing) { mutableStateOf(TextFieldValue(value)) }
+    val input = draft.text
     val validationError = validate(input)
     LaunchedEffect(value) { editing = false }
     BasicComponent(title = title, summary = value.ifBlank { "未设置" }, onClick = { editing = !editing }, role = Role.Button)
     if (editing) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextField(state = draft, label = title, modifier = Modifier.fillMaxWidth().semantics {
-                validationError?.let { error(it) }
-            },
-                lineLimits = TextFieldLineLimits.SingleLine,
-                keyboardOptions = KeyboardOptions(keyboardType = keyboard, autoCorrectEnabled = false))
+            SettingsInputMenu {
+                TextField(value = draft, onValueChange = { draft = it }, label = title, modifier = Modifier.fillMaxWidth().semantics {
+                    validationError?.let { error(it) }
+                },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = keyboard, autoCorrectEnabled = false))
+            }
             if (hint.isNotEmpty()) Text(hint, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
             if (validationError != null) Text(validationError, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
             FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -15,7 +15,7 @@ internal class MirrorHttpTransport(
     private val verifyHost: suspend (String) -> Unit = ::ensurePublicHost,
 ) : MirrorTransport {
     override suspend fun fetch(url: String, timeoutMillis: Long, maxBytes: Int): ProbeResponse {
-        val parsed = parseHttpsUrl(url) ?: throw MirrorFetchException("请求地址不是公网 HTTPS 地址")
+        val parsed = parseHttpUrl(url) ?: throw MirrorFetchException("请求地址不是公网 HTTP 或 HTTPS 地址")
         require(timeoutMillis in 1..60_000 && maxBytes in 1..1_048_576)
         return withTimeoutOrNull(timeoutMillis) {
             val start = TimeSource.Monotonic.markNow()
