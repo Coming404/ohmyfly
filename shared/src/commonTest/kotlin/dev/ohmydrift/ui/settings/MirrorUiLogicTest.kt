@@ -2,7 +2,9 @@ package dev.ohmydrift.ui.settings
 
 import dev.ohmydrift.mirror.MirrorEntry
 import dev.ohmydrift.mirror.MirrorMode
+import dev.ohmydrift.mirror.MirrorOrder
 import dev.ohmydrift.mirror.newMirrorId
+import dev.ohmydrift.settings.AppSettings
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -27,7 +29,26 @@ class MirrorUiLogicTest {
     }
 
     @Test
-    fun removalKeepsOtherEntries() {
+    fun manualMovePersistsDisplayedOrderAndDisablesLatencySort() {
+        val settings = AppSettings(
+            mirrors = listOf(
+                MirrorEntry("a", "A", "https://a.example/"),
+                MirrorEntry("b", "B", "https://b.example/"),
+                MirrorEntry("c", "C", "https://c.example/"),
+            ),
+            mirrorOrder = MirrorOrder.LatencyAscending,
+        )
+        val displayed = listOf(settings.mirrors[1], settings.mirrors[0], settings.mirrors[2])
+
+        val moved = moveDisplayedMirror(settings, displayed, "a", 1)
+
+        assertEquals(listOf("b", "c", "a"), moved.mirrors.map { it.id })
+        assertEquals(MirrorOrder.Manual, moved.mirrorOrder)
+        assertEquals(MirrorOrder.LatencyAscending, settings.mirrorOrder)
+        assertEquals(settings, moveDisplayedMirror(settings, displayed, "b", -1))
+    }
+
+
         val list = listOf(
             MirrorEntry(id = "a", name = "A", address = "https://a.example/"),
             MirrorEntry(id = "b", name = "B", address = "https://b.example/"),

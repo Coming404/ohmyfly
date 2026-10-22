@@ -8,9 +8,9 @@ Status: implemented
 
 ## Decision
 
-- [局部规格](../../../../docs/design/mirror-settings/PRD.md)和 R2 图片提供视觉基准，最新用户决定优先。主列表复用 SettingsCard／ToggleSetting；每项唯一 ⋯、右侧状态、卡头纯箭头三态排序；底部测试栏。返回／新增共用 chromeMaterial，内容只保留一次标题。
-- 一个始终保留组合的 MirrorDialog 使用官方 OverlayDialog、原根 Scaffold、居中模式、透明背景和 enableWindowDim=false；材质复用 chromeMaterial(GlassShape(28dp))。下方正文和顶栏轻 blur 持续至 onDismissFinished；快速重开不提前撤除。减少透明实体回退，不新增导航路由。
-- MirrorPageState 只拥有弹窗和会话草稿，MirrorDraftState 保留 TextFieldValue 游标／合成态，不是第二设置 Store。拼接方式无独立卡片；唯一 HTTP(S) 前缀选项覆盖在同一弹窗内部，先处理外点／返回，不叠第二模态。
+- [局部规格](../../../../docs/design/mirror-settings/PRD.md)和 R2 图片提供视觉基准，最新用户决定优先。主列表复用 SettingsCard／ToggleSetting；每项唯一 ⋯、右侧状态、卡头无排序切换图标；底部单一批量测试按钮。返回／新增共用 chromeMaterial，内容只保留一次标题。当前精修与例外见[镜像页交互精修](2026-10-22-mirror-page-polish.md)。
+- 一个始终保留组合的 MirrorDialog 使用官方 OverlayDialog、原根 Scaffold、居中模式、无灰幕；其表面使用默认 DialogDefaults 背景，不复用 chromeMaterial。下方正文和顶栏2dp模糊持续至 onDismissFinished；快速重开不提前撤除。不新增导航路由。
+- MirrorPageState 只拥有弹窗和会话草稿，MirrorDraftState 保留 TextFieldValue 游标／合成态，不是第二设置 Store。拼接方式使用官方 OverlayDropdownPreference，已有 Template 仅显示禁用项，可显式切换前缀。
 - 新增／编辑只有底部手动保存；输入、失焦、键盘完成、关闭不保存。保存中防重复，Session.changeConfirmed 共用原顺序事务并返回 Confirmed／Failed／Uncertain／Rejected；真实 update＋读回且候选一致才关闭。confirmedSettings 不等于乐观 settings，探测只拿确认值。失败后缀丢弃、草稿保留；写后读失败保留页面，retryRead 仅重读且防重入。
 - HTTP／HTTPS 显式保留，裸域名补 HTTPS，www不增删，路径大小写保留；normalize／dedupe／preview 使用同一规则。旧 Template 不静默转换。传输和同源跳转支持 HTTP，HTTPS→HTTP 拒绝；原始 GitHub 与其他设置 URL 仍要求 HTTPS，公网DNS／凭据／重定向／大小／摘要限制不削弱。
 - 开关关闭只直连；开启先指定镜像、其余持久化顺序、全部失败后才直连。无指定／旧选择失效从首项开始。列表与批量测试去直连；删当前项改选剩余首项，删光与关闭镜像同一事务。空列表无卡片／无新增按钮，只 GitHub 图标＋Bold“暂无镜像源”；右上 ＋ 保留。

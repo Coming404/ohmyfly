@@ -39,7 +39,7 @@ class MaterialSettingsTests(unittest.TestCase):
     def test_reduced_transparency_keeps_existing_fallback(self):
         app = (MAIN / 'App.kt').read_text()
         self.assertIn('val glassEnabled = glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)', app)
-        self.assertEqual(3, app.count('glassEnabled = glassEnabled,'))
+        self.assertEqual(2, app.count('glassEnabled = glassEnabled,'))
         self.assertNotIn('materialMode =', (MAIN / 'PersistedSettings.kt').read_text())
         presets = (MAIN / 'ui/glass/GlassPreset.kt').read_text()
         self.assertIn('!reduceTransparency && !systemReduceTransparency && shaderSupported', presets)

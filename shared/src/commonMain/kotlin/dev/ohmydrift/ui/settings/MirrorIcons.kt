@@ -9,7 +9,6 @@ import androidx.compose.ui.graphics.vector.PathBuilder
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.basic.ArrowUpDown
 import top.yukonga.miuix.kmp.icon.extended.Link
 
 /**
@@ -242,8 +241,6 @@ internal object MirrorIcons {
         lineTo(12.01f, 16f)
     }
 
-    /** Tri-state sort arrow; the state itself is exposed through the button semantics. */
-    val Sort = MiuixIcons.Basic.ArrowUpDown
     val Link = MiuixIcons.Link
 
     private fun glyph(name: String, draw: PathBuilder.() -> Unit): ImageVector =

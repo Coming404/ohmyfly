@@ -65,7 +65,7 @@ internal object MirrorCodec {
         val selected = preferences.readString(selectedKey)?.trim()?.let { id ->
             mirrors.firstOrNull { it.id.equals(id, ignoreCase = true) }?.id
         }
-        return MirrorState(mirrors, selected, order, enabled && mirrors.isNotEmpty())
+        return MirrorState(mirrors, selected, order, enabled)
     }
 
     private fun readMirror(preferences: Preferences, index: Int): MirrorEntry? {

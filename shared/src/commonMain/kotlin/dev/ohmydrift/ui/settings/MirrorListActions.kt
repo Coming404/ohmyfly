@@ -3,11 +3,11 @@ package dev.ohmydrift.ui.settings
 import dev.ohmydrift.mirror.MirrorEntry
 import dev.ohmydrift.mirror.MirrorOrder
 import dev.ohmydrift.mirror.buildMirrorUrl
+import dev.ohmydrift.settings.AppSettings
 
-internal fun nextDisplayOrder(order: MirrorOrder): MirrorOrder = when (order) {
-    MirrorOrder.Manual -> MirrorOrder.LatencyAscending
-    MirrorOrder.LatencyAscending -> MirrorOrder.LatencyDescending
-    MirrorOrder.LatencyDescending -> MirrorOrder.Manual
+internal fun moveDisplayedMirror(settings: AppSettings, displayed: List<MirrorEntry>, id: String, delta: Int): AppSettings {
+    val moved = movedMirror(displayed, id, delta)
+    return if (moved == displayed) settings else settings.copy(mirrors = moved, mirrorOrder = MirrorOrder.Manual)
 }
 
 internal fun movedMirror(entries: List<MirrorEntry>, id: String, delta: Int): List<MirrorEntry> {

@@ -32,7 +32,7 @@ internal fun SettingsActionRow(
         endActions = {
             if (!value.isNullOrBlank()) {
                 Text(value, fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    modifier = Modifier.weight(1f, fill = false))
+                    modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp))
             }
             Icon(
                 imageVector = MiuixIcons.Basic.ArrowRight,

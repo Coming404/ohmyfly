@@ -70,6 +70,7 @@ internal fun MirrorRow(
         RadioButton(
             selected = selected,
             onClick = null,
+            enabled = selectionEnabled,
             modifier = Modifier.clearAndSetSemantics {},
         )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -92,12 +93,14 @@ internal fun MirrorRow(
             onClick = onMenu,
             minWidth = 44.dp,
             minHeight = 44.dp,
+            enabled = selectionEnabled,
             modifier = if (menuFocusRequester != null) Modifier.focusRequester(menuFocusRequester) else Modifier,
         ) {
             Icon(
                 imageVector = MirrorIcons.More,
                 contentDescription = "管理$name",
-                tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                tint = if (selectionEnabled) MiuixTheme.colorScheme.onSurfaceVariantActions
+                    else MiuixTheme.colorScheme.disabledOnSurface,
                 modifier = Modifier.size(20.dp),
             )
         }

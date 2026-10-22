@@ -47,7 +47,6 @@ import dev.ohmydrift.ui.LocalAppSurfaceColors
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -57,9 +56,6 @@ internal fun MirrorSettingsPage(
     contentPadding: PaddingValues,
     onEditorBackChange: ((() -> Unit)?) -> Unit,
     session: SettingsSession,
-    backdrop: Backdrop,
-    glassEnabled: Boolean,
-    dark: Boolean,
     onAddActionChange: ((() -> Unit)?) -> Unit,
     onOverlayChange: (Boolean) -> Unit,
 ) {
@@ -131,8 +127,8 @@ internal fun MirrorSettingsPage(
                 Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     Icon(MirrorIcons.Github, null, Modifier.size(24.dp))
-                    Text("GitHub 镜像", fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        modifier = Modifier.semantics { heading() })
+                    Text("GitHub 镜像", fontSize = 18.sp, fontWeight = FontWeight.SemiBold,
+                        color = MiuixTheme.colorScheme.onSurface, modifier = Modifier.semantics { heading() })
                 }
             }
             item(key = "mirror-enabled") {
@@ -140,18 +136,22 @@ internal fun MirrorSettingsPage(
                     ToggleSetting("启用镜像", value = settings.mirrorEnabled,
                         onChange = { enabled -> onChange { it.copy(mirrorEnabled = enabled) } },
                         leadingIcon = MirrorIcons.Power,
-                        enabled = mirrors.isNotEmpty() && !session.state.readFailed)
+                        enabled = !session.state.readFailed)
                 }
             }
             if (unfinished.isNotEmpty()) item(key = "mirror-drafts") {
-                SettingsCard {
-                    unfinished.forEach { draft -> key(draft.id) {
-                        TextButton(
-                            text = "${draft.name.text.ifBlank { "新增镜像" }} · 草稿",
-                            onClick = { page.show(MirrorPageState.Panel.Edit(draft)) },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    } }
+                Box(Modifier.fillMaxWidth()) {
+                    SettingsCard {
+                        unfinished.forEach { draft -> key(draft.id) {
+                            TextButton(
+                                text = "${draft.name.text.ifBlank { "新增镜像" }} · 草稿",
+                                enabled = settings.mirrorEnabled && !session.state.readFailed,
+                                onClick = { page.show(MirrorPageState.Panel.Edit(draft)) },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        } }
+                    }
+                    MirrorDisabledVeil(!settings.mirrorEnabled || session.state.readFailed)
                 }
             }
             if (mirrors.isEmpty()) item(key = "mirror-empty") {
@@ -167,24 +167,27 @@ internal fun MirrorSettingsPage(
                 }
             }
             if (mirrors.isNotEmpty()) item(key = "mirror-sources") {
-                SettingsCard {
-                    MirrorSourceHeader(settings.mirrorOrder) { onChange { it.copy(mirrorOrder = nextDisplayOrder(it.mirrorOrder)) } }
-                    shown.forEach { entry -> key(entry.id) {
-                        SourceDivider()
-                        MirrorRow(
-                            name = entry.name, address = hostOf(entry.address), selected = entry.id == selectedId,
-                            selectionEnabled = settings.mirrorEnabled && !session.state.readFailed,
-                            result = runner.result(entry.id), phase = runner.phase(entry.id),
-                            onSelect = { if (settings.selectedMirrorId != entry.id) onChange { it.copy(selectedMirrorId = entry.id) } },
-                            onMenu = { returnFocusId = entry.id; page.show(MirrorPageState.Panel.Manage(entry.id)) },
-                            menuFocusRequester = menuFocus.getOrPut(entry.id) { FocusRequester() },
-                        )
-                    } }
+                Box(Modifier.fillMaxWidth()) {
+                    SettingsCard {
+                        MirrorSourceHeader()
+                        shown.forEach { entry -> key(entry.id) {
+                            SourceDivider()
+                            MirrorRow(
+                                name = entry.name, address = hostOf(entry.address), selected = entry.id == selectedId,
+                                selectionEnabled = settings.mirrorEnabled && !session.state.readFailed,
+                                result = runner.result(entry.id), phase = runner.phase(entry.id),
+                                onSelect = { if (settings.selectedMirrorId != entry.id) onChange { it.copy(selectedMirrorId = entry.id) } },
+                                onMenu = { returnFocusId = entry.id; page.show(MirrorPageState.Panel.Manage(entry.id)) },
+                                menuFocusRequester = menuFocus.getOrPut(entry.id) { FocusRequester() },
+                            )
+                        } }
+                    }
+                    MirrorDisabledVeil(!settings.mirrorEnabled || session.state.readFailed)
                 }
             }
         }
         if (mirrors.isNotEmpty()) MirrorProbeBar(
-            runner, mirrors, enabled = !session.state.readFailed,
+            runner, mirrors, enabled = settings.mirrorEnabled && !session.state.readFailed,
             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                 .background(LocalAppSurfaceColors.current.page)
                 .padding(bottom = contentPadding.calculateBottomPadding(),
@@ -203,7 +206,6 @@ internal fun MirrorSettingsPage(
             null -> ""
         },
         icon = if (panel is MirrorPageState.Panel.Delete) MirrorIcons.Trash else MirrorIcons.Github,
-        backdrop = backdrop, glassEnabled = glassEnabled, dark = dark, materialMode = settings.materialMode,
         onDismiss = close,
         onDismissFinished = { page.finishDismiss() },
         footer = {
@@ -212,12 +214,18 @@ internal fun MirrorSettingsPage(
         },
     ) {
         when (panel) {
-            is MirrorPageState.Panel.Edit -> MirrorEditor(panel.draft, settings.mirrors, session.state.readFailed,
-                backdrop, glassEnabled, dark, settings.materialMode)
-            is MirrorPageState.Panel.Manage -> MirrorManageContent(panel.id, settings, mirrors, runner,
+            is MirrorPageState.Panel.Edit -> MirrorEditor(panel.draft, settings.mirrors, session.state.readFailed)
+            is MirrorPageState.Panel.Manage -> MirrorManageContent(panel.id, shown, runner,
                 onEdit = { entry -> page.show(MirrorPageState.Panel.Edit(page.draft(entry))) },
                 onDelete = { page.show(MirrorPageState.Panel.Delete(panel.id)) },
-                onMove = { delta -> onChange { it.copy(mirrors = movedMirror(it.mirrors, panel.id, delta)) } },
+                onMove = { delta ->
+                    val displayOrder = frozen ?: ordered
+                    val updated = moveDisplayedMirror(settings, displayOrder, panel.id, delta)
+                    if (updated != settings) {
+                        frozen = updated.mirrors
+                        onChange { moveDisplayedMirror(it, displayOrder, panel.id, delta) }
+                    }
+                },
                 onTest = { runner.measure(panel.id, mirrors.firstOrNull { it.id == panel.id }); page.dismiss() },
                 canWrite = !session.state.readFailed)
             is MirrorPageState.Panel.Delete -> MirrorDeleteContent(

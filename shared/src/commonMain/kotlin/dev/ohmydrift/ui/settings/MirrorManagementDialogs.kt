@@ -18,8 +18,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.ohmydrift.mirror.MirrorEntry
-import dev.ohmydrift.mirror.MirrorOrder
-import dev.ohmydrift.settings.AppSettings
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -28,7 +26,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 internal fun MirrorManageContent(
     id: String,
-    settings: AppSettings,
     mirrors: List<MirrorEntry>,
     runner: MirrorProbeRunner,
     onEdit: (MirrorEntry) -> Unit,
@@ -43,10 +40,10 @@ internal fun MirrorManageContent(
     if (entry != null) {
         MirrorDialogAction("编辑", MirrorIcons.Edit, enabled = canWrite, onClick = { onEdit(entry) })
         MirrorDialogAction("上移", MirrorIcons.Up,
-            enabled = canWrite && settings.mirrorOrder == MirrorOrder.Manual && index > 0,
+            enabled = canWrite && index > 0,
             onClick = { onMove(-1) })
         MirrorDialogAction("下移", MirrorIcons.Down,
-            enabled = canWrite && settings.mirrorOrder == MirrorOrder.Manual && index in 0 until mirrors.lastIndex,
+            enabled = canWrite && index in 0 until mirrors.lastIndex,
             onClick = { onMove(1) })
         MirrorDialogAction("删除", MirrorIcons.Trash, enabled = canWrite, danger = true, onClick = onDelete)
     }

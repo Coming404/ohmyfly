@@ -57,11 +57,6 @@ internal class MirrorPageState(
     }
 
     fun dismiss() {
-        val editing = (panel as? Panel.Edit)?.draft
-        if (editing?.modeExpanded == true) {
-            editing.modeExpanded = false
-            return
-        }
         if (deleting) return
         visible = false
     }

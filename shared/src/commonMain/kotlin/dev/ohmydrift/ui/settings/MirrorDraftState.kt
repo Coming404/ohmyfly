@@ -21,7 +21,6 @@ internal class MirrorDraftState(val id: String, existing: MirrorEntry?) {
     var saving by mutableStateOf(0)
     var lastSubmitted: MirrorEntry? = null
     var submission = 0L
-    var modeExpanded by mutableStateOf(false)
 
     val composing: Boolean get() = name.composition != null || address.composition != null
     val candidate: MirrorEntry get() = MirrorEntry(id, name.text.trim(), address.text.trim(), mode)

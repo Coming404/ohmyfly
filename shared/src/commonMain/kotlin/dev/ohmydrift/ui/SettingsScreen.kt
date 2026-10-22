@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.LayoutDirection
 import dev.ohmydrift.settings.AppSettings
 import dev.ohmydrift.settings.SettingsSession
-import top.yukonga.miuix.kmp.blur.Backdrop
 import dev.ohmydrift.ui.settings.*
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -36,9 +35,6 @@ internal fun SettingsScreen(
     editorBackActive: Boolean,
     onEditorBackChange: ((() -> Unit)?) -> Unit,
     session: SettingsSession,
-    backdrop: Backdrop,
-    glassEnabled: Boolean,
-    dark: Boolean,
     onMirrorAddChange: ((() -> Unit)?) -> Unit,
     onMirrorOverlayChange: (Boolean) -> Unit,
     version: String,
@@ -86,7 +82,7 @@ internal fun SettingsScreen(
                     SettingsPage.Media -> MediaSettingsPage(settings, onChange, pagePadding)
                     SettingsPage.Subscription -> SubscriptionSettingsPage(settings, onChange, pagePadding)
                     SettingsPage.Mirrors -> MirrorSettingsPage(settings, onChange, pagePadding, onEditorBackChange,
-                        session, backdrop, glassEnabled, dark, onMirrorAddChange, onMirrorOverlayChange)
+                        session, onMirrorAddChange, onMirrorOverlayChange)
                     SettingsPage.Privacy -> PrivacySettingsPage(settings, onChange, pagePadding)
                     SettingsPage.About -> AboutSettingsPage(version, pagePadding)
                 }

@@ -102,7 +102,7 @@ private fun AppContent(
             drawContent()
         }
         val glassEnabled = glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)
-        val depth = if (mirrorPage && mirrorOverlay && glassEnabled) 4.dp else 0.dp
+        val depth = if (mirrorPage && mirrorOverlay && glassEnabled) 2.dp else 0.dp
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
@@ -124,7 +124,8 @@ private fun AppContent(
                             )
                         }
                     } else if (mirrorPage) {
-                        { HeaderAction("添加镜像", MirrorIcons.Add, onClick = { mirrorAdd?.invoke() }, enabled = mirrorAdd != null) }
+                        { HeaderAction("添加镜像", MirrorIcons.Add, onClick = { mirrorAdd?.invoke() },
+                            enabled = mirrorAdd != null && settings.mirrorEnabled && !settingsSession.state.readFailed) }
                     } else null,
                 )
                 }
@@ -187,9 +188,6 @@ private fun AppContent(
                             editorBackActive = mirrorEditorBack != null,
                             onEditorBackChange = { mirrorEditorBack = it },
                             session = settingsSession,
-                            backdrop = backdrop,
-                            glassEnabled = glassEnabled,
-                            dark = dark,
                             onMirrorAddChange = { mirrorAdd = it },
                             onMirrorOverlayChange = { mirrorOverlay = it },
                             version = version,

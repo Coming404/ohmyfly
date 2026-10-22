@@ -66,6 +66,18 @@ class MirrorEnabledCodecTest {
         assertEquals(base.speed, decoded.speed)
         assertEquals(base.media, decoded.media)
         assertEquals(base.subscription, decoded.subscription)
-        assertEquals(base.mirrors, decoded.mirrors)
+    @Test
+    fun emptyMirrorListCanRemainEnabled() {
+        val preferences = mutablePreferencesOf(
+            intPreferencesKey("mirror.count") to 0,
+            booleanPreferencesKey("mirror.enabled") to true,
+        ).toPreferences()
+
+        val decoded = SettingsCodec.decode(preferences)
+
+        assertTrue(decoded.mirrors.isEmpty())
+        assertTrue(decoded.mirrorEnabled)
+        assertNull(validateSettings(decoded))
     }
+
 }

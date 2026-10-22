@@ -17,11 +17,9 @@ class MirrorRedesignTests(unittest.TestCase):
         self.assertNotIn('Button(', empty)
         self.assertNotIn('SettingsCard', empty)
         self.assertNotIn('name = "直连"', page)
-        actions = (UI / 'MirrorPageActions.kt').read_text()
-        self.assertNotIn('DIRECT_MIRROR_KEY', actions)
         self.assertIn('if (mirrors.isNotEmpty()) MirrorProbeBar', page)
 
-    def test_only_bottom_button_submits_and_selector_has_no_card(self):
+    def test_manual_save_and_official_dropdown(self):
         editor = (UI / 'MirrorEditor.kt').read_text()
         owner = (UI / 'MirrorPageState.kt').read_text()
         dismiss = owner.split('fun dismiss()', 1)[1].split('fun finishDismiss()', 1)[0]
@@ -29,11 +27,29 @@ class MirrorRedesignTests(unittest.TestCase):
         self.assertIn('text = when { readFailed -> "重试读取"; draft.saving > 0 -> "保存中…"; else -> "保存" }', editor)
         self.assertNotIn('onFocusChanged', editor)
         self.assertNotIn('onSave()', editor.split('internal fun MirrorEditorSave', 1)[0])
-        selector = editor.split('// The selector is a plain row:', 1)[1].split('EditorLabel("地址"', 1)[0]
-        for token in ('SettingsCard(', '.background(', '.border(', '.chromeMaterial('):
-            self.assertNotIn(token, selector)
+        self.assertIn('OverlayDropdownPreference(', editor)
+        self.assertNotIn('chromeMaterial', editor)
+        self.assertNotIn('modeExpanded', editor)
         self.assertIn('session.changeConfirmed', owner)
         self.assertIn('mirrorEnabled = current.mirrorEnabled && remaining.isNotEmpty()', owner)
+        dialog = (UI / 'MirrorDialog.kt').read_text()
+        self.assertNotIn('chromeMaterial', dialog)
+        self.assertNotIn('backgroundColor = Color.Transparent', dialog)
+
+    def test_disabled_controls_and_empty_list_enable(self):
+        page = (UI / 'MirrorSettingsPage.kt').read_text()
+        app = (SOURCE / 'commonMain/kotlin/dev/ohmydrift/App.kt').read_text()
+        codec = (SOURCE / 'commonMain/kotlin/dev/ohmydrift/settings/MirrorCodec.kt').read_text()
+        actions = (UI / 'MirrorPageActions.kt').read_text()
+        self.assertIn('enabled = !session.state.readFailed', page)
+        self.assertIn('MirrorDisabledVeil(!settings.mirrorEnabled || session.state.readFailed)', page)
+        self.assertIn('settings.mirrorEnabled && !settingsSession.state.readFailed', app)
+        self.assertIn('enabled = settings.mirrorEnabled && !session.state.readFailed', page)
+        self.assertNotIn('enabled && mirrors.isNotEmpty()', codec)
+        self.assertNotIn('MirrorIcons.Sort', page)
+        self.assertIn('fontSize = 18.sp, fontWeight = FontWeight.SemiBold', page)
+        self.assertNotIn('重试失败项', actions)
+        self.assertIn('Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)', actions)
 
     def test_ios_menu_suppression_is_input_scoped(self):
         ios = (SOURCE / 'iosMain/kotlin/dev/ohmydrift/ui/settings/SettingsInputMenu.ios.kt').read_text()

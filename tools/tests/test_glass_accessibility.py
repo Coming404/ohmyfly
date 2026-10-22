@@ -14,7 +14,7 @@ class GlassAccessibilityTests(unittest.TestCase):
         self.assertIn('val systemReduceTransparency by rememberSystemReduceTransparency()', app)
         self.assertIn('glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)', app)
         self.assertIn('!reduceTransparency && !systemReduceTransparency && shaderSupported', preset)
-        self.assertEqual(3, app.count('glassEnabled = glassEnabled,'))
+        self.assertEqual(2, app.count('glassEnabled = glassEnabled,'))
         self.assertIn('mirrorPage && mirrorOverlay && glassEnabled', app)
         # System accessibility input never replaces the saved application choice.
         self.assertNotIn('copy(reduceTransparency', app)

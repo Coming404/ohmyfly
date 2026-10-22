@@ -142,6 +142,25 @@ class MirrorProbeTest {
     }
 
     @Test
+    fun enabledWithEmptyMirrorListUsesDirectFallback() = runTest {
+        val calls = mutableListOf<String>()
+        val result = MirrorResourceFetcher(fake { url, _, _ ->
+            calls += parseHttpsUrl(url)!!.host
+            ProbeResponse(200, MirrorSample.bytes, 1)
+        }).fetch(
+            originalUrl = MirrorProbeTarget.url,
+            selectedMirrorId = null,
+            mirrors = emptyList(),
+            expectedSha256 = MirrorProbeTarget.sha256,
+            enabled = true,
+        )
+
+        assertEquals(listOf("raw.githubusercontent.com"), calls)
+        assertNull(result.usedMirrorId)
+    }
+
+
+    @Test
     fun staleSelectionStartsWithFirstMirrorAndHttpRewriteIsUsed() = runTest {
         val calls = mutableListOf<String>()
         val entries = mirrors().map { it.copy(address = it.address.replace("https://", "http://")) }

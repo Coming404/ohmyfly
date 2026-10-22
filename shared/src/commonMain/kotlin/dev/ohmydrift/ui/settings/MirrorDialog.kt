@@ -19,7 +19,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -31,26 +30,21 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.ohmydrift.settings.MaterialMode
 import dev.ohmydrift.ui.DriftIcons
-import dev.ohmydrift.ui.chromeMaterial
-import dev.ohmydrift.ui.glass.GlassShape
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val DialogCornerRadius = 28.dp
-private val DialogShape = GlassShape(DialogCornerRadius)
 private val DialogOutsideMargin = 16.dp
 
 /**
  * The one dialog shell for manage, add/edit and delete. It is always composed (never wrapped in
  * `if (show)`) so the exit animation and [onDismissFinished] run; the caller keeps the visibility
- * state. There is no dim layer: the page behind keeps a light backdrop blur that the caller owns,
- * and the dialog surface uses the same glass material as the rest of the chrome.
+ * state. There is no dim layer: the page behind uses a light blur owned by the host, and the
+ * dialog surface uses the default Miuix surface.
  *
  * The body scrolls inside the window height so the keyboard never pushes the title off screen;
  * safe drawing insets stay with the host scaffold and are not consumed twice here.
@@ -59,10 +53,6 @@ private val DialogOutsideMargin = 16.dp
 internal fun MirrorDialog(
     show: Boolean,
     title: String,
-    backdrop: Backdrop,
-    glassEnabled: Boolean,
-    dark: Boolean,
-    materialMode: MaterialMode,
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
     icon: ImageVector = MirrorIcons.Github,
@@ -76,8 +66,6 @@ internal fun MirrorDialog(
     val maxDialogHeight = (containerHeight - imeHeight - DialogOutsideMargin * 2).coerceAtLeast(200.dp)
     OverlayDialog(
         show = show,
-        modifier = Modifier.chromeMaterial(backdrop, glassEnabled, dark, materialMode, DialogShape),
-        backgroundColor = Color.Transparent,
         enableWindowDim = false,
         onDismissRequest = onDismiss,
         onDismissFinished = onDismissFinished,
