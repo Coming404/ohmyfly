@@ -17,37 +17,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.ohmydrift.mirror.MirrorEntry
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-
-@Composable
-internal fun MirrorManageContent(
-    id: String,
-    mirrors: List<MirrorEntry>,
-    runner: MirrorProbeRunner,
-    onEdit: (MirrorEntry) -> Unit,
-    onDelete: () -> Unit,
-    onMove: (Int) -> Unit,
-    onTest: () -> Unit,
-    canWrite: Boolean,
-) {
-    val entry = mirrors.firstOrNull { it.id == id }
-    val index = mirrors.indexOfFirst { it.id == id }
-    MirrorDialogAction("测试", MirrorIcons.Play, enabled = !runner.running && !runner.stopping, onClick = onTest)
-    if (entry != null) {
-        MirrorDialogAction("编辑", MirrorIcons.Edit, enabled = canWrite, onClick = { onEdit(entry) })
-        MirrorDialogAction("上移", MirrorIcons.Up,
-            enabled = canWrite && index > 0,
-            onClick = { onMove(-1) })
-        MirrorDialogAction("下移", MirrorIcons.Down,
-            enabled = canWrite && index in 0 until mirrors.lastIndex,
-            onClick = { onMove(1) })
-        MirrorDialogAction("删除", MirrorIcons.Trash, enabled = canWrite, danger = true, onClick = onDelete)
-    }
-}
 
 @Composable
 internal fun MirrorDeleteContent(

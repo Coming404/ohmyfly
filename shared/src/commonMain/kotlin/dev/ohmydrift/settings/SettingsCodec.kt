@@ -168,7 +168,6 @@ internal object SettingsCodec {
             ),
             mirrors = mirrors.mirrors,
             selectedMirrorId = mirrors.selectedMirrorId,
-            mirrorOrder = mirrors.order,
         )
     }
 

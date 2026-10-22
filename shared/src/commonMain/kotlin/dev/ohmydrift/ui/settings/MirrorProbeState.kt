@@ -8,6 +8,7 @@ import dev.ohmydrift.mirror.MirrorEntry
 import dev.ohmydrift.mirror.MirrorProbe
 import dev.ohmydrift.mirror.MirrorProbeResult
 import dev.ohmydrift.mirror.ProbeStatus
+import dev.ohmydrift.mirror.fastestMirrorId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -25,6 +26,15 @@ internal enum class MirrorTestPhase { Idle, Queued, Running, Stopped }
 
 /** [Muted] is "no measurement yet", [Normal] is a measured pass, [Active] is a live probe. */
 internal enum class MirrorTone { Muted, Normal, Active, Error }
+
+internal enum class MirrorLatencyBand { Fast, Moderate, Slow }
+
+/** Display tiers only: ≤100 ms, ≤300 ms, and slower; no effect on routing or probe logic. */
+internal fun mirrorLatencyBand(latencyMs: Long): MirrorLatencyBand = when {
+    latencyMs <= 100L -> MirrorLatencyBand.Fast
+    latencyMs <= 300L -> MirrorLatencyBand.Moderate
+    else -> MirrorLatencyBand.Slow
+}
 
 /** Row-sized status: one short token; [mirrorStatusDetail] carries the full reason for readers. */
 internal fun mirrorStatusText(result: MirrorProbeResult?, phase: MirrorTestPhase): String = when {
@@ -93,9 +103,14 @@ internal class MirrorProbeRunner(
         private set
     var total by mutableStateOf(0)
         private set
+    var completedBatchId by mutableStateOf(0L)
+        private set
 
     private val gate = Semaphore(4)
     private val tokens = mutableMapOf<String, Long>()
+    private val signatures = mutableMapOf<String, String>()
+    private var autoSelectionTargets: List<MirrorEntry> = emptyList()
+    private var autoSelectionHandledBatchId = 0L
     private var job: Job? = null
     private var runId = 0L
 
@@ -103,19 +118,39 @@ internal class MirrorProbeRunner(
 
     fun phase(key: String): MirrorTestPhase = phases[key] ?: MirrorTestPhase.Idle
 
+    /** Consumes one completed full batch; single-item tests never auto-change the active mirror. */
+    fun consumeFastestMirrorId(): String? {
+        val batchId = completedBatchId
+        if (batchId == 0L || batchId == autoSelectionHandledBatchId) return null
+        autoSelectionHandledBatchId = batchId
+        return fastestMirrorId(autoSelectionTargets, results)
+    }
+
+    /** Keep measurements across screen routes, but invalidate them when a mirror target changes. */
+    fun syncMirrors(entries: List<MirrorEntry>) {
+        val ids = entries.mapTo(mutableSetOf<String>()) { it.id }
+        (signatures.keys - ids).forEach(::forget)
+        entries.forEach { entry ->
+            val signature = "${entry.mode}|${canonicalAddress(entry)}"
+            if (signatures[entry.id]?.let { it != signature } == true) forget(entry.id)
+            signatures[entry.id] = signature
+        }
+    }
+
     /** Invalidates a stored result and any probe still in flight for that key. */
     fun forget(key: String) {
+        signatures.remove(key)
         tokens[key] = (tokens[key] ?: 0L) + 1L
         results = results - key
         phases = phases - key
     }
 
     fun measure(key: String, entry: MirrorEntry?) {
-        if (!running && !stopping) start(listOf(key to entry))
+        if (!running && !stopping) start(listOf(key to entry), autoSelect = false)
     }
 
     fun measureAll(targets: List<Pair<String, MirrorEntry?>>) {
-        if (!running && !stopping && targets.isNotEmpty()) start(targets)
+        if (!running && !stopping && targets.isNotEmpty()) start(targets, autoSelect = true)
     }
 
     fun stop() {
@@ -143,7 +178,7 @@ internal class MirrorProbeRunner(
         }
     }
 
-    private fun start(targets: List<Pair<String, MirrorEntry?>>) {
+    private fun start(targets: List<Pair<String, MirrorEntry?>>, autoSelect: Boolean) {
         job?.cancel()
         runId += 1L
         val id = runId
@@ -152,6 +187,8 @@ internal class MirrorProbeRunner(
         stopped = false
         completed = 0
         total = targets.size
+        completedBatchId = 0L
+        autoSelectionTargets = if (autoSelect) targets.mapNotNull { it.second } else emptyList()
         val keys = targets.map { it.first }.toSet()
         results = results - keys
         phases = keys.associateWith { MirrorTestPhase.Queued }
@@ -161,7 +198,10 @@ internal class MirrorProbeRunner(
                     targets.map { (key, entry) -> async { probeOne(id, key, entry) } }.awaitAll()
                 }
             } finally {
-                if (id == runId) running = false
+                if (id == runId) {
+                    running = false
+                    if (autoSelect && completed == total && !stopped) completedBatchId = id
+                }
             }
         }
     }

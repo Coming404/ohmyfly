@@ -13,6 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -22,10 +24,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.ohmydrift.mirror.MirrorProbeResult
+import dev.ohmydrift.mirror.ProbeStatus
+import top.yukonga.miuix.kmp.basic.DropdownEntry
+import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.RadioButton
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.menu.OverlayIconDropdownMenu
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
@@ -46,7 +51,11 @@ internal fun MirrorRow(
     result: MirrorProbeResult?,
     phase: MirrorTestPhase,
     onSelect: () -> Unit,
-    onMenu: () -> Unit,
+    testing: Boolean,
+    canWrite: Boolean,
+    onTest: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier,
     menuFocusRequester: FocusRequester? = null,
 ) {
@@ -89,11 +98,32 @@ internal fun MirrorRow(
             )
         }
         MirrorStatusLabel(result, phase)
-        IconButton(
-            onClick = onMenu,
+        OverlayIconDropdownMenu(
+            entry = DropdownEntry(
+                items = listOf(
+                    DropdownItem(
+                        text = "测试",
+                        enabled = !testing,
+                        onClick = onTest,
+                        icon = { modifier -> Icon(MirrorIcons.Play, null, modifier) },
+                    ),
+                    DropdownItem(
+                        text = "编辑",
+                        enabled = canWrite,
+                        onClick = onEdit,
+                        icon = { modifier -> Icon(MirrorIcons.Edit, null, modifier) },
+                    ),
+                    DropdownItem(
+                        text = "删除",
+                        enabled = canWrite,
+                        onClick = onDelete,
+                        icon = { modifier -> Icon(MirrorIcons.Trash, null, modifier) },
+                    ),
+                ),
+            ),
+            enabled = selectionEnabled,
             minWidth = 44.dp,
             minHeight = 44.dp,
-            enabled = selectionEnabled,
             modifier = if (menuFocusRequester != null) Modifier.focusRequester(menuFocusRequester) else Modifier,
         ) {
             Icon(
@@ -110,7 +140,16 @@ internal fun MirrorRow(
 /** Short visible token; the measured reason and its samples are exposed to the reader instead. */
 @Composable
 private fun MirrorStatusLabel(result: MirrorProbeResult?, phase: MirrorTestPhase) {
-    val color = when (mirrorTone(result, phase)) {
+    val isDark = MiuixTheme.colorScheme.background.luminance() < 0.5f
+    val measuredLatency = result?.takeIf { phase == MirrorTestPhase.Idle && it.status == ProbeStatus.Success }
+        ?.latencyMs
+    val color = measuredLatency?.let { latency ->
+        when (mirrorLatencyBand(latency)) {
+            MirrorLatencyBand.Fast -> if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32)
+            MirrorLatencyBand.Moderate -> if (isDark) Color(0xFFFFD54F) else Color(0xFF8A5A00)
+            MirrorLatencyBand.Slow -> MiuixTheme.colorScheme.error
+        }
+    } ?: when (mirrorTone(result, phase)) {
         MirrorTone.Muted -> MiuixTheme.colorScheme.onSurfaceVariantSummary
         MirrorTone.Normal -> MiuixTheme.colorScheme.onSurface
         MirrorTone.Active -> MiuixTheme.colorScheme.primary

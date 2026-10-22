@@ -93,6 +93,60 @@ class MirrorProbeRunnerTest {
     }
 
     @Test
+    fun fullBatchCanAutoSelectFastestExactlyOnce() = runTest {
+        val transport = object : MirrorTransport {
+            override suspend fun fetch(url: String, timeoutMillis: Long, maxBytes: Int): ProbeResponse =
+                ProbeResponse(200, MirrorSample.bytes, if ("b.example" in url) 10 else 80)
+        }
+        val runner = MirrorProbeRunner(MirrorProbe(transport), backgroundScope)
+        runner.measureAll(listOf("a" to entry("a"), "b" to entry("b")))
+        runCurrent()
+
+        assertEquals("b", runner.consumeFastestMirrorId())
+        assertNull(runner.consumeFastestMirrorId())
+    }
+
+    @Test
+    fun syncMirrorsKeepsLatencyOnRenameAndInvalidatesChangedTarget() = runTest {
+        val mirror = entry("a")
+        val runner = MirrorProbeRunner(MirrorProbe(transport()), backgroundScope)
+        runner.syncMirrors(listOf(mirror))
+        runner.measure(mirror.id, mirror)
+        runCurrent()
+        assertNotNull(runner.result(mirror.id))
+
+        runner.syncMirrors(listOf(mirror.copy(name = "Renamed")))
+        assertNotNull(runner.result(mirror.id))
+
+        runner.syncMirrors(listOf(mirror.copy(address = "https://changed.example/")))
+        assertNull(runner.result(mirror.id))
+    }
+
+    @Test
+    fun singleProbeNeverTriggersBatchAutoSelection() = runTest {
+        val runner = MirrorProbeRunner(MirrorProbe(transport()), backgroundScope)
+        runner.measure("a", entry("a"))
+        runCurrent()
+
+        assertEquals(ProbeStatus.Success, runner.result("a")?.status)
+        assertNull(runner.consumeFastestMirrorId())
+    }
+
+    @Test
+    fun allFailedBatchDoesNotAutoSelect() = runTest {
+        val transport = object : MirrorTransport {
+            override suspend fun fetch(url: String, timeoutMillis: Long, maxBytes: Int): ProbeResponse =
+                ProbeResponse(503, MirrorSample.bytes, 12)
+        }
+        val runner = MirrorProbeRunner(MirrorProbe(transport), backgroundScope)
+        runner.measureAll(listOf("a" to entry("a")))
+        runCurrent()
+
+        assertEquals(ProbeStatus.Failed, runner.result("a")?.status)
+        assertNull(runner.consumeFastestMirrorId())
+    }
+
+    @Test
     fun aStoppedRunIsNotReportedAsAnError() = runTest {
         val runner = MirrorProbeRunner(MirrorProbe(transport(slow = setOf("b.example"))), backgroundScope)
         runner.measureAll(listOf("b" to entry("b")))
@@ -102,5 +156,7 @@ class MirrorProbeRunnerTest {
         assertEquals(MirrorTone.Muted, mirrorTone(runner.result("b"), runner.phase("b")))
         runCurrent()
         assertTrue(runner.stopped)
+        assertNull(runner.consumeFastestMirrorId())
     }
+
 }

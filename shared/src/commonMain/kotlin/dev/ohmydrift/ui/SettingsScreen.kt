@@ -35,8 +35,8 @@ internal fun SettingsScreen(
     editorBackActive: Boolean,
     onEditorBackChange: ((() -> Unit)?) -> Unit,
     session: SettingsSession,
+    runner: MirrorProbeRunner,
     onMirrorAddChange: ((() -> Unit)?) -> Unit,
-    onMirrorOverlayChange: (Boolean) -> Unit,
     version: String,
     writeError: String?,
     onDismissError: () -> Unit,
@@ -82,7 +82,7 @@ internal fun SettingsScreen(
                     SettingsPage.Media -> MediaSettingsPage(settings, onChange, pagePadding)
                     SettingsPage.Subscription -> SubscriptionSettingsPage(settings, onChange, pagePadding)
                     SettingsPage.Mirrors -> MirrorSettingsPage(settings, onChange, pagePadding, onEditorBackChange,
-                        session, onMirrorAddChange, onMirrorOverlayChange)
+                        session, runner, onMirrorAddChange)
                     SettingsPage.Privacy -> PrivacySettingsPage(settings, onChange, pagePadding)
                     SettingsPage.About -> AboutSettingsPage(version, pagePadding)
                 }

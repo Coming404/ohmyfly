@@ -1,23 +1,24 @@
 package dev.ohmydrift.mirror
 
-/**
- * Display-only ordering. Successful probes go first in the requested direction, everything else
- * stays below in the persisted list order. The input list and the selection are untouched.
- */
+/** Successful results are always displayed in ascending latency; every other state stays last. */
 internal fun sortMirrors(
     entries: List<MirrorEntry>,
     results: Map<String, MirrorProbeResult>,
-    order: MirrorOrder,
 ): List<MirrorEntry> {
-    if (order == MirrorOrder.Manual) return entries
     val (passed, rest) = entries.partition { results[it.id]?.status == ProbeStatus.Success }
     if (passed.isEmpty()) return entries
-    // Sorted only over successful rows; ties keep the persisted order via stable sort.
-    val comparator = compareBy<MirrorEntry> { results[it.id]?.latencyMs ?: Long.MAX_VALUE }
-    val ranked = if (order == MirrorOrder.LatencyDescending) {
-        passed.sortedWith(compareByDescending { results[it.id]?.latencyMs ?: Long.MIN_VALUE })
-    } else {
-        passed.sortedWith(comparator)
-    }
+    val ranked = passed.sortedWith(compareBy { results[it.id]?.latencyMs ?: Long.MAX_VALUE })
     return ranked + rest
 }
+
+/** Returns the first fastest measured success, preserving the saved order for ties. */
+internal fun fastestMirrorId(
+    entries: List<MirrorEntry>,
+    results: Map<String, MirrorProbeResult>,
+): String? = entries.asSequence()
+    .mapNotNull { entry ->
+        results[entry.id]?.takeIf { it.status == ProbeStatus.Success }
+            ?.latencyMs?.let { entry.id to it }
+    }
+    .minByOrNull { it.second }
+    ?.first

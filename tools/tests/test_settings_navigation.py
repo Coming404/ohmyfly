@@ -43,6 +43,7 @@ class SettingsNavigationTests(unittest.TestCase):
 
     def test_shared_official_transitions_and_directional_swipe(self):
         screen = (COMMON / 'ui/SettingsScreen.kt').read_text()
+        app = (COMMON / 'App.kt').read_text()
         self.assertIn('transition = if (motionAllowed) NavTransitions.MiuixDefault else NavTransitions.None', screen)
         self.assertIn('enableCornerClip = false', screen)
         self.assertIn('blockInputDuringTransition = true', screen)
@@ -51,6 +52,10 @@ class SettingsNavigationTests(unittest.TestCase):
         self.assertIn('else -> NavSwipeDirection.LeftToRight', screen)
         self.assertNotIn('Crossfade', screen)
         self.assertNotIn('pointerInput', screen)
+        self.assertIn('HorizontalPager(', app)
+        self.assertIn('userScrollEnabled = false', app)
+        self.assertIn('springAnimateToPage(targetPage)', app)
+        self.assertIn('else pagerState.scrollToPage(targetPage)', app)
 
     def test_mirror_editor_back_precedes_route_and_preserves_cancelled_gestures(self):
         mirror = (COMMON / 'ui/settings/MirrorSettingsPage.kt').read_text()
@@ -60,11 +65,13 @@ class SettingsNavigationTests(unittest.TestCase):
         self.assertIn('onEditorBackChange = { mirrorEditorBack = it }', app)
         self.assertIn('rememberUpdatedState(onEditorBackChange)', mirror)
         self.assertIn('reportBack(if (page.present) close else null)', mirror)
-        self.assertIn('reportBack(null); reportOverlay(false)', mirror)
+        self.assertIn('reportBack(null)', mirror)
+        self.assertNotIn('reportOverlay', mirror)
         self.assertIn('MirrorDialog(', mirror)
         dialog = (COMMON / 'ui/settings/MirrorDialog.kt').read_text()
         self.assertIn('OverlayDialog(', dialog)
-        self.assertIn('enableWindowDim = false', dialog)
+        self.assertIn('enableWindowDim = true', dialog)
+        self.assertIn('Modifier.shadow(18.dp', dialog)
         self.assertNotIn('PredictiveBackHandler(', mirror)
         self.assertNotIn('storedMatches', mirror)
         owner = (COMMON / 'ui/settings/MirrorPageState.kt').read_text()
@@ -91,6 +98,8 @@ class SettingsNavigationTests(unittest.TestCase):
             ['rg', '--files', str(ROOT / 'shared/src/commonTest'), '-g', '*.kt'], text=True,
         ).splitlines()
         count = sum(Path(p).read_text().count('@Test') for p in files)
+        gate = (ROOT / '.github/workflows/build.yml').read_text()
+        self.assertEqual(178, count)
         gate = (ROOT / '.github/workflows/build.yml').read_text()
         self.assertEqual(count, int(re.search(r'if total < (\d+) or failed', gate).group(1)))
 

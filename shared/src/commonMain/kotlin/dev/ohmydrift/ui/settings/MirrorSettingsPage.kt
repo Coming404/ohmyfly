@@ -21,7 +21,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -37,9 +36,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.ohmydrift.mirror.MirrorEntry
-import dev.ohmydrift.mirror.MirrorOrder
-import dev.ohmydrift.mirror.MirrorProbe
-import dev.ohmydrift.mirror.createMirrorTransport
 import dev.ohmydrift.mirror.sortMirrors
 import dev.ohmydrift.settings.AppSettings
 import dev.ohmydrift.settings.SettingsSession
@@ -56,11 +52,10 @@ internal fun MirrorSettingsPage(
     contentPadding: PaddingValues,
     onEditorBackChange: ((() -> Unit)?) -> Unit,
     session: SettingsSession,
+    runner: MirrorProbeRunner,
     onAddActionChange: ((() -> Unit)?) -> Unit,
-    onOverlayChange: (Boolean) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    val runner = remember(scope) { MirrorProbeRunner(MirrorProbe(createMirrorTransport()), scope) }
     val page = remember(session, scope) { MirrorPageState(session, scope) }
     val listState = rememberLazyListState()
     val confirmed = session.state.confirmedSettings ?: settings
@@ -77,30 +72,27 @@ internal fun MirrorSettingsPage(
     }
     val close: () -> Unit = { focus.clearFocus(); page.dismiss() }
     val reportBack by rememberUpdatedState(onEditorBackChange)
-    val reportOverlay by rememberUpdatedState(onOverlayChange)
     val reportAdd by rememberUpdatedState(onAddActionChange)
     DisposableEffect(page) {
         reportAdd { page.show(MirrorPageState.Panel.Edit(page.draft(null))) }
-        onDispose { reportAdd(null); reportBack(null); reportOverlay(false); runner.stop() }
+        onDispose { reportAdd(null); reportBack(null) }
     }
     LaunchedEffect(page.present, page.visible) {
-        reportOverlay(page.present)
         reportBack(if (page.present) close else null)
     }
     LaunchedEffect(session.state.readFailed, session.state.confirmedSettings) { page.resolveRead() }
 
-    // Only confirmed target changes invalidate measurements; optimistic drafts never get probed.
-    val signatures = remember { mutableStateMapOf<String, String>() }
-    LaunchedEffect(mirrors) {
-        val ids = mirrors.map { it.id }.toSet()
-        (signatures.keys - ids).forEach { runner.forget(it); signatures.remove(it) }
-        mirrors.forEach { entry ->
-            val signature = "${entry.mode}|${canonicalAddress(entry)}"
-            if (signatures[entry.id]?.let { it != signature } == true) runner.forget(entry.id)
-            signatures[entry.id] = signature
+    LaunchedEffect(mirrors) { runner.syncMirrors(mirrors) }
+    val ordered = sortMirrors(mirrors, runner.results)
+    LaunchedEffect(runner.completedBatchId, mirrors) {
+        val fastest = runner.consumeFastestMirrorId()?.takeIf { id -> mirrors.any { it.id == id } }
+        if (fastest != null && settings.selectedMirrorId != fastest) {
+            onChange { current ->
+                if (current.selectedMirrorId == fastest) current else current.copy(selectedMirrorId = fastest)
+            }
         }
     }
-    val ordered = sortMirrors(mirrors, runner.results, settings.mirrorOrder)
+
     var frozen by remember { mutableStateOf<List<MirrorEntry>?>(null) }
     val interacting = page.present || listState.isScrollInProgress
     LaunchedEffect(interacting) { frozen = if (interacting) ordered else null }
@@ -177,7 +169,11 @@ internal fun MirrorSettingsPage(
                                 selectionEnabled = settings.mirrorEnabled && !session.state.readFailed,
                                 result = runner.result(entry.id), phase = runner.phase(entry.id),
                                 onSelect = { if (settings.selectedMirrorId != entry.id) onChange { it.copy(selectedMirrorId = entry.id) } },
-                                onMenu = { returnFocusId = entry.id; page.show(MirrorPageState.Panel.Manage(entry.id)) },
+                                testing = runner.running || runner.stopping,
+                                canWrite = !session.state.readFailed,
+                                onTest = { runner.measure(entry.id, entry) },
+                                onEdit = { returnFocusId = entry.id; page.show(MirrorPageState.Panel.Edit(page.draft(entry))) },
+                                onDelete = { returnFocusId = entry.id; page.show(MirrorPageState.Panel.Delete(entry.id)) },
                                 menuFocusRequester = menuFocus.getOrPut(entry.id) { FocusRequester() },
                             )
                         } }
@@ -201,7 +197,6 @@ internal fun MirrorSettingsPage(
         show = page.visible,
         title = when (panel) {
             is MirrorPageState.Panel.Edit -> if (panel.draft.confirmed == null) "添加镜像" else "编辑镜像"
-            is MirrorPageState.Panel.Manage -> mirrors.firstOrNull { it.id == panel.id }?.name ?: "镜像"
             is MirrorPageState.Panel.Delete -> "删除${mirrors.firstOrNull { it.id == panel.id }?.name ?: "镜像"}？"
             null -> ""
         },
@@ -215,19 +210,6 @@ internal fun MirrorSettingsPage(
     ) {
         when (panel) {
             is MirrorPageState.Panel.Edit -> MirrorEditor(panel.draft, settings.mirrors, session.state.readFailed)
-            is MirrorPageState.Panel.Manage -> MirrorManageContent(panel.id, shown, runner,
-                onEdit = { entry -> page.show(MirrorPageState.Panel.Edit(page.draft(entry))) },
-                onDelete = { page.show(MirrorPageState.Panel.Delete(panel.id)) },
-                onMove = { delta ->
-                    val displayOrder = frozen ?: ordered
-                    val updated = moveDisplayedMirror(settings, displayOrder, panel.id, delta)
-                    if (updated != settings) {
-                        frozen = updated.mirrors
-                        onChange { moveDisplayedMirror(it, displayOrder, panel.id, delta) }
-                    }
-                },
-                onTest = { runner.measure(panel.id, mirrors.firstOrNull { it.id == panel.id }); page.dismiss() },
-                canWrite = !session.state.readFailed)
             is MirrorPageState.Panel.Delete -> MirrorDeleteContent(
                 current = panel.id == selectedId, lastMirror = mirrors.size == 1, busy = page.deleting,
                 error = page.deleteError, readFailed = session.state.readFailed,

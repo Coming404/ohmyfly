@@ -17,7 +17,6 @@ internal class MirrorPageState(
     private val scope: CoroutineScope,
 ) {
     sealed interface Panel {
-        data class Manage(val id: String) : Panel
         data class Edit(val draft: MirrorDraftState) : Panel
         data class Delete(val id: String) : Panel
     }

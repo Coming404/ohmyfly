@@ -1,7 +1,6 @@
 package dev.ohmydrift.ui.settings
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,10 +18,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -40,15 +39,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 private val DialogCornerRadius = 28.dp
 private val DialogOutsideMargin = 16.dp
 
-/**
- * The one dialog shell for manage, add/edit and delete. It is always composed (never wrapped in
- * `if (show)`) so the exit animation and [onDismissFinished] run; the caller keeps the visibility
- * state. There is no dim layer: the page behind uses a light blur owned by the host, and the
- * dialog surface uses the default Miuix surface.
- *
- * The body scrolls inside the window height so the keyboard never pushes the title off screen;
- * safe drawing insets stay with the host scaffold and are not consumed twice here.
- */
+/** One Miuix dialog shell for add/edit and delete confirmation. */
 @Composable
 internal fun MirrorDialog(
     show: Boolean,
@@ -66,7 +57,8 @@ internal fun MirrorDialog(
     val maxDialogHeight = (containerHeight - imeHeight - DialogOutsideMargin * 2).coerceAtLeast(200.dp)
     OverlayDialog(
         show = show,
-        enableWindowDim = false,
+        modifier = Modifier.shadow(18.dp, RoundedCornerShape(DialogCornerRadius), clip = false),
+        enableWindowDim = true,
         onDismissRequest = onDismiss,
         onDismissFinished = onDismissFinished,
         outsideMargin = DpSize(DialogOutsideMargin, DialogOutsideMargin),
@@ -114,41 +106,5 @@ internal fun MirrorDialog(
             }
             footer()
         }
-    }
-}
-
-/**
- * One action per line inside the manage dialog. The icon sits on a neutral tile; [danger] uses
- * the error role for both icon and label. Disabled rows stay readable but are not clickable.
- */
-@Composable
-internal fun MirrorDialogAction(
-    text: String,
-    icon: ImageVector,
-    enabled: Boolean = true,
-    danger: Boolean = false,
-    onClick: () -> Unit,
-) {
-    val contentColor = when {
-        !enabled -> MiuixTheme.colorScheme.disabledOnSurface
-        danger -> MiuixTheme.colorScheme.error
-        else -> MiuixTheme.colorScheme.onSurface
-    }
-    Row(
-        Modifier.fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Box(
-            Modifier.size(40.dp)
-                .background(MiuixTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(20.dp))
-        }
-        Text(text = text, fontSize = 15.sp, color = contentColor, modifier = Modifier.weight(1f))
     }
 }

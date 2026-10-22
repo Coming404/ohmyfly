@@ -51,7 +51,13 @@ class MirrorStatusTest {
     }
 
     @Test
-    fun detailKeepsTheRealReasonForTheReader() {
+    fun latencyBandsUseStableThresholds() {
+        assertEquals(MirrorLatencyBand.Fast, mirrorLatencyBand(100))
+        assertEquals(MirrorLatencyBand.Moderate, mirrorLatencyBand(101))
+        assertEquals(MirrorLatencyBand.Moderate, mirrorLatencyBand(300))
+        assertEquals(MirrorLatencyBand.Slow, mirrorLatencyBand(301))
+    }
+
         val failed = result(ProbeStatus.Failed, detail = "返回内容与固定样本不一致")
         assertEquals("返回内容与固定样本不一致", mirrorStatusDetail(failed, MirrorTestPhase.Idle))
         assertEquals("请求超时", mirrorStatusDetail(result(ProbeStatus.Timeout, 0, 0), MirrorTestPhase.Idle))

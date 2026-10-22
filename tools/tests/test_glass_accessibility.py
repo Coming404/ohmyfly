@@ -15,7 +15,8 @@ class GlassAccessibilityTests(unittest.TestCase):
         self.assertIn('glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)', app)
         self.assertIn('!reduceTransparency && !systemReduceTransparency && shaderSupported', preset)
         self.assertEqual(2, app.count('glassEnabled = glassEnabled,'))
-        self.assertIn('mirrorPage && mirrorOverlay && glassEnabled', app)
+        self.assertNotIn('mirrorOverlay', app)
+        self.assertNotIn('.blur(depth)', app)
         # System accessibility input never replaces the saved application choice.
         self.assertNotIn('copy(reduceTransparency', app)
         for file in ('settings/AppSettings.kt', 'settings/SettingsCodec.kt'):

@@ -81,11 +81,21 @@ class MirrorPolicyTest {
     }
 
     @Test
-    fun sortingKeepsErrorsLastAndDoesNotChangeManualOrder() {
+    fun successfulLatencyResultsSortAscendingAndErrorsStayLast() {
         val entries = listOf(MirrorEntry("a", "A", "https://a.example.com/"), MirrorEntry("b", "B", "https://b.example.com/"), MirrorEntry("c", "C", "https://c.example.com/"))
-        val results = mapOf("a" to MirrorProbeResult(ProbeStatus.Success, 50, 3, ""), "b" to MirrorProbeResult(ProbeStatus.Success, 10, 3, ""), "c" to MirrorProbeResult(ProbeStatus.Timeout, null, 0, ""))
-        assertEquals(listOf("b", "a", "c"), sortMirrors(entries, results, MirrorOrder.LatencyAscending).map { it.id })
-        assertEquals(listOf("a", "b", "c"), sortMirrors(entries, results, MirrorOrder.LatencyDescending).map { it.id })
+        val results = mapOf(
+            "a" to MirrorProbeResult(ProbeStatus.Success, 50, 3, ""),
+            "b" to MirrorProbeResult(ProbeStatus.Success, 10, 3, ""),
+            "c" to MirrorProbeResult(ProbeStatus.Timeout, null, 0, ""),
+        )
+        assertEquals(listOf("b", "a", "c"), sortMirrors(entries, results).map { it.id })
+        assertEquals("b", fastestMirrorId(entries, results))
+        assertEquals(listOf("a", "b", "c"), sortMirrors(entries, emptyMap()).map { it.id })
+        assertNull(fastestMirrorId(entries, mapOf("c" to MirrorProbeResult(ProbeStatus.Timeout, null, 0, ""))))
+        assertEquals("a", fastestMirrorId(entries, mapOf(
+            "a" to MirrorProbeResult(ProbeStatus.Success, 10, 3, ""),
+            "b" to MirrorProbeResult(ProbeStatus.Success, 10, 3, ""),
+        )))
         assertEquals(listOf("a", "b", "c"), entries.map { it.id })
     }
 }

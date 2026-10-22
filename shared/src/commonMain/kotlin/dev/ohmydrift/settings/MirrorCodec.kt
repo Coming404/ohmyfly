@@ -7,7 +7,6 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import dev.ohmydrift.mirror.MirrorEntry
 import dev.ohmydrift.mirror.MirrorMode
-import dev.ohmydrift.mirror.MirrorOrder
 import dev.ohmydrift.mirror.defaultMirrors
 import dev.ohmydrift.mirror.normalizedMirrorAddress
 import dev.ohmydrift.mirror.validateMirror
@@ -29,7 +28,7 @@ internal object MirrorCodec {
     fun write(target: MutablePreferences, settings: AppSettings) {
         val mirrors = settings.mirrors.take(MAX_MIRRORS)
         target[countKey] = mirrors.size
-        target[orderKey] = settings.mirrorOrder.name
+        if (orderKey in target) target.remove(orderKey)
         target[enabledKey] = settings.mirrorEnabled
         val selected = settings.selectedMirrorId
         if (selected == null) {
@@ -50,13 +49,10 @@ internal object MirrorCodec {
     }
 
     fun read(preferences: Preferences): MirrorState {
-        val enabled = preferences.readBoolean(enabledKey, DEFAULT_ENABLED)
         val count = preferences.readInt(countKey, -1)
-        val order = preferences.readString(orderKey)
-            ?.let { raw -> MirrorOrder.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) } }
-            ?: MirrorOrder.LatencyAscending
+        val enabled = preferences.readBoolean(enabledKey, DEFAULT_ENABLED)
         if (count !in 0..MAX_MIRRORS) {
-            return MirrorState(defaultMirrors(), null, order, enabled)
+            return MirrorState(defaultMirrors(), null, enabled)
         }
         val mirrors = (0 until count)
             .mapNotNull { index -> readMirror(preferences, index) }
@@ -65,7 +61,7 @@ internal object MirrorCodec {
         val selected = preferences.readString(selectedKey)?.trim()?.let { id ->
             mirrors.firstOrNull { it.id.equals(id, ignoreCase = true) }?.id
         }
-        return MirrorState(mirrors, selected, order, enabled)
+        return MirrorState(mirrors, selected, enabled)
     }
 
     private fun readMirror(preferences: Preferences, index: Int): MirrorEntry? {

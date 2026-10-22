@@ -133,22 +133,6 @@ internal object MirrorIcons {
         lineTo(19f, 9f)
     }
 
-    val Up = glyph("Up") {
-        moveTo(5f, 12f)
-        lineTo(12f, 5f)
-        lineTo(19f, 12f)
-        moveTo(12f, 19f)
-        lineTo(12f, 5f)
-    }
-
-    val Down = glyph("Down") {
-        moveTo(12f, 5f)
-        lineTo(12f, 19f)
-        moveTo(19f, 12f)
-        lineTo(12f, 19f)
-        lineTo(5f, 12f)
-    }
-
     val Trash = glyph("Trash") {
         moveTo(3f, 6f)
         lineTo(21f, 6f)
@@ -239,6 +223,12 @@ internal object MirrorIcons {
         lineTo(12f, 12f)
         moveTo(12f, 16f)
         lineTo(12.01f, 16f)
+    }
+
+    val ChevronDown = glyph("ChevronDown") {
+        moveTo(6f, 9f)
+        lineTo(12f, 15f)
+        lineTo(18f, 9f)
     }
 
     val Link = MiuixIcons.Link

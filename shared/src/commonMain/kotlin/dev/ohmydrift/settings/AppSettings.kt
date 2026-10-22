@@ -1,7 +1,6 @@
 package dev.ohmydrift.settings
 
 import dev.ohmydrift.mirror.MirrorEntry
-import dev.ohmydrift.mirror.MirrorOrder
 import dev.ohmydrift.mirror.defaultMirrors
 import dev.ohmydrift.ui.ThemeMode
 
@@ -16,5 +15,4 @@ internal data class AppSettings(
     val subscription: SubscriptionSettings = SubscriptionSettings(),
     val mirrors: List<MirrorEntry> = defaultMirrors(),
     val selectedMirrorId: String? = null,
-    val mirrorOrder: MirrorOrder = MirrorOrder.LatencyAscending,
 )

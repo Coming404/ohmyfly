@@ -6,11 +6,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -30,22 +35,26 @@ import dev.ohmydrift.ui.SpeedScreen
 import dev.ohmydrift.ui.SubscriptionsScreen
 import dev.ohmydrift.ui.AppTheme
 import dev.ohmydrift.ui.AppMotion
+import dev.ohmydrift.ui.LocalAppMotionAllowed
 import dev.ohmydrift.ui.LocalAppSurfaceColors
 import dev.ohmydrift.ui.rememberSystemReduceTransparency
-import androidx.compose.ui.draw.blur
+import dev.ohmydrift.mirror.MirrorProbe
+import dev.ohmydrift.mirror.createMirrorTransport
+import dev.ohmydrift.settings.AppSettings
 import dev.ohmydrift.settings.SettingsSession
 import dev.ohmydrift.ui.HeaderAction
 import dev.ohmydrift.ui.settings.MirrorIcons
-import dev.ohmydrift.settings.AppSettings
+import dev.ohmydrift.ui.settings.MirrorProbeRunner
+import dev.ohmydrift.ui.settings.SettingsPage
 import dev.ohmydrift.ui.glass.glassEffectsEnabled
 import dev.ohmydrift.ui.glass.glassShaderSupported
-import dev.ohmydrift.ui.settings.SettingsPage
 import dev.ohmydrift.ui.settings.openSettingsPage
 import dev.ohmydrift.ui.settings.popSettingsPage
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.nav.core.rememberNavBackStack
+import top.yukonga.miuix.kmp.utils.springAnimateToPage
 
 @Composable
 fun App(dynamicColorSeed: Color?, settingsPath: String, version: String) {
@@ -72,11 +81,30 @@ private fun AppContent(
             restore = { name -> AppDestination.entries.firstOrNull { it.name == name } ?: AppDestination.Overview },
         ),
     ) { mutableStateOf(AppDestination.Overview) }
+    val navScope = rememberCoroutineScope()
+    val motionAllowed = LocalAppMotionAllowed.current
+    val mirrorRunner = remember(settingsSession, navScope) {
+        MirrorProbeRunner(MirrorProbe(createMirrorTransport()), navScope)
+    }
+    DisposableEffect(mirrorRunner) {
+        onDispose { mirrorRunner.stop() }
+    }
+    val destinations = AppDestination.entries
+    val pagerState = rememberPagerState(
+        initialPage = destinations.indexOf(destination).coerceAtLeast(0),
+        pageCount = { destinations.size },
+    )
+    LaunchedEffect(destination, motionAllowed) {
+        val targetPage = destinations.indexOf(destination)
+        if (pagerState.settledPage != targetPage) {
+            if (motionAllowed) pagerState.springAnimateToPage(targetPage)
+            else pagerState.scrollToPage(targetPage)
+        }
+    }
     val settingsStack = rememberNavBackStack<SettingsPage>(SettingsPage.Home)
     val settingsPage = settingsStack.last() as SettingsPage
     var mirrorEditorBack by remember { mutableStateOf<(() -> Unit)?>(null) }
     var mirrorAdd by remember { mutableStateOf<(() -> Unit)?>(null) }
-    var mirrorOverlay by remember { mutableStateOf(false) }
     val mirrorPage = destination == AppDestination.Settings && settingsPage == SettingsPage.Mirrors
     val themeMode = settings.themeMode
     val reduceTransparency = settings.reduceTransparency
@@ -102,11 +130,9 @@ private fun AppContent(
             drawContent()
         }
         val glassEnabled = glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)
-        val depth = if (mirrorPage && mirrorOverlay && glassEnabled) 2.dp else 0.dp
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
-                Box(Modifier.blur(depth)) {
                 DriftTopBar(
                     title = if (mirrorPage) "" else if (settingsChild) settingsPage.title else destination.label,
                     backdrop = backdrop,
@@ -128,7 +154,6 @@ private fun AppContent(
                             enabled = mirrorAdd != null && settings.mirrorEnabled && !settingsSession.state.readFailed) }
                     } else null,
                 )
-                }
             },
             bottomBar = {
                 if (!settingsChild) DriftNavigationBar(
@@ -144,12 +169,16 @@ private fun AppContent(
             Box(
                 modifier = Modifier.fillMaxSize().consumeWindowInsets(padding)
                     .then(if (glassEnabled) Modifier.layerBackdrop(backdrop) else Modifier)
-                    .blur(depth)
                     .background(background),
                 contentAlignment = Alignment.TopCenter,
             ) {
                 Box(Modifier.widthIn(max = 760.dp).fillMaxSize()) {
-                    when (destination) {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize(),
+                        userScrollEnabled = false,
+                    ) { page ->
+                        when (destinations[page]) {
                         AppDestination.Overview -> OverviewScreen(
                             listState = overviewState,
                             nodes = nodes,
@@ -188,13 +217,14 @@ private fun AppContent(
                             editorBackActive = mirrorEditorBack != null,
                             onEditorBackChange = { mirrorEditorBack = it },
                             session = settingsSession,
+                            runner = mirrorRunner,
                             onMirrorAddChange = { mirrorAdd = it },
-                            onMirrorOverlayChange = { mirrorOverlay = it },
                             version = version,
                             writeError = writeError,
                             onDismissError = onDismissError,
                             contentPadding = padding,
                         )
+                        }
                     }
                 }
             }
