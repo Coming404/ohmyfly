@@ -58,6 +58,8 @@ class MirrorStatusTest {
         assertEquals(MirrorLatencyBand.Slow, mirrorLatencyBand(301))
     }
 
+    @Test
+    fun detailKeepsTheRealReasonForTheReader() {
         val failed = result(ProbeStatus.Failed, detail = "返回内容与固定样本不一致")
         assertEquals("返回内容与固定样本不一致", mirrorStatusDetail(failed, MirrorTestPhase.Idle))
         assertEquals("请求超时", mirrorStatusDetail(result(ProbeStatus.Timeout, 0, 0), MirrorTestPhase.Idle))

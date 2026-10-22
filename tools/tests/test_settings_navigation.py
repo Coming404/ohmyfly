@@ -99,7 +99,7 @@ class SettingsNavigationTests(unittest.TestCase):
         ).splitlines()
         count = sum(Path(p).read_text().count('@Test') for p in files)
         gate = (ROOT / '.github/workflows/build.yml').read_text()
-        self.assertEqual(178, count)
+        self.assertEqual(179, count)
         gate = (ROOT / '.github/workflows/build.yml').read_text()
         self.assertEqual(count, int(re.search(r'if total < (\d+) or failed', gate).group(1)))
 
