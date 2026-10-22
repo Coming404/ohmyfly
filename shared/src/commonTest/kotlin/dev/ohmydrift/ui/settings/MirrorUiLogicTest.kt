@@ -48,7 +48,8 @@ class MirrorUiLogicTest {
         assertEquals(settings, moveDisplayedMirror(settings, displayed, "b", -1))
     }
 
-
+    @Test
+    fun removeOnlyTargetAndIgnoreUnknownIds() {
         val list = listOf(
             MirrorEntry(id = "a", name = "A", address = "https://a.example/"),
             MirrorEntry(id = "b", name = "B", address = "https://b.example/"),
