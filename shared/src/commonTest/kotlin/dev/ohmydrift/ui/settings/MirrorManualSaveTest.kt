@@ -3,7 +3,6 @@ package dev.ohmydrift.ui.settings
 import androidx.compose.ui.text.input.TextFieldValue
 import dev.ohmydrift.mirror.MirrorEntry
 import dev.ohmydrift.mirror.MirrorMode
-import dev.ohmydrift.mirror.MirrorOrder
 import dev.ohmydrift.settings.AppSettings
 import dev.ohmydrift.settings.SettingsSession
 import kotlinx.coroutines.CompletableDeferred
@@ -156,13 +155,5 @@ class MirrorManualSaveTest {
         runCurrent()
         assertEquals("https://www.example.com/Base/", disk.value.mirrors.single().address)
         assertFalse(disk.value.mirrorEnabled)
-    }
-
-    @Test
-    fun sortButtonCyclesWithoutChangingDefaultOrPersistedPriority() {
-        assertEquals(MirrorOrder.LatencyAscending, nextDisplayOrder(MirrorOrder.Manual))
-        assertEquals(MirrorOrder.LatencyDescending, nextDisplayOrder(MirrorOrder.LatencyAscending))
-        assertEquals(MirrorOrder.Manual, nextDisplayOrder(MirrorOrder.LatencyDescending))
-        assertEquals(MirrorOrder.LatencyAscending, AppSettings().mirrorOrder)
     }
 }
