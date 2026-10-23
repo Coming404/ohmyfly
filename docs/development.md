@@ -19,7 +19,7 @@
 
 1. 在已创建的私有仓库推送并运行轻量检查；不在本地下载完整构建工具。
 2. 手动触发 [双端真机 Release 构建](release-builds.md)，先修复依赖/DSL/SDK/Xcode问题，不堆业务代码。
-3. 安装测试签名的 Android Release APK；iOS 真机 IPA 由用户自行重签后在16.x设备验收。AAB、xcarchive 和符号包不是直接安装包。
+3. 安装测试签名的 Android Release APK；iOS 真机 IPA 由用户自行重签后在16.x设备验收。xcarchive 和符号包不是直接安装包。
 4. 确定Go工具链及一个Mihomo版本，做最小任务+事件+取消+释放的双端桥接。
 5. 逐项接塔台解析与去重，使用固定样本保护密码大小写、组合凭证、Reality short-id、cipher和路径查询参数。
 6. 确定页面信息架构与视觉令牌，再实现塔台、航班、起飞、设置。

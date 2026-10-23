@@ -12,10 +12,10 @@ GitHub 镜像源页精修（第 8 项的镜像部分）在分支 `fix/mirror-pag
 
 | 项目 | 状态 |
 | --- | --- |
-| 分支 | `fix/mirror-page-polish`，HEAD `ca65ec9`，与远端同名分支一致 |
+| 分支 | `fix/mirror-page-polish`，HEAD `3122e90`（第一批改名），已推送到 `Coming404/ohmyfly` |
 | `origin/main` | `453889c`（镜像页重建） |
 | 代码 | 镜像页精修已实现，规格见 [镜像页 PRD](../design/mirror-settings/PRD.md) |
-| 构建 | `ca65ec9`：Project checks `39805162120` success；Release device builds `39805362270` success（android、ios 作业均 success） |
+| 构建 | `3122e90`：Project checks `39986662196` success；Release device builds `39986688054` success（android 237s、ios 387s） |
 | Kotlin 测试数 | 待核实（CI 门槛 178 项，未核对该 run 的 JUnit 实际数） |
 | 用户验收 | 未完成：真机视觉、键盘、读屏、弹窗视觉未验收 |
 | 合并 / PR | 未合并入 main；PR 未创建 |

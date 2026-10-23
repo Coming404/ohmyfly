@@ -23,7 +23,7 @@ git diff --check
 | 工作流 | 触发 | 内容 |
 | --- | --- | --- |
 | Project checks（`checks.yml`） | push、PR、手动 | 上述轻量检查 |
-| Release device builds（`build.yml`） | 仅手动，`platform` = android / ios / both | Android host tests + Release APK/AAB；iOS arm64 Release IPA（未签名） |
+| Release device builds（`build.yml`） | 仅手动，`platform` = android / ios / both | Android host tests + Release APK；iOS arm64 Release IPA（未签名） |
 
 手动触发示例（本文档整理时未执行）：
 

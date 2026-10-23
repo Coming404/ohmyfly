@@ -60,5 +60,5 @@ python3 -m unittest discover -s tools/tests -v
 
 - 轻量检查：`.github/workflows/checks.yml`。
 - Release 构建入口：`.github/workflows/build.yml`，手动选择 Android/iOS/both。
-- Android 生成专用测试签名的 Release APK/AAB；iOS 只交付 arm64 真机 Release IPA 原文件，不再分发归档 ZIP，IPA 需要用户自行重签，不是可直接安装的已签名包。
+- Android 生成专用测试签名的 Release APK；iOS 只交付 arm64 真机 Release IPA 原文件，不再分发归档 ZIP，IPA 需要用户自行重签，不是可直接安装的已签名包。
 - 应用最终许可与分发方案待定；计划接入的Go上游有GPL义务，模板的Apache许可不替代这些义务。
