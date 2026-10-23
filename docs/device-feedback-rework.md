@@ -1,12 +1,12 @@
 # iOS 真机反馈与双端体验修正方案
 
-状态：**提案，尚未实施**。日期：2026-10-20。
+状态：各阶段进度以 [NOW.md](context/NOW.md#真机反馈阶段) 为准，本文只保存需求与方案。日期：2026-10-20；2026-10-23 追加[第 8 节继续改进需求](#8-继续改进需求2026-10-23)。
 
 基线：仓库 `6d75347`，可执行代码 `78d80bd`；该基线已通过双端 Release 构建及 146 项 Kotlin 共享测试。用户本次 iOS 真机反馈说明：构建通过不等于视觉、触控和性能验收通过。本轮只交付文档，不修改运行时代码、不提交推送、不触发构建。
 
 ## 1. 范围与证据
 
-- 保留 Android/iOS 共享 Compose UI、Miuix 0.9.4、五个一级入口、四种材质及现有设置持久化；不改成两套原生页面，不扩展订阅/测速核心。
+- 保留 Android/iOS 共享 Compose UI、Miuix 0.9.4、五个一级入口、四种材质及现有设置持久化；不改成两套原生页面，不扩展塔台/起飞核心。
 - Melox 参照固定 `49ee06aa1f01a67eb5ea1d5cc7307ddfd571a534`，仅移植适用几何与效果，不复制播放器业务或其修改版依赖。
 - 截图证据：[底栏放大图](minis://attachments/uploads/photo_FEBA6B7D.jpeg)、[设置全屏图](minis://attachments/uploads/photo_5AFC73BE.png)、[深色子页顶部](minis://attachments/uploads/photo_B3B98A23.jpeg)。保留原图，不以裁图像素直接推断 dp/pt。
 - **已确认**表示截图或当前源码可直接证明；**待测假设**表示尚无真机录屏、调用轨迹或性能采样，不能当成已定位根因。
@@ -233,20 +233,20 @@
 
 | 对象 | 当前入口 | 实施边界 |
 | --- | --- | --- |
-| App 生效主题 | shared/src/commonMain/kotlin/dev/ohmydrift/App.kt:92 | 统一向系统宿主发布生效外观，不另存主题状态 |
+| App 生效主题 | shared/src/commonMain/kotlin/com/ohmyfly/App.kt:92 | 统一向系统宿主发布生效外观，不另存主题状态 |
 | 顶部 inset 与布局 | ui/DriftTopBar.kt:52–85 | 保留系统 inset，调整额外内距、视觉按钮与标题 |
-| iOS Compose 宿主 | shared/src/iosMain/kotlin/dev/ohmydrift/MainViewController.kt；iosApp/iosApp/ContentView.swift | 需补共享主题到真实 SwiftUI/UIKit 宿主的联动，避免仅改页面颜色 |
-| Android 系统栏 | androidApp/src/main/kotlin/dev/ohmydrift/app/MainActivity.kt:20–25 | 需核对手动主题下系统栏前景，继续保留边到边布局 |
+| iOS Compose 宿主 | shared/src/iosMain/kotlin/com/ohmyfly/MainViewController.kt；iosApp/iosApp/ContentView.swift | 需补共享主题到真实 SwiftUI/UIKit 宿主的联动，避免仅改页面颜色 |
+| Android 系统栏 | androidApp/src/main/kotlin/com/ohmyfly/app/MainActivity.kt:20–25 | 需核对手动主题下系统栏前景，继续保留边到边布局 |
 | iOS 高刷许可 | iosApp/iosApp/Info.plist 的 CADisableMinimumFrameDurationOnPhone | 已启用，不把重复加开关写成性能优化 |
 | 默认字体 | 固定 Compose PlatformFont.skiko.kt 的 GenericFontFamiliesMapping | 已有系统字体及回退，不额外分发 SF 字体资源 |
 
-上述 ui/ 相对路径均位于 shared/src/commonMain/kotlin/dev/ohmydrift/。
+上述 ui/ 相对路径均位于 shared/src/commonMain/kotlin/com/ohmyfly/。
 
 ### 5.2 Melox 几何与当前值对照
 
 这些是两个项目的实现值，不是 iOS 26 官方参数。Melox 默认四入口，当前五入口，不能把其单项宽度直接乘五照抄。
 
-| 项目 | 当前 ohmydrift | 固定 Melox | 本轮目标 |
+| 项目 | 当前 OhMyFly | 固定 Melox | 本轮目标 |
 | --- | --- | --- | --- |
 | 外轮廓 | GlassShape(24dp) 平滑方圆角 | CircleShape 胶囊 | 采用胶囊几何；裁剪/折射/高光/阴影一致 |
 | 默认主体高度 | 最小 64dp、允许增长 | 固定 64dp | 首轮 64dp 基线、保留大字增长；不能声称照搬后高度会自动变小 |
@@ -325,7 +325,48 @@ Overlay 使用现有 Scaffold 弹层宿主并随页面生命周期；Window 使�
 - [Miuix 固定 0.9.4 源码](https://github.com/miuix-kotlin-multiplatform/miuix/tree/39c40f99844227b853f0049a0933b1f3ae6c00ba)；[默认 TextStyles](https://github.com/miuix-kotlin-multiplatform/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/theme/TextStyles.kt)。
 - 固定 Miuix 源码证据：[Preference 公开参数](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-preference/src/commonMain/kotlin/top/yukonga/miuix/kmp/preference/OverlayDropdownPreference.kt#L58-L76)、[菜单动画默认](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/basic/ListPopup.kt#L198-L215)、[实色外壳](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/basic/ListPopup.kt#L594-L624)、[公共 PopupLayout](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/utils/MiuixPopupUtils.kt#L249-L290)。
 - 反馈与导航：[MiuixIndication 时序](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/utils/MiuixIndication.kt#L25-L90)、[导航默认时序](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/docs/guide/miuix-nav.md#L170-L199)、[Spring 约束](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-nav/src/commonMain/kotlin/top/yukonga/miuix/kmp/nav/transition/NavMotion.kt#L20-L45)。
-- 自动保存现有能力：[SettingsSession](../shared/src/commonMain/kotlin/dev/ohmydrift/settings/SettingsSession.kt)、[SettingsControls](../shared/src/commonMain/kotlin/dev/ohmydrift/ui/settings/SettingsControls.kt)、[镜像编辑状态](../shared/src/commonMain/kotlin/dev/ohmydrift/ui/settings/MirrorSettingsPage.kt)。
+- 自动保存现有能力：[SettingsSession](../shared/src/commonMain/kotlin/com/ohmyfly/settings/SettingsSession.kt)、[SettingsControls](../shared/src/commonMain/kotlin/com/ohmyfly/ui/settings/SettingsControls.kt)、[镜像编辑状态](../shared/src/commonMain/kotlin/com/ohmyfly/ui/settings/MirrorSettingsPage.kt)。
 - [Compose 固定版字体映射/回退](https://github.com/JetBrains/compose-multiplatform-core/blob/f29d2f99f3beafc60992c6a73dbbaa9f841c5d4c/compose/ui/ui-text/src/skikoMain/kotlin/androidx/compose/ui/text/platform/PlatformFont.skiko.kt)、[平台文字差异](https://kotlinlang.org/docs/multiplatform/compose-platform-specifics.html#text)。
 - [Apple 布局与安全区](https://developer.apple.com/design/human-interface-guidelines/layout)、[字体](https://developer.apple.com/design/human-interface-guidelines/typography)、[材质](https://developer.apple.com/design/human-interface-guidelines/materials)、[无障碍](https://developer.apple.com/design/human-interface-guidelines/accessibility)。
 - [Apple preferredColorScheme](https://developer.apple.com/documentation/swiftui/view/preferredcolorscheme(_:))、[UIViewController 外观覆盖](https://developer.apple.com/documentation/uikit/uiviewcontroller/overrideuserinterfacestyle)、[safeAreaInsets](https://developer.apple.com/documentation/uikit/uiview/safeareainsets)。Apple API 页本轮提取仅取得页面元信息，具体宿主调用形态仍需实施时核实，未将标题当成完整接口验证。
+
+## 8. 继续改进需求（2026-10-23）
+
+来源：用户 2026-10-23 提出并确认细节，作为 D 阶段之后的继续优化。状态取值：已确认 / 实施中 / 代码完成 / 构建通过 / 真机验收。本节条目当前均为**已确认、未实施**。
+
+### 8.1 条目
+
+| ID | 需求 | 期望 | 验收 | 状态 |
+| --- | --- | --- | --- | --- |
+| U1 | 弹窗与下拉动画 | 进入弹簧加大回弹、提高刚度以缩短进入；遮罩淡入缩短；退出用更短的缓动或弹簧。具体数值由实施方选定，要求人眼能明显感知回弹与更快进入 | 双端录屏对比前后进入时长与回弹，改动可被明显感知；连续开关、动画中关闭不残留遮罩；实施报告列出 Miuix 默认值与新值 | 已确认 |
+| U2 | 全层级弹簧切页 | 一级、二级、三级及更深页面切换全部用弹簧；默认参数与 U1 同一组更有回弹的参数 | 各层级前进、返回、手势返回均为弹簧；减少动态时直接换页 | 已确认 |
+| U3 | 镜像编辑器“拼接方式”对齐 | 见[镜像页规格](design/mirror-settings/PRD.md#弹窗与菜单) | AC-M12 | 已确认 |
+| U4 | 统一 Sink 按压反馈 | 所有可点击区域使用统一 Sink 按压反馈；底部导航栏除外 | 逐页盘点可点击区域；底栏保持现状；与 [3.10](#310-设置页卡片点击不灵与灰色反馈滞后原反馈-10) 点击时序一并验证 | 已确认；Miuix 0.9.4 对应 API 实施时按固定源码核对 |
+| U5 | App 名称 | 改为 OhMyFly | Android 启动器名、iOS 显示名、页面内品牌文字一致 | 已确认 |
+| U6 | 包名 | Kotlin 包根 `dev.ohmydrift` → `com.ohmyfly`；Android applicationId 与 iOS bundle identifier 为 `com.ohmyfly.app`；shared 模块 namespace 由实施方按惯例选定（如 `com.ohmyfly.shared`） | 包引用、import、namespace、bundle id、测试、文档、CI 无旧值残留 | 已确认 |
+| U7 | 订阅 → 塔台 | 入口名及所有页面内“订阅”文案替换 | 全文案检索无残留 | 已确认 |
+| U8 | 节点库 → 航班 | 入口名及所有页面内“节点”文案替换 | 同上 | 已确认 |
+| U9 | 测速 → 起飞 | 入口名及所有页面内“测速”文案替换 | 同上 | 已确认 |
+| U10 | 配置后台异步、启动无加载界面 | 配置读取与持久化在后台；启动不显示“正在读取本地设置…”等文案或界面。读取失败时用弹窗提示，由图标、文字、按钮组合表达（如重试） | 冷启动直接进入主界面；模拟读取失败时出现弹窗且原文件不被覆盖；重试成功后弹窗关闭 | 已确认 |
+| U11 | 删除旧配置与兼容逻辑 | 不需要的、过时的、尚未实现功能的配置与代码全部删除，不保留：含 `MirrorMode.Template` 及“原模板”显示、未知 key 保留、`mirror.order` 遗留清理逻辑，以及其他同类项 | 实施前列出删除清单；删除后无引用残留，测试同步更新 | 已确认 |
+| U12 | iOS 输入框浮动工具栏 | 双击或长按输入框时显示系统默认浮动工具栏（选择、全选、复制、粘贴等）；单击聚焦时不弹出工具栏 | iOS 真机：单击只聚焦；双击、长按出现工具栏且各项可用；Android 行为不变 | 已确认 |
+
+### 8.2 现状事实（实施参考）
+
+| 主题 | 事实 | 依据 |
+| --- | --- | --- |
+| 镜像页弹层 | 用 Overlay 系列（OverlayDialog、OverlayDropdownPopup、OverlayIconDropdownMenu），不是 Window 系列；Window 走平台 Dialog，不依赖 Scaffold | 用户确认 |
+| 弹窗默认运动 | 手机底部滑入弹簧，阻尼 0.88 / 刚度 450；退出 tween 260ms；遮罩淡入 300ms、淡出 250ms | 用户确认，Miuix 0.9.4 |
+| 下拉默认运动 | 展开比例弹簧，阻尼 0.82 / 刚度 362.5；内容淡入 200ms、淡出 150ms；遮罩 300ms / 150ms | 用户确认，Miuix 0.9.4 |
+| 参数可控性 | 上述参数在 Miuix 0.9.4 封装层未暴露，需改内部实现或替换组件，与 [5.4](#54-miuix-弹层种类与本项目取舍) 的适配边界一并决定 | 用户确认 |
+| “原模板” | 旧拼接模式 `MirrorMode.Template`（地址含 `{url}`），为兼容存量配置保留；U11 将删除 | 用户确认；`MirrorEditor.kt` |
+| App.kt | Compose 根组件（233 行），不是系统入口；系统入口为 MainActivity / MainViewController。可整理，但不为凑行数拆包装层 | 用户确认 |
+| 持久化 | UI 状态同步更新，磁盘写入异步（DataStore 协程事务）；镜像保存等待真实写入确认 | 用户确认 |
+| 启动加载界面 | 设置未读出时显示品牌名与“正在读取本地设置…”，读失败显示“重试” | `PersistedSettings.kt` 第 41–51 行，2026-10-23 核对 |
+| iOS 输入菜单 | 设置输入框通过 `LocalTextToolbar` 提供永远隐藏的 TextToolbar，所有途径都不显示工具栏；U12 需改为仅抑制单击聚焦时的弹出 | `SettingsInputMenu.ios.kt`，2026-10-23 核对 |
+| Overscroll | MiuixTheme 自动提供 MiuixOverscrollFactory，设置页 LazyColumn 已继承；只在顶/底越界拖拽时可见 | 用户确认 |
+| 改名波及面 | 所有旧 `dev.ohmydrift` 包引用与 import、Android applicationId/namespace、iOS bundle identifier、测试与文档；改名后旧本地数据不可见，不需保留 | 用户确认；`androidApp/build.gradle.kts`、`shared/build.gradle.kts`、`iosApp/Configuration/Config.xcconfig` |
+
+### 8.3 待确认
+
+无。实施方选定的数值与 namespace 在实施报告中列出，由用户真机验收确认。

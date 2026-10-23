@@ -14,14 +14,14 @@
 ## 2. 建议工程形态
 
 ```text
-ohmydrift/
+ohmyfly/
 ├── androidApp/                 Android Activity、Manifest、系统能力
 ├── iosApp/                     Swift 宿主、Xcode 工程、签名配置
 ├── shared/
 │   └── src/
 │       ├── commonMain/kotlin/
 │       │   ├── app/            App、主题、导航
-│       │   ├── feature/        订阅、节点、测速、设置
+│       │   ├── feature/        塔台、航班、起飞、设置
 │       │   ├── core/           业务模型、仓库接口、状态
 │       │   └── designsystem/   页面令牌与少量业务组件
 │       ├── commonMain/composeResources/
@@ -65,9 +65,9 @@ Miuix 已提供颜色、文字层级和组件 Defaults，项目只补页面级�
 | 图标 | 业务线条图标24dp，不替换组件内部图标默认值 |
 | 圆角 | Card 默认16dp |
 
-节点库保留卡片列表与选择语义；运行时不包含固定假节点或假延迟，初始为空。禁止通过全局density/fontScale缩放掩盖布局问题。用户已选择系统动态来源：Android提供系统动态代表色，以MonetSystem＋非空动态种子＋Neutral＋Spec2025生成；iOS以System使用Miuix默认浅深色，不读取壁纸或使用固定种子。五页使用同一全屏采样源，顶底仅在小胶囊内采用20f模糊、浅0.22/深0.28表面覆盖、noiseCoefficient=0；不透明回退一致。参数是项目取舍，不是Apple材质规范；详见[UI实现](ui-showcase.md)。
+航班保留卡片列表与选择语义；运行时不包含固定假航班或假延迟，初始为空。禁止通过全局density/fontScale缩放掩盖布局问题。用户已选择系统动态来源：Android提供系统动态代表色，以MonetSystem＋非空动态种子＋Neutral＋Spec2025生成；iOS以System使用Miuix默认浅深色，不读取壁纸或使用固定种子。五页使用同一全屏采样源，顶底仅在小胶囊内采用20f模糊、浅0.22/深0.28表面覆盖、noiseCoefficient=0；不透明回退一致。参数是项目取舍，不是Apple材质规范；详见[UI实现](ui-showcase.md)。
 
-- 文字优先引用 `MiuixTheme.textStyles`，仅为测速大数字等明确用途增加样式。
+- 文字优先引用 `MiuixTheme.textStyles`，仅为起飞大数字等明确用途增加样式。
 - 默认使用平台适配字体；不擅自打包小米专有字体或把字体授权视为组件库授权的一部分。
 - 系统字体放大、长名称、中英文混排、深色模式必须检查；信息不只靠颜色区分。
 - 延迟、吞吐、状态使用稳定语义；单位与数值层级清晰，数值刷新不引起布局抖动。
@@ -79,13 +79,13 @@ Miuix 已提供颜色、文字层级和组件 Defaults，项目只补页面级�
 
 ## 5. Go 桥接
 
-节点代理连接、吞吐与统计继续由Go负责；GitHub镜像的有界公开小资源HTTP探测是独立控制面操作，不搬运节点测速负载，也不因此提前接入Go核心。设置使用DataStore Preferences存非敏感配置，平台路径与安全边界见[设置与镜像](settings.md)。
+航班代理连接、吞吐与统计继续由Go负责；GitHub镜像的有界公开小资源HTTP探测是独立控制面操作，不搬运航班起飞负载，也不因此提前接入Go核心。设置使用DataStore Preferences存非敏感配置，平台路径与安全边界见[设置与镜像](settings.md)。
 
 先验证 gomobile 窄接口生成 AAR / Apple framework 或 XCFramework，再由 Kotlin Android、Kotlin/Native 接入。若真实阻碍出现，才评估自定义 C ABI；未构建不能宣布某条路线一定可行或不可行。
 
 建议最少接口：初始化沙盒目录、导入配置、启动任务、取消任务、接收事件、释放资源。内部复杂 map/代理对象不直接跨语言暴露。
 
-事件契约包含 sessionId、nodeId、事件类型、数值单位与错误码；Kotlin 将回调转换为 Flow/StateFlow。时间值显式定义毫秒，避免 Go time.Duration 默认 JSON 纳秒语义。不要在回调中直接改 UI 或让主线程执行阻塞测速。
+事件契约包含 sessionId、nodeId、事件类型、数值单位与错误码；Kotlin 将回调转换为 Flow/StateFlow。时间值显式定义毫秒，避免 Go time.Duration 默认 JSON 纳秒语义。不要在回调中直接改 UI 或让主线程执行阻塞起飞。
 
 不要把修正解析结果再送入旧 LoadProxies 后重复按 server:port 删除。Mihomo 版本只能维护一套，不同时打包两套核心。提取上游代码后保留来源、补丁、测试和许可证。
 
@@ -109,7 +109,7 @@ P0：双端 App + Miuix Scaffold 可构建；iOS16/API33约束可满足。
 
 P1：Go 库双端链接成功；启动、事件、取消、连续多次任务无崩溃/泄漏。
 
-P2：订阅格式样本、去重碰撞、单节点测速、错误隔离与流量提示通过。
+P2：塔台格式样本、去重碰撞、单航班起飞、错误隔离与流量提示通过。
 
 P3：深浅色、小屏/大字体/长名称/横竖屏真机截图验收。
 

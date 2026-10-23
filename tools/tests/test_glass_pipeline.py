@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-COMMON = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+COMMON = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
 GLASS = COMMON / 'ui/glass'
 
 
@@ -20,7 +20,7 @@ class GlassPipelineTests(unittest.TestCase):
         catalog = (ROOT / 'gradle/libs.versions.toml').read_text()
         self.assertIn('androidx-lifecycle-runtime-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }', catalog)
         self.assertIn('implementation(libs.androidx.lifecycle.runtime.compose)', (ROOT / 'shared/build.gradle.kts').read_text())
-        ios = (ROOT / 'shared/src/iosMain/kotlin/dev/ohmydrift/ui/glass/sensor/GlassGravity.ios.kt').read_text()
+        ios = (ROOT / 'shared/src/iosMain/kotlin/com/ohmyfly/ui/glass/sensor/GlassGravity.ios.kt').read_text()
         for constant in ('UIInterfaceOrientationPortrait', 'UIInterfaceOrientationLandscapeRight',
                          'UIInterfaceOrientationPortraitUpsideDown', 'UIInterfaceOrientationLandscapeLeft',
                          'UISceneActivationStateForegroundActive'):

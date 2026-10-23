@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-COMMON = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+COMMON = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
 UI = COMMON / 'ui'
 GLASS = UI / 'glass'
 
@@ -14,7 +14,7 @@ class BottomNavigationTests(unittest.TestCase):
         surface = (GLASS / 'GlassNavigationSurface.kt').read_text()
         destinations = (UI / 'AppDestination.kt').read_text()
         app = (COMMON / 'App.kt').read_text()
-        labels = ['概览', '订阅', '测速', '节点库', '设置']
+        labels = ['概览', '塔台', '起飞', '航班', '设置']
         positions = [destinations.index(f'("{label}"') for label in labels]
         self.assertEqual(sorted(positions), positions)
         self.assertIn('GlassNavigationSurface(', nav)

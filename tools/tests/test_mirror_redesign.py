@@ -4,7 +4,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / 'shared/src'
-UI = SOURCE / 'commonMain/kotlin/dev/ohmydrift/ui/settings'
+UI = SOURCE / 'commonMain/kotlin/com/ohmyfly/ui/settings'
 
 
 class MirrorRedesignTests(unittest.TestCase):
@@ -47,7 +47,7 @@ class MirrorRedesignTests(unittest.TestCase):
         page = (UI / 'MirrorSettingsPage.kt').read_text()
         runner = (UI / 'MirrorProbeState.kt').read_text()
         row = (UI / 'MirrorRow.kt').read_text()
-        app = (SOURCE / 'commonMain/kotlin/dev/ohmydrift/App.kt').read_text()
+        app = (SOURCE / 'commonMain/kotlin/com/ohmyfly/App.kt').read_text()
         self.assertIn('sortMirrors(mirrors, runner.results)', page)
         self.assertIn('consumeFastestMirrorId()', page)
         self.assertIn('runner.syncMirrors(mirrors)', page)
@@ -62,8 +62,8 @@ class MirrorRedesignTests(unittest.TestCase):
 
     def test_disabled_controls_and_empty_list_enable(self):
         page = (UI / 'MirrorSettingsPage.kt').read_text()
-        app = (SOURCE / 'commonMain/kotlin/dev/ohmydrift/App.kt').read_text()
-        codec = (SOURCE / 'commonMain/kotlin/dev/ohmydrift/settings/MirrorCodec.kt').read_text()
+        app = (SOURCE / 'commonMain/kotlin/com/ohmyfly/App.kt').read_text()
+        codec = (SOURCE / 'commonMain/kotlin/com/ohmyfly/settings/MirrorCodec.kt').read_text()
         actions = (UI / 'MirrorPageActions.kt').read_text()
         self.assertIn('enabled = !session.state.readFailed', page)
         self.assertIn('MirrorDisabledVeil(!settings.mirrorEnabled || session.state.readFailed)', page)
@@ -76,14 +76,14 @@ class MirrorRedesignTests(unittest.TestCase):
         self.assertIn('Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)', actions)
 
     def test_ios_menu_suppression_is_input_scoped(self):
-        ios = (SOURCE / 'iosMain/kotlin/dev/ohmydrift/ui/settings/SettingsInputMenu.ios.kt').read_text()
-        android = (SOURCE / 'androidMain/kotlin/dev/ohmydrift/ui/settings/SettingsInputMenu.android.kt').read_text()
+        ios = (SOURCE / 'iosMain/kotlin/com/ohmyfly/ui/settings/SettingsInputMenu.ios.kt').read_text()
+        android = (SOURCE / 'androidMain/kotlin/com/ohmyfly/ui/settings/SettingsInputMenu.android.kt').read_text()
         self.assertIn('LocalTextToolbar provides HiddenSettingsTextToolbar', ios)
         self.assertIn('TextToolbarStatus.Hidden', ios)
         self.assertIn('= content()', android)
         self.assertEqual(2, (UI / 'MirrorEditor.kt').read_text().count('SettingsInputMenu {'))
         self.assertIn('SettingsInputMenu {', (UI / 'SettingsControls.kt').read_text())
-        self.assertNotIn('LocalTextToolbar', (ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift/App.kt').read_text())
+        self.assertNotIn('LocalTextToolbar', (ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly/App.kt').read_text())
 
 
 if __name__ == '__main__':

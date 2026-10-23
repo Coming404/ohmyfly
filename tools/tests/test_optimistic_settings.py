@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-COMMON = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+COMMON = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
 
 
 class OptimisticSettingsTests(unittest.TestCase):

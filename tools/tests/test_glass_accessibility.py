@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-COMMON = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+COMMON = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
 GLASS = COMMON / 'ui/glass'
 
 
@@ -23,8 +23,8 @@ class GlassAccessibilityTests(unittest.TestCase):
             self.assertNotIn('systemReduceTransparency', (COMMON / file).read_text())
 
     def test_ios_observes_changes_refreshes_foreground_and_disposes(self):
-        ios = (ROOT / 'shared/src/iosMain/kotlin/dev/ohmydrift/ui/SystemTransparency.ios.kt').read_text()
-        android = (ROOT / 'shared/src/androidMain/kotlin/dev/ohmydrift/ui/SystemTransparency.android.kt').read_text()
+        ios = (ROOT / 'shared/src/iosMain/kotlin/com/ohmyfly/ui/SystemTransparency.ios.kt').read_text()
+        android = (ROOT / 'shared/src/androidMain/kotlin/com/ohmyfly/ui/SystemTransparency.android.kt').read_text()
         contract = (COMMON / 'ui/SystemTransparency.kt').read_text()
         self.assertIn('expect fun rememberSystemReduceTransparency(): State<Boolean>', contract)
         self.assertIn('mutableStateOf(UIAccessibilityIsReduceTransparencyEnabled())', ios)

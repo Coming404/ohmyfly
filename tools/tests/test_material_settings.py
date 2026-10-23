@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-MAIN = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+MAIN = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
 
 
 class MaterialSettingsTests(unittest.TestCase):

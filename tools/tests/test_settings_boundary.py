@@ -7,13 +7,13 @@ import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-COMMON = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+COMMON = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
 
 
 class SettingsBoundaryTests(unittest.TestCase):
     def test_probe_fixture_matches_pinned_public_digest(self):
         target = (COMMON / 'mirror/MirrorProbeTarget.kt').read_text()
-        fixture = (ROOT / 'shared/src/commonTest/kotlin/dev/ohmydrift/mirror/MirrorSample.kt').read_text()
+        fixture = (ROOT / 'shared/src/commonTest/kotlin/com/ohmyfly/mirror/MirrorSample.kt').read_text()
         encoded = ''.join(re.findall(r'"([A-Za-z0-9+/=]+)"', fixture.split('private const val BASE64 =', 1)[1]))
         body = base64.b64decode(encoded, validate=True)
         self.assertEqual(425, len(body))
@@ -33,7 +33,7 @@ class SettingsBoundaryTests(unittest.TestCase):
     def test_platform_transports_do_not_duplicate_jvm_file_facades(self):
         self.assertTrue((COMMON / 'mirror/MirrorTransport.kt').is_file())
         for source, suffix in [('androidMain', 'android'), ('iosMain', 'ios')]:
-            directory = ROOT / f'shared/src/{source}/kotlin/dev/ohmydrift/mirror'
+            directory = ROOT / f'shared/src/{source}/kotlin/com/ohmyfly/mirror'
             self.assertTrue((directory / f'MirrorTransport.{suffix}.kt').is_file())
             self.assertFalse((directory / 'MirrorTransport.kt').exists())
 

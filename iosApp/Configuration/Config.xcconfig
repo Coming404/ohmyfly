@@ -1,5 +1,5 @@
 TEAM_ID=
-BUNDLE_ID=dev.ohmydrift.app
-APP_NAME=ohmydrift
+BUNDLE_ID=com.ohmyfly.app
+APP_NAME=OhMyFly
 // No AppIntents are implemented. Remove this when adding AppIntents support.
 LM_SKIP_METADATA_EXTRACTION = YES

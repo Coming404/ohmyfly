@@ -4,7 +4,7 @@ import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-COMMON = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+COMMON = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
 UI = COMMON / 'ui'
 GLASS = UI / 'glass'
 
@@ -25,7 +25,7 @@ class MotionPolicyTests(unittest.TestCase):
         self.assertIn('AppMotion(settings.reduceMotion) {', app)
         self.assertNotIn('mutableStateOf(settings.reduceMotion)', home + app)
         for file in ('MotionSettingsTest.kt', 'MotionSettingsSessionTest.kt'):
-            self.assertTrue((ROOT / 'shared/src/commonTest/kotlin/dev/ohmydrift/settings' / file).exists())
+            self.assertTrue((ROOT / 'shared/src/commonTest/kotlin/com/ohmyfly/settings' / file).exists())
 
     def test_system_scale_is_observed_not_replaced_or_written(self):
         policy = (UI / 'AppMotion.kt').read_text()

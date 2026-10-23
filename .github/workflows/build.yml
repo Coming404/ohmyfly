@@ -40,13 +40,13 @@ jobs:
           python3 - <<'PY'
           import base64, os
           from pathlib import Path
-          target = Path(os.environ['RUNNER_TEMP']) / 'ohmydrift-release.p12'
+          target = Path(os.environ['RUNNER_TEMP']) / 'ohmyfly-release.p12'
           target.write_bytes(base64.b64decode(os.environ['ANDROID_RELEASE_STORE_BASE64'], validate=True))
           target.chmod(0o600)
           PY
       - name: Run shared tests and build signed Release APK and AAB
         env:
-          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/ohmydrift-release.p12
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/ohmyfly-release.p12
           ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
           ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
           ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
@@ -70,7 +70,7 @@ jobs:
       - name: Verify signatures and collect Release artifacts
         shell: bash
         env:
-          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/ohmydrift-release.p12
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/ohmyfly-release.p12
           ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
         run: |
           set -euo pipefail
@@ -84,31 +84,31 @@ jobs:
           if rg -q '^application-debuggable' "$RUNNER_TEMP/apk-badging.txt"; then
             echo 'Refusing to publish a debuggable APK'; exit 1
           fi
-          python3 tools/normalize_aab.py "${aab[0]}" "$RUNNER_TEMP/ohmydrift-release-normalized.aab"
-          jarsigner -verify -strict -keystore "$ANDROID_KEYSTORE_PATH" -storepass:env ANDROID_RELEASE_STORE_PASSWORD "$RUNNER_TEMP/ohmydrift-release-normalized.aab" | tee "$RUNNER_TEMP/bundle-verification.txt"
+          python3 tools/normalize_aab.py "${aab[0]}" "$RUNNER_TEMP/ohmyfly-release-normalized.aab"
+          jarsigner -verify -strict -keystore "$ANDROID_KEYSTORE_PATH" -storepass:env ANDROID_RELEASE_STORE_PASSWORD "$RUNNER_TEMP/ohmyfly-release-normalized.aab" | tee "$RUNNER_TEMP/bundle-verification.txt"
           rg -q 'jar verified' "$RUNNER_TEMP/bundle-verification.txt"
           if rg -q '^Warning:' "$RUNNER_TEMP/bundle-verification.txt"; then
             echo 'AAB verification still reports warnings'; exit 1
           fi
-          cp "${apk[0]}" build/release/android/ohmydrift-release.apk
-          cp "$RUNNER_TEMP/ohmydrift-release-normalized.aab" build/release/android/ohmydrift-release.aab
+          cp "${apk[0]}" build/release/android/ohmyfly-release.apk
+          cp "$RUNNER_TEMP/ohmyfly-release-normalized.aab" build/release/android/ohmyfly-release.aab
           (cd build/release/android && sha256sum *.apk *.aab > SHA256SUMS.txt)
           cat build/release/android/SHA256SUMS.txt >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7.0.2
         with:
-          path: build/release/android/ohmydrift-release.apk
+          path: build/release/android/ohmyfly-release.apk
           archive: false
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@v7.0.2
         with:
-          path: build/release/android/ohmydrift-release.aab
+          path: build/release/android/ohmyfly-release.aab
           archive: false
           if-no-files-found: error
           retention-days: 7
       - name: Remove restored keystore
         if: always()
-        run: rm -f "$RUNNER_TEMP/ohmydrift-release.p12"
+        run: rm -f "$RUNNER_TEMP/ohmyfly-release.p12"
   ios:
     if: inputs.platform == 'ios' || inputs.platform == 'both'
     runs-on: macos-26
@@ -137,23 +137,23 @@ jobs:
           -scheme iosApp -configuration Release
           -sdk iphoneos
           -destination 'generic/platform=iOS'
-          -archivePath build/ios-device/ohmydrift.xcarchive
+          -archivePath build/ios-device/ohmyfly.xcarchive
           -derivedDataPath build/ios-device/DerivedData
           ARCHS=arm64 ONLY_ACTIVE_ARCH=NO
           IPHONEOS_DEPLOYMENT_TARGET=16.0
-          PRODUCT_BUNDLE_IDENTIFIER=dev.ohmydrift.app
+          PRODUCT_BUNDLE_IDENTIFIER=com.ohmyfly.app
           CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
           CODE_SIGN_IDENTITY='' DEVELOPMENT_TEAM=''
           DEBUG_INFORMATION_FORMAT=dwarf-with-dsym
           SKIP_INSTALL=NO archive
       - name: Validate and package device IPA
         run: |
-          python3 tools/package_ios_release.py build/ios-device/ohmydrift.xcarchive build/release/ios
+          python3 tools/package_ios_release.py build/ios-device/ohmyfly.xcarchive build/release/ios
           (cd build/release/ios && shasum -a 256 *.ipa > SHA256SUMS.txt)
           cat build/release/ios/build-info.json build/release/ios/SHA256SUMS.txt >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7.0.2
         with:
-          path: build/release/ios/ohmydrift-release-unsigned.ipa
+          path: build/release/ios/ohmyfly-release-unsigned.ipa
           archive: false
           if-no-files-found: error
           retention-days: 7

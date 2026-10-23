@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-UI = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift/ui'
+UI = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly/ui'
 SETTINGS = UI / 'settings'
 
 
@@ -16,7 +16,7 @@ class SettingsHomeTests(unittest.TestCase):
         self.assertIn('Icon(DriftIcons.Wave', home)
         self.assertIn('Modifier.size(40.dp)', home)
         self.assertIn('Text(version, fontSize = 12.sp', home)
-        self.assertIn('订阅管理与节点测速', home)
+        self.assertIn('塔台管理与航班起飞', home)
         self.assertNotIn('summary =', home)
 
     def test_home_preserves_six_subpages_with_persisted_material(self):

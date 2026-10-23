@@ -42,11 +42,11 @@ class ProductionUiTests(unittest.TestCase):
                 self.assertNotRegex(path.read_text(), markers)
 
     def test_dynamic_seed_is_connected_without_wallpaper_permissions(self):
-        shared = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
-        host = (ROOT / 'androidApp/src/main/kotlin/dev/ohmydrift/app/MainActivity.kt').read_text()
+        shared = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
+        host = (ROOT / 'androidApp/src/main/kotlin/com/ohmyfly/app/MainActivity.kt').read_text()
         app = (shared / 'App.kt').read_text()
         theme = (shared / 'ui/AppTheme.kt').read_text()
-        ios = (ROOT / 'shared/src/iosMain/kotlin/dev/ohmydrift/MainViewController.kt').read_text()
+        ios = (ROOT / 'shared/src/iosMain/kotlin/com/ohmyfly/MainViewController.kt').read_text()
         manifest = (ROOT / 'androidApp/src/main/AndroidManifest.xml').read_text()
         self.assertIn('system_accent1_500', host)
         self.assertRegex(host, r'(?s)override fun onResume\(\).*?dynamicColorSeed = Color\(getColor\(android.R.color.system_accent1_500\)\)')
@@ -60,7 +60,7 @@ class ProductionUiTests(unittest.TestCase):
         self.assertIn('App(dynamicColorSeed = null', ios)
         self.assertNotRegex(manifest, r'READ_MEDIA|READ_EXTERNAL_STORAGE|READ_WALLPAPER')
     def test_settings_cards_share_one_surface_and_squircle_border(self):
-        shared = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+        shared = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
         app = (shared / 'App.kt').read_text()
         theme = (shared / 'ui/AppTheme.kt').read_text()
         controls = (shared / 'ui/settings/SettingsControls.kt').read_text()

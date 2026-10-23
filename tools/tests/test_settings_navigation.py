@@ -5,7 +5,7 @@ import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-COMMON = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+COMMON = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
 
 
 class SettingsNavigationTests(unittest.TestCase):
@@ -79,7 +79,7 @@ class SettingsNavigationTests(unittest.TestCase):
         self.assertNotIn('submit(', dismiss)
         self.assertIn('session.changeConfirmed', owner)
         for source in ('commonMain', 'androidMain', 'iosMain'):
-            path = ROOT / f'shared/src/{source}/kotlin/dev/ohmydrift/ui/settings/SettingsBackHandler.kt'
+            path = ROOT / f'shared/src/{source}/kotlin/com/ohmyfly/ui/settings/SettingsBackHandler.kt'
             self.assertFalse(path.exists())
 
     def test_serialization_plugin_matches_kotlin_and_tests_match_ci_gate(self):
@@ -92,7 +92,7 @@ class SettingsNavigationTests(unittest.TestCase):
         self.assertIn('alias(libs.plugins.kotlinSerialization)', build)
         self.assertIn('alias(libs.plugins.kotlinSerialization) apply false', root_build)
         self.assertNotIn('implementation(libs.androidx.activity.compose)', build)
-        test_file = ROOT / 'shared/src/commonTest/kotlin/dev/ohmydrift/ui/settings/SettingsNavigationTest.kt'
+        test_file = ROOT / 'shared/src/commonTest/kotlin/com/ohmyfly/ui/settings/SettingsNavigationTest.kt'
         self.assertEqual(6, test_file.read_text().count('@Test'))
         files = subprocess.check_output(
             ['rg', '--files', str(ROOT / 'shared/src/commonTest'), '-g', '*.kt'], text=True,

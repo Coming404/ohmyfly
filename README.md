@@ -1,12 +1,17 @@
-# ohmydrift
+# OhMyFly
 
-Android / iOS 订阅管理与节点测速应用的最小工程基础。
+Android / iOS 塔台管理与航班起飞应用的最小工程基础。
 
-**Kotlin + Compose Multiplatform + Miuix**；Go核心尚未接入。共享UI包含五个入口：**概览、订阅、测速、节点库、设置**；品牌与底部导航使用统一悬浮材质。运行时目录初始为空，不包含假节点或假测量结果；订阅导入和Go节点测速仍待接通。设置已接DataStore非敏感配置持久化与独立GitHub镜像HTTP探测，详见[设置与镜像](docs/settings.md)。参见[UI实现与验收](docs/ui-showcase.md)和[五页功能分工](docs/page-functions.md)。**当前已验证代码基线为 `78d80bd`：[双端 Release](https://github.com/Coming404/ohmydrift/actions/runs/39426815748) 与 [Project checks](https://github.com/Coming404/ohmydrift/actions/runs/39426798576) 均成功，146 项 Kotlin 共享测试通过，无失败或跳过；包含设置重设计、NavDisplay、玻璃与双端传感器、自有运动策略。官方内置动画的应用级统一禁用及真机视觉/性能验收仍未完成，构建成功不代表可上架发布。**
+**Kotlin + Compose Multiplatform + Miuix**；Go核心尚未接入。共享UI包含五个入口：**概览、塔台、起飞、航班、设置**；品牌与底部导航使用统一悬浮材质。运行时目录初始为空，不包含假航班或假测量结果；塔台导入和Go航班起飞仍待接通。设置已接DataStore非敏感配置持久化与独立GitHub镜像HTTP探测，详见[设置与镜像](docs/settings.md)。参见[UI实现与验收](docs/ui-showcase.md)和[五页功能分工](docs/page-functions.md)。当前分支、构建结果与验收状态见 [docs/context/NOW.md](docs/context/NOW.md)；构建成功不代表可上架发布。
+
+## 文档入口
+
+- [PROJECT_INDEX.md](PROJECT_INDEX.md)：按任务查找文档的路由与权威来源表。
+- [docs/context/](docs/context/NOW.md)：当前状态、目录映射、操作手册、决策索引、风险与历史。
 
 ## 开始开发
 
-1. 先读 [AGENTS.md](AGENTS.md)：开发边界、选库前查询 Klibs MCP、决策记录与验证要求。
+1. 先读 [AGENTS.md](AGENTS.md)：开发边界、文档读写规则、选库前查询 Klibs MCP、决策记录与验证要求。
 2. 需求：[docs/requirements.md](docs/requirements.md)。
 3. 工程与视觉：[docs/engineering.md](docs/engineering.md)。
 4. **资料入口：[docs/references.md](docs/references.md)**。包括官方文档、版本/源码、Go核心与Actions入口；查API时优先锁定标签。
@@ -24,7 +29,7 @@ shared/          共享Miuix页面；Android/iOS平台实现
   src/commonTest/
 iosApp/          Swift宿主和Xcode工程
 native-core/     Go核心预留，尚未接入
-.agents/notes/   已实现/待实现的技术决定
+.agents/notes/   历史决策存档（只读，新决策见 docs/context/DECISIONS.md）
 docs/            需求、规范、资料与证据
 tools/           不下载构建工具的本地检查
 third-party/     模板来源与许可证
@@ -32,12 +37,12 @@ third-party/     模板来源与许可证
 
 ## 当前声明
 
-- 产品名：ohmydrift。
+- 产品名：OhMyFly。
 - iOS deployment target：16.0；依赖和真机兼容待验证。
 - Android minSdk：33 / Android13，用户已确定。
 - Kotlin 2.4.20、Compose Multiplatform1.12.0、Miuix0.9.4、AGP9.4.1、Wrapper9.7.1。
 - Miuix 0.9.4 的全部正式模块均显式引入：ui、core、preference、icons、blur、shader、squircle、nav；图标使用完整 miuix-icons，不限于 Basic。Android 最低 API33，iOS 仍为16.0。
-- `dev.ohmydrift.app`仅为开发标识，正式包名/签名团队尚未确定。
+- `com.ohmyfly.app`仅为开发标识，正式包名/签名团队尚未确定。
 - 参考官方Kotlin/KMP-App-Template的Wrapper和iOS宿主，剔除其他平台及演示业务。来源见 [third-party/README.md](third-party/README.md)。
 
 ## 本地轻量验证
@@ -51,7 +56,7 @@ python3 -m unittest discover -s tools/tests -v
 
 ## 构建与分发
 
-私有仓库：[Coming404/ohmydrift](https://github.com/Coming404/ohmydrift)。工作流配置不等于构建已通过，实际结果以对应 Actions run 为准。安装与签名细节见 [真机 Release 构建](docs/release-builds.md)。
+私有仓库：[Coming404/ohmyfly](https://github.com/Coming404/ohmyfly)。工作流配置不等于构建已通过，实际结果以对应 Actions run 为准。安装与签名细节见 [真机 Release 构建](docs/release-builds.md)。
 
 - 轻量检查：`.github/workflows/checks.yml`。
 - Release 构建入口：`.github/workflows/build.yml`，手动选择 Android/iOS/both。

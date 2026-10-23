@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-COMMON = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+COMMON = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
 UI = COMMON / 'ui'
 
 
@@ -16,13 +16,13 @@ class PageHeaderTests(unittest.TestCase):
         self.assertIn('semantics { heading() }', header)
         self.assertIn('maxLines = 1', header)
         self.assertIn('overflow = TextOverflow.Ellipsis', header)
-        self.assertNotIn('ohmydrift"', header)
+        self.assertNotIn('OhMyFly"', header)
         self.assertNotIn('DriftIcons.Wave', header)
         self.assertNotIn('Column(', header)
         self.assertNotIn('28.sp', header)
         self.assertNotIn('TextButton', source)
         nodes = (UI / 'NodesScreen.kt').read_text()
-        self.assertNotIn('SmallTitle("节点库")', nodes)
+        self.assertNotIn('SmallTitle("航班")', nodes)
 
     def test_back_is_icon_only_with_rtl_and_accessible_touch_target(self):
         source = (UI / 'DriftTopBar.kt').read_text()

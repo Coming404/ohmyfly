@@ -4,13 +4,13 @@ plugins {
 }
 
 android {
-    namespace = "dev.ohmydrift.app"
+    namespace = "com.ohmyfly.app"
     compileSdk {
         version = release(libs.versions.android.compileSdk.get().toInt())
     }
     defaultConfig {
         // Development identifier; confirm ownership before release.
-        applicationId = "dev.ohmydrift.app"
+        applicationId = "com.ohmyfly.app"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
