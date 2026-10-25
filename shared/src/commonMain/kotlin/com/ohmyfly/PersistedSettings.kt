@@ -29,7 +29,7 @@ internal fun PersistedSettings(
     LaunchedEffect(session) { session.run() }
     val state = session.state
     val current = state.settings
-    val retryRead = if (repository == null) ({ retry++ }) else session::retryRead
+    val retryRead: () -> Unit = if (repository == null) ({ retry += 1 }) else session::retryRead
 
     content(
         current,

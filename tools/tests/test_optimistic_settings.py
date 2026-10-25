@@ -15,7 +15,7 @@ class OptimisticSettingsTests(unittest.TestCase):
         self.assertIn('val state = session.state', entry)
         self.assertIn('val current = state.settings', entry)
         self.assertNotIn('checkNotNull', entry)
-        self.assertIn('val retryRead = if (repository == null) ({ retry++ }) else session::retryRead', entry)
+        self.assertIn('val retryRead: () -> Unit = if (repository == null) ({ retry += 1 }) else session::retryRead', entry)
         self.assertNotIn('MirrorDialog(', entry)
         self.assertNotIn('MiuixTheme', entry)
         self.assertNotIn('collectAsState', entry)
