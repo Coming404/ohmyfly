@@ -39,12 +39,12 @@ class MotionSettingsTest {
     }
 
     @Test
-    fun writeKeepsUnknownKeysAndSchemaOne() {
+    fun writeDropsUnknownKeysAndWritesSchemaOne() {
         val key = stringPreferencesKey("future.preference")
-        val preferences = mutablePreferencesOf(key to "keep")
+        val preferences = mutablePreferencesOf(key to "drop")
         SettingsCodec.write(preferences, AppSettings(reduceMotion = true))
         assertTrue(SettingsCodec.decode(preferences).reduceMotion)
-        assertEquals("keep", preferences[key])
+        assertFalse(preferences.contains(key))
         assertEquals(1, SettingsCodec.CURRENT_SCHEMA_VERSION)
     }
 }
