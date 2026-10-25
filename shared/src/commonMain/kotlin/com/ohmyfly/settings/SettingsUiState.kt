@@ -6,9 +6,11 @@ package com.ohmyfly.settings
  * pendingWrites 是队列中尚未确认的操作数，归零才算界面与存储一致。
  */
 internal data class SettingsUiState(
-    val settings: AppSettings? = null,
+    val settings: AppSettings = AppSettings(),
     val confirmedSettings: AppSettings? = null,
     val pendingWrites: Int = 0,
     val readFailed: Boolean = false,
+    // 同样暂停写入，但事务可能已提交，不能提示“未更改本地数据”。
+    val writeUncertain: Boolean = false,
     val error: String? = null,
 )

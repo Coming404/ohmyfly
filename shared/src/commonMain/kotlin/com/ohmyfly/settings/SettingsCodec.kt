@@ -55,8 +55,9 @@ internal object SettingsCodec {
 
     fun encode(settings: AppSettings): MutablePreferences = mutablePreferencesOf().also { write(it, settings) }
 
-    /** 写入已有偏好集合：保留本对象不认识的 key，不整表清空。 */
+    /** 写入当前 schema，移除未知及过时字段。 */
     fun write(target: MutablePreferences, settings: AppSettings) {
+        target.clear()
         target[schema] = CURRENT_SCHEMA_VERSION
         target[theme] = settings.themeMode.name
         target[materialMode] = settings.materialMode.name

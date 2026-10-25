@@ -86,7 +86,7 @@ internal fun validateSettings(settings: AppSettings): String? {
     settings.mirrors.forEach { entry ->
         validateMirror(entry)?.let { return it }
     }
-    val addresses = settings.mirrors.map { it.mode to normalizedMirrorAddress(it) }
+    val addresses = settings.mirrors.map(::normalizedMirrorAddress)
     if (addresses.toSet().size != addresses.size) return "镜像地址不能重复"
     val selected = settings.selectedMirrorId
     if (selected != null && settings.mirrors.none { it.id == selected }) {

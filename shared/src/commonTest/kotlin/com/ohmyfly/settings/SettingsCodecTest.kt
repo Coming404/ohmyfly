@@ -7,7 +7,6 @@ import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.ohmyfly.mirror.MirrorEntry
-import com.ohmyfly.mirror.MirrorMode
 import com.ohmyfly.mirror.defaultMirrors
 import com.ohmyfly.ui.ThemeMode
 import kotlin.test.Test
@@ -62,8 +61,8 @@ class SettingsCodecTest {
                 protocols = setOf("ss", "trojan"),
             ),
             mirrors = listOf(
-                MirrorEntry(id = "a", name = "甲", address = "https://a.example", mode = MirrorMode.Prefix),
-                MirrorEntry(id = "b", name = "乙", address = "https://b.example/{url}", mode = MirrorMode.Template),
+                MirrorEntry(id = "a", name = "甲", address = "https://a.example"),
+                MirrorEntry(id = "b", name = "乙", address = "https://b.example/path"),
             ),
             selectedMirrorId = "b",
         )
@@ -75,11 +74,11 @@ class SettingsCodecTest {
         assertEquals(settings.reduceTransparency, decoded.reduceTransparency)
         assertEquals(settings.reduceMotion, decoded.reduceMotion)
         assertEquals(settings.speed, decoded.speed)
+        assertEquals(settings.media, decoded.media)
         assertEquals(fractionalSpeed, decoded.speed.minDownloadMiBps, 0.0)
         assertEquals(settings.subscription, decoded.subscription)
         assertEquals(settings.selectedMirrorId, decoded.selectedMirrorId)
         assertEquals(listOf("a", "b"), decoded.mirrors.map { it.id })
-        assertEquals(listOf(MirrorMode.Prefix, MirrorMode.Template), decoded.mirrors.map { it.mode })
         assertNull(validateSettings(decoded))
     }
 
@@ -164,8 +163,7 @@ class SettingsCodecTest {
             intPreferencesKey("mirror.count") to 4,
             stringPreferencesKey("mirror.0.id") to "only-id",
             stringPreferencesKey("mirror.1.id") to "ok",
-            stringPreferencesKey("mirror.1.address") to "https://ok.example/{url}",
-            stringPreferencesKey("mirror.1.mode") to "template",
+            stringPreferencesKey("mirror.1.address") to "https://ok.example/path",
             stringPreferencesKey("mirror.2.id") to "direct",
             stringPreferencesKey("mirror.2.address") to "https://direct.example",
             stringPreferencesKey("mirror.3.id") to "OK",
@@ -175,7 +173,6 @@ class SettingsCodecTest {
         val decoded = SettingsCodec.decode(damaged)
 
         assertEquals(listOf("ok"), decoded.mirrors.map { it.id })
-        assertEquals(MirrorMode.Template, decoded.mirrors.single().mode)
         assertEquals("ok", decoded.mirrors.single().name)
         assertEquals(defaultMirrors().map { it.id }, SettingsCodec.decode(mutablePreferencesOf().toPreferences()).mirrors.map { it.id })
     }
@@ -206,19 +203,19 @@ class SettingsCodecTest {
     }
 
     @Test
-    fun writeKeepsForeignKeysAndClearsRemovedMirrorSlots() {
+    fun writeDropsUnknownAndObsoleteKeys() {
         val target = mutablePreferencesOf(
             booleanPreferencesKey("future.flag") to true,
             stringPreferencesKey("mirror.3.id") to "stale",
-            stringPreferencesKey("mirror.order") to "Manual",
+            stringPreferencesKey("obsolete.key") to "obsolete",
         )
-        val settings = AppSettings(mirrors = listOf(MirrorEntry(id = "a", name = "甲", address = "https://a.example", mode = MirrorMode.Prefix)))
+        val settings = AppSettings(mirrors = listOf(MirrorEntry(id = "a", name = "甲", address = "https://a.example")))
 
         SettingsCodec.write(target, settings)
 
-        assertEquals(true, target[booleanPreferencesKey("future.flag")])
+        assertNull(target[booleanPreferencesKey("future.flag")])
         assertNull(target[stringPreferencesKey("mirror.3.id")])
-        assertNull(target[stringPreferencesKey("mirror.order")])
+        assertNull(target[stringPreferencesKey("obsolete.key")])
         val decoded = SettingsCodec.decode(target.toPreferences())
         assertEquals(1, decoded.mirrors.size)
         assertEquals("a", decoded.mirrors.single().id)

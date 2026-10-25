@@ -34,7 +34,7 @@ class SettingsSessionConfirmTest {
         val result = async { session.changeConfirmed { it.copy(themeMode = ThemeMode.Dark) } }
         runCurrent()
         // 乐观快照立刻可见，但它不是确认结果。
-        assertEquals(ThemeMode.Dark, session.state.settings?.themeMode)
+        assertEquals(ThemeMode.Dark, session.state.settings.themeMode)
         assertEquals(ThemeMode.System, session.state.confirmedSettings?.themeMode)
         assertEquals(1, session.state.pendingWrites)
         assertFalse(result.isCompleted)
@@ -104,8 +104,8 @@ class SettingsSessionConfirmTest {
         assertEquals(2, writes)
         // 已确认值仍在，失败后缀既不落盘也不冒充确认。
         assertEquals(ThemeMode.Dark, session.state.confirmedSettings?.themeMode)
-        assertEquals(MaterialMode.LiquidGlass, session.state.settings?.materialMode)
-        assertEquals(false, session.state.settings?.reduceTransparency)
+        assertEquals(MaterialMode.LiquidGlass, session.state.settings.materialMode)
+        assertEquals(false, session.state.settings.reduceTransparency)
         assertEquals(0, session.state.pendingWrites)
         assertTrue(session.state.error != null)
     }
@@ -150,9 +150,10 @@ class SettingsSessionConfirmTest {
         assertEquals(SettingsWriteResult.Uncertain, result)
         assertEquals(1, writes)
         assertTrue(session.state.readFailed)
+        assertTrue(session.state.writeUncertain)
         assertEquals(0, session.state.pendingWrites)
         // 磁盘结果未知：不假装已确认，也不回滚成旧值。
-        assertEquals(ThemeMode.Dark, session.state.settings?.themeMode)
+        assertEquals(ThemeMode.Dark, session.state.settings.themeMode)
         assertEquals(ThemeMode.System, session.state.confirmedSettings?.themeMode)
 
         // 只读失败期间不接受新写入。
@@ -163,7 +164,8 @@ class SettingsSessionConfirmTest {
         session.retryRead()
         runCurrent()
         assertFalse(session.state.readFailed)
-        assertEquals(ThemeMode.Dark, session.state.settings?.themeMode)
+        assertFalse(session.state.writeUncertain)
+        assertEquals(ThemeMode.Dark, session.state.settings.themeMode)
         assertEquals(ThemeMode.Dark, session.state.confirmedSettings?.themeMode)
 
         val retried = session.changeConfirmed { it.copy(reduceMotion = true) }
@@ -193,13 +195,15 @@ class SettingsSessionConfirmTest {
         runCurrent()
         assertEquals(1, writes)
         assertTrue(session.state.readFailed)
+        assertTrue(session.state.writeUncertain)
 
         session.retryRead()
         runCurrent()
         // 重读失败时既不重发写入，也不清掉界面草稿值。
         assertTrue(session.state.readFailed)
+        assertTrue(session.state.writeUncertain)
         assertEquals(1, writes)
-        assertEquals(ThemeMode.Dark, session.state.settings?.themeMode)
+        assertEquals(ThemeMode.Dark, session.state.settings.themeMode)
         assertEquals(AppSettings(), session.state.confirmedSettings)
     }
 

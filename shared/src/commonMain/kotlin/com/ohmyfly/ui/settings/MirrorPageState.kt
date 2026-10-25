@@ -41,7 +41,7 @@ internal class MirrorPageState(
             return MirrorDraftState(existing.id, existing).also { drafts[it.id] = it }
         }
         newDraft?.takeIf { it.confirmed == null || it.unfinished }?.let { return it }
-        val used = session.state.settings?.mirrors.orEmpty().map { it.id }.toSet() + drafts.keys
+        val used = session.state.settings.mirrors.map { it.id }.toSet() + drafts.keys
         return MirrorDraftState(newMirrorId(used), null).also {
             newDraft = it
             drafts[it.id] = it
@@ -72,7 +72,7 @@ internal class MirrorPageState(
         if (draft.composing || draft.saving > 0 || session.state.readFailed) return
         draft.attempted = true
         val candidate = draft.candidate
-        if (mirrorDraftError(candidate, session.state.settings?.mirrors.orEmpty()) != null) return
+        if (mirrorDraftError(candidate, session.state.settings.mirrors) != null) return
         val entry = candidate.copy(address = canonicalAddress(candidate))
         if (sameMirrorCandidate(entry, draft.confirmed)) {
             draft.failure = null

@@ -2,7 +2,6 @@ package com.ohmyfly.ui.settings
 
 import androidx.compose.ui.text.input.TextFieldValue
 import com.ohmyfly.mirror.MirrorEntry
-import com.ohmyfly.mirror.MirrorMode
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.SettingsSession
 import kotlinx.coroutines.CompletableDeferred
@@ -63,7 +62,7 @@ class MirrorManualSaveTest {
         assertTrue(owner.visible)
         assertNull(draft.confirmed)
         assertEquals(1, writes)
-        assertEquals(1, session.state.settings!!.mirrors.size)
+        assertEquals(1, session.state.settings.mirrors.size)
         assertTrue(session.state.confirmedSettings!!.mirrors.isEmpty())
         gate.complete(Unit)
         runCurrent()
@@ -100,17 +99,6 @@ class MirrorManualSaveTest {
         owner.submit(draft)
         runCurrent()
         assertEquals(2, writes)
-    }
-
-    @Test
-    fun legacyTemplateStaysTemplateUntilExplicitSelection() {
-        val template = entry.copy(mode = MirrorMode.Template, address = "https://a.example/fetch?url={url}")
-        val draft = MirrorDraftState(template.id, template)
-        assertEquals(MirrorMode.Template, draft.candidate.mode)
-        assertNull(mirrorDraftError(draft.candidate, listOf(template)))
-        draft.mode = MirrorMode.Prefix
-        assertNotNull(mirrorDraftError(draft.candidate, listOf(template)))
-        assertEquals(template, draft.confirmed)
     }
 
     @Test

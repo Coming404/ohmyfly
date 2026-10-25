@@ -6,7 +6,7 @@
 
 仅实施第 8 项中的 GitHub 镜像源页，其他设置页重设计及其余真机反馈仍未实施。页面 ID 表示逻辑状态，不增加九个导航路由。复用现有根 Miuix Scaffold、SettingsSession、DataStore、探测与安全验证，不搬入网页评审工具或示例数据。
 
-- 实际 App 的拼接方式行显示链路图标＋16sp Normal“拼接方式”，操作菜单使用官方 `OverlayDropdownPopup`，只保留 HTTP(S) 前缀；已有 Template 显示为禁用“原模板”。输入框与只读改写预览共用 `TextFieldDefaults.textFieldColors().backgroundColor`。
+- 实际 App 的拼接方式行显示链路图标＋“拼接方式”，右侧只读显示 HTTP(S) 前缀，无下拉与箭头（U11 已删除模板格式）。“名称”“拼接方式”“地址”“改写预览”四个标题及右侧 HTTP(S) 前缀值统一为 13sp Normal、主题前景色 `MiuixTheme.colorScheme.onSurface`（随明暗主题切换，不用固定黑色）；标题前图标保持 16dp、`onSurfaceVariantSummary` 灰色，与文字均相距 8dp。输入框文字保持 14sp，预览框内改写结果正文保持 12sp；二者共用 `TextFieldDefaults.textFieldColors().backgroundColor`。
 - 全量测试成功完成后，自动选择有有效毫秒值的最低延迟镜像；手动选择继续有效，直到下一轮完整测试。失败／未测镜像留在列表尾部；显示结果按延迟升序，不改实际镜像资源的回退顺序。
 - 选择管理 ⋯ 后用 Miuix `OverlayIconDropdownMenu` 呈现“测试／编辑／删除”，不再用管理模态或提供上移／下移。
 - 镜像页弹窗使用 Miuix 默认 `windowDimming` 半透明灰幕，弹窗加 18dp 阴影；背景不再高斯模糊。新增／编辑与删除确认仍用同一个 OverlayDialog。
@@ -22,7 +22,7 @@
 | P-M02／mirror-manage | 行尾管理下拉 | 指定条目唯一 ⋯；Miuix OverlayIconDropdownMenu，关闭回原行 |
 | P-M03／mirror-edit | 编辑弹窗 | 行尾下拉 → 编辑，替换而非叠加模态 |
 | P-M04／mirror-add | 新增弹窗 | 右上 ＋；继续同一未完成新增稿 |
-| P-M05／mirror-mode | 拼接下拉展开 | 编辑弹窗内 Miuix OverlayDropdownPopup；只有 HTTP(S) 前缀，已有 Template 以禁用项展示 |
+| P-M05／mirror-mode | 拼接下拉展开（已取消） | U11 删除模板格式后拼接方式改为只读行，不再展开；线框中的该页面已过时 |
 | P-M06／mirror-invalid | 保存校验失败 | 同一编辑弹窗、字段就地错误 |
 | P-M07／mirror-testing | 测试中 | 同一主体，底部停止／正在停止 |
 | P-M08／mirror-write-failed | 写入失败／待确认 | 同一弹窗保稿，保存重试或只重试读取 |
@@ -43,7 +43,7 @@
 
 弹窗期间页面背景保持清晰，不叠加高斯模糊。官方弹窗接管系统返回，弹窗期间禁用页面滑退。
 
-编辑顺序：名称→16sp Normal 拼接方式下拉行（链路图标＋ChevronDown）→单行地址→只读改写预览→必要错误；选项浮层使用官方 OverlayDropdownPopup，不套 chromeMaterial。下拉只允许选择 HTTP(S) 前缀；已有模板记录显示为禁用的“原模板”，直到用户明确切换前缀。输入框和预览共用 TextFieldDefaults.textFieldColors() 的 backgroundColor。底部固定保存，不随内容滚出。字段参考最小44dp，允许系统大字增高；长地址水平编辑，预览可换行复制。键盘出现时限制弹窗高度并滚动内容，不打开全高子页。
+编辑顺序：名称→拼接方式只读行（链路图标，右侧显示 HTTP(S) 前缀，无下拉与箭头）→单行地址→只读改写预览→必要错误。四个标题及前缀值均为 13sp Normal、`onSurface`；标题图标灰色与 8dp 图文间距不变。输入文字 14sp、预览正文 12sp 不变，输入框和预览共用 TextFieldDefaults.textFieldColors() 的 backgroundColor。底部固定保存，不随内容滚出。字段参考最小44dp，允许系统大字增高；长地址水平编辑，预览可换行复制。键盘出现时限制弹窗高度并滚动内容，不打开全高子页。
 
 标准 Compose LazyColumn、verticalScroll 与 horizontalScroll 均处于根 MiuixTheme 提供的 MiuixOverscrollFactory 下；不再为同一容器重复添加 overScrollVertical 修饰器。五个主目的地通过 Miuix springAnimateToPage 导航；设置内部 NavDisplay 保留 MiuixDefault 弹簧栈转场。减少动态模式禁用空间切页动画。
 
@@ -67,7 +67,7 @@ Android cleartext 与 iOS ATS 为用户动态 HTTP 域名开放；HTTP 本身不
 | I-M06 | ⋯ 打开官方图标操作下拉，含测试／编辑／删除；删除确认后锁定稳定ID | 操作关闭恢复入口键盘焦点；读屏焦点需设备验证 |
 | I-M07 | 输入只改草稿，保留游标／合成态 | 不因业务回流覆盖输入 |
 | I-M08 | 点击保存整体校验，同ID原子增改 | 保存中禁重复和编辑；真实读回确认成功才关闭 |
-| I-M09 | 唯一拼接选项只改草稿 | 外点／返回先收下拉，不保存 |
+| I-M09 | 拼接方式只读显示 HTTP(S) 前缀，不改草稿、不展开下拉 | 无选项浮层可收起；外点／返回按编辑弹窗关闭契约处理，不保存 |
 | I-M10 | 按100ms／300ms阈值显示绿色、琥珀色、红色色阶；主目的地统一 Miuix 弹簧切页，减少动态时直接切换 | 阈值只影响视觉；误差/未测状态不依赖颜色作为唯一提示，标准滚动由 MiuixTheme 默认回弹 |
 | I-M11 | 保留／删除确认；当前项回剩余首项 | 最后一项删除＋关闭开关原子执行，失败不丢条目 |
 | I-M12 | 关闭／外点／返回只保稿、不写盘 | 回原滚动位置；整个页面销毁不承诺保稿到重启 |
@@ -84,7 +84,7 @@ Android cleartext 与 iOS ATS 为用户动态 HTTP 域名开放；HTTP 本身不
 ```
 
 - 列表始终按已测成功延迟升序；全量测试完成后自动选择最低有效毫秒值，单项与已停止测试不自动选择。仅展示排序，不改 DataStore 源列表顺序或请求失败回退优先级。
-- 新增排序模型及 `mirror.order` 只显示偏好字段已移除；历史排序 key 在首次常规设置写入时清除，其余镜像字段保持兼容。
+- 新增排序模型及 `mirror.order` 只显示偏好字段已移除；历史排序 key 在首次常规设置写入时清除，其余镜像字段仅保持当前 HTTP(S) 前缀格式，不再兼容旧模板等旧格式。
 - `MirrorProbeRunner` 由 `AppContent` owner 持有；镜像导航离开再返回时，已测结果、错误和相位不重建、不清空。只有 App owner coroutine scope 销毁时取消仍运行的探测。
 ## 5. 验收与证据
 
@@ -96,7 +96,7 @@ AC-M07–09：真实有界探测、停止互斥、起飞列表和自动选择不
 
 AC-M10：延迟色阶边界、主目的地弹簧切页及减少动态回退；375×812参考、大字/窄屏/RTL/键盘/读屏仍需双端设备检查。
 
-AC-M12：新增与编辑弹窗中“名称”“拼接方式”“地址”标题左边缘对齐，字号与字重一致；双端截图核对，大字体下仍对齐。
+AC-M12：新增与编辑弹窗中“名称”“拼接方式”“地址”“改写预览”四个标题左边缘对齐，四标题及右侧 HTTP(S) 前缀值统一为 13sp Normal、主题前景色 `onSurface`；图标保持 16dp 灰色，图文间距统一 8dp，输入文字 14sp、预览正文 12sp 不变。双端浅／深色截图核对，大字体下仍对齐。
 
 AC-M11：九张独立PNG、带11线总览与离线HTML保留；[评审记录](REVIEW.md)记录20条批注。网页导出仍可生成ZIP，冗余的旧ZIP／报告页／预览文件已清理。
 

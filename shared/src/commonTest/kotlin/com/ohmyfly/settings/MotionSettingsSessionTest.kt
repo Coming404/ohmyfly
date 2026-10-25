@@ -26,15 +26,15 @@ class MotionSettingsSessionTest {
         backgroundScope.launch { session.run() }
         runCurrent()
         session.change { it.copy(reduceMotion = true) }
-        assertTrue(session.state.settings!!.reduceMotion)
+        assertTrue(session.state.settings.reduceMotion)
         assertFalse(values.value.reduceMotion)
         gate.complete(Unit)
         runCurrent()
-        assertFalse(session.state.settings!!.reduceMotion)
+        assertFalse(session.state.settings.reduceMotion)
         assertNotNull(session.state.error)
         fail = false
         session.change { it.copy(reduceMotion = true) }
-        assertTrue(session.state.settings!!.reduceMotion)
+        assertTrue(session.state.settings.reduceMotion)
         runCurrent()
         assertTrue(values.value.reduceMotion)
     }

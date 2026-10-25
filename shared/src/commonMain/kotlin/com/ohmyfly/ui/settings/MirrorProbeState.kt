@@ -131,7 +131,7 @@ internal class MirrorProbeRunner(
         val ids = entries.mapTo(mutableSetOf<String>()) { it.id }
         (signatures.keys - ids).forEach(::forget)
         entries.forEach { entry ->
-            val signature = "${entry.mode}|${canonicalAddress(entry)}"
+            val signature = canonicalAddress(entry)
             if (signatures[entry.id]?.let { it != signature } == true) forget(entry.id)
             signatures[entry.id] = signature
         }

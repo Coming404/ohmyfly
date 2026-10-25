@@ -1,7 +1,6 @@
 package com.ohmyfly.ui.settings
 
 import com.ohmyfly.mirror.MirrorEntry
-import com.ohmyfly.mirror.MirrorMode
 import com.ohmyfly.mirror.newMirrorId
 import kotlin.random.Random
 import kotlin.test.Test
@@ -32,37 +31,22 @@ class MirrorUiLogicTest {
     }
 
     @Test
-    fun templatePreviewEncodesOriginalUrl() {
-        val entry = MirrorEntry(
-            id = "t",
-            name = "T",
-            address = "https://m.example/fetch?url={url}",
-            mode = MirrorMode.Template,
-        )
-        val preview = mirrorUrlPreview(entry, "https://github.com/a/b?x=1")
-        assertTrue(preview.startsWith("https://m.example/fetch?url=https%3A%2F%2Fgithub.com%2Fa%2Fb"))
-        assertTrue("%3Fx%3D1" in preview)
-    }
-
-    @Test
     fun prefixPreviewKeepsOriginalSchemeIntact() {
-        val entry = MirrorEntry(id = "p", name = "P", address = "https://m.example", mode = MirrorMode.Prefix)
+        val entry = MirrorEntry(id = "p", name = "P", address = "https://m.example")
         val preview = mirrorUrlPreview(entry, "https://github.com/a/b")
         assertTrue(preview.startsWith("https://m.example"))
         assertTrue(preview.endsWith("https://github.com/a/b"))
     }
 
     @Test
-    fun duplicateDetectionIgnoresNameButRespectsMode() {
+    fun duplicateDetectionIgnoresNameAndUsesCanonicalAddress() {
         val siblings = listOf(
-            MirrorEntry(id = "a", name = "A", address = "https://m.example/", mode = MirrorMode.Prefix),
+            MirrorEntry(id = "a", name = "A", address = "https://m.example/"),
         )
-        val same = MirrorEntry(id = "b", name = "Other", address = "https://m.example", mode = MirrorMode.Prefix)
-        val editingSelf = MirrorEntry(id = "a", name = "A", address = "https://m.example", mode = MirrorMode.Prefix)
-        val template = same.copy(mode = MirrorMode.Template)
+        val same = MirrorEntry(id = "b", name = "Other", address = "https://m.example")
+        val editingSelf = MirrorEntry(id = "a", name = "A", address = "https://m.example")
         assertTrue(duplicateError(same, siblings) != null)
         assertNull(duplicateError(editingSelf, siblings))
-        assertNull(duplicateError(template, siblings))
     }
 
     @Test

@@ -1,7 +1,6 @@
 package com.ohmyfly.settings
 
 import com.ohmyfly.mirror.MirrorEntry
-import com.ohmyfly.mirror.MirrorMode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -9,7 +8,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SettingsValidationTest {
-    private val mirror = MirrorEntry(id = "a", name = "甲", address = "https://a.example", mode = MirrorMode.Prefix)
+    private val mirror = MirrorEntry(id = "a", name = "甲", address = "https://a.example")
 
     @Test
     fun defaultsAndEmptyMirrorListAreValid() {
@@ -101,14 +100,14 @@ class SettingsValidationTest {
 
     @Test
     fun mirrorIdsAreNormalizedUniqueAndNotDirect() {
-        val duplicate = listOf(mirror, MirrorEntry(id = "A ", name = "乙", address = "https://b.example", mode = MirrorMode.Prefix))
+        val duplicate = listOf(mirror, MirrorEntry(id = "A ", name = "乙", address = "https://b.example"))
         assertNotNull(validateSettings(AppSettings(mirrors = duplicate)))
 
-        assertNotNull(validateSettings(AppSettings(mirrors = listOf(MirrorEntry(id = "direct", name = "直连", address = "https://x.example", mode = MirrorMode.Prefix)))))
-        assertNotNull(validateSettings(AppSettings(mirrors = listOf(MirrorEntry(id = " ", name = "空", address = "https://x.example", mode = MirrorMode.Prefix)))))
-        assertNotNull(validateSettings(AppSettings(mirrors = listOf(MirrorEntry(id = "a b", name = "空白", address = "https://x.example", mode = MirrorMode.Prefix)))))
+        assertNotNull(validateSettings(AppSettings(mirrors = listOf(MirrorEntry(id = "direct", name = "直连", address = "https://x.example")))))
+        assertNotNull(validateSettings(AppSettings(mirrors = listOf(MirrorEntry(id = " ", name = "空", address = "https://x.example")))))
+        assertNotNull(validateSettings(AppSettings(mirrors = listOf(MirrorEntry(id = "a b", name = "空白", address = "https://x.example")))))
 
-        val sameAddress = listOf(mirror, MirrorEntry(id = "b", name = "乙", address = "https://a.example/", mode = MirrorMode.Prefix))
+        val sameAddress = listOf(mirror, MirrorEntry(id = "b", name = "乙", address = "https://a.example/"))
         assertEquals("镜像地址不能重复", validateSettings(AppSettings(mirrors = sameAddress)))
 
         val selected = AppSettings(mirrors = listOf(mirror), selectedMirrorId = "a")

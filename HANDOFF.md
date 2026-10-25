@@ -1,133 +1,69 @@
-# 交接文档：ohmydrift
+# 交接文档：OhMyFly（原 ohmydrift）
 
-> 本文是 2026-10-21 的会话快照，不是当前状态来源。当前状态以 [docs/context/NOW.md](docs/context/NOW.md) 为准（镜像页已于 2026-10-22 提交、推送并通过双端构建）。
-
-## 最新覆盖状态：第8项镜像源页（2026-10-21）
-
-用户已另行授权按 docs/design/mirror-settings 九图＋流程总览实施镜像源页，源码已落地，未提交／推送／构建。本文下方旧交接的“仅提案／无运行时代码改动”已过时，不得覆盖本节。
-
-- 最新规格 `docs/design/mirror-settings/PRD.md`，决定 `.agents/notes/implemented/feature/2026-10-21-mirror-settings-page.md`。
-- 实际拼接方式是无独立卡片的普通行；新增／编辑底部手动保存，输入／失焦／IME完成／关闭都不保存，真实Session确认才关闭；失败保稿，只读确认失败仅重读。
-- 支持HTTP、HTTPS、www／裸域名（缺协议补HTTPS）；原始GitHub与其他设置URL仍HTTPS。双端运输已放行用户HTTP镜像，公网／凭据／跳转／摘要校验保留。
-- 列表移除直连；开关关闭直连，开启选中镜像优先并按持久化顺序降级，全部镜像失败才直连。删当前项回剩余首项，删光原子关闭开关。空状态仅GitHub图标＋Bold“暂无镜像源”，无添加按钮；右上＋唯一新增入口。
-- iOS设置输入框局部隐藏浮动编辑菜单；Android菜单／只读预览不变。实际iOS菜单效果尚未设备核实。
-- 结构检查、73项Python检查与git diff --check通过；174项Kotlin测试声明已补齐，未执行；CI最低数已同步，未触发构建。原生视觉／键盘／读屏／HTTP网络仍待双端验收。其他11项及第8项非镜像部分未实施。
-- 用户明确要求后续不用子代理，由主代理直接修改。没有待运行子代理或构建。
-
----
-
-> 生成时间：2026-10-21 01:00 Asia/Shanghai (UTC+08:00) | 分支：main | HEAD：6d75347 | 当前阶段：真机反馈方案已整理，尚未实施
-
-项目：`/var/minis/workspace/ohmydrift`。**最新用户授权仅包括整理记忆、清理无用工作文件、更新交接；上一轮要求“先给文档”。不得恢复会话后自动实施 UI、提交/推送、删除 Actions、构建或下载安装包。**
-
-旧版已原样归档并核对内容：`handoff/history/handoff-20261021-010001-2116ef8a.md`。该旧版仍是10月19日状态，不是当前事实。
+> 生成时间: 2026-10-25 18:05 Asia/Shanghai | 分支: `fix/mirror-page-polish`（HEAD `284c87f`，与 origin 同步） | 未提交改动: U10+U11 代码与文档约 34 项（含新增未跟踪 `SettingsSessionInitialReadTest.kt`）
+>
+> 本文是会话快照；状态权威来源仍是 [docs/context/NOW.md](docs/context/NOW.md)。旧快照已归档到 `handoff/history/handoff-20261025-180400-u10fix.md`。
 
 ## 1. 会话目标 (Goals)
-
-1. Android/iOS 共用 Kotlin＋Compose Multiplatform＋Miuix，五个入口固定为概览、订阅、测速、节点库、设置。保留共享架构，iOS追求系统风格、悬浮胶囊玻璃导航，不改为普通全宽底栏。
-2. 原1–7项设置/玻璃/导航/运动策略已落地并完成双端Release；之后用户实际安装iOS包，提出12项体验问题。
-3. 当前交付是 `docs/device-feedback-rework.md` 及对应 proposed 笔记；先评审方案，不把“已有方案”或“编译成功”写为真机问题已修复。
-4. 用户准备换会话，已选择更新交接。当前应先恢复本状态，按下一条用户指令决定是否开始某阶段。
+- 按 `docs/device-feedback-rework.md` 第 8 节分批实施真机反馈需求 U1–U12。每开启下一批前必须先向用户确认，并说明任务名称与委派对象。
+- 当前批次：U10（启动无加载界面、首读成功前不写盘、读失败弹窗可重试）+ U11（删除旧格式兼容，保留设置页已有子页与配置）。要先收口这批，再推送跑 Actions。
+- 验收：审查者复核无阻断/应修 → 用户授权后提交（必须包含新增测试文件）、推送 → Release 双端构建与 Kotlin 测试通过（commonTest ≥179）。
 
 ## 2. 当前状态
-
 ### 已完成
+- 第一批 U5–U9 改名：提交 `3122e90` 并推送，Release run `39986688054` 双端 success。仓库已改名为 `Coming404/ohmyfly`，本地 origin 已同步。
+- CI 优化：缓存 `~/.konan`、删除 AAB，提交 `284c87f` 并推送，Project checks `39989134703` success。
+- U10+U11 本地代码：执行者第三次交付，并经审查 → 返工 → 再审查。上轮两个阻断问题（测试括号错误、弹窗在 Scaffold 外不显示）已修；`writeUncertain` 区分两种提示；“拼接方式”恢复为只读行；建议 2–5 已落实。
+- 主会话已补改 PRD 第 9、25、46 行：拼接方式改为只读行，P-M05 下拉页标为已取消。
+- 最近验证（2026-10-25）：`python3 tools/check_project.py` PASS；`python3 -m unittest discover -s tools/tests` 69 tests OK；`git diff --check` 无输出；commonTest `@Test` 179 = HEAD；改动的 Kotlin 文件括号全部配平。**未运行 Gradle/Kotlin 编译**（规则禁止本地编译）。
 
-- 私有仓库 [Coming404/ohmydrift](https://github.com/Coming404/ohmydrift)。本地/远端main一致：`6d7534797bf6cc4d1a8f43150fd55eb04ec92174`；这是构建成功后的纯文档提交，带 `[skip ci]`。
-- 已构建代码：`78d80bd427a1b74e72da8a6b7a621d8336f9523f`。2026-10-21交接前只读查询确认：[Release 39426815748](https://github.com/Coming404/ohmydrift/actions/runs/39426815748) Android/iOS均success；[Project checks 39426798576](https://github.com/Coming404/ohmydrift/actions/runs/39426798576) success。无待轮询构建，定时任务列表为空。
-- 该轮146项Kotlin共享测试全通过，无失败/跳过；70项Python通过。已修复lifecycle目录别名、iOS UIKit常量顶层导入、宿主Path桩测试问题；不通过跳过测试或修改生产渲染逃避失败。
-- 原格式远程工件：IPA `12266402172`、APK `12266142562`、AAB `12265633791`，保留至2026-10-27，未下载。IPA未签名，用户自行重签。此前已按用户授权清空旧Actions/产物，**不要为了交接再次清空**。
-- 实现：设置DataStore schema1、镜像管理与独立真实HTTP探测、SettingsSession乐观更新/顺序事务、唯一设置NavBackStack、四材质共享玻璃链与双端倾斜传感器、减少透明/自有运动策略。
-- 真机12项方案全文与三份截图来源、六阶段顺序、参数对照、API限制和验收都在 `docs/device-feedback-rework.md`；运行时代码没有因该提案改变。
-- 文档检查最近通过 `python3 tools/check_project.py`、`git diff --check`；70项Python在文档初稿检查时也通过。文档更正没有重跑云端Kotlin/原生构建。
-
-### 进行中
-
-- 无后台代理或构建需要接续。三路只读核查结果已全部整合到文档，不要重新委派同一轮研究。
-- 真机反馈修正仍停在提案评审，未开始任何A–F阶段。
-- 未跟踪文件应为：`docs/device-feedback-rework.md`、`.agents/notes/proposed/feature/2026-10-20-device-feedback-rework.md`、`HANDOFF.md`、`handoff/`。除这些文档外，现无未提交运行时代码；恢复时再核对真实Git状态。
+### 进行中（用户已决定“现在修”，尚未派发）
+U10+U11 第二次返工，内容见第 6 节第 1 步。委派对象：执行者；修完派审查者复核。
 
 ## 3. 关键决策 (Decisions)
-
-### 用户明确要求
-
-- 按确认过的分项实施，每项完成汇报并暂停；报告区分官方默认、当前值、目标值。新会话不能把当前文档当成实施授权。
-- 第10项**只指设置页内可点击卡片/设置项**：点后像没命中，稍后才出现灰色反馈；不是底部悬浮胶囊。首个排查基线是静止无转场的设置页，分开测命中、列表按压延后、onClick与indication绘制。不能以500ms导航转场直接解释静止卡片首击迟滞。
-- 最新目标：Melox胶囊几何、22dp图标/1dp图文距、Normal/Bold；子页返回右侧标题去掉；去玻璃灰膜和按压不透明感；合理安全区与系统栏跟App明暗；紧凑设置字号/系统字体；设置及分组图标、右侧值/语义箭头；表单去保存取消、合法输入自动保存、镜像页重设计；短促spring；点击震动可关、轻中强默认中、排除滑动；弹层所选材质＋轻背景模糊。
-- 四种材质只有：高斯模糊、高光玻璃、柔光玻璃、液态玻璃，默认液态。无额外Off/渐进模糊项；减少透明效果负责实体回退且保留材质选择。
-- 纯选择行右侧当前值＋常驻双箭头，不页内折叠；导航单箭头、真实编辑展开带expanded语义，不给所有行机械加双箭头。
-- Android系统动态代表色＋Neutral＋Spec2025，不固定蓝seed；iOS保留当前系统明暗策略。
-
-### 已核实的实现边界
-
-- 当前与Melox默认底栏都64dp，Melox液态也有0.4覆盖；照抄不自动更小/更清透。五入口不能照搬Melox四入口的单项至少100dp宽。完整轮廓需同步裁剪、Lens、高光与阴影。
-- 当前iOS已有系统字体链 `.AppleSystemUIFont → Helvetica Neue → Helvetica`、高刷plist标志已开；不盲目打包SF字体或再加开关冒充修复。
-- Miuix 0.9.4高层Dropdown无材质/进出动画/灰幕替换参数且ListPopup外壳为实色。提案是在ChoiceSetting边界用公共PopupLayout受控适配，复用行/选项/ID；不是复制整库或用internal。根Scaffold已有，不再套宿主。
-- 当前程序导航500ms tween且blockInputDuringTransition=true；180ms只是自有主题/材质动画。spring有公开接口，不承诺固定时长；应用减少动态只完整控制自有运动，非全部Miuix内置动画。
-- 文本/URL在IME完成/失焦/离开编辑区时校验后自动提交，不能仅靠防抖。草稿由owner保留；MirrorSettingsPage不能把乐观mirrors相等当成落盘确认，需复用Session确认结果。
-- Miuix Dropdown自带ContextClick。全局震动要去重且关得掉；不能包通用onDestination/onSelect，因拖动结束也走这条回调。
-- 不承诺120fps，不预设新增第三方库；灰膜/按压实化/卡顿是需真机消融与测量的现象，不将源码候选写成已测根因。
+已写入 `docs/context/DECISIONS.md` 新决策表：
+- **U11 保留起飞、流媒体与 AI、塔台与过滤子页及其配置，只删旧兼容** — 理由：这些是现有功能，不是旧格式。
+- **“拼接方式”为只读行（显示 HTTP(S) 前缀，无下拉、无箭头），U3/AC-M12 保留** — 理由：这是 U3 已确认的可见控件；改成下拉或删掉都已被否决。
+- **失败弹窗沿用 Overlay（MirrorDialog），放在 App.kt 的 Scaffold content 内** — 理由：Overlay 依赖 Scaffold 宿主；不改用 WindowDialog。
+- **2026-10-25：“名称”“拼接方式”“地址”三个标题统一为 13sp Normal** — 用户指定 13sp，覆盖 PRD/AC-M12 原写的 16sp；拼接方式也要从 16sp 改为 13sp。“改写预览”标题不在 AC-M12 三项内，按审查建议保持现状（如需改，先问用户）。
+- **2026-10-25：失败弹窗拦截返回手势，不播放缩小动画** — 理由见第 5 节 N1。
 
 ## 4. 改动文件 (Files)
-
-当前未提交的有效交付：
-- `docs/device-feedback-rework.md`：12项反馈的唯一详细计划；第3.10节已按用户最后澄清修正为设置卡片。
-- `.agents/notes/proposed/feature/2026-10-20-device-feedback-rework.md`：Status: proposed，记录与既有决定的重叠/取舍。
-- `HANDOFF.md`、`handoff/history/`：本地交接及旧版归档，未自动纳入版本控制。
-
-后续按任务查阅，不重读整个项目：
-- 主题/平台：`App.kt`、`ui/AppTheme.kt`、`ui/DriftTopBar.kt`、Android `MainActivity.kt`、iOS `MainViewController.kt`/SwiftUI `ContentView.swift`。
-- 设置：`ui/settings/SettingsControls.kt`、`ChoiceSetting.kt`、`SettingsActionRow.kt`、`MirrorSettingsPage.kt`/`MirrorEditor.kt`；`settings/SettingsSession.kt`、`SettingsUiState.kt`。
-- 玻璃：`ui/glass/`、`ui/NavigationBarShape.kt`、`ChromeMaterial.kt`、两端`ui/glass/sensor/`。
-- 实现与旧决定：`docs/settings.md`、`docs/ui-showcase.md`、`.agents/notes/implemented/`；`docs/settings-redesign.md`保留原阶段历史，部分“尚未编译”表述是过时阶段记录，不能覆盖最近Release事实。
-- `.ops/github.py`：私有忽略工具，保留用于status/artifacts、scan/push-api/purge/dispatch等；写操作需本轮授权，不是App依赖。
-
-本轮清理：
-- 记忆仅整理2026-10-18/19/20三日日志：33条进度/偏好合并为7条（27,906→3,999字节）；保留当前状态、用户决策、分发约定和关键纠正。GLOBAL.md与SOUL.md未改。
-- 删除workspace根目录27份一次性查询输出：`bd{,2}.{json,txt}`、`icon.{json,txt}`、`misc.{json,txt}`、`navbar.json`/`navbar.kt`/`navbar_src.kt`、`navdoc.json`、`sp.{json,txt}`、`sq2.json`、`sq3.{json,txt}`、`sqdir.json`/`sqint.json`/`sqmd.json`/`sqsearch.json`/`squircle.json`、`tex.json`/`tex.kt`、`tip.json`、`tree.json`/`tree2.json`。这里的花括号仅为清单缩写，不是继续删除的指令。
-- 删除无引用的公开上游副本：workspace `src/` 10文件（NavigationBar、Text、TextureEffect、Tooltip、FloatingToolbar、Icon、Demo、Scaffold及两份组件文档）、`sqsrc/` 4文件（SquircleBorder、Path、LocalSquircleEnabled、Background）。合计41文件、883,171字节；来源已在项目固定版参考链接中，不是生产源码。
-- 保留 `melox-review/` 固定参照及其历史/依赖，因后续玻璃对照仍用；保留root `ohmydrift-settings-proposal.md`，其中有独有CLI参数研究，作为历史研究而非当前实施计划。
-- 原始上传截图、项目源码/测试/许可证、签名、Git历史及所有handoff历史保留。一次性tidy脚本在交接安装后删除，不留“清理工具”依赖。
+未提交改动（`git status --short` 可见全部），主要有：
+- `shared/src/commonMain/kotlin/com/ohmyfly/PersistedSettings.kt`：装配仓库与 Session；仓库构造失败时递增 retry 重建；第 6 个回调参数是重试动作。
+- `shared/src/commonMain/kotlin/com/ohmyfly/App.kt:235–243`：失败弹窗（`dismissible = false`，两种文案，“重试”按钮）。
+- `shared/src/commonMain/kotlin/com/ohmyfly/settings/SettingsSession.kt`、`SettingsUiState.kt`：`confirmed == null` 时拦截所有写入；`settings` 改为非空；新增 `writeUncertain`。
+- `shared/src/commonMain/kotlin/com/ohmyfly/ui/settings/MirrorDialog.kt`：新增 `dismissible` 参数（默认 true）。
+- `shared/src/commonMain/kotlin/com/ohmyfly/ui/settings/MirrorEditor.kt:123–151`：`MirrorPrefixRow()`（当前 16sp）、`EditorLabel`（当前 12sp）。
+- 删除 `mirror/MirrorMode.kt`；修改 `MirrorEntry.kt`、`MirrorUrl.kt`、`MirrorCodec.kt`、`SettingsCodec.kt`（`clear()` 后重建）、`SettingsValidation.kt`、`MirrorDraftState.kt`、`MirrorProbeState.kt`、`MirrorPageState.kt`、`MirrorIcons.kt`（删 ChevronDown）。
+- 测试：新增 `shared/src/commonTest/kotlin/com/ohmyfly/settings/SettingsSessionInitialReadTest.kt`（**未跟踪，提交时必须纳入，否则测试数 177 <179，CI 失败**），另改了 10 个 commonTest 文件；`tools/tests/test_mirror_redesign.py`、`test_optimistic_settings.py`。
+- 文档：`docs/settings.md`、`docs/requirements.md`、`docs/device-feedback-rework.md`（U10/U11 状态列）、`docs/design/mirror-settings/PRD.md`、`docs/context/{NOW,DECISIONS}.md`、本文件。
 
 ## 5. 未决问题 & 阻塞
-
-- 用户尚未确认开始任何新阶段。方案内拟定15sp标题、顶栏/宽度、轻blur等是待实施目标，不是已生效参数。
-- 设置卡片迟滞、玻璃灰膜/长按透景减弱、冷启卡顿尚无定位后的真机时间线/帧采样；当前不能宣称修好，也不能用底栏测试替代设置卡片验收。
-- iOS App手动深色未同步宿主系统栏，是已确认接线缺口；具体SwiftUI/UIKit调用方案仍需在实际宿主边界核实。
-- 自动编辑需解决输入owner/游标/离页草稿及Session确认，不能简单删按钮；低层弹层要补焦点、锚点、越界、屏障、返回和完整退场时序。
-- 无Mac/模拟器/设备渲染证据时，报告缺口，不把本地Python或编译通过当视觉/性能验收。
-- 业务仍未接：订阅导入/解析、真实节点目录、Go测速、媒体/AI探针。现有镜像探测为独立控制面；不填假结果。iOS NSURLSession二次DNS解析仍有复绑定限制，不承载凭据镜像下载；保存/取消重设计不移除原安全校验。
+- **N1（应修）**：失败弹窗不可关闭。Android 完成一次预测返回手势后，弹窗停在缩小状态，遮罩变淡甚至消失。依据：Miuix v0.9.4（commit `39c40f99844227b853f0049a0933b1f3ae6c00ba`）`miuix-ui/.../layout/DialogContentLayout.kt:191–215`，`onBackCompleted` 只调用 `requestDismiss()`，InProgress 修改 `backProgress`/`dimAlpha`，只有取消时才 `resetGesture()`（主会话已亲自核对源码）。普通返回键和取消手势正常。
+- **N2（应修，用户已定 13sp）**：AC-M12 三个标题字号不一致。
+- **S1（文档漂移）**：PRD 第 70 行 I-M09 仍写下拉/草稿；第 87 行“其余镜像字段保持兼容”需限定为当前前缀格式；`docs/settings.md:57` 后半句“不使用灰色遮罩”与默认灰幕不符；PRD 第 9、46、99 行的 16sp 要改为 13sp。线框原型（`docs/design/mirror-settings/index.html`、`build_wireframe.py`）仍有 P-M05 下拉页，属过时设计稿，未决定是否更新。
+- **S2**：测试中 4 处多余 `!!`：`MotionSettingsSessionTest.kt:29,33,37`、`MirrorManualSaveTest.kt:65`。
+- 模型异常：执行者固定用「666 · GPT 6.1 Sol」，曾连续 3 次中途无回复；最近一次返工回调显示实际模型为 DeepSeek V4.1 Flash。模型由用户手动指定，主会话不切换。
 
 ## 6. 下一步 (Next Steps)
-
-- [ ] **先阅读并核实当前状态**：本文→AGENTS.md→`docs/device-feedback-rework.md`。确认用户下一条要求，未明确实施前停在文档阶段。
-- [ ] 用户若要求开始：优先与其确认的分项对齐，不默认全包。提案顺序A平台与触控（3/5/10）→B紧凑布局/字体（1/6/8视觉）→C玻璃性能（2/4）→D即时编辑（8交互）→E弹层/运动（7/9/12）→F震动/回归（11/全部）。
-- [ ] 实施前复用现有来源/组件/测试；先读对应Miuix Skill引用，仅对真实缺口查询。每项补完整调用方/错误/取消/语义/测试，验证后清理被替代代码，再汇报暂停。
-- [ ] **外部副作用另需授权**：Git提交/推送、删除Actions及构建、下载安装包或改签名均不是恢复交接自动动作。若再获构建授权且用户要求清记录，清完核对runs/artifacts为0后再启动。
+- [ ] **派执行者做 U10+U11 第二次返工**（用户已同意，无需再问）。留档目录 `/var/minis/shared/team-workbench/runs/20261025-executor-persistence-fix2/`（先建 `result.json`）。简报须包含：目标/需求来源、授权与禁止、可改范围、禁改范围、已定决策、验证方式、停止条件、报告路径与格式。内容：
+  1. N1：在 `dismissible = false` 时，用公开的返回处理 API（如 Compose/NavigationEvent 的 `NavigationBackHandler`，优先级要高于 Miuix 内部的那个）消费返回手势，不让 Miuix 收到预测进度。不换 Window、不调用 internal API。要覆盖“完成手势/取消手势/返回键”三种情况：都不关闭、不残留缩小、遮罩不丢；重试成功后正常退场。先查 v0.9.4 源码核实 API 与优先级。
+  2. N2：`MirrorEditor.kt` 中“名称”“地址”标题与“拼接方式”统一为 13sp Normal，同色同图标间距，不改“改写预览”；同步 PRD 第 9、46、99 行和 `docs/settings.md:57`，Python 守卫检查三项都是 13sp。
+  3. S1 文档收口（线框原型不动）；S2 删 4 处 `!!`。
+  4. 验证：`check_project.py`、unittest、`git diff --check`、一次性括号配平脚本（用完删）、`@Test` ≥179。禁止编译、提交、推送。
+- [ ] **主会话核对 → 派审查者复核**（留档 `runs/20261025-reviewer-persistence-fix2/`）。
+- [ ] **⚠需用户授权**：提交（逐个暂存文件，包含新增测试文件）、推送 `fix/mirror-page-polish`、触发 Release 构建：`GH_TOKEN="$GITHUB_TOKEN" gh workflow run build.yml -R Coming404/ohmyfly --ref fix/mirror-page-polish -f platform=both`。
+- [ ] **⚠需用户确认后开启**：U12（iOS 输入框单击不弹工具栏，双击/长按显示系统工具栏；入口 `shared/src/iosMain/kotlin/com/ohmyfly/ui/settings/SettingsInputMenu.ios.kt`，守卫 `tools/tests/test_mirror_redesign.py:79–81`；上次因断网失败，零改动）→ 第三批 U1+U2 弹簧动画、U3 其余 + U4。
 
 ## 7. 恢复指引 (How to Resume)
-
-```sh
-cd /var/minis/workspace/ohmydrift
-git status --short --branch
-git log -4 --oneline
-git diff --check
-```
-
-然后只读本文、AGENTS和最新提案。结构检查按修改需要运行 `python3 tools/check_project.py`；无需为恢复上下文重复跑所有测试或重查所有版本。
-
-当前Miuix Skill路径 `/var/minis/skills/miuix/SKILL.md`；handoff技能 `/var/minis/skills/handoff/SKILL.md`。恢复时按需加载一次，不重复读取不变材料。需要实际委派时才用GPT with Taste适配，子代理只读核查已经交付，不重开研究链。
-
-新会话可粘贴：
-
-> 读取 /var/minis/workspace/ohmydrift/HANDOFF.md，恢复当前上下文。现在仍是12项真机反馈的文档提案阶段，先不要自动改代码、推送或构建。
+1. 项目根目录 `/var/minis/workspace/ohmydrift`。先读 `AGENTS.md`、`CLAUDE.md`、`PROJECT_INDEX.md`、`docs/context/NOW.md`，再读本文件。
+2. 读取 `/var/minis/skills/team-workbench/SKILL.md`（协作工坊派发规则，只读一次）。
+3. 安全核验：`cd /var/minis/workspace/ohmydrift && git status --short --branch && python3 tools/check_project.py && python3 -m unittest discover -s tools/tests`。预期分支 `fix/mirror-page-polish`、约 34 项改动、69 tests OK。
+4. 报告参考：上轮审查 `/var/minis/shared/team-workbench/runs/20261025-reviewer-persistence-fix/output.md`；返工报告 `runs/20261025-executor-persistence-fix/output.md`。
+5. 注意：同一文件不要并行编辑（曾互相覆盖）；`docs/context/history/`、`.agents/notes/` 是只读存档。
 
 ## 8. 环境 / 约束
-
-- Minis/iOS＋iSH Alpine；项目工作文件放workspace，外部挂载仅实际需要时检查。不改GLOBAL.md/SOUL.md或其他设置来“优化上下文”。
-- 已声明：Kotlin2.4.20、Compose1.12.0、Miuix0.9.4、AGP9.4.1、Gradle9.7.1；Android min33、compile/target37，iOS16。DataStore1.2.1、coroutines1.11.0、Okio3.18.2、Ktor3.6.0、lifecycle2.11.0、serialization1.11.0。不静默升级或改最低系统。
-- 固定证据：Miuix `39c40f99844227b853f0049a0933b1f3ae6c00ba`、Compose `f29d2f99f3beafc60992c6a73dbbaa9f841c5d4c`；Melox只读参照 `/var/minis/workspace/melox-review`，固定 `49ee06aa1f01a67eb5ea1d5cc7307ddfd571a534`。
-- 查询优先级：Miuix Skill→需要补证时EXA MCP→浏览器。新KMP依赖先Klibs验证双端目标/元数据/许可；不为这轮问题预设新增依赖。
-- 完整移动端构建交Actions，本地不安装SDK/NDK/Gradle全量工具链；Python项目依赖用uv，本项目轻量检查只用标准库。
-- 认证只记变量名 `GITHUB_PAT_TOKENS`，不打印/写入值。`.signing/`是Android测试签名必须保留的备份；不读取到聊天、不改签名、不上传为工件。
-- 用户通用偏好：优先复用、最小完整方案，按职责分界；一个文件一个主类，理想≤300行、>500行先审查方案。前端不增加描述性文案；允许蓝色，禁止靛蓝/靛紫/蓝紫渐变，不用Inter/宋体。系统缩放/安全/校验不为视觉紧凑而删除。
+- Minis（iOS）+ iSH Alpine aarch64。Kotlin 2.4.20、Compose Multiplatform、Miuix 0.9.4。本地不编译，构建走 GitHub Actions。
+- 推送用内联凭据 helper，读取环境变量 `GITHUB_TOKEN`：`git -c credential.helper= -c credential.helper='!f(){ echo username=x-access-token; echo "password=$GITHUB_TOKEN"; }; f' push`。gh 命令用 `GH_TOKEN="$GITHUB_TOKEN"`。不输出变量值。
+- 提交、推送、触发构建、改仓库名、开启下一批任务都需用户明确授权。子代理模型由用户手动指定，主会话不选、不改。

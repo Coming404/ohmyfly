@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.TextFieldValue
 import com.ohmyfly.mirror.MirrorEntry
-import com.ohmyfly.mirror.MirrorMode
 import com.ohmyfly.mirror.normalizedMirrorAddress
 import com.ohmyfly.mirror.validateMirror
 
@@ -13,7 +12,6 @@ import com.ohmyfly.mirror.validateMirror
 internal class MirrorDraftState(val id: String, existing: MirrorEntry?) {
     var name by mutableStateOf(TextFieldValue(existing?.name.orEmpty()))
     var address by mutableStateOf(TextFieldValue(existing?.address.orEmpty()))
-    var mode by mutableStateOf(existing?.mode ?: MirrorMode.Prefix)
     var confirmed by mutableStateOf(existing)
     var attempted by mutableStateOf(false)
     var failure by mutableStateOf<String?>(null)
@@ -23,7 +21,7 @@ internal class MirrorDraftState(val id: String, existing: MirrorEntry?) {
     var submission = 0L
 
     val composing: Boolean get() = name.composition != null || address.composition != null
-    val candidate: MirrorEntry get() = MirrorEntry(id, name.text.trim(), address.text.trim(), mode)
+    val candidate: MirrorEntry get() = MirrorEntry(id, name.text.trim(), address.text.trim())
     val unfinished: Boolean get() = saving > 0 || failure != null || uncertain ||
         (confirmed == null && (name.text.isNotBlank() || address.text.isNotBlank())) ||
         (confirmed != null && !sameMirrorCandidate(candidate, confirmed))
@@ -35,7 +33,7 @@ internal fun mirrorDraftError(entry: MirrorEntry, siblings: List<MirrorEntry>): 
 /** Name is not identity; address equality follows the persistence normalization contract. */
 internal fun duplicateError(entry: MirrorEntry, siblings: List<MirrorEntry>): String? =
     siblings.firstOrNull {
-        it.id != entry.id && it.mode == entry.mode && canonicalAddress(it) == canonicalAddress(entry)
+        it.id != entry.id && canonicalAddress(it) == canonicalAddress(entry)
     }?.let { "与「${it.name}」的地址重复" }
 
 internal fun canonicalAddress(entry: MirrorEntry): String = normalizedMirrorAddress(entry)
@@ -47,5 +45,5 @@ internal fun hostOf(address: String): String {
 }
 
 internal fun sameMirrorCandidate(first: MirrorEntry, second: MirrorEntry?): Boolean = second != null &&
-    first.id == second.id && first.name.trim() == second.name.trim() && first.mode == second.mode &&
+    first.id == second.id && first.name.trim() == second.name.trim() &&
     canonicalAddress(first) == canonicalAddress(second)

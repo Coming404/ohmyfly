@@ -31,11 +31,11 @@ class SettingsSessionStaleReadTest {
         // Emitted while the first change is still queued: this is the stale value the fix blocks.
         values.value = values.value.copy(themeMode = ThemeMode.Light)
         runCurrent()
-        assertEquals(ThemeMode.Dark, session.state.settings?.themeMode)
+        assertEquals(ThemeMode.Dark, session.state.settings.themeMode)
 
         gate.complete(Unit)
         runCurrent()
-        assertEquals(ThemeMode.Dark, session.state.settings?.themeMode)
+        assertEquals(ThemeMode.Dark, session.state.settings.themeMode)
         assertEquals(ThemeMode.Dark, values.value.themeMode)
     }
 }

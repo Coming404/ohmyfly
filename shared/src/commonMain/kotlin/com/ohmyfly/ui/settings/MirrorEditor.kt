@@ -3,7 +3,6 @@ package com.ohmyfly.ui.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -14,18 +13,12 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.liveRegion
@@ -37,20 +30,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.mirror.MirrorEntry
-import com.ohmyfly.mirror.MirrorMode
 import com.ohmyfly.mirror.MirrorProbeTarget
-import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.DropdownDefaults
-import top.yukonga.miuix.kmp.basic.DropdownEntry
-import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TextFieldDefaults
-import top.yukonga.miuix.kmp.popup.OverlayDropdownPopup
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 internal fun MirrorEditor(
@@ -79,11 +65,7 @@ internal fun MirrorEditor(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).semantics { contentDescription = "名称" },
             )
         }
-        MirrorModeDropdown(
-            mode = draft.mode,
-            enabled = editable,
-            onModeChange = { draft.mode = it },
-        )
+        MirrorPrefixRow()
         EditorLabel("地址", MirrorIcons.Globe)
         SettingsInputMenu {
             TextField(
@@ -138,11 +120,31 @@ internal fun MirrorEditorSave(
 }
 
 @Composable
+private fun MirrorPrefixRow() {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 44.dp)
+            .clearAndSetSemantics { contentDescription = "拼接方式，HTTP(S) 前缀" },
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        EditorLabel("拼接方式", MirrorIcons.Link)
+        Text(
+            "HTTP(S) 前缀",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Normal,
+            color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurface,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
 private fun EditorLabel(text: String, icon: ImageVector) {
-    val color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurfaceVariantSummary
+    val iconColor = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurfaceVariantSummary
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
-        Text(text, fontSize = 12.sp, color = color)
+        Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(16.dp))
+        Text(text, fontSize = 13.sp, fontWeight = FontWeight.Normal, color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurface)
     }
 }
 
@@ -157,63 +159,5 @@ internal fun MirrorEditorFeedback(text: String) {
     ) {
         Icon(MirrorIcons.Alert, null, Modifier.size(20.dp))
         Text(text, fontSize = 12.sp, color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.error)
-    }
-}
-
-@Composable
-private fun MirrorModeDropdown(
-    mode: MirrorMode,
-    enabled: Boolean,
-    onModeChange: (MirrorMode) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val haptics = LocalHapticFeedback.current
-    val items = buildList {
-        if (mode == MirrorMode.Template) {
-            add(DropdownItem(text = "原模板", selected = true, enabled = false))
-        }
-        add(DropdownItem(
-            text = "HTTP(S) 前缀",
-            selected = mode == MirrorMode.Prefix,
-            onClick = { onModeChange(MirrorMode.Prefix) },
-        ))
-    }
-    val entry = DropdownEntry(items = items)
-    val actionColor = if (enabled) MiuixTheme.colorScheme.onSurfaceVariantActions
-        else MiuixTheme.colorScheme.disabledOnSurface
-    BasicComponent(
-        insideMargin = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        onClick = {
-            if (enabled) {
-                expanded = !expanded
-                if (expanded) haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
-            }
-        },
-        role = Role.DropdownList,
-        enabled = enabled,
-        holdDownState = expanded,
-        startAction = { Icon(MirrorIcons.Link, null, Modifier.size(20.dp)) },
-        endActions = {
-            Text(
-                text = if (mode == MirrorMode.Template) "原模板" else "HTTP(S) 前缀",
-                fontSize = 14.sp,
-                color = actionColor,
-                textAlign = TextAlign.End,
-                modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp),
-            )
-            Icon(MirrorIcons.ChevronDown, null, Modifier.size(18.dp), tint = actionColor)
-            OverlayDropdownPopup(
-                entry = entry,
-                show = expanded,
-                onDismiss = { expanded = false },
-                onDismissFinished = {},
-                maxHeight = null,
-                dropdownColors = DropdownDefaults.dropdownColors(),
-                renderInRootScaffold = true,
-                collapseOnSelection = true,
-            )
-        },
-    ) {
-        Text("拼接方式", fontSize = 16.sp, fontWeight = FontWeight.Normal, color = MiuixTheme.colorScheme.onSurface)
     }
 }

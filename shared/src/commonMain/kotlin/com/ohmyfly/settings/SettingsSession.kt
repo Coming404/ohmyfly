@@ -51,8 +51,8 @@ internal class SettingsSession(
     /** 既有入口：立即反馈、不等待落盘；签名与语义保持不变。 */
     fun change(transform: (AppSettings) -> AppSettings) {
         val activeScope = scope?.takeIf { it.isActive } ?: return
-        if (state.readFailed) return
-        val current = state.settings ?: return
+        if (confirmed == null || state.readFailed) return
+        val current = state.settings
         val next = transform(current)
         val invalid = validateSettings(next)
         if (invalid != null) {
@@ -74,8 +74,8 @@ internal class SettingsSession(
      */
     suspend fun changeConfirmed(transform: (AppSettings) -> AppSettings): SettingsWriteResult {
         val activeScope = scope?.takeIf { it.isActive } ?: return SettingsWriteResult.Rejected
-        if (state.readFailed) return SettingsWriteResult.Rejected
-        val current = state.settings ?: return SettingsWriteResult.Rejected
+        if (confirmed == null || state.readFailed) return SettingsWriteResult.Rejected
+        val current = state.settings
         val next = transform(current)
         val invalid = validateSettings(next)
         if (invalid != null) {
@@ -113,6 +113,7 @@ internal class SettingsSession(
                     confirmedSettings = stored,
                     pendingWrites = 0,
                     readFailed = false,
+                    writeUncertain = false,
                     error = null,
                 )
                 if (scope?.isActive == true) observe()
@@ -143,6 +144,7 @@ internal class SettingsSession(
                             confirmedSettings = value,
                             pendingWrites = 0,
                             readFailed = false,
+                            writeUncertain = false,
                         )
                     }
                 }
@@ -185,7 +187,7 @@ internal class SettingsSession(
                 val settled = confirmed
                 if (settled == null) {
                     // 成功事务必然读回一个值；为空只可能来自异常读取，不能当作已确认。
-                    state = state.copy(readFailed = true, pendingWrites = 0)
+                    state = state.copy(readFailed = true, writeUncertain = true, pendingWrites = 0)
                     done?.complete(SettingsWriteResult.Uncertain)
                     failRest()
                     return
@@ -195,7 +197,7 @@ internal class SettingsSession(
                 done?.complete(SettingsWriteResult.Confirmed(settled))
                 // 较早完成不发布 UI；所有点击的即时值持续有效直到队列排空。
             }
-            state = state.copy(settings = confirmed, confirmedSettings = confirmed, pendingWrites = 0)
+            state = state.copy(settings = confirmed ?: state.settings, confirmedSettings = confirmed, pendingWrites = 0)
         } catch (cancelled: CancellationException) {
             if (scope?.isActive == true) rollback(null)
             throw cancelled
@@ -206,14 +208,14 @@ internal class SettingsSession(
 
     /** 事务失败：失败操作及其后未执行的操作都失败，已确认值不受影响。 */
     private fun rollback(error: String?) {
-        state = state.copy(settings = confirmed, error = error, confirmedSettings = confirmed, pendingWrites = 0)
+        state = state.copy(settings = confirmed ?: state.settings, error = error, confirmedSettings = confirmed, pendingWrites = 0)
         pending.clear()
         failRest()
     }
 
     /** 写后读取失败：该操作已提交但无法确认；其后未执行的操作直接失败，并阻止新写入。 */
     private fun uncertain() {
-        state = state.copy(readFailed = true, pendingWrites = 0)
+        state = state.copy(readFailed = true, writeUncertain = true, pendingWrites = 0)
         pending.clear()
         confirmations.removeFirstOrNull()?.complete(SettingsWriteResult.Uncertain)
         failRest()

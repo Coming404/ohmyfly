@@ -33,7 +33,7 @@ class MaterialSettingsTest {
     }
 
     @Test
-    fun legacyPreferencesKeepExistingChoicesAndUnknownKeys() {
+    fun legacyPreferencesKeepExistingChoicesButDropUnknownKeysOnWrite() {
         val preferences = SettingsCodec.encode(AppSettings(
             themeMode = ThemeMode.Dark,
             reduceTransparency = true,
@@ -55,7 +55,7 @@ class MaterialSettingsTest {
         assertEquals(before, preferences.toPreferences())
 
         SettingsCodec.write(preferences, decoded.copy(materialMode = MaterialMode.HighlightGlass))
-        assertEquals("keep", preferences[foreignKey])
+        assertNull(preferences[foreignKey])
         assertEquals("HighlightGlass", preferences[materialKey])
         assertEquals(1, preferences[intPreferencesKey("schema.version")])
         assertEquals(decoded.speed, SettingsCodec.decode(preferences.toPreferences()).speed)

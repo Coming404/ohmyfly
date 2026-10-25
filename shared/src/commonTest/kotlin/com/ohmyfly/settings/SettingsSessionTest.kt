@@ -33,7 +33,7 @@ class SettingsSessionTest {
         runCurrent()
 
         session.change { it.copy(materialMode = MaterialMode.SoftGlass) }
-        assertEquals(MaterialMode.SoftGlass, session.state.settings?.materialMode)
+        assertEquals(MaterialMode.SoftGlass, session.state.settings.materialMode)
         assertEquals(MaterialMode.LiquidGlass, values.value.materialMode)
         assertEquals(0, writes)
         runCurrent()
@@ -59,9 +59,9 @@ class SettingsSessionTest {
         session.change { it.copy(themeMode = ThemeMode.Dark) }
         session.change { it.copy(materialMode = MaterialMode.HighlightGlass) }
         session.change { it.copy(reduceTransparency = true) }
-        assertEquals(ThemeMode.Dark, session.state.settings?.themeMode)
-        assertEquals(MaterialMode.HighlightGlass, session.state.settings?.materialMode)
-        assertEquals(true, session.state.settings?.reduceTransparency)
+        assertEquals(ThemeMode.Dark, session.state.settings.themeMode)
+        assertEquals(MaterialMode.HighlightGlass, session.state.settings.materialMode)
+        assertEquals(true, session.state.settings.reduceTransparency)
         runCurrent()
         // An independent transaction must survive: save transforms, not full UI snapshots.
         values.value = values.value.copy(speed = values.value.speed.copy(downloadMiB = 32))
@@ -89,10 +89,10 @@ class SettingsSessionTest {
         session.change { it.copy(themeMode = ThemeMode.Dark) }
         values.value = values.value.copy(themeMode = ThemeMode.Light)
         runCurrent()
-        assertEquals(ThemeMode.Dark, session.state.settings?.themeMode)
+        assertEquals(ThemeMode.Dark, session.state.settings.themeMode)
         gate.complete(Unit)
         runCurrent()
-        assertEquals(ThemeMode.Dark, session.state.settings?.themeMode)
+        assertEquals(ThemeMode.Dark, session.state.settings.themeMode)
     }
 
     @Test
@@ -109,7 +109,7 @@ class SettingsSessionTest {
         runCurrent()
         session.change { it.copy(themeMode = ThemeMode.Dark) }
         session.change { it.copy(themeMode = ThemeMode.System) }
-        assertEquals(ThemeMode.System, session.state.settings?.themeMode)
+        assertEquals(ThemeMode.System, session.state.settings.themeMode)
         gate.complete(Unit)
         runCurrent()
         assertEquals(2, writes)
@@ -151,9 +151,9 @@ class SettingsSessionTest {
         gate.complete(Unit)
         runCurrent()
         assertEquals(2, writes)
-        assertEquals(ThemeMode.Dark, session.state.settings?.themeMode)
-        assertEquals(MaterialMode.LiquidGlass, session.state.settings?.materialMode)
-        assertEquals(false, session.state.settings?.reduceTransparency)
+        assertEquals(ThemeMode.Dark, session.state.settings.themeMode)
+        assertEquals(MaterialMode.LiquidGlass, session.state.settings.materialMode)
+        assertEquals(false, session.state.settings.reduceTransparency)
         assertNotNull(session.state.error)
         assertEquals(values.value, session.state.settings)
         session.change { it.copy(materialMode = MaterialMode.HighlightGlass) }
@@ -194,7 +194,8 @@ class SettingsSessionTest {
             val job = backgroundScope.launch { session.run() }
             runCurrent()
             assertTrue(session.state.readFailed)
-            assertNull(session.state.settings)
+            assertFalse(session.state.writeUncertain)
+            assertEquals(AppSettings(), session.state.settings)
             session.change { AppSettings() }
             runCurrent()
             assertEquals(0, writes)
@@ -254,8 +255,10 @@ class SettingsSessionTest {
         assertEquals(ThemeMode.Dark, committed.themeMode)
         assertEquals(MaterialMode.LiquidGlass, committed.materialMode)
         assertTrue(session.state.readFailed)
+        assertTrue(session.state.writeUncertain)
         session.change { it.copy(reduceTransparency = true) }
         runCurrent()
         assertEquals(1, writes)
     }
+
 }

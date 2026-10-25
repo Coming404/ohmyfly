@@ -43,6 +43,7 @@ import com.ohmyfly.mirror.createMirrorTransport
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.SettingsSession
 import com.ohmyfly.ui.HeaderAction
+import com.ohmyfly.ui.settings.MirrorDialog
 import com.ohmyfly.ui.settings.MirrorIcons
 import com.ohmyfly.ui.settings.MirrorProbeRunner
 import com.ohmyfly.ui.settings.SettingsPage
@@ -51,6 +52,8 @@ import com.ohmyfly.ui.glass.glassShaderSupported
 import com.ohmyfly.ui.settings.openSettingsPage
 import com.ohmyfly.ui.settings.popSettingsPage
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.nav.core.rememberNavBackStack
@@ -58,9 +61,9 @@ import top.yukonga.miuix.kmp.utils.springAnimateToPage
 
 @Composable
 fun App(dynamicColorSeed: Color?, settingsPath: String, version: String) {
-    PersistedSettings(settingsPath) { settings, onChange, writeError, onDismissError, session ->
+    PersistedSettings(settingsPath) { settings, onChange, writeError, onDismissError, session, onRetryRead ->
         AppMotion(settings.reduceMotion) {
-            AppContent(dynamicColorSeed, settings, onChange, version, writeError, onDismissError, session)
+            AppContent(dynamicColorSeed, settings, onChange, version, writeError, onDismissError, session, onRetryRead)
         }
     }
 }
@@ -74,6 +77,7 @@ private fun AppContent(
     writeError: String?,
     onDismissError: () -> Unit,
     settingsSession: SettingsSession,
+    onRetryRead: () -> Unit,
 ) {
     var destination by rememberSaveable(
         stateSaver = Saver<AppDestination, String>(
@@ -228,6 +232,15 @@ private fun AppContent(
                     }
                 }
             }
+            MirrorDialog(
+                show = settingsSession.state.readFailed,
+                title = if (settingsSession.state.writeUncertain) "设置结果待确认" else "读取设置失败",
+                icon = MirrorIcons.Alert,
+                dismissible = false,
+                onDismiss = {},
+                onDismissFinished = {},
+                footer = { TextButton(text = "重试", onClick = onRetryRead) },
+            ) { Text(if (settingsSession.state.writeUncertain) "已提交，但未能读回" else "未更改本地数据") }
         }
     }
 }

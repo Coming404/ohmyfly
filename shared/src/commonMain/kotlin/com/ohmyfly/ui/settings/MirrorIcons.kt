@@ -225,12 +225,6 @@ internal object MirrorIcons {
         lineTo(12.01f, 16f)
     }
 
-    val ChevronDown = glyph("ChevronDown") {
-        moveTo(6f, 9f)
-        lineTo(12f, 15f)
-        lineTo(18f, 9f)
-    }
-
     val Link = MiuixIcons.Link
 
     private fun glyph(name: String, draw: PathBuilder.() -> Unit): ImageVector =

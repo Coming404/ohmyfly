@@ -30,9 +30,11 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.ui.DriftIcons
+import kotlinx.coroutines.flow.collect
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.nav.gesture.PredictiveBackHandler
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -47,6 +49,7 @@ internal fun MirrorDialog(
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
     icon: ImageVector = MirrorIcons.Github,
+    dismissible: Boolean = true,
     footer: @Composable () -> Unit = {},
     content: @Composable () -> Unit,
 ) {
@@ -59,7 +62,7 @@ internal fun MirrorDialog(
         show = show,
         modifier = Modifier.shadow(18.dp, RoundedCornerShape(DialogCornerRadius), clip = false),
         enableWindowDim = true,
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (dismissible) onDismiss() },
         onDismissFinished = onDismissFinished,
         outsideMargin = DpSize(DialogOutsideMargin, DialogOutsideMargin),
         insideMargin = DpSize(0.dp, 0.dp),
@@ -67,6 +70,13 @@ internal fun MirrorDialog(
         maxWidth = 520.dp,
         cornerRadius = DialogCornerRadius,
     ) {
+        // Content registers after Miuix's handler, so blocked back never drives its predictive animation.
+        PredictiveBackHandler(
+            enabled = show && !dismissible,
+            onProgress = { events -> events.collect {} },
+            onCommit = {},
+            onCancel = {},
+        )
         Column(Modifier.fillMaxWidth().heightIn(max = maxDialogHeight)) {
             Row(
                 Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = 20.dp, end = 8.dp),
@@ -87,17 +97,19 @@ internal fun MirrorDialog(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).semantics { heading() },
                 )
-                IconButton(
-                    onClick = onDismiss,
-                    minWidth = 44.dp,
-                    minHeight = 44.dp,
-                ) {
-                    Icon(
-                        imageVector = DriftIcons.Clear,
-                        contentDescription = "关闭",
-                        tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                        modifier = Modifier.size(20.dp),
-                    )
+                if (dismissible) {
+                    IconButton(
+                        onClick = onDismiss,
+                        minWidth = 44.dp,
+                        minHeight = 44.dp,
+                    ) {
+                        Icon(
+                            imageVector = DriftIcons.Clear,
+                            contentDescription = "关闭",
+                            tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                 }
             }
             Box(Modifier.fillMaxWidth().height(0.5.dp).background(MiuixTheme.colorScheme.dividerLine))

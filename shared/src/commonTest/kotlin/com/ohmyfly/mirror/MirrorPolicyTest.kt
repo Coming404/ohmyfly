@@ -4,26 +4,24 @@ import kotlin.test.*
 
 class MirrorPolicyTest {
     @Test
-    fun prefixAndTemplateHaveDifferentEncodingRules() {
+    fun prefixBuildsOriginalUrlAndRejectsQueriesAndPlaceholders() {
         val original = MirrorProbeTarget.url
         val prefix = MirrorEntry("a", "A", "https://EXAMPLE.com:443/base")
-        val template = prefix.copy(address = "https://example.com/fetch?url={url}", mode = MirrorMode.Template)
         assertNull(validateMirror(prefix))
         assertEquals("https://example.com/base/" + original, buildMirrorUrl(prefix, original))
-        assertTrue(buildMirrorUrl(template, original).contains("url=https%3A%2F%2F"))
         assertNotEquals(normalizedMirrorAddress(prefix), normalizedMirrorAddress(prefix.copy(address = "https://example.com/Base/")))
+        listOf("https://example.com/?url=value", "https://example.com/{url}").forEach { address ->
+            assertNotNull(validateMirror(prefix.copy(address = address)))
+        }
     }
 
     @Test
-    fun mirrorsRejectSecretsAndInvalidPlaceholders() {
+    fun mirrorsRejectSecretsAndInvalidAddresses() {
         val base = MirrorEntry("a", "A", "https://example.com/")
         listOf("ftp://example.com/", "https://user:pass@example.com/", "https://127.0.0.1/", "https://example.com/#fragment").forEach {
             assertNotNull(validateMirror(base.copy(address = it)))
         }
         assertNotNull(validateMirror(base.copy(id = "direct")))
-        assertNotNull(validateMirror(base.copy(address = "https://example.com/?token=secret&url={url}", mode = MirrorMode.Template)))
-        assertNotNull(validateMirror(base.copy(address = "https://example.com/{url}/{url}", mode = MirrorMode.Template)))
-        assertNotNull(validateMirror(base.copy(address = "https://{url}.example.com/", mode = MirrorMode.Template)))
     }
 
     @Test

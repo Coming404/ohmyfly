@@ -12,7 +12,7 @@ GitHub 镜像源页精修（第 8 项的镜像部分）在分支 `fix/mirror-pag
 
 | 项目 | 状态 |
 | --- | --- |
-| 分支 | `fix/mirror-page-polish`，HEAD `3122e90`（第一批改名），已推送到 `Coming404/ohmyfly` |
+| 分支 | `fix/mirror-page-polish`，HEAD `284c87f`（CI 缓存、去 AAB），已推送到 `Coming404/ohmyfly`；该提交 Project checks `39989134703` success，Release 构建按用户要求取消（`39989142208`），缓存提速效果未测 |
 | `origin/main` | `453889c`（镜像页重建） |
 | 代码 | 镜像页精修已实现，规格见 [镜像页 PRD](../design/mirror-settings/PRD.md) |
 | 构建 | `3122e90`：Project checks `39986662196` success；Release device builds `39986688054` success（android 237s、ios 387s） |
@@ -38,7 +38,7 @@ GitHub 镜像源页精修（第 8 项的镜像部分）在分支 `fix/mirror-pag
 ## 阻塞与待定
 
 - 是否合并 `fix/mirror-page-polish` 到 main：待用户决定。
-- U1–U12 实施：已授权分批进行，每批开始前需用户确认。第一批 U5–U9 改名已本地完成并经审查者复核（未发现源码/配置问题），现行文档术语已批量替换，GitHub 仓库已改名为 `Coming404/ohmyfly`；未提交、未构建。其余未开始。
+- U1–U12 实施：已授权分批进行，每批开始前需用户确认。第一批 U5–U9 改名已完成，提交 `3122e90` 并推送，Release 双端构建成功；仓库已改名为 `Coming404/ohmyfly`。CI 缓存与删 AAB 已提交 `284c87f`。第二批进行中：U10+U11 的 N1/N2/S1/S2 第二次返工已落本地（不可关闭弹窗优先消费返回、四标题及前缀值统一 13sp Normal／onSurface、文档与冗余断言收口），结构检查与 71 项 Python 守卫通过；待主会话核对及独立复核，未编译、未提交、未真机验收。之后 U12，再 U1+U2；U3 其余、U4 未开始。
 - 业务主线（塔台导入、航班目录、Go 起飞）未接入。
 
 ## 下一步
