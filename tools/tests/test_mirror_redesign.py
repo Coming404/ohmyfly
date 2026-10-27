@@ -95,11 +95,13 @@ class MirrorRedesignTests(unittest.TestCase):
         self.assertNotIn('重试失败项', actions)
         self.assertIn('Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)', actions)
 
-    def test_ios_menu_suppression_is_input_scoped(self):
+    def test_ios_menu_uses_platform_default_toolbar_with_input_scope(self):
         ios = (SOURCE / 'iosMain/kotlin/com/ohmyfly/ui/settings/SettingsInputMenu.ios.kt').read_text()
         android = (SOURCE / 'androidMain/kotlin/com/ohmyfly/ui/settings/SettingsInputMenu.android.kt').read_text()
-        self.assertIn('LocalTextToolbar provides HiddenSettingsTextToolbar', ios)
-        self.assertIn('TextToolbarStatus.Hidden', ios)
+        self.assertIn('internal actual fun SettingsInputMenu(content: @Composable () -> Unit) = content()', ios)
+        self.assertNotIn('HiddenSettingsTextToolbar', ios)
+        self.assertNotIn('LocalTextToolbar', ios)
+        self.assertNotIn('TextToolbarStatus.Hidden', ios)
         self.assertIn('= content()', android)
         self.assertEqual(2, (UI / 'MirrorEditor.kt').read_text().count('SettingsInputMenu {'))
         self.assertIn('SettingsInputMenu {', (UI / 'SettingsControls.kt').read_text())
