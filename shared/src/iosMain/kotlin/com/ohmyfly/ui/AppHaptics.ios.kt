@@ -36,7 +36,7 @@ internal actual fun rememberPlatformHaptics(): (HapticLevel) -> Unit {
                             HapticLevel.Medium -> UIImpactFeedbackStyle.UIImpactFeedbackStyleMedium
                             HapticLevel.Heavy -> UIImpactFeedbackStyle.UIImpactFeedbackStyleHeavy
                         }
-                        if (supportsView) UIImpactFeedbackGenerator(style = style, view = view)
+                        if (supportsView) UIImpactFeedbackGenerator.feedbackGeneratorWithStyle(style, forView = view)
                         else UIImpactFeedbackGenerator(style = style)
                     }
                     // UIKit ignores feedback on devices without haptic hardware.
