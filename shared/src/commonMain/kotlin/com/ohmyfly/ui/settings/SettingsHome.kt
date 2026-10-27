@@ -48,6 +48,7 @@ internal fun SettingsHome(
                     onChange = { enabled -> onChange { it.copy(reduceTransparency = enabled) } })
                 ToggleSetting("减少动态效果", value = settings.reduceMotion,
                     onChange = { enabled -> onChange { it.copy(reduceMotion = enabled) } })
+                HapticSetting(settings, onChange)
             }
         }
         item(key = "tests-title") { SmallTitle("测试") }

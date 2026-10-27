@@ -60,8 +60,8 @@ jobs:
           results = [ET.parse(path).getroot() for path in paths]
           total = sum(int(result.get('tests', '0')) for result in results)
           failed = sum(int(result.get('failures', '0')) + int(result.get('errors', '0')) + int(result.get('skipped', '0')) for result in results)
-          if total < 179 or failed:
-              raise SystemExit(f'Expected at least 179 passing shared tests, got {total} with {failed} failed/skipped')
+          if total < 190 or failed:
+              raise SystemExit(f'Expected at least 190 passing shared tests, got {total} with {failed} failed/skipped')
           summary = f'Kotlin commonTest: {total} passed, no failures or skips.\n'
           print(summary)
           with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as output:

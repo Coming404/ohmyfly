@@ -1,69 +1,99 @@
 # 交接文档：OhMyFly（原 ohmydrift）
 
-> 生成时间: 2026-10-25 18:05 Asia/Shanghai | 分支: `fix/mirror-page-polish`（HEAD `284c87f`，与 origin 同步） | 未提交改动: U10+U11 代码与文档约 34 项（含新增未跟踪 `SettingsSessionInitialReadTest.kt`）
+> 生成时间: 2026-10-25 21:38 Asia/Shanghai | 项目根目录: `/var/minis/workspace/ohmydrift` | 分支: `fix/mirror-page-polish` | HEAD: `186ffda` | 已推送至 `origin/fix/mirror-page-polish` | 其他未提交改动: 用户现有 `AGENTS.md` 改动、本交接及历史归档
 >
-> 本文是会话快照；状态权威来源仍是 [docs/context/NOW.md](docs/context/NOW.md)。旧快照已归档到 `handoff/history/handoff-20261025-180400-u10fix.md`。
+> 状态权威来源：`docs/context/NOW.md`。本文件是新会话快照。旧快照已归档到 `handoff/history/handoff-20261025-213838-pre-next-window.md`。
 
 ## 1. 会话目标 (Goals)
-- 按 `docs/device-feedback-rework.md` 第 8 节分批实施真机反馈需求 U1–U12。每开启下一批前必须先向用户确认，并说明任务名称与委派对象。
-- 当前批次：U10（启动无加载界面、首读成功前不写盘、读失败弹窗可重试）+ U11（删除旧格式兼容，保留设置页已有子页与配置）。要先收口这批，再推送跑 Actions。
-- 验收：审查者复核无阻断/应修 → 用户授权后提交（必须包含新增测试文件）、推送 → Release 双端构建与 Kotlin 测试通过（commonTest ≥179）。
+
+- 在 `fix/mirror-page-polish` 收口真机反馈批次 U10（启动无加载界面、首读成功前不写盘、读失败弹窗可重试）与 U11（删除旧格式兼容，保留设置页已有子页与配置）。
+- 已按用户要求完成本地提交；用户要求推送，但明确“不要提交构建”，因此本轮只推送，不手动触发 Release 构建。
+- 后续验收：修复已推送且轻量 Project checks 通过；Android host tests、Release 双端构建、真机视觉/手势验收和独立审查尚未完成，不自动继续，均按用户后续授权处理。
 
 ## 2. 当前状态
-### 已完成
-- 第一批 U5–U9 改名：提交 `3122e90` 并推送，Release run `39986688054` 双端 success。仓库已改名为 `Coming404/ohmyfly`，本地 origin 已同步。
-- CI 优化：缓存 `~/.konan`、删除 AAB，提交 `284c87f` 并推送，Project checks `39989134703` success。
-- U10+U11 本地代码：执行者第三次交付，并经审查 → 返工 → 再审查。上轮两个阻断问题（测试括号错误、弹窗在 Scaffold 外不显示）已修；`writeUncertain` 区分两种提示；“拼接方式”恢复为只读行；建议 2–5 已落实。
-- 主会话已补改 PRD 第 9、25、46 行：拼接方式改为只读行，P-M05 下拉页标为已取消。
-- 最近验证（2026-10-25）：`python3 tools/check_project.py` PASS；`python3 -m unittest discover -s tools/tests` 69 tests OK；`git diff --check` 无输出；commonTest `@Test` 179 = HEAD；改动的 Kotlin 文件括号全部配平。**未运行 Gradle/Kotlin 编译**（规则禁止本地编译）。
 
-### 进行中（用户已决定“现在修”，尚未派发）
-U10+U11 第二次返工，内容见第 6 节第 1 步。委派对象：执行者；修完派审查者复核。
+### 已完成
+
+- 第一批 U5–U9 改名已提交并推送：`3122e90`；仓库为 `Coming404/ohmyfly`。
+- CI 缓存与去 AAB 已提交并推送：`284c87f`。
+- U10+U11 主体实现已提交：`f6ce74b`。
+- N1 返回手势修复：`MirrorDialog.kt` 在 `OverlayDialog` 内容槽内使用已有 `miuix-nav:0.9.4` 公开 `PredictiveBackHandler`。不可关闭弹窗消费预测进度，完成/取消为空；外点关闭及关闭按钮按 `dismissible` 保护。未换 Window，未调用 Miuix internal API。
+- N2：`MirrorEditor.kt` 中“名称”“拼接方式”“地址”“改写预览”四标题及“HTTP(S) 前缀”值统一 13sp Normal、`onSurface`；标题图标保持 16dp 灰色、8dp 间距；输入文字 14sp、预览正文 12sp 不变。
+- S1：PRD、`docs/settings.md`、`docs/context/NOW.md` 等同步为只读拼接行、当前 HTTP(S) 前缀格式和默认灰幕描述；线框原型未改。
+- S2：删除 4 处测试中的多余 `!!`。
+- `793cb2d` 修复 CI 首轮编译错误：`PersistedSettings.kt` 的 `retryRead` 显式声明 `() -> Unit`，避免 `retry++` 将 lambda 推断为 `() -> Any`。
+- `186ffda` 修复 Android host test 的真实失败：`MotionSettingsTest.writeKeepsUnknownKeysAndSchemaOne` 仍断言保留未知 key，与 U11 的 `SettingsCodec.write()` 清空并重建当前 schema 冲突；现改名为 `writeDropsUnknownKeysAndWritesSchemaOne`，断言未知 key 被删除。该提交已推送。
+- 本地轻量验证（在 `186ffda` 前后均完成）：`python3 tools/check_project.py` PASS；`python3 -m unittest discover -s tools/tests` 为 71 tests OK；`git diff --check` 无输出。commonTest `@Test` 源码计数为 179。
+- 上一次 Release run `40195088509` 的 iOS job success；Android job 失败且已定位为上述测试断言，不是编译错误。该 run 的 Android 结果为 179 tests completed, 1 failed。
+
+### 进行中
+
+- `186ffda` 已推送到 `origin/fix/mirror-page-polish`。该提交的 Project checks 已自动触发并成功：run `40198993788`。
+- 未针对 `186ffda` 手动触发或提交 Release 构建。按用户要求不要手动触发构建。
+- 独立审查者尚未派发；当前结论是主会话核对通过，不等于独立审查或真机验收通过。
 
 ## 3. 关键决策 (Decisions)
-已写入 `docs/context/DECISIONS.md` 新决策表：
-- **U11 保留起飞、流媒体与 AI、塔台与过滤子页及其配置，只删旧兼容** — 理由：这些是现有功能，不是旧格式。
-- **“拼接方式”为只读行（显示 HTTP(S) 前缀，无下拉、无箭头），U3/AC-M12 保留** — 理由：这是 U3 已确认的可见控件；改成下拉或删掉都已被否决。
-- **失败弹窗沿用 Overlay（MirrorDialog），放在 App.kt 的 Scaffold content 内** — 理由：Overlay 依赖 Scaffold 宿主；不改用 WindowDialog。
-- **2026-10-25：“名称”“拼接方式”“地址”三个标题统一为 13sp Normal** — 用户指定 13sp，覆盖 PRD/AC-M12 原写的 16sp；拼接方式也要从 16sp 改为 13sp。“改写预览”标题不在 AC-M12 三项内，按审查建议保持现状（如需改，先问用户）。
-- **2026-10-25：失败弹窗拦截返回手势，不播放缩小动画** — 理由见第 5 节 N1。
+
+- U11 保留设置页已有的“起飞”“流媒体与 AI”“塔台与过滤”子页及配置，只删除旧模板、未知 key、`mirror.order` 等过时兼容内容。
+- 拼接方式是只读行，显示 HTTP(S) 前缀，不显示下拉、箭头或浮层。
+- “名称”“拼接方式”“地址”“改写预览”四个标题及 HTTP(S) 前缀值使用 13sp Normal、`onSurface`；标题图标保持灰色；预览正文不改。
+- 失败弹窗使用 Scaffold content 内的 Miuix Overlay，不改 Window 实现。`dismissible = false` 时由内容内后注册的 `PredictiveBackHandler` 优先消费返回事件，避免 Miuix 内部预测缩放和遮罩残留。
+- 本地不编译，完整 Kotlin/Android/iOS 构建走 GitHub Actions；本轮用户明确不要提交/触发构建。
+- `AGENTS.md` 当前有用户已有的 Output style 等未提交改动，不要擅自纳入本批提交或回退。
+- 用户要求每次再次派执行者前先取得批准，即使旧交接写着“已同意”。
 
 ## 4. 改动文件 (Files)
-未提交改动（`git status --short` 可见全部），主要有：
-- `shared/src/commonMain/kotlin/com/ohmyfly/PersistedSettings.kt`：装配仓库与 Session；仓库构造失败时递增 retry 重建；第 6 个回调参数是重试动作。
-- `shared/src/commonMain/kotlin/com/ohmyfly/App.kt:235–243`：失败弹窗（`dismissible = false`，两种文案，“重试”按钮）。
-- `shared/src/commonMain/kotlin/com/ohmyfly/settings/SettingsSession.kt`、`SettingsUiState.kt`：`confirmed == null` 时拦截所有写入；`settings` 改为非空；新增 `writeUncertain`。
-- `shared/src/commonMain/kotlin/com/ohmyfly/ui/settings/MirrorDialog.kt`：新增 `dismissible` 参数（默认 true）。
-- `shared/src/commonMain/kotlin/com/ohmyfly/ui/settings/MirrorEditor.kt:123–151`：`MirrorPrefixRow()`（当前 16sp）、`EditorLabel`（当前 12sp）。
-- 删除 `mirror/MirrorMode.kt`；修改 `MirrorEntry.kt`、`MirrorUrl.kt`、`MirrorCodec.kt`、`SettingsCodec.kt`（`clear()` 后重建）、`SettingsValidation.kt`、`MirrorDraftState.kt`、`MirrorProbeState.kt`、`MirrorPageState.kt`、`MirrorIcons.kt`（删 ChevronDown）。
-- 测试：新增 `shared/src/commonTest/kotlin/com/ohmyfly/settings/SettingsSessionInitialReadTest.kt`（**未跟踪，提交时必须纳入，否则测试数 177 <179，CI 失败**），另改了 10 个 commonTest 文件；`tools/tests/test_mirror_redesign.py`、`test_optimistic_settings.py`。
-- 文档：`docs/settings.md`、`docs/requirements.md`、`docs/device-feedback-rework.md`（U10/U11 状态列）、`docs/design/mirror-settings/PRD.md`、`docs/context/{NOW,DECISIONS}.md`、本文件。
+
+- `shared/src/commonMain/kotlin/com/ohmyfly/PersistedSettings.kt`: 首读与重试装配；`retryRead` 类型修复在 `793cb2d`。
+- `shared/src/commonMain/kotlin/com/ohmyfly/App.kt`: 失败/结果待确认弹窗位于 Scaffold content，`dismissible = false`。
+- `shared/src/commonMain/kotlin/com/ohmyfly/ui/settings/MirrorDialog.kt`: 不可关闭弹窗返回事件拦截。
+- `shared/src/commonMain/kotlin/com/ohmyfly/ui/settings/MirrorEditor.kt`: 只读拼接行和四标题/前缀字号颜色统一。
+- `shared/src/commonMain/kotlin/com/ohmyfly/mirror/` 与 `settings/`: 删除 `MirrorMode` 及旧格式兼容，当前 schema 写入前清空并重建。
+- `shared/src/commonTest/kotlin/com/ohmyfly/settings/MotionSettingsTest.kt`: `186ffda` 修正未知 key 断言。
+- `shared/src/commonTest/kotlin/com/ohmyfly/settings/SettingsSessionInitialReadTest.kt`: 新增首读前不写入、读失败重试测试，必须保留并已纳入 `f6ce74b`。
+- `tools/tests/test_mirror_redesign.py`、`tools/tests/test_optimistic_settings.py`: 结构和行为守卫，当前完整 Python tests 为 71。
+- `docs/context/DECISIONS.md`、`docs/context/NOW.md`、`docs/design/mirror-settings/PRD.md`、`docs/settings.md`、`docs/device-feedback-rework.md`、`docs/requirements.md`：同步决策、状态和规格。
+- `HANDOFF.md`: 本交接文件；旧版本归档在 `handoff/history/`。本轮不要求提交交接文档。
 
 ## 5. 未决问题 & 阻塞
-- **N1（应修）**：失败弹窗不可关闭。Android 完成一次预测返回手势后，弹窗停在缩小状态，遮罩变淡甚至消失。依据：Miuix v0.9.4（commit `39c40f99844227b853f0049a0933b1f3ae6c00ba`）`miuix-ui/.../layout/DialogContentLayout.kt:191–215`，`onBackCompleted` 只调用 `requestDismiss()`，InProgress 修改 `backProgress`/`dimAlpha`，只有取消时才 `resetGesture()`（主会话已亲自核对源码）。普通返回键和取消手势正常。
-- **N2（应修，用户已定 13sp）**：AC-M12 三个标题字号不一致。
-- **S1（文档漂移）**：PRD 第 70 行 I-M09 仍写下拉/草稿；第 87 行“其余镜像字段保持兼容”需限定为当前前缀格式；`docs/settings.md:57` 后半句“不使用灰色遮罩”与默认灰幕不符；PRD 第 9、46、99 行的 16sp 要改为 13sp。线框原型（`docs/design/mirror-settings/index.html`、`build_wireframe.py`）仍有 P-M05 下拉页，属过时设计稿，未决定是否更新。
-- **S2**：测试中 4 处多余 `!!`：`MotionSettingsSessionTest.kt:29,33,37`、`MirrorManualSaveTest.kt:65`。
-- 模型异常：执行者固定用「666 · GPT 6.1 Sol」，曾连续 3 次中途无回复；最近一次返工回调显示实际模型为 DeepSeek V4.1 Flash。模型由用户手动指定，主会话不切换。
+
+- 推送已完成：`186ffda` 已在远端；其 Project checks run `40198993788` 已 success。不要把上一轮 Release run `40195088509` 的 Android failure 当成当前提交仍失败，失败原因已由测试断言修复。
+- 上一次 Release run Android 因测试断言失败，iOS 已成功；修复后尚未重跑 Release。用户本轮明确要求不要提交构建，后续是否触发 Release 需重新确认。
+- N1 仍未真机验证完成预测返回、取消预测返回、返回键、重试成功退场；N2 仍未做浅/深色、大字体、窄屏、键盘、RTL、读屏视觉验收。
+- 没有独立审查者报告；如果用户要求审查，必须新派审查者且只写报告、不改目标。
+- 未决定是否合并到 `main`、创建 PR；禁止自行合并、创建 PR、删除分支或 force-push。
+- U12（iOS 输入框单击不弹工具栏，双击/长按显示系统默认工具栏）以及第三批 U1+U2、U3 其余、U4 尚未实施；开启下一批前必须取得用户确认。
 
 ## 6. 下一步 (Next Steps)
-- [ ] **派执行者做 U10+U11 第二次返工**（用户已同意，无需再问）。留档目录 `/var/minis/shared/team-workbench/runs/20261025-executor-persistence-fix2/`（先建 `result.json`）。简报须包含：目标/需求来源、授权与禁止、可改范围、禁改范围、已定决策、验证方式、停止条件、报告路径与格式。内容：
-  1. N1：在 `dismissible = false` 时，用公开的返回处理 API（如 Compose/NavigationEvent 的 `NavigationBackHandler`，优先级要高于 Miuix 内部的那个）消费返回手势，不让 Miuix 收到预测进度。不换 Window、不调用 internal API。要覆盖“完成手势/取消手势/返回键”三种情况：都不关闭、不残留缩小、遮罩不丢；重试成功后正常退场。先查 v0.9.4 源码核实 API 与优先级。
-  2. N2：`MirrorEditor.kt` 中“名称”“地址”标题与“拼接方式”统一为 13sp Normal，同色同图标间距，不改“改写预览”；同步 PRD 第 9、46、99 行和 `docs/settings.md:57`，Python 守卫检查三项都是 13sp。
-  3. S1 文档收口（线框原型不动）；S2 删 4 处 `!!`。
-  4. 验证：`check_project.py`、unittest、`git diff --check`、一次性括号配平脚本（用完删）、`@Test` ≥179。禁止编译、提交、推送。
-- [ ] **主会话核对 → 派审查者复核**（留档 `runs/20261025-reviewer-persistence-fix2/`）。
-- [ ] **⚠需用户授权**：提交（逐个暂存文件，包含新增测试文件）、推送 `fix/mirror-page-polish`、触发 Release 构建：`GH_TOKEN="$GITHUB_TOKEN" gh workflow run build.yml -R Coming404/ohmyfly --ref fix/mirror-page-polish -f platform=both`。
-- [ ] **⚠需用户确认后开启**：U12（iOS 输入框单击不弹工具栏，双击/长按显示系统工具栏；入口 `shared/src/iosMain/kotlin/com/ohmyfly/ui/settings/SettingsInputMenu.ios.kt`，守卫 `tools/tests/test_mirror_redesign.py:79–81`；上次因断网失败，零改动）→ 第三批 U1+U2 弹簧动画、U3 其余 + U4。
+
+- [x] **推送 `186ffda`** — 已推送到 `origin/fix/mirror-page-polish`；Project checks run `40198993788` success。
+- [ ] **核对后续自动检查或按用户授权触发构建** — 当前不需要手动触发 Release；若用户后续要求，先确认再运行 `gh workflow run build.yml ...`。
+- [ ] **根据用户授权决定是否派审查者** — 审查 `f6ce74b..186ffda` 以及 U10/U11 调用链；只写 `runs/<new-review>/output.md`，不修改源码。
+- [ ] **真机验收 U10/U11** — 需要 Android APK/iOS unsigned archive 后，验收弹窗返回手势、读失败重试、首读不写盘、字号颜色和读屏；记录实际结果，不以静态守卫替代设备验证。
+- [ ] **用户确认后再开始 U12 或第三批 U1/U2** — 先读取 `docs/device-feedback-rework.md` 第 8 节和当前 `DECISIONS.md`，确认批次和委派对象；不要根据旧交接自动开启。
+- [ ] **用户明确授权后再考虑 Release、合并或 PR** — 本轮不触发构建、不合并、不创建 PR。
 
 ## 7. 恢复指引 (How to Resume)
-1. 项目根目录 `/var/minis/workspace/ohmydrift`。先读 `AGENTS.md`、`CLAUDE.md`、`PROJECT_INDEX.md`、`docs/context/NOW.md`，再读本文件。
-2. 读取 `/var/minis/skills/team-workbench/SKILL.md`（协作工坊派发规则，只读一次）。
-3. 安全核验：`cd /var/minis/workspace/ohmydrift && git status --short --branch && python3 tools/check_project.py && python3 -m unittest discover -s tools/tests`。预期分支 `fix/mirror-page-polish`、约 34 项改动、69 tests OK。
-4. 报告参考：上轮审查 `/var/minis/shared/team-workbench/runs/20261025-reviewer-persistence-fix/output.md`；返工报告 `runs/20261025-executor-persistence-fix/output.md`。
-5. 注意：同一文件不要并行编辑（曾互相覆盖）；`docs/context/history/`、`.agents/notes/` 是只读存档。
+
+1. 进入项目：`cd /var/minis/workspace/ohmydrift`。
+2. 先读取 `CLAUDE.md`、`AGENTS.md`、`PROJECT_INDEX.md`、`docs/context/NOW.md`，再读取本文件；历史归档只按需读取。
+3. 安全核验：
+   ```sh
+   git status --short --branch
+   git log --oneline -4
+   git log origin/fix/mirror-page-polish..HEAD --oneline
+   ```
+   预期看到 HEAD `186ffda`，本地与远端同步；`AGENTS.md` 为用户未提交改动，HANDOFF/NOW 与新归档为本轮未提交交接资料。
+4. 修复提交已推送，Project checks `40198993788` success。当前不要再次提交、推送或触发 Release。
+5. 下一批优先讨论 U12（iOS 输入工具栏），之后 U1+U2、U3 其余、U4；每批及委派先取得用户批准。完整 Kotlin 测试、真机验收与 Release 需另行授权，不把轻量 Project checks 当成双端构建通过。
 
 ## 8. 环境 / 约束
-- Minis（iOS）+ iSH Alpine aarch64。Kotlin 2.4.20、Compose Multiplatform、Miuix 0.9.4。本地不编译，构建走 GitHub Actions。
-- 推送用内联凭据 helper，读取环境变量 `GITHUB_TOKEN`：`git -c credential.helper= -c credential.helper='!f(){ echo username=x-access-token; echo "password=$GITHUB_TOKEN"; }; f' push`。gh 命令用 `GH_TOKEN="$GITHUB_TOKEN"`。不输出变量值。
-- 提交、推送、触发构建、改仓库名、开启下一批任务都需用户明确授权。子代理模型由用户手动指定，主会话不选、不改。
+
+- Minis on iOS + iSH Alpine aarch64；项目为 Kotlin Multiplatform + Compose + Miuix 0.9.4，Kotlin 2.4.20。iOS 最低 16.0，Android 最低 API 33。
+- 共享仓库：`Coming404/ohmyfly`；当前分支 `fix/mirror-page-polish`。
+- 推送使用环境变量 `GITHUB_TOKEN`，仅引用变量名，不记录值；`gh` 使用 `GH_TOKEN="$GITHUB_TOKEN"`。
+- 本地禁止 Gradle/Kotlin 编译；轻量验证可运行 Python 检查、Python tests、`git diff --check`。
+- 禁止未经用户明确授权的 commit、push、Release 构建、合并、PR、改名、删分支和 force-push。`186ffda` 推送与自动 Project checks 已完成；2026-10-25 用户要求标记完成并开始下一步，当前进入 U12 前置调查，派执行者前仍需批准。本轮没有触发构建。
+- 工作区现存 `AGENTS.md` 用户改动必须保留；不要回退、覆盖或混入 `186ffda`。
+
+minis_url: minis://workspace/ohmydrift/HANDOFF.md

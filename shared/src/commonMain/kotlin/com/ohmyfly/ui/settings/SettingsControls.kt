@@ -40,6 +40,8 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.ohmyfly.ui.LocalAppSurfaceColors
+import com.ohmyfly.ui.hapticChange
+import com.ohmyfly.ui.hapticClick
 import com.ohmyfly.ui.withPageSpacing
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
@@ -91,7 +93,7 @@ internal fun ToggleSetting(
 ) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 56.dp)
-            .toggleable(value, enabled = enabled, role = Role.Switch, onValueChange = onChange).padding(horizontal = 16.dp, vertical = 12.dp),
+            .toggleable(value, enabled = enabled, role = Role.Switch, onValueChange = hapticChange(onChange)).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -118,7 +120,7 @@ internal fun TextSetting(
     val input = draft.text
     val validationError = validate(input)
     LaunchedEffect(value) { editing = false }
-    BasicComponent(title = title, summary = value.ifBlank { "未设置" }, onClick = { editing = !editing }, role = Role.Button)
+    BasicComponent(title = title, summary = value.ifBlank { "未设置" }, onClick = hapticClick { editing = !editing }, role = Role.Button)
     if (editing) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             SettingsInputMenu {
@@ -131,8 +133,8 @@ internal fun TextSetting(
             if (hint.isNotEmpty()) Text(hint, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
             if (validationError != null) Text(validationError, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
             FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(text = "保存", enabled = validationError == null && input != value, onClick = { onSave(input) })
-                TextButton(text = "取消", onClick = { editing = false })
+                TextButton(text = "保存", enabled = validationError == null && input != value, onClick = hapticClick { onSave(input) })
+                TextButton(text = "取消", onClick = hapticClick { editing = false })
             }
         }
     }
@@ -160,9 +162,9 @@ internal fun ResetSettings(title: String = "恢复本页默认", onReset: () -> 
             BasicComponent(title = "确认恢复默认？", summary = "仅重置设置，不删除塔台、航班、自定义镜像或历史。")
             FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(text = "恢复默认", onClick = { onReset(); confirm = false })
-                TextButton(text = "取消", onClick = { confirm = false })
+                TextButton(text = "恢复默认", onClick = hapticClick { onReset(); confirm = false })
+                TextButton(text = "取消", onClick = hapticClick { confirm = false })
             }
         }
-    } else TextButton(text = title, modifier = Modifier.fillMaxWidth(), onClick = { confirm = true })
+    } else TextButton(text = title, modifier = Modifier.fillMaxWidth(), onClick = hapticClick { confirm = true })
 }

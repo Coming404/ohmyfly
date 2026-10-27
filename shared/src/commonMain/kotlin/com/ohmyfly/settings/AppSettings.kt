@@ -9,6 +9,8 @@ internal data class AppSettings(
     val materialMode: MaterialMode = MaterialMode.LiquidGlass,
     val reduceTransparency: Boolean = false,
     val reduceMotion: Boolean = false,
+    val hapticEnabled: Boolean = true,
+    val hapticLevel: HapticLevel = HapticLevel.Medium,
     val mirrorEnabled: Boolean = true,
     val speed: SpeedSettings = SpeedSettings(),
     val media: MediaSettings = MediaSettings(),

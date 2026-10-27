@@ -38,7 +38,7 @@ internal fun SpeedScreen(
                 BasicComponent(
                     title = "测试范围",
                     summary = if (selected.isEmpty()) "未选择航班" else "已选择 ${selected.size} 个航班",
-                    onClick = onNodes,
+                    onClick = hapticClick(onNodes),
                     role = Role.Button,
                 )
             }

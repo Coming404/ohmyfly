@@ -65,25 +65,25 @@ internal fun OverviewScreen(
                     BasicComponent(
                         title = "塔台",
                         startAction = { OverviewIcon(DriftIcons.Subscriptions) },
-                        onClick = onSubscriptions,
+                        onClick = hapticClick(onSubscriptions),
                         role = Role.Button,
                     )
                     BasicComponent(
                         title = "起飞",
                         startAction = { OverviewIcon(DriftIcons.Speed) },
-                        onClick = onSpeed,
+                        onClick = hapticClick(onSpeed),
                         role = Role.Button,
                     )
                     BasicComponent(
                         title = "航班",
                         startAction = { OverviewIcon(DriftIcons.Nodes) },
-                        onClick = onNodes,
+                        onClick = hapticClick(onNodes),
                         role = Role.Button,
                     )
                     BasicComponent(
                         title = "设置",
                         startAction = { OverviewIcon(DriftIcons.Settings) },
-                        onClick = onSettings,
+                        onClick = hapticClick(onSettings),
                         role = Role.Button,
                     )
                 }

@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.mirror.MirrorEntry
+import com.ohmyfly.ui.hapticClick
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Icon
@@ -82,7 +83,7 @@ internal fun MirrorProbeBar(
     Box(modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             Button(
-                onClick = {
+                onClick = hapticClick {
                     if (runner.running) runner.stop() else runner.measureAll(targets)
                 },
                 enabled = when {

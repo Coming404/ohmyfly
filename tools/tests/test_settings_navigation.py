@@ -37,14 +37,23 @@ class SettingsNavigationTests(unittest.TestCase):
         self.assertNotIn('Scaffold(', screen)
         self.assertIn('.background(background)', screen)
         self.assertIn('summary = writeError', screen)
-        self.assertIn('onClick = onDismissError', screen)
+        self.assertIn('onClick = hapticClick(onDismissError)', screen)
         self.assertEqual(1, app.count('Scaffold('))
         self.assertIn('Modifier.layerBackdrop(backdrop)', app)
 
-    def test_shared_official_transitions_and_directional_swipe(self):
+    def test_custom_spring_transition_and_directional_swipe(self):
         screen = (COMMON / 'ui/SettingsScreen.kt').read_text()
+        nav_transition = (COMMON / 'ui/AppNavTransition.kt').read_text()
         app = (COMMON / 'App.kt').read_text()
-        self.assertIn('transition = if (motionAllowed) NavTransitions.MiuixDefault else NavTransitions.None', screen)
+        self.assertIn('transition = if (motionAllowed) AppNavTransition else NavTransitions.None', screen)
+        self.assertIn('navGraphicsTransition(', nav_transition)
+        self.assertIn('motion = appNavMotion', nav_transition)
+        self.assertIn('NavSettleSpec.Spring(', nav_transition)
+        self.assertIn('PagerNavigationSpringSpec.dampingRatio', nav_transition)
+        self.assertIn('PagerNavigationSpringSpec.stiffness', nav_transition)
+        self.assertIn('clampOvershoot = false', nav_transition)
+        for phase in ('commit', 'cancel', 'programmatic'):
+            self.assertIn(f'{phase} = appNavSettleSpec', nav_transition)
         self.assertIn('enableCornerClip = false', screen)
         self.assertIn('blockInputDuringTransition = true', screen)
         self.assertIn('editorBackActive || !motionAllowed -> NavSwipeDirection.None', screen)
@@ -99,7 +108,7 @@ class SettingsNavigationTests(unittest.TestCase):
         ).splitlines()
         count = sum(Path(p).read_text().count('@Test') for p in files)
         gate = (ROOT / '.github/workflows/build.yml').read_text()
-        self.assertEqual(179, count)
+        self.assertEqual(190, count)
         gate = (ROOT / '.github/workflows/build.yml').read_text()
         self.assertEqual(count, int(re.search(r'if total < (\d+) or failed', gate).group(1)))
 

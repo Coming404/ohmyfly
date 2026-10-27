@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.ui.AppDestination
+import com.ohmyfly.ui.hapticChange
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -45,6 +46,7 @@ internal fun RowScope.GlassNavigationTabs(
     onFocusChange: (Int, Boolean) -> Unit = { _, _ -> },
     sourceScale: () -> Float = { 1f },
 ) {
+    val select = if (recording) onSelect else hapticChange(onSelect)
     AppDestination.entries.forEachIndexed { index, item ->
         val selected = index == selectedIndex
         val interaction = remember { MutableInteractionSource() }
@@ -56,12 +58,12 @@ internal fun RowScope.GlassNavigationTabs(
             .onFocusChanged { onFocusChange(index, it.isFocused) }
             .onPreviewKeyEvent { event ->
                 val activation = event.key == Key.Enter || event.key == Key.NumPadEnter || event.key == Key.Spacebar
-                if (activation && event.type == KeyEventType.KeyUp) onSelect(index)
+                if (activation && event.type == KeyEventType.KeyUp) select(index)
                 activation
             }
             .selectable(
                 selected = selected,
-                onClick = { onSelect(index) },
+                onClick = { select(index) },
                 role = Role.Tab,
                 interactionSource = interaction,
                 indication = null,

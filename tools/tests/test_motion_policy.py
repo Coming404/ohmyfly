@@ -45,7 +45,7 @@ class MotionPolicyTests(unittest.TestCase):
             self.assertIn('return if (motionAllowed) current else target', source)
             self.assertIn('tween(AppTransitionDurationMillis)', source)
         screen = (UI / 'SettingsScreen.kt').read_text()
-        self.assertIn('if (motionAllowed) NavTransitions.MiuixDefault else NavTransitions.None', screen)
+        self.assertIn('if (motionAllowed) AppNavTransition else NavTransitions.None', screen)
         self.assertIn('else NavDisplayEffects.None', screen)
         self.assertIn('editorBackActive || !motionAllowed -> NavSwipeDirection.None', screen)
         self.assertNotIn('key(motionAllowed)', screen)

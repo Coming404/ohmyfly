@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.mirror.MirrorProbeResult
 import com.ohmyfly.mirror.ProbeStatus
+import com.ohmyfly.ui.hapticClick
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
@@ -67,7 +68,7 @@ internal fun MirrorRow(
                 selected = selected,
                 enabled = selectionEnabled,
                 role = Role.RadioButton,
-                onClick = onSelect,
+                onClick = hapticClick(onSelect),
             )
             .semantics {
                 if (!selectionEnabled && selected) stateDescription = "已保留"
@@ -98,6 +99,7 @@ internal fun MirrorRow(
             )
         }
         MirrorStatusLabel(result, phase)
+        // Miuix owns menu open/selection feedback through LocalHapticFeedback.
         OverlayIconDropdownMenu(
             entry = DropdownEntry(
                 items = listOf(

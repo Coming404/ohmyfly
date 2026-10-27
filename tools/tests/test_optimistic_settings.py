@@ -43,7 +43,7 @@ class OptimisticSettingsTests(unittest.TestCase):
         dialog = app.split('MirrorDialog(', 1)[1]
         self.assertIn('show = settingsSession.state.readFailed', dialog)
         self.assertIn('dismissible = false', dialog)
-        self.assertIn('TextButton(text = "重试", onClick = onRetryRead)', dialog)
+        self.assertIn('TextButton(text = "重试", onClick = hapticClick(onRetryRead))', dialog)
         self.assertIn('"设置结果待确认"', dialog)
         self.assertIn('"读取设置失败"', dialog)
 

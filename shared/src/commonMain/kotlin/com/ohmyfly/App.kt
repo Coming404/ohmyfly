@@ -34,6 +34,8 @@ import com.ohmyfly.ui.SettingsScreen
 import com.ohmyfly.ui.SpeedScreen
 import com.ohmyfly.ui.SubscriptionsScreen
 import com.ohmyfly.ui.AppTheme
+import com.ohmyfly.ui.AppHaptics
+import com.ohmyfly.ui.hapticClick
 import com.ohmyfly.ui.AppMotion
 import com.ohmyfly.ui.LocalAppMotionAllowed
 import com.ohmyfly.ui.LocalAppSurfaceColors
@@ -63,7 +65,9 @@ import top.yukonga.miuix.kmp.utils.springAnimateToPage
 fun App(dynamicColorSeed: Color?, settingsPath: String, version: String) {
     PersistedSettings(settingsPath) { settings, onChange, writeError, onDismissError, session, onRetryRead ->
         AppMotion(settings.reduceMotion) {
-            AppContent(dynamicColorSeed, settings, onChange, version, writeError, onDismissError, session, onRetryRead)
+            AppHaptics(settings.hapticEnabled, settings.hapticLevel) {
+                AppContent(dynamicColorSeed, settings, onChange, version, writeError, onDismissError, session, onRetryRead)
+            }
         }
     }
 }
@@ -239,7 +243,7 @@ private fun AppContent(
                 dismissible = false,
                 onDismiss = {},
                 onDismissFinished = {},
-                footer = { TextButton(text = "重试", onClick = onRetryRead) },
+                footer = { TextButton(text = "重试", onClick = hapticClick(onRetryRead)) },
             ) { Text(if (settingsSession.state.writeUncertain) "已提交，但未能读回" else "未更改本地数据") }
         }
     }

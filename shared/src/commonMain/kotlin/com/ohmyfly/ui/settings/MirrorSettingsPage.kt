@@ -40,6 +40,7 @@ import com.ohmyfly.mirror.sortMirrors
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.SettingsSession
 import com.ohmyfly.ui.LocalAppSurfaceColors
+import com.ohmyfly.ui.hapticClick
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -109,11 +110,11 @@ internal fun MirrorSettingsPage(
         SettingsList(padding, listState) {
             if (session.state.readFailed) item(key = "mirror-read-error") {
                 MirrorEditorFeedback("设置结果待确认，已暂停写入")
-                TextButton(text = "重试读取", onClick = { session.retryRead() })
+                TextButton(text = "重试读取", onClick = hapticClick { session.retryRead() })
             }
             if (session.state.error != null && !page.present) item(key = "mirror-write-error") {
                 MirrorEditorFeedback("设置未保存，已恢复上次确认值")
-                TextButton(text = "关闭提示", onClick = { session.dismissError() })
+                TextButton(text = "关闭提示", onClick = hapticClick { session.dismissError() })
             }
             item(key = "mirror-title") {
                 Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -138,7 +139,7 @@ internal fun MirrorSettingsPage(
                             TextButton(
                                 text = "${draft.name.text.ifBlank { "新增镜像" }} · 草稿",
                                 enabled = settings.mirrorEnabled && !session.state.readFailed,
-                                onClick = { page.show(MirrorPageState.Panel.Edit(draft)) },
+                                onClick = hapticClick { page.show(MirrorPageState.Panel.Edit(draft)) },
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         } }

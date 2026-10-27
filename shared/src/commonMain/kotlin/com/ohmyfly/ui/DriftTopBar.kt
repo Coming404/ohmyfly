@@ -105,7 +105,7 @@ internal fun HeaderAction(
     val tint = MiuixTheme.colorScheme.onSurface
     TooltipBox(text = label) {
         IconButton(
-            onClick = onClick,
+            onClick = hapticClick(onClick),
             enabled = enabled,
             modifier = if (enabled) Modifier else Modifier.semantics { disabled() },
             minHeight = 48.dp,

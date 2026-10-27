@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.mirror.MirrorEntry
 import com.ohmyfly.mirror.MirrorProbeTarget
+import com.ohmyfly.ui.hapticClick
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
@@ -109,7 +110,7 @@ internal fun MirrorEditorSave(
     val focus = LocalFocusManager.current
     TextButton(
         text = when { readFailed -> "重试读取"; draft.saving > 0 -> "保存中…"; else -> "保存" },
-        onClick = {
+        onClick = hapticClick {
             focus.clearFocus()
             if (readFailed) onRetryRead() else onSave()
         },

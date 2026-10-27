@@ -11,6 +11,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ohmyfly.ui.hapticClick
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
@@ -27,7 +28,7 @@ internal fun SettingsActionRow(
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     BasicComponent(
         insideMargin = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        onClick = onClick,
+        onClick = hapticClick(onClick),
         onClickLabel = "打开$title",
         role = Role.Button,
         endActions = {

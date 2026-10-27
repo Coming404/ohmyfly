@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.ui.DriftIcons
+import com.ohmyfly.ui.hapticClick
 import kotlinx.coroutines.flow.collect
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -99,7 +100,7 @@ internal fun MirrorDialog(
                 )
                 if (dismissible) {
                     IconButton(
-                        onClick = onDismiss,
+                        onClick = hapticClick(onDismiss),
                         minWidth = 44.dp,
                         minHeight = 44.dp,
                     ) {

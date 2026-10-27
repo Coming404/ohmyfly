@@ -60,7 +60,7 @@ internal fun SettingsScreen(
         backStack = backStack,
         onBack = onBack,
         modifier = Modifier.fillMaxSize(),
-        transition = if (motionAllowed) NavTransitions.MiuixDefault else NavTransitions.None,
+        transition = if (motionAllowed) AppNavTransition else NavTransitions.None,
         effects = if (motionAllowed) {
             NavDisplayEffects(enableCornerClip = false, blockInputDuringTransition = true)
         } else NavDisplayEffects.None,
@@ -70,11 +70,11 @@ internal fun SettingsScreen(
                 .padding(top = if (showWriteError) contentPadding.calculateTopPadding() else 0.dp)) {
                 if (showWriteError && writeError != null) {
                     BasicComponent(title = "设置未保存", summary = writeError)
-                    TextButton(text = "关闭提示", onClick = onDismissError)
+                    TextButton(text = "关闭提示", onClick = hapticClick(onDismissError))
                 }
                 if (session.state.readFailed && page != SettingsPage.Mirrors) {
                     BasicComponent(title = "设置结果待确认", summary = "无法读取本地设置，已暂停写入。")
-                    TextButton(text = "重试读取", onClick = { session.retryRead() })
+                    TextButton(text = "重试读取", onClick = hapticClick { session.retryRead() })
                 }
                 when (page) {
                     SettingsPage.Home -> SettingsHome(settings, onChange, onPage, version, listState, pagePadding)

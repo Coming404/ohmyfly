@@ -23,6 +23,8 @@ internal object SettingsCodec {
     private val materialMode = stringPreferencesKey("ui.materialMode")
     private val reduceTransparency = booleanPreferencesKey("ui.reduceTransparency")
     private val reduceMotion = booleanPreferencesKey("ui.reduceMotion")
+    private val hapticEnabled = booleanPreferencesKey("ui.hapticEnabled")
+    private val hapticLevel = stringPreferencesKey("ui.hapticLevel")
     private val speedMode = stringPreferencesKey("speed.mode")
     private val latencyUrl = stringPreferencesKey("speed.latencyUrl")
     private val downloadUrl = stringPreferencesKey("speed.downloadUrl")
@@ -63,6 +65,8 @@ internal object SettingsCodec {
         target[materialMode] = settings.materialMode.name
         target[reduceTransparency] = settings.reduceTransparency
         target[reduceMotion] = settings.reduceMotion
+        target[hapticEnabled] = settings.hapticEnabled
+        target[hapticLevel] = settings.hapticLevel.name
         val speed = settings.speed
         target[speedMode] = speed.mode.name
         target[latencyUrl] = speed.latencyUrl
@@ -112,6 +116,8 @@ internal object SettingsCodec {
             materialMode = preferences.readOrNull(materialMode).toEnumOr(defaults.materialMode),
             reduceTransparency = preferences.read(reduceTransparency, defaults.reduceTransparency),
             reduceMotion = preferences.read(reduceMotion, defaults.reduceMotion),
+            hapticEnabled = preferences.read(hapticEnabled, defaults.hapticEnabled),
+            hapticLevel = preferences.readOrNull(hapticLevel).toEnumOr(defaults.hapticLevel),
             // 启用开关由 MirrorCodec 独占 `mirror.enabled`，避免两个 Codec 各读一份。
             mirrorEnabled = mirrors.enabled,
             speed = SpeedSettings(

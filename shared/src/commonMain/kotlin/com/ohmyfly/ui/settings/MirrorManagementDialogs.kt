@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ohmyfly.ui.hapticClick
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -41,13 +42,13 @@ internal fun MirrorDeleteContent(
         }, fontSize = 14.sp)
         if (error != null) MirrorEditorFeedback(error)
         if (readFailed) {
-            TextButton(text = "重试读取", onClick = onRetryRead, modifier = Modifier.fillMaxWidth())
+            TextButton(text = "重试读取", onClick = hapticClick(onRetryRead), modifier = Modifier.fillMaxWidth())
         } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             val shape = RoundedCornerShape(16.dp)
             Row(
                 Modifier.weight(1f).heightIn(min = 48.dp).clip(shape)
                     .background(MiuixTheme.colorScheme.surfaceContainer)
-                    .clickable(enabled = !busy, role = Role.Button, onClick = onKeep).padding(12.dp),
+                    .clickable(enabled = !busy, role = Role.Button, onClick = hapticClick(onKeep)).padding(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -57,7 +58,7 @@ internal fun MirrorDeleteContent(
             Row(
                 Modifier.weight(1f).heightIn(min = 48.dp).clip(shape)
                     .background(MiuixTheme.colorScheme.error)
-                    .clickable(enabled = !busy, role = Role.Button, onClick = onDelete).padding(12.dp),
+                    .clickable(enabled = !busy, role = Role.Button, onClick = hapticClick(onDelete)).padding(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

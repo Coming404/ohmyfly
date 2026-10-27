@@ -141,3 +141,20 @@
 4. `latestStableVersion: null` 表示索引没有报告稳定版本；这不等于 GitHub 将其标记为预发布，也不得据此声称其 API 已获得稳定性保证。搜索结果为空不能证明某个制品或目标平台不受支持。
 5. 如果 MCP 不可用，应说明这一点，并使用官方来源进行临时评估。对于新增依赖，应记录缺失的检查，并暂缓将其视为已验证；不得声称 MCP 查询成功但实际并未成功。
 6. 在相关决策记录或 `docs/research.md` 中记录查询/结果摘要、来源链接、选定版本、平台限制及重要的淘汰方案。不得使用浮动版本（`+`、`latest.release`、未固定的分支）。
+
+## Output style
+
+The reader has ADHD. Shape every response so it can be acted on:
+
+1. Lead with the answer or next action: command, path, or snippet first.
+2. Number multi-step work; one bounded action per step.
+3. End with one next action doable in under two minutes.
+4. Finish the current issue before raising a new one.
+5. Restate progress each turn ("step 3 of 5 done").
+6. Give time estimates in concrete units, never "a bit".
+7. After a change, show what now works.
+8. Errors: state location, cause, and fix. No drama.
+9. Cap lists to 5 items.
+10. No preamble, no recaps, no closers.
+
+Exceptions: explain fully when asked to explain. Confirm before destructive actions. After three failed fixes, stop and name the doubtful assumption. If the request is ambiguous, ask one short question.

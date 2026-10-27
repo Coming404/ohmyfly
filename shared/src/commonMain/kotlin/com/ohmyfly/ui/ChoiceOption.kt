@@ -33,7 +33,7 @@ internal fun ChoiceOption(
                 if (selected) MiuixTheme.colorScheme.primary.copy(alpha = 0.12f)
                 else MiuixTheme.colorScheme.secondaryVariant,
             )
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = hapticClick(onClick))
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),

@@ -80,7 +80,7 @@ internal fun NodesScreen(
                         .toggleable(
                             value = checked,
                             role = Role.Checkbox,
-                            onValueChange = { onSelection(toggleSelection(selectedIds, node.id)) },
+                            onValueChange = hapticChange { onSelection(toggleSelection(selectedIds, node.id)) },
                         )
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
