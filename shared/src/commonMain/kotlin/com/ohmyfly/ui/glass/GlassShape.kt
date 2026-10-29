@@ -15,7 +15,8 @@ import top.yukonga.miuix.kmp.squircle.addSquircleRect
 
 /** Same cubic as Miuix 0.9.4 addSquircleRect (extension=1.1, control=0.643). */
 internal open class GlassShape(val radius: Dp) : Shape {
-    fun tile(size: Size, density: Density): Float =
+    /** Negative tiles select the circular boundary in both refraction and lighting. */
+    open fun tile(size: Size, density: Density): Float =
         (with(density) { radius.toPx() } * 1.1f).coerceIn(0f, size.minDimension * 0.5f)
 
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline =
@@ -24,7 +25,7 @@ internal open class GlassShape(val radius: Dp) : Shape {
         })
 }
 
-/** Shared by Lens and BloomStroke: nearest point on that very cubic, not a rounded-rect proxy. */
+/** Shared by Lens and BloomStroke: the same cubic or circular boundary as the clip. */
 internal const val GLASS_BOUNDARY_SDF = """
 float2 cornerPoint(float t) {
     float u = 1.0 - t;
@@ -40,6 +41,13 @@ float2 cornerAcceleration(float t) {
 }
 // Returns outward unit normal in xy and signed distance in z.
 float3 glassBoundary(float2 p, float2 halfSize, float tile) {
+    if (tile < 0.0) {
+        float radius = -tile;
+        float2 extent = halfSize - radius;
+        float2 delta = p - clamp(p, -extent, extent);
+        float d = length(delta);
+        return float3(delta / max(d, 0.001), d - radius);
+    }
     float2 a = abs(p);
     float2 edge = a - halfSize;
     float2 q = (a - (halfSize - tile)) / max(tile, 0.001);

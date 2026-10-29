@@ -10,7 +10,7 @@ import com.ohmyfly.settings.SettingsLimits
 import com.ohmyfly.ui.DriftIcons
 
 @Composable
-internal fun SpeedSettingsPage(settings: AppSettings, onChange: ((AppSettings) -> AppSettings) -> Unit, padding: PaddingValues) {
+internal fun SpeedSettingsPage(settings: AppSettings, onChange: (String, (AppSettings) -> AppSettings) -> Unit, padding: PaddingValues) {
     SettingsList(padding) {
         item { SettingsPageIntro(SettingsPage.Speed.title, DriftIcons.Speed, "默认参数用于下次测试，不修改已有测量结果。") }
         item { SettingsSectionTitle("模式与目标", MirrorIcons.Globe) }
@@ -26,11 +26,11 @@ internal fun SpeedSettingsPage(settings: AppSettings, onChange: ((AppSettings) -
 }
 
 @Composable
-private fun SpeedTargets(settings: AppSettings, onChange: ((AppSettings) -> AppSettings) -> Unit) {
+private fun SpeedTargets(settings: AppSettings, onChange: (String, (AppSettings) -> AppSettings) -> Unit) {
     SettingsCard {
         ChoiceSetting("默认模式", settings.speed.mode.name,
             listOf("Latency" to "仅延迟", "Download" to "延迟＋下载", "Full" to "延迟＋下载＋上传"), SettingsIcons.Tune) { selected ->
-            onChange { current -> current.withSpeed { it.copy(mode = SpeedMode.valueOf(selected)) } }
+            onChange("默认模式") { current -> current.withSpeed { it.copy(mode = SpeedMode.valueOf(selected)) } }
         }
         TextSetting("延迟目标网址", { it.speed.latencyUrl }, MirrorIcons.Globe,
             keyboard = KeyboardType.Uri, validate = ::validateTargetUrl) { current, url -> current.withSpeed { it.copy(latencyUrl = url) } }
@@ -55,7 +55,7 @@ private fun SpeedLatency() {
 }
 
 @Composable
-private fun SpeedTransfer(settings: AppSettings, onChange: ((AppSettings) -> AppSettings) -> Unit) {
+private fun SpeedTransfer(settings: AppSettings, onChange: (String, (AppSettings) -> AppSettings) -> Unit) {
     SettingsCard {
         NumberSetting("单个航班连接数", { it.speed.connectionsPerNode }, 1..8, MirrorIcons.Link,
             "单个航班下载／上传连接数；同时下载航班数固定为 1。") { current, n -> current.withSpeed { it.copy(connectionsPerNode = n) } }
@@ -69,13 +69,13 @@ private fun SpeedTransfer(settings: AppSettings, onChange: ((AppSettings) -> App
             current, n -> current.withSpeed { it.copy(transferTimeoutSeconds = n) }
         }
         ToggleSetting("蜂窝流量确认", "开始大流量航班测试前询问。", settings.speed.cellularConfirm, SettingsIcons.Haptic) {
-            checked -> onChange { current -> current.withSpeed { it.copy(cellularConfirm = checked) } }
+            checked -> onChange("蜂窝流量确认") { current -> current.withSpeed { it.copy(cellularConfirm = checked) } }
         }
     }
 }
 
 @Composable
-private fun SpeedCriteria(settings: AppSettings, onChange: ((AppSettings) -> AppSettings) -> Unit) {
+private fun SpeedCriteria(settings: AppSettings, onChange: (String, (AppSettings) -> AppSettings) -> Unit) {
     SettingsCard {
         NumberSetting("最大延迟（毫秒）", { it.speed.maxLatencyMs }, 0..60000, SettingsIcons.Timer,
             "0 表示关闭筛选，不影响请求超时。") { current, n -> current.withSpeed { it.copy(maxLatencyMs = n) } }
@@ -89,7 +89,7 @@ private fun SpeedCriteria(settings: AppSettings, onChange: ((AppSettings) -> App
         NumberSetting("达标后停止数量", { it.speed.stopAfter }, 0..100000, MirrorIcons.Stop,
             "0 表示测完全部；未测航班不标记失败。") { current, n -> current.withSpeed { it.copy(stopAfter = n) } }
         ToggleSetting("导出时重命名", "仅影响导出名称，不改变航班身份和历史。", settings.speed.renameExport, SettingsIcons.Rename) {
-            checked -> onChange { current -> current.withSpeed { it.copy(renameExport = checked) } }
+            checked -> onChange("导出时重命名") { current -> current.withSpeed { it.copy(renameExport = checked) } }
         }
     }
 }

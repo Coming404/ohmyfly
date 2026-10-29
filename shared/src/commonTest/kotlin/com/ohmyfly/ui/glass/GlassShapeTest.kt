@@ -1,6 +1,9 @@
 package com.ohmyfly.ui.glass
 
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -54,11 +57,16 @@ class GlassShapeTest {
     }
 
     @Test
-    fun navigationShapeKeepsSharedRadiusAndDensityScaling() {
+    fun navigationBoundaryMatchesCircleAtEveryAspectRatioAndDensity() {
         val shape = assertIs<GlassShape>(NavigationBarShape)
-        assertEquals(24.dp, shape.radius)
-        assertEquals(26.4f, shape.tile(Size(320f, 64f), Density(1f)), 0.0001f)
-        assertEquals(52.8f, shape.tile(Size(640f, 128f), Density(2f)), 0.0001f)
-        assertEquals(10f, shape.tile(Size(320f, 20f), Density(1f)))
+        val sizes = listOf(Size(272f, 64f), Size(52.8f, 56f), Size(52.8f, 120f), Size(128f, 640f))
+        for (size in sizes) for (density in listOf(Density(1f), Density(2f))) {
+            for (direction in listOf(LayoutDirection.Ltr, LayoutDirection.Rtl)) {
+                val expected = assertIs<Outline.Rounded>(CircleShape.createOutline(size, direction, density))
+                val actual = assertIs<Outline.Rounded>(shape.createOutline(size, direction, density))
+                assertEquals(expected.roundRect, actual.roundRect)
+                assertEquals(-size.minDimension * 0.5f, shape.tile(size, density), 0.0001f)
+            }
+        }
     }
 }

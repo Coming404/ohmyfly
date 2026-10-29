@@ -21,7 +21,7 @@ class MaterialSettingsTests(unittest.TestCase):
         home = (MAIN / 'ui/settings/SettingsHome.kt').read_text()
         self.assertIn('ChoiceSetting("界面材质", settings.materialMode.name', home)
         self.assertIn('MaterialMode.entries.map { it.name to it.label }', home)
-        self.assertIn('onChange { it.copy(materialMode = MaterialMode.valueOf(name)) }', home)
+        self.assertIn('onChange("界面材质") { it.copy(materialMode = MaterialMode.valueOf(name)) }', home)
         self.assertNotIn('mutableStateOf', home)
         choice = (MAIN / 'ui/settings/ChoiceSetting.kt').read_text()
         self.assertIn('OverlayDropdownPopup(', choice)

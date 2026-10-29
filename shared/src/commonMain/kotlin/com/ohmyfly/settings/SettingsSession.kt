@@ -3,6 +3,7 @@ package com.ohmyfly.settings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.ohmyfly.ui.AppMessageKind
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -17,8 +18,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-private const val SAVE_ERROR = "保存失败，已恢复上次确认的设置；本次及后续更改未保存。请检查输入或设备存储后重新选择重试。"
-
 /** 只在 UI 线程调用；生命周期由 PersistedSettings 的单个 LaunchedEffect 持有。 */
 internal class SettingsSession(
     private val values: Flow<AppSettings>,
@@ -31,10 +30,17 @@ internal class SettingsSession(
     private var scope: CoroutineScope? = null
     private var reader: Job? = null
     private var recovery: Job? = null
-    private val pending = ArrayDeque<(AppSettings) -> AppSettings>()
+    var onMessage: (AppMessageKind, String) -> Unit = { _, _ -> }
 
-    // 与 pending 逐项对齐：null 表示不等待结果的 change()，否则是等待真实确认的调用方。
-    private val confirmations = ArrayDeque<CompletableDeferred<SettingsWriteResult>?>()
+    private class PendingChange(
+        val transform: (AppSettings) -> AppSettings,
+        val done: CompletableDeferred<SettingsWriteResult>?,
+        val name: String?,
+        val reportErrors: Boolean,
+        val successText: String?,
+    )
+
+    private val pending = ArrayDeque<PendingChange>()
 
     suspend fun run(): Unit = coroutineScope {
         scope = this
@@ -48,51 +54,48 @@ internal class SettingsSession(
         }
     }
 
-    /** 既有入口：立即反馈、不等待落盘；签名与语义保持不变。 */
-    fun change(transform: (AppSettings) -> AppSettings) {
-        val activeScope = scope?.takeIf { it.isActive } ?: return
-        if (confirmed == null || state.readFailed) return
-        val current = state.settings
-        val next = transform(current)
-        val invalid = validateSettings(next)
-        if (invalid != null) {
-            state = state.copy(error = invalid)
-            return
-        }
-        // 取消旧订阅；排空后重新订阅读当前磁盘值，不靠相等比较推测 Flow 的版本。
-        if (pending.isEmpty()) reader?.cancel()
-        pending.addLast(transform)
-        confirmations.addLast(null)
-        state = state.copy(settings = next, error = null, pendingWrites = pending.size)
-        if (pending.size == 1) activeScope.launch { persist() }
+    /** 立即反馈、不等待落盘；旧调用可省略名称。 */
+    fun change(name: String? = null, transform: (AppSettings) -> AppSettings) {
+        enqueue(PendingChange(transform, null, name, reportErrors = true, successText = null))
     }
 
-    /**
-     * 走同一条顺序事务队列，但只有事务提交并读回磁盘值才返回 [SettingsWriteResult.Confirmed]。
-     * 乐观快照仍然同步发布，调用方不能把 [SettingsUiState.settings] 当成这个结果。
-     * 调用方取消只取消等待，已入队操作仍按顺序执行；CancellationException 原样上抛。
-     */
-    suspend fun changeConfirmed(transform: (AppSettings) -> AppSettings): SettingsWriteResult {
-        val activeScope = scope?.takeIf { it.isActive } ?: return SettingsWriteResult.Rejected
-        if (confirmed == null || state.readFailed) return SettingsWriteResult.Rejected
-        val current = state.settings
-        val next = transform(current)
-        val invalid = validateSettings(next)
-        if (invalid != null) {
-            state = state.copy(error = invalid)
-            return SettingsWriteResult.Rejected
-        }
-        if (pending.isEmpty()) reader?.cancel()
+    fun change(transform: (AppSettings) -> AppSettings) = change(name = null, transform = transform)
+
+    /** 只有事务提交并读回才返回 Confirmed；取消等待不会取消已入队写入。 */
+    suspend fun changeConfirmed(
+        name: String? = null,
+        reportErrors: Boolean = true,
+        successText: String? = null,
+        transform: (AppSettings) -> AppSettings,
+    ): SettingsWriteResult {
         val done = CompletableDeferred<SettingsWriteResult>()
-        pending.addLast(transform)
-        confirmations.addLast(done)
-        state = state.copy(settings = next, error = null, pendingWrites = pending.size)
-        if (pending.size == 1) activeScope.launch { persist() }
+        if (!enqueue(PendingChange(transform, done, name, reportErrors, successText))) return SettingsWriteResult.Rejected
         return done.await()
     }
 
-    fun dismissError() {
-        state = state.copy(error = null)
+    suspend fun changeConfirmed(transform: (AppSettings) -> AppSettings): SettingsWriteResult =
+        changeConfirmed(name = null, transform = transform)
+
+    private fun enqueue(change: PendingChange): Boolean {
+        val activeScope = scope?.takeIf { it.isActive }
+        if (activeScope == null || confirmed == null || state.readFailed) {
+            if (change.reportErrors && !state.readFailed) {
+                onMessage(AppMessageKind.Error, "${change.name ?: "设置"}暂时无法保存，请稍后重试")
+            }
+            return false
+        }
+        val next = change.transform(state.settings)
+        val invalid = validateSettings(next)
+        if (invalid != null) {
+            if (change.reportErrors) onMessage(AppMessageKind.Error, "${change.name ?: "设置"}无效：$invalid")
+            return false
+        }
+        // 取消旧订阅；排空后重新订阅读当前磁盘值，不靠相等比较推测 Flow 的版本。
+        if (pending.isEmpty()) reader?.cancel()
+        pending.addLast(change)
+        state = state.copy(settings = next, pendingWrites = pending.size)
+        if (pending.size == 1) activeScope.launch { persist() }
+        return true
     }
 
     /**
@@ -114,7 +117,6 @@ internal class SettingsSession(
                     pendingWrites = 0,
                     readFailed = false,
                     writeUncertain = false,
-                    error = null,
                 )
                 if (scope?.isActive == true) observe()
             } catch (cancelled: CancellationException) {
@@ -162,12 +164,12 @@ internal class SettingsSession(
             while (pending.isNotEmpty()) {
                 try {
                     // 保留变换：由既有 DataStore 事务在最新存储值上合并，绝不整份覆盖。
-                    update(pending.first())
+                    update(pending.first().transform)
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (_: Exception) {
                     currentCoroutineContext().ensureActive()
-                    rollback(SAVE_ERROR)
+                    rollback(reportFailure = true)
                     return
                 }
                 currentCoroutineContext().ensureActive()
@@ -182,24 +184,24 @@ internal class SettingsSession(
                     return
                 }
                 currentCoroutineContext().ensureActive()
-                pending.removeFirst()
-                val done = confirmations.removeFirst()
+                val change = pending.removeFirst()
                 val settled = confirmed
                 if (settled == null) {
                     // 成功事务必然读回一个值；为空只可能来自异常读取，不能当作已确认。
                     state = state.copy(readFailed = true, writeUncertain = true, pendingWrites = 0)
-                    done?.complete(SettingsWriteResult.Uncertain)
+                    change.done?.complete(SettingsWriteResult.Uncertain)
                     failRest()
                     return
                 }
                 state = state.copy(confirmedSettings = settled, pendingWrites = pending.size)
+                onMessage(AppMessageKind.Success, change.successText ?: "${change.name ?: "设置"}已保存")
                 // 只有事务已提交且读回磁盘值，才把这次操作标记为已确认。
-                done?.complete(SettingsWriteResult.Confirmed(settled))
+                change.done?.complete(SettingsWriteResult.Confirmed(settled))
                 // 较早完成不发布 UI；所有点击的即时值持续有效直到队列排空。
             }
             state = state.copy(settings = confirmed ?: state.settings, confirmedSettings = confirmed, pendingWrites = 0)
         } catch (cancelled: CancellationException) {
-            if (scope?.isActive == true) rollback(null)
+            if (scope?.isActive == true) rollback(reportFailure = false)
             throw cancelled
         } finally {
             if (scope?.isActive == true && !state.readFailed && pending.isEmpty()) observe()
@@ -207,31 +209,36 @@ internal class SettingsSession(
     }
 
     /** 事务失败：失败操作及其后未执行的操作都失败，已确认值不受影响。 */
-    private fun rollback(error: String?) {
-        state = state.copy(settings = confirmed ?: state.settings, error = error, confirmedSettings = confirmed, pendingWrites = 0)
-        pending.clear()
+    private fun rollback(reportFailure: Boolean) {
+        val failed = pending.firstOrNull()
+        state = state.copy(settings = confirmed ?: state.settings, confirmedSettings = confirmed, pendingWrites = 0)
+        if (reportFailure && failed != null && pending.any { it.reportErrors }) {
+            val suffix = if (pending.size > 1) "；后续未保存的修改也已撤回" else ""
+            val text = if (failed.reportErrors) "${failed.name ?: "设置"}保存失败，已恢复原值$suffix"
+                else "因${failed.name ?: "前一项设置"}未保存，后续未保存的修改也已撤回"
+            onMessage(AppMessageKind.Failure, text)
+        }
         failRest()
     }
 
-    /** 写后读取失败：该操作已提交但无法确认；其后未执行的操作直接失败，并阻止新写入。 */
+    /** 写后读取失败：该操作已提交但无法确认；阻断弹窗独占提示，后续操作直接失败。 */
     private fun uncertain() {
         state = state.copy(readFailed = true, writeUncertain = true, pendingWrites = 0)
-        pending.clear()
-        confirmations.removeFirstOrNull()?.complete(SettingsWriteResult.Uncertain)
+        pending.removeFirstOrNull()?.done?.complete(SettingsWriteResult.Uncertain)
         failRest()
     }
 
     /** 队列里剩余调用方统一按 Failed 结束；它们没有提交，不能报成已确认。 */
     private fun failRest() {
-        while (confirmations.isNotEmpty()) {
-            confirmations.removeFirst()?.complete(SettingsWriteResult.Failed)
+        while (pending.isNotEmpty()) {
+            pending.removeFirst().done?.complete(SettingsWriteResult.Failed)
         }
     }
 
     /** 会话结束：未完成操作按取消处理，不伪造成保存失败。 */
     private fun abandonPending() {
-        while (confirmations.isNotEmpty()) {
-            confirmations.removeFirst()?.completeExceptionally(
+        while (pending.isNotEmpty()) {
+            pending.removeFirst().done?.completeExceptionally(
                 CancellationException("设置会话已结束，操作未确认"),
             )
         }

@@ -9,15 +9,15 @@ private val videoServices = listOf("netflix" to "Netflix", "disney" to "Disney+"
 private val aiServices = listOf("openai" to "OpenAI", "gemini" to "Gemini", "copilot" to "Copilot")
 
 @Composable
-internal fun MediaSettingsPage(settings: AppSettings, onChange: ((AppSettings) -> AppSettings) -> Unit, padding: PaddingValues) {
+internal fun MediaSettingsPage(settings: AppSettings, onChange: (String, (AppSettings) -> AppSettings) -> Unit, padding: PaddingValues) {
     val media = settings.media
-    fun update(change: (MediaSettings) -> MediaSettings) = onChange { it.copy(media = change(it.media)) }
+    fun update(name: String, change: (MediaSettings) -> MediaSettings) = onChange(name) { it.copy(media = change(it.media)) }
     SettingsList(padding) {
         item { SettingsPageIntro(SettingsPage.Media.title, SettingsIcons.Media) }
         item {
             SettingsCard {
                 ToggleSetting("启用流媒体与 AI 检测", "在航班测试后运行所选检测项目。", media.enabled, SettingsIcons.Media) {
-                    checked -> update { it.copy(enabled = checked) }
+                    checked -> update("启用流媒体与 AI 检测") { it.copy(enabled = checked) }
                 }
                 NumberSetting("流媒体并发数", { it.media.concurrency }, 1..8, SettingsIcons.Material,
                     "同时检测的航班数；每个航班至多 2 项平台任务。") { current, n -> current.copy(media = current.media.copy(concurrency = n)) }
@@ -32,13 +32,13 @@ internal fun MediaSettingsPage(settings: AppSettings, onChange: ((AppSettings) -
         item { SettingsSectionTitle("流媒体", SettingsIcons.Media) }
         item { SettingsCard { videoServices.forEach { (id, label) ->
             ToggleSetting(label, "检测地区可用性，不代表账号或全部片库可用。", id in media.platforms, SettingsIcons.Media) { checked ->
-                update { it.copy(platforms = if (checked) it.platforms + id else it.platforms - id) }
+                update(label) { it.copy(platforms = if (checked) it.platforms + id else it.platforms - id) }
             }
         } } }
         item { SettingsSectionTitle("AI 服务", SettingsIcons.Search) }
         item { SettingsCard { aiServices.forEach { (id, label) ->
             ToggleSetting(label, "网络与地区可用性，不验证账号登录。", id in media.platforms, SettingsIcons.Search) { checked ->
-                update { it.copy(platforms = if (checked) it.platforms + id else it.platforms - id) }
+                update(label) { it.copy(platforms = if (checked) it.platforms + id else it.platforms - id) }
             }
         } } }
         item { ResetSettings(SettingsResetTarget.Media) }

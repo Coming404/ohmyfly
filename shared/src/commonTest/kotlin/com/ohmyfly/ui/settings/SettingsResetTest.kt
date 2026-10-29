@@ -6,6 +6,8 @@ import com.ohmyfly.settings.MediaSettings
 import com.ohmyfly.settings.SettingsSession
 import com.ohmyfly.settings.SpeedSettings
 import com.ohmyfly.settings.SubscriptionSettings
+import com.ohmyfly.ui.AppMessageKind
+import com.ohmyfly.ui.AppMessageState
 import com.ohmyfly.ui.ThemeMode
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -18,7 +20,6 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -49,6 +50,8 @@ class SettingsResetTest {
     fun pageResetPreservesOtherDraftsAndFullResetClearsAllPageDrafts() = runTest {
         val disk = MutableStateFlow(AppSettings())
         val session = SettingsSession(disk) { transform -> disk.value = transform(disk.value) }
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         backgroundScope.launch { session.run() }
         runCurrent()
         val edits = SettingsEdits(session, backgroundScope)
@@ -59,6 +62,7 @@ class SettingsResetTest {
         edits.input(speed, androidx.compose.ui.text.input.TextFieldValue("invalid"))
         edits.input(subscription, androidx.compose.ui.text.input.TextFieldValue("dirty"))
         edits.reset(SettingsResetTarget.Speed)
+        assertEquals("已恢复本页默认设置", messages.current?.text)
         assertFalse(speed.expanded)
         assertEquals(AppSettings().speed.latencyUrl, speed.value.text)
         assertTrue(subscription.expanded)
@@ -73,6 +77,8 @@ class SettingsResetTest {
         var writes = 0
         val disk = MutableStateFlow(custom)
         val session = SettingsSession(disk) { transform -> writes++; disk.value = transform(disk.value) }
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         backgroundScope.launch { session.run() }
         runCurrent()
         val edits = SettingsEdits(session, backgroundScope)
@@ -82,7 +88,7 @@ class SettingsResetTest {
         state.submit { edits.reset(SettingsResetTarget.All) }
         assertEquals(0, writes)
         assertEquals(custom, disk.value)
-        assertFalse(state.success)
+        assertEquals(null, messages.current)
     }
 
     @Test
@@ -91,6 +97,8 @@ class SettingsResetTest {
         val gate = CompletableDeferred<Unit>()
         var writes = 0
         val session = SettingsSession(disk) { transform -> writes++; gate.await(); disk.value = transform(disk.value) }
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         backgroundScope.launch { session.run() }
         runCurrent()
         val edits = SettingsEdits(session, backgroundScope)
@@ -100,14 +108,15 @@ class SettingsResetTest {
         runCurrent()
         assertTrue(state.busy)
         assertTrue(state.confirming)
-        assertFalse(state.success)
+        assertEquals(null, messages.current)
         assertEquals(custom, disk.value)
         assertEquals(AppSettings(), session.state.settings)
         state.submit { edits.reset(SettingsResetTarget.All) }
         assertEquals(1, writes)
         gate.complete(Unit)
         runCurrent()
-        assertTrue(state.success)
+        assertEquals(AppMessageKind.Success, messages.current?.kind)
+        assertEquals("已恢复全部默认设置", messages.current?.text)
         assertFalse(state.confirming)
         assertEquals(AppSettings(), disk.value)
     }
@@ -120,19 +129,21 @@ class SettingsResetTest {
             if (fail) error("storage unavailable")
             disk.value = transform(disk.value)
         }
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         backgroundScope.launch { session.run() }
         runCurrent()
         val edits = SettingsEdits(session, backgroundScope)
         val state = SettingsResetState()
         state.ask()
         state.submit { edits.reset(SettingsResetTarget.Speed) }
-        assertFalse(state.success)
+        assertEquals(AppMessageKind.Failure, messages.current?.kind)
         assertTrue(state.confirming)
-        assertNotNull(state.error)
+        assertEquals("本页默认设置保存失败，已恢复原值", messages.current?.text)
         assertEquals(custom, disk.value)
         fail = false
         state.submit { edits.reset(SettingsResetTarget.Speed) }
-        assertTrue(state.success)
+        assertEquals(AppMessageKind.Success, messages.current?.kind)
         assertEquals(custom.copy(speed = SpeedSettings()), disk.value)
     }
 
@@ -146,6 +157,8 @@ class SettingsResetTest {
             awaitCancellation()
         }
         val session = SettingsSession(values) { transform -> disk = transform(disk) }
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         backgroundScope.launch { session.run() }
         runCurrent()
         val edits = SettingsEdits(session, backgroundScope)
@@ -154,8 +167,8 @@ class SettingsResetTest {
         state.submit { edits.reset(SettingsResetTarget.All) }
         assertEquals(AppSettings(), disk)
         assertTrue(session.state.writeUncertain)
-        assertFalse(state.success)
+        assertEquals(null, messages.current)
         assertTrue(state.confirming)
-        assertNotNull(state.error)
+        assertFalse(state.busy)
     }
 }

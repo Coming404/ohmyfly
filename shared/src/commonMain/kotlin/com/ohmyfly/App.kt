@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ohmyfly.ui.AppDestination
+import com.ohmyfly.ui.AppMessageHost
 import com.ohmyfly.ui.DriftNavigationBar
 import com.ohmyfly.ui.DriftTopBar
 import com.ohmyfly.ui.NodeSelectionActions
@@ -63,10 +64,10 @@ import top.yukonga.miuix.kmp.utils.springAnimateToPage
 
 @Composable
 fun App(dynamicColorSeed: Color?, settingsPath: String, version: String) {
-    PersistedSettings(settingsPath) { settings, onChange, writeError, onDismissError, session, onRetryRead ->
+    PersistedSettings(settingsPath) { settings, onChange, session, onRetryRead ->
         AppMotion(settings.reduceMotion) {
             AppHaptics(settings.hapticEnabled, settings.hapticLevel) {
-                AppContent(dynamicColorSeed, settings, onChange, version, writeError, onDismissError, session, onRetryRead)
+                AppContent(dynamicColorSeed, settings, onChange, version, session, onRetryRead)
             }
         }
     }
@@ -76,10 +77,8 @@ fun App(dynamicColorSeed: Color?, settingsPath: String, version: String) {
 private fun AppContent(
     dynamicColorSeed: Color?,
     settings: AppSettings,
-    onChange: ((AppSettings) -> AppSettings) -> Unit,
+    onChange: (String, (AppSettings) -> AppSettings) -> Unit,
     version: String,
-    writeError: String?,
-    onDismissError: () -> Unit,
     settingsSession: SettingsSession,
     onRetryRead: () -> Unit,
 ) {
@@ -142,7 +141,7 @@ private fun AppContent(
             containerColor = Color.Transparent,
             topBar = {
                 DriftTopBar(
-                    title = if (mirrorPage) "" else if (settingsChild) settingsPage.title else destination.label,
+                    title = if (settingsChild) "" else destination.label,
                     backdrop = backdrop,
                     glassEnabled = glassEnabled,
                     dark = dark,
@@ -228,14 +227,13 @@ private fun AppContent(
                             runner = mirrorRunner,
                             onMirrorAddChange = { mirrorAdd = it },
                             version = version,
-                            writeError = writeError,
-                            onDismissError = onDismissError,
                             contentPadding = padding,
                         )
                         }
                     }
                 }
             }
+            AppMessageHost(padding, backdrop, glassEnabled, dark, settings.materialMode, blocked = settingsSession.state.readFailed)
             MirrorDialog(
                 show = settingsSession.state.readFailed,
                 title = if (settingsSession.state.writeUncertain) "设置结果待确认" else "读取设置失败",

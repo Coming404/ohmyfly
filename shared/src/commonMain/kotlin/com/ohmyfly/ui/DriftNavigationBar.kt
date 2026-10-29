@@ -29,7 +29,7 @@ internal fun DriftNavigationBar(
     Box(
         modifier = Modifier.fillMaxWidth()
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
-            .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+            .padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         GlassNavigationSurface(
@@ -39,7 +39,7 @@ internal fun DriftNavigationBar(
             enabled = glassEnabled,
             dark = dark,
             materialMode = materialMode,
-            modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth(),
+            modifier = Modifier.widthIn(max = 420.dp).fillMaxWidth(),
         )
     }
 }

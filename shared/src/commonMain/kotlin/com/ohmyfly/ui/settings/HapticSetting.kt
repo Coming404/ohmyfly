@@ -26,7 +26,7 @@ import top.yukonga.miuix.kmp.basic.SliderDefaults
 import top.yukonga.miuix.kmp.basic.Text
 
 @Composable
-internal fun HapticSetting(settings: AppSettings, onChange: ((AppSettings) -> AppSettings) -> Unit) {
+internal fun HapticSetting(settings: AppSettings, onChange: (String, (AppSettings) -> AppSettings) -> Unit) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     var level by remember(settings.hapticLevel) { mutableStateOf(settings.hapticLevel) }
     val feedback = LocalAppHaptics.current
@@ -34,7 +34,7 @@ internal fun HapticSetting(settings: AppSettings, onChange: ((AppSettings) -> Ap
         SettingsIcons.Haptic, expanded, onClick = { expanded = !expanded })
     SettingsExpansion(expanded) {
         ToggleSetting("启用震动", value = settings.hapticEnabled, leadingIcon = SettingsIcons.Haptic,
-            onChange = { enabled -> onChange { it.copy(hapticEnabled = enabled) } })
+            onChange = { enabled -> onChange("启用震动") { it.copy(hapticEnabled = enabled) } })
         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SettingsLeadingIcon(SettingsIcons.Tune)
@@ -46,7 +46,7 @@ internal fun HapticSetting(settings: AppSettings, onChange: ((AppSettings) -> Ap
                     val next = HapticLevel.entries[value.roundToInt().coerceIn(0, 2)]
                     if (next != level) {
                         level = next
-                        onChange { it.copy(hapticLevel = next) }
+                        onChange("震动强度") { it.copy(hapticLevel = next) }
                         feedback.preview(next)
                     }
                 },

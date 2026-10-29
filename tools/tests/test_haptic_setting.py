@@ -37,7 +37,7 @@ class HapticSettingTests(unittest.TestCase):
         self.assertIn('hapticEffect = SliderDefaults.SliderHapticEffect.None', slider)
         self.assertRegex(slider, re.compile(
             r'if \(next != level\)\s*\{\s*level = next\s*'
-            r'onChange \{ it.copy\(hapticLevel = next\) \}\s*feedback.preview\(next\)',
+            r'onChange\("震动强度"\) \{ it.copy\(hapticLevel = next\) \}\s*feedback.preview\(next\)',
         ))
         self.assertNotIn('feedback.click()', slider)
 

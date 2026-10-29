@@ -21,7 +21,7 @@ class MotionPolicyTests(unittest.TestCase):
         self.assertIn('target[reduceMotion] = settings.reduceMotion', codec)
         self.assertIn('reduceMotion = preferences.read(reduceMotion, defaults.reduceMotion)', codec)
         self.assertIn('ToggleSetting("减少动态效果", value = settings.reduceMotion', home)
-        self.assertIn('onChange { it.copy(reduceMotion = enabled) }', home)
+        self.assertIn('onChange("减少动态效果") { it.copy(reduceMotion = enabled) }', home)
         self.assertIn('AppMotion(settings.reduceMotion) {', app)
         self.assertNotIn('mutableStateOf(settings.reduceMotion)', home + app)
         for file in ('MotionSettingsTest.kt', 'MotionSettingsSessionTest.kt'):

@@ -41,24 +41,14 @@ internal class SettingsResetState {
         private set
     var busy by mutableStateOf(false)
         private set
-    var success by mutableStateOf(false)
-        private set
-    var error by mutableStateOf<String?>(null)
-        private set
-
-    fun ask() { confirming = true; success = false; error = null }
-    fun cancel() { if (!busy) { confirming = false; error = null } }
+    fun ask() { confirming = true }
+    fun cancel() { if (!busy) confirming = false }
 
     suspend fun submit(reset: suspend () -> SettingsWriteResult) {
         if (busy || !confirming) return
         busy = true
         try {
-            when (reset()) {
-                is SettingsWriteResult.Confirmed -> { success = true; confirming = false; error = null }
-                SettingsWriteResult.Failed -> error = "恢复失败，设置未更改，请重试。"
-                SettingsWriteResult.Uncertain -> error = "恢复结果待确认，请重试读取后核对设置。"
-                SettingsWriteResult.Rejected -> error = "暂时无法恢复，请检查设置读取状态后重试。"
-            }
+            if (reset() is SettingsWriteResult.Confirmed) confirming = false
         } finally { busy = false }
     }
 }
@@ -72,8 +62,6 @@ internal fun ResetSettings(target: SettingsResetTarget) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             SettingsPageIntro(if (state.confirming) "确认${target.title}？" else target.title, SettingsIcons.Reset)
             SettingsHint(target.description)
-            if (state.success) SettingsHint("已恢复默认设置")
-            state.error?.let { SettingsHint(it, isError = true) }
             if (state.confirming) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (edits.session.state.readFailed) {

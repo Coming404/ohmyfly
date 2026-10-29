@@ -36,8 +36,9 @@ class SettingsNavigationTests(unittest.TestCase):
         self.assertNotIn('key(page)', screen)
         self.assertNotIn('Scaffold(', screen)
         self.assertIn('.background(background)', screen)
-        self.assertIn('summary = writeError', screen)
-        self.assertIn('SettingsButton("关闭提示", DriftIcons.Clear, onClick = onDismissError)', screen)
+        self.assertNotIn('writeError', screen)
+        self.assertNotIn('onDismissError', screen)
+        self.assertIn('AppMessageHost(padding, backdrop, glassEnabled, dark, settings.materialMode', app)
         self.assertEqual(1, app.count('Scaffold('))
         self.assertIn('Modifier.layerBackdrop(backdrop)', app)
 
@@ -118,7 +119,7 @@ class SettingsNavigationTests(unittest.TestCase):
         gate = (ROOT / '.github/workflows/build.yml').read_text()
         nav_test = ROOT / 'shared/src/commonTest/kotlin/com/ohmyfly/ui/AppNavTransitionTest.kt'
         self.assertEqual(8, nav_test.read_text().count('@Test'))
-        self.assertEqual(218, count)
+        self.assertEqual(225, count)
         floor = int(re.search(r'if total < (\d+) or failed', gate).group(1))
         self.assertEqual(190, floor)
         self.assertGreaterEqual(count, floor)

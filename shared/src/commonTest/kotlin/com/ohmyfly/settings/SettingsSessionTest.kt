@@ -1,5 +1,7 @@
 package com.ohmyfly.settings
 
+import com.ohmyfly.ui.AppMessageKind
+import com.ohmyfly.ui.AppMessageState
 import com.ohmyfly.ui.ThemeMode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -13,14 +15,13 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsSessionTest {
     @Test
     fun changeIsVisibleBeforeTheDiskWriteStarts() = runTest {
+        val messages = AppMessageState()
         val values = MutableStateFlow(AppSettings())
         val gate = CompletableDeferred<Unit>()
         var writes = 0
@@ -32,6 +33,7 @@ class SettingsSessionTest {
         backgroundScope.launch { session.run() }
         runCurrent()
 
+        session.onMessage = messages::show
         session.change { it.copy(materialMode = MaterialMode.SoftGlass) }
         assertEquals(MaterialMode.SoftGlass, session.state.settings.materialMode)
         assertEquals(MaterialMode.LiquidGlass, values.value.materialMode)
@@ -41,7 +43,7 @@ class SettingsSessionTest {
         gate.complete(Unit)
         runCurrent()
         assertEquals(values.value, session.state.settings)
-        assertNull(session.state.error)
+        assertEquals(AppMessageKind.Success, messages.current?.kind)
     }
 
     @Test
@@ -123,13 +125,15 @@ class SettingsSessionTest {
         val session = SettingsSession(values) { writes++ }
         backgroundScope.launch { session.run() }
         runCurrent()
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         session.change { it.copy(speed = it.speed.copy(downloadMiB = -1)) }
         assertEquals(values.value, session.state.settings)
-        assertNotNull(session.state.error)
+        assertEquals(AppMessageKind.Error, messages.current?.kind)
         runCurrent()
         assertEquals(0, writes)
-        session.dismissError()
-        assertNull(session.state.error)
+        messages.dismiss()
+        assertEquals(null, messages.current)
     }
 
     @Test
@@ -145,6 +149,8 @@ class SettingsSessionTest {
         }
         backgroundScope.launch { session.run() }
         runCurrent()
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         session.change { it.copy(themeMode = ThemeMode.Dark) }
         session.change { it.copy(materialMode = MaterialMode.SoftGlass) }
         session.change { it.copy(reduceTransparency = true) }
@@ -154,11 +160,12 @@ class SettingsSessionTest {
         assertEquals(ThemeMode.Dark, session.state.settings.themeMode)
         assertEquals(MaterialMode.LiquidGlass, session.state.settings.materialMode)
         assertEquals(false, session.state.settings.reduceTransparency)
-        assertNotNull(session.state.error)
+        assertEquals(AppMessageKind.Failure, messages.current?.kind)
         assertEquals(values.value, session.state.settings)
         session.change { it.copy(materialMode = MaterialMode.HighlightGlass) }
-        assertNull(session.state.error)
+        assertEquals(AppMessageKind.Failure, messages.current?.kind)
         runCurrent()
+        assertEquals(AppMessageKind.Success, messages.current?.kind)
         assertEquals(3, writes)
         assertEquals(MaterialMode.HighlightGlass, values.value.materialMode)
         assertEquals(values.value, session.state.settings)
@@ -174,9 +181,11 @@ class SettingsSessionTest {
         }
         backgroundScope.launch { session.run() }
         runCurrent()
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         session.change { it.copy(themeMode = ThemeMode.Dark) }
         runCurrent()
-        assertNull(session.state.error)
+        assertEquals(null, messages.current)
         assertFalse(session.state.readFailed)
         assertEquals(values.value, session.state.settings)
         cancel = false

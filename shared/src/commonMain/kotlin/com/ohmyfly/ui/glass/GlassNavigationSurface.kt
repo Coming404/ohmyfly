@@ -7,6 +7,7 @@ package com.ohmyfly.ui.glass
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -116,27 +117,38 @@ internal fun GlassNavigationSurface(
                 }
             }
         }
-        if (response.tabWidth > 0f) {
-            val tabWidth = with(LocalDensity.current) { response.tabWidth.toDp() }
-            val capsuleShape = remember { GlassShape(28.dp) }
-            Box(Modifier.matchParentSize().padding(4.dp).clearAndSetSemantics {}) {
-                val capsule = Modifier.fillMaxHeight().width(tabWidth).graphicsLayer {
-                    translationX = glassTabOffset(response.drag.value, response.tabWidth, response.ltr)
-                }
-                Box(
-                    if (enabled) capsule.glassNavigationCapsule(combined, capsuleShape, response, capsuleHighlight, dark)
-                    else capsule.background(MiuixTheme.colorScheme.primary.copy(alpha = 0.15f), capsuleShape),
-                )
-            }
-            // Draw after the lens so the selected capsule cannot obscure keyboard focus.
-            if (focusedIndex in AppDestination.entries.indices) {
-                val focusShape = remember { GlassShape(12.dp) }
-                Box(Modifier.matchParentSize().padding(4.dp).clearAndSetSemantics {}) {
-                    Box(Modifier.fillMaxHeight().width(tabWidth).graphicsLayer {
-                        translationX = glassTabOffset(focusedIndex.toFloat(), response.tabWidth, response.ltr)
-                    }.border(2.dp, MiuixTheme.colorScheme.onSurface, focusShape))
-                }
-            }
+        GlassNavigationSelection(response, focusedIndex, enabled, combined, capsuleHighlight, dark)
+    }
+}
+
+@Composable
+private fun BoxScope.GlassNavigationSelection(
+    response: GlassNavigationGesture,
+    focusedIndex: Int,
+    enabled: Boolean,
+    backdrop: Backdrop,
+    highlight: State<Highlight>,
+    dark: Boolean,
+) {
+    if (response.tabWidth <= 0f) return
+    val tabWidth = with(LocalDensity.current) { response.tabWidth.toDp() }
+    val capsuleShape = NavigationBarShape
+    Box(Modifier.matchParentSize().padding(4.dp).clearAndSetSemantics {}) {
+        val capsule = Modifier.fillMaxHeight().width(tabWidth).graphicsLayer {
+            translationX = glassTabOffset(response.drag.value, response.tabWidth, response.ltr)
+        }
+        Box(
+            if (enabled) capsule.glassNavigationCapsule(backdrop, capsuleShape, response, highlight, dark)
+            else capsule.background(MiuixTheme.colorScheme.primary.copy(alpha = 0.15f), capsuleShape),
+        )
+    }
+    // Draw after the lens so the selected capsule cannot obscure keyboard focus.
+    if (focusedIndex in AppDestination.entries.indices) {
+        val focusShape = remember { GlassShape(12.dp) }
+        Box(Modifier.matchParentSize().padding(4.dp).clearAndSetSemantics {}) {
+            Box(Modifier.fillMaxHeight().width(tabWidth).graphicsLayer {
+                translationX = glassTabOffset(focusedIndex.toFloat(), response.tabWidth, response.ltr)
+            }.border(2.dp, MiuixTheme.colorScheme.onSurface, focusShape))
         }
     }
 }

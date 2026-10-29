@@ -6,6 +6,7 @@ package com.ohmyfly.ui.glass
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -26,9 +28,10 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.ui.AppDestination
@@ -74,19 +77,28 @@ internal fun RowScope.GlassNavigationTabs(
                 .padding(horizontal = 4.dp, vertical = 8.dp)
                 .graphicsLayer { scaleX = sourceScale(); scaleY = scaleX },
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(1.dp, Alignment.CenterVertically),
         ) {
-            Icon(item.icon, contentDescription = null, modifier = Modifier.size(24.dp), tint = color)
+            Icon(item.icon, contentDescription = null, modifier = Modifier.size(22.dp), tint = color)
+            NavigationLabel(item.label, selected, color)
+        }
+    }
+}
+
+@Composable
+private fun NavigationLabel(label: String, selected: Boolean, color: Color) {
+    // Measure both weights so selection cannot change the tab's height or hit region.
+    Box(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = label }) {
+        listOf(FontWeight.Normal, FontWeight.Bold).forEach { weight ->
             Text(
-                item.label,
+                label,
                 modifier = Modifier.fillMaxWidth(),
                 fontSize = 11.sp,
                 lineHeight = 14.sp,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                fontWeight = weight,
                 textAlign = TextAlign.Center,
-                color = color,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                color = if (selected == (weight == FontWeight.Bold)) color else Color.Transparent,
+                softWrap = true,
             )
         }
     }

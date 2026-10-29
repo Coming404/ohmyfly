@@ -4,6 +4,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.ohmyfly.mirror.MirrorEntry
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.SettingsSession
+import com.ohmyfly.ui.AppMessageKind
+import com.ohmyfly.ui.AppMessageState
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +29,8 @@ class MirrorManualSaveTest {
         val disk = MutableStateFlow(AppSettings(mirrors = emptyList()))
         var writes = 0
         val session = SettingsSession(disk) { transform -> writes++; disk.value = transform(disk.value) }
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         backgroundScope.launch { session.run() }
         runCurrent()
         val owner = MirrorPageState(session, backgroundScope)
@@ -41,6 +45,7 @@ class MirrorManualSaveTest {
         assertTrue(disk.value.mirrors.isEmpty())
         assertSame(draft, owner.draft(null))
         assertEquals("新增", draft.name.text)
+        assertNull(messages.current)
     }
 
     @Test
@@ -49,6 +54,8 @@ class MirrorManualSaveTest {
         val gate = CompletableDeferred<Unit>()
         var writes = 0
         val session = SettingsSession(disk) { transform -> writes++; gate.await(); disk.value = transform(disk.value) }
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         backgroundScope.launch { session.run() }
         runCurrent()
         val owner = MirrorPageState(session, backgroundScope)
@@ -64,12 +71,15 @@ class MirrorManualSaveTest {
         assertEquals(1, writes)
         assertEquals(1, session.state.settings.mirrors.size)
         assertTrue(session.state.confirmedSettings!!.mirrors.isEmpty())
+        assertNull(messages.current)
         gate.complete(Unit)
         runCurrent()
         assertFalse(owner.visible)
         assertNotNull(draft.confirmed)
         assertEquals(1, disk.value.mirrors.size)
         assertNull(disk.value.selectedMirrorId)
+        assertEquals(AppMessageKind.Success, messages.current?.kind)
+        assertEquals("镜像已保存", messages.current?.text)
     }
 
     @Test
@@ -77,6 +87,8 @@ class MirrorManualSaveTest {
         val disk = MutableStateFlow(AppSettings(mirrors = listOf(entry)))
         var writes = 0
         val session = SettingsSession(disk) { writes++; error("storage unavailable") }
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         backgroundScope.launch { session.run() }
         runCurrent()
         val owner = MirrorPageState(session, backgroundScope)
@@ -99,6 +111,7 @@ class MirrorManualSaveTest {
         owner.submit(draft)
         runCurrent()
         assertEquals(2, writes)
+        assertNull(messages.current)
     }
 
     @Test
@@ -109,6 +122,8 @@ class MirrorManualSaveTest {
             if (fail) error("storage unavailable")
             disk.value = transform(disk.value)
         }
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         backgroundScope.launch { session.run() }
         runCurrent()
         val owner = MirrorPageState(session, backgroundScope)
@@ -118,6 +133,7 @@ class MirrorManualSaveTest {
         assertEquals(listOf(entry), disk.value.mirrors)
         assertTrue(disk.value.mirrorEnabled)
         assertTrue(owner.visible)
+        assertNull(messages.current)
         fail = false
         owner.delete(entry.id)
         runCurrent()
@@ -125,12 +141,15 @@ class MirrorManualSaveTest {
         assertFalse(disk.value.mirrorEnabled)
         assertNull(disk.value.selectedMirrorId)
         assertFalse(owner.visible)
+        assertEquals("镜像已删除", messages.current?.text)
     }
 
     @Test
     fun bareDomainIsNormalizedOnlyWhenUserSaves() = runTest {
         val disk = MutableStateFlow(AppSettings(mirrors = emptyList(), mirrorEnabled = false))
         val session = SettingsSession(disk) { transform -> disk.value = transform(disk.value) }
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         backgroundScope.launch { session.run() }
         runCurrent()
         val owner = MirrorPageState(session, backgroundScope)
@@ -143,5 +162,6 @@ class MirrorManualSaveTest {
         runCurrent()
         assertEquals("https://www.example.com/Base/", disk.value.mirrors.single().address)
         assertFalse(disk.value.mirrorEnabled)
+        assertEquals("镜像已保存", messages.current?.text)
     }
 }

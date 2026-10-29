@@ -29,7 +29,7 @@ internal class SettingsEdits(val session: SettingsSession, private val scope: Co
         validate: (String) -> String?,
         write: (AppSettings, String) -> AppSettings,
     ): SettingDraftState = drafts.getOrPut(page to key) {
-        SettingDraftState(read(session.state.confirmedSettings ?: session.state.settings), read, validate, write)
+        SettingDraftState(read(session.state.confirmedSettings ?: session.state.settings), read, validate, write, name = key)
     }
 
     fun input(draft: SettingDraftState, value: TextFieldValue) {
@@ -46,7 +46,7 @@ internal class SettingsEdits(val session: SettingsSession, private val scope: Co
         val candidate = draft.begin(reason) ?: return
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             try {
-                draft.complete(session.changeConfirmed { current -> draft.write(current, candidate) })
+                draft.complete(session.changeConfirmed(name = draft.name, reportErrors = false) { current -> draft.write(current, candidate) })
             } finally {
                 draft.saving = false
                 session.state.confirmedSettings?.let { draft.sync(draft.read(it)) }
@@ -59,7 +59,11 @@ internal class SettingsEdits(val session: SettingsSession, private val scope: Co
     }
 
     suspend fun reset(target: SettingsResetTarget): SettingsWriteResult {
-        val result = session.changeConfirmed(target::apply)
+        val result = session.changeConfirmed(
+            name = if (target.page == null) "全部默认设置" else "本页默认设置",
+            successText = if (target.page == null) "已恢复全部默认设置" else "已恢复本页默认设置",
+            transform = target::apply,
+        )
         if (result is SettingsWriteResult.Confirmed) {
             drafts.filterKeys { target.page == null || it.first == target.page }.values.forEach {
                 it.sync(it.read(result.settings), reset = true)
@@ -74,6 +78,7 @@ internal class SettingDraftState(
     val read: (AppSettings) -> String,
     private val validate: (String) -> String?,
     val write: (AppSettings, String) -> AppSettings,
+    val name: String? = null,
 ) {
     var value by mutableStateOf(TextFieldValue(initial))
         private set

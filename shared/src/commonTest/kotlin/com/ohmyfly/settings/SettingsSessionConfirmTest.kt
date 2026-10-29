@@ -1,5 +1,7 @@
 package com.ohmyfly.settings
 
+import com.ohmyfly.ui.AppMessageKind
+import com.ohmyfly.ui.AppMessageState
 import com.ohmyfly.ui.ThemeMode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -28,6 +30,8 @@ class SettingsSessionConfirmTest {
             gate.await()
             values.value = transform(values.value)
         }
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         backgroundScope.launch { session.run() }
         runCurrent()
 
@@ -38,6 +42,7 @@ class SettingsSessionConfirmTest {
         assertEquals(ThemeMode.System, session.state.confirmedSettings?.themeMode)
         assertEquals(1, session.state.pendingWrites)
         assertFalse(result.isCompleted)
+        assertEquals(null, messages.current)
 
         gate.complete(Unit)
         runCurrent()
@@ -46,6 +51,7 @@ class SettingsSessionConfirmTest {
         assertEquals(ThemeMode.Dark, settled.settings.themeMode)
         assertEquals(settled.settings, session.state.settings)
         assertEquals(settled.settings, session.state.confirmedSettings)
+        assertEquals("设置已保存", messages.current?.text)
         assertEquals(0, session.state.pendingWrites)
     }
 
@@ -57,6 +63,8 @@ class SettingsSessionConfirmTest {
             gate.await()
             values.value = transform(values.value)
         }
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         backgroundScope.launch { session.run() }
         runCurrent()
 
@@ -69,6 +77,7 @@ class SettingsSessionConfirmTest {
         assertFalse(session.state.confirmedSettings?.reduceMotion ?: false)
         assertEquals(1, session.state.pendingWrites)
         assertFalse(result.isCompleted)
+        assertEquals(null, messages.current)
 
         gate.complete(Unit)
         runCurrent()
@@ -87,6 +96,8 @@ class SettingsSessionConfirmTest {
             if (writes == 2) error("storage unavailable")
             values.value = transform(values.value)
         }
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         backgroundScope.launch { session.run() }
         runCurrent()
 
@@ -107,7 +118,7 @@ class SettingsSessionConfirmTest {
         assertEquals(MaterialMode.LiquidGlass, session.state.settings.materialMode)
         assertEquals(false, session.state.settings.reduceTransparency)
         assertEquals(0, session.state.pendingWrites)
-        assertTrue(session.state.error != null)
+        assertEquals(AppMessageKind.Failure, messages.current?.kind)
     }
 
     @Test
@@ -115,6 +126,8 @@ class SettingsSessionConfirmTest {
         val values = MutableStateFlow(AppSettings())
         var writes = 0
         val session = SettingsSession(values) { writes++ }
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         backgroundScope.launch { session.run() }
         runCurrent()
 
@@ -124,7 +137,7 @@ class SettingsSessionConfirmTest {
         runCurrent()
         assertEquals(0, writes)
         assertEquals(0, session.state.pendingWrites)
-        assertTrue(session.state.error != null)
+        assertEquals(AppMessageKind.Error, messages.current?.kind)
     }
 
     @Test
@@ -143,6 +156,8 @@ class SettingsSessionConfirmTest {
             writes++
             committed = transform(committed)
         }
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         backgroundScope.launch { session.run() }
         runCurrent()
 
@@ -151,6 +166,7 @@ class SettingsSessionConfirmTest {
         assertEquals(1, writes)
         assertTrue(session.state.readFailed)
         assertTrue(session.state.writeUncertain)
+        assertEquals(null, messages.current)
         assertEquals(0, session.state.pendingWrites)
         // 磁盘结果未知：不假装已确认，也不回滚成旧值。
         assertEquals(ThemeMode.Dark, session.state.settings.themeMode)
@@ -188,6 +204,8 @@ class SettingsSessionConfirmTest {
             error("read failed")
         }
         val session = SettingsSession(values) { writes++ }
+        val messages = AppMessageState()
+        session.onMessage = messages::show
         backgroundScope.launch { session.run() }
         runCurrent()
 
@@ -196,12 +214,14 @@ class SettingsSessionConfirmTest {
         assertEquals(1, writes)
         assertTrue(session.state.readFailed)
         assertTrue(session.state.writeUncertain)
+        assertEquals(null, messages.current)
 
         session.retryRead()
         runCurrent()
         // 重读失败时既不重发写入，也不清掉界面草稿值。
         assertTrue(session.state.readFailed)
         assertTrue(session.state.writeUncertain)
+        assertEquals(null, messages.current)
         assertEquals(1, writes)
         assertEquals(ThemeMode.Dark, session.state.settings.themeMode)
         assertEquals(AppSettings(), session.state.confirmedSettings)

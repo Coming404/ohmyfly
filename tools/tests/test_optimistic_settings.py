@@ -25,13 +25,11 @@ class OptimisticSettingsTests(unittest.TestCase):
     def test_first_read_must_finish_before_any_write(self):
         session = (COMMON / 'settings/SettingsSession.kt').read_text()
         self.assertIn('var state by mutableStateOf(SettingsUiState())', session)
-        change = session.split('fun change(', 1)[1].split('fun dismissError', 1)[0]
-        confirmed_change = session.split('suspend fun changeConfirmed', 1)[1].split('fun dismissError', 1)[0]
-        self.assertIn('if (confirmed == null || state.readFailed) return', change)
-        self.assertIn('if (confirmed == null || state.readFailed) return SettingsWriteResult.Rejected', confirmed_change)
-        self.assertLess(change.index('validateSettings(next)'), change.index('pending.addLast(transform)'))
-        self.assertLess(change.index('state = state.copy(settings = next'), change.index('activeScope.launch'))
-        self.assertIn('update(pending.first())', session)
+        enqueue = session.split('private fun enqueue(', 1)[1].split('fun retryRead()', 1)[0]
+        self.assertIn('activeScope == null || confirmed == null || state.readFailed', enqueue)
+        self.assertLess(enqueue.index('validateSettings(next)'), enqueue.index('pending.addLast(change)'))
+        self.assertLess(enqueue.index('state = state.copy(settings = next'), enqueue.index('activeScope.launch'))
+        self.assertIn('update(pending.first().transform)', session)
         self.assertNotIn('update { next', session)
 
     def test_failure_dialog_lives_inside_scaffold_content(self):
@@ -70,9 +68,10 @@ class OptimisticSettingsTests(unittest.TestCase):
         self.assertIn('if (pending.isEmpty()) reader?.cancel()', session)
         self.assertIn('confirmed = values.first()', session)
         self.assertIn('pending.removeFirst()', session)
-        self.assertIn('rollback(SAVE_ERROR)', session)
+        self.assertIn('rollback(reportFailure = true)', session)
         self.assertIn('pending.clear()', session)
-        self.assertIn('settings = confirmed ?: state.settings, error = error', session)
+        self.assertIn('settings = confirmed ?: state.settings, confirmedSettings = confirmed', session)
+        self.assertNotIn('state.error', session)
         self.assertIn('catch (cancelled: CancellationException)', session)
         self.assertIn('currentCoroutineContext().ensureActive()', session)
         self.assertIn('scope = null', session)

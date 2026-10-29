@@ -87,7 +87,7 @@ internal class MirrorPageState(
         val request = ++draft.submission
         scope.launch {
             try {
-                val outcome = session.changeConfirmed { current ->
+                val outcome = session.changeConfirmed(name = "镜像", reportErrors = false, successText = "镜像已保存") { current ->
                     current.copy(mirrors = if (current.mirrors.any { it.id == entry.id }) {
                         current.mirrors.map { if (it.id == entry.id) entry else it }
                     } else current.mirrors + entry)
@@ -147,7 +147,7 @@ internal class MirrorPageState(
         deleteError = null
         scope.launch {
             try {
-                when (session.changeConfirmed { current ->
+                when (session.changeConfirmed(name = "镜像", reportErrors = false, successText = "镜像已删除") { current ->
                     val remaining = removedMirror(current.mirrors, id)
                     current.copy(
                         mirrors = remaining,

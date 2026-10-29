@@ -49,7 +49,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 internal fun MirrorSettingsPage(
     settings: AppSettings,
-    onChange: ((AppSettings) -> AppSettings) -> Unit,
+    onChange: (String, (AppSettings) -> AppSettings) -> Unit,
     contentPadding: PaddingValues,
     onEditorBackChange: ((() -> Unit)?) -> Unit,
     session: SettingsSession,
@@ -88,7 +88,7 @@ internal fun MirrorSettingsPage(
     LaunchedEffect(runner.completedBatchId, mirrors) {
         val fastest = runner.consumeFastestMirrorId()?.takeIf { id -> mirrors.any { it.id == id } }
         if (fastest != null && settings.selectedMirrorId != fastest) {
-            onChange { current ->
+            onChange("镜像选择") { current ->
                 if (current.selectedMirrorId == fastest) current else current.copy(selectedMirrorId = fastest)
             }
         }
@@ -108,14 +108,6 @@ internal fun MirrorSettingsPage(
     val unfinished = page.drafts.values.filter { it.unfinished }
     Box(Modifier.fillMaxSize()) {
         SettingsList(padding, listState) {
-            if (session.state.readFailed) item(key = "mirror-read-error") {
-                MirrorEditorFeedback("设置结果待确认，已暂停写入")
-                TextButton(text = "重试读取", onClick = hapticClick { session.retryRead() })
-            }
-            if (session.state.error != null && !page.present) item(key = "mirror-write-error") {
-                MirrorEditorFeedback("设置未保存，已恢复上次确认值")
-                TextButton(text = "关闭提示", onClick = hapticClick { session.dismissError() })
-            }
             item(key = "mirror-title") {
                 Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically) {
@@ -127,7 +119,7 @@ internal fun MirrorSettingsPage(
             item(key = "mirror-enabled") {
                 SettingsCard {
                     ToggleSetting("启用镜像", value = settings.mirrorEnabled,
-                        onChange = { enabled -> onChange { it.copy(mirrorEnabled = enabled) } },
+                        onChange = { enabled -> onChange("启用镜像") { it.copy(mirrorEnabled = enabled) } },
                         leadingIcon = MirrorIcons.Power,
                         enabled = !session.state.readFailed)
                 }
@@ -169,7 +161,7 @@ internal fun MirrorSettingsPage(
                                 name = entry.name, address = hostOf(entry.address), selected = entry.id == selectedId,
                                 selectionEnabled = settings.mirrorEnabled && !session.state.readFailed,
                                 result = runner.result(entry.id), phase = runner.phase(entry.id),
-                                onSelect = { if (settings.selectedMirrorId != entry.id) onChange { it.copy(selectedMirrorId = entry.id) } },
+                                onSelect = { if (settings.selectedMirrorId != entry.id) onChange("镜像选择") { it.copy(selectedMirrorId = entry.id) } },
                                 testing = runner.running || runner.stopping,
                                 canWrite = !session.state.readFailed,
                                 onTest = { runner.measure(entry.id, entry) },
