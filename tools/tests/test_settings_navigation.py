@@ -37,7 +37,7 @@ class SettingsNavigationTests(unittest.TestCase):
         self.assertNotIn('Scaffold(', screen)
         self.assertIn('.background(background)', screen)
         self.assertIn('summary = writeError', screen)
-        self.assertIn('onClick = hapticClick(onDismissError)', screen)
+        self.assertIn('SettingsButton("关闭提示", DriftIcons.Clear, onClick = onDismissError)', screen)
         self.assertEqual(1, app.count('Scaffold('))
         self.assertIn('Modifier.layerBackdrop(backdrop)', app)
 
@@ -49,12 +49,20 @@ class SettingsNavigationTests(unittest.TestCase):
         self.assertIn('navGraphicsTransition(', nav_transition)
         self.assertIn('motion = appNavMotion', nav_transition)
         self.assertIn('NavSettleSpec.Spring(', nav_transition)
-        self.assertIn('PagerNavigationSpringSpec.dampingRatio', nav_transition)
-        self.assertIn('PagerNavigationSpringSpec.stiffness', nav_transition)
+        self.assertIn('dampingRatio = 0.72f', nav_transition)
+        self.assertIn('stiffness = 400f', nav_transition)
+        self.assertNotIn('PagerNavigationSpringSpec', nav_transition)
+        self.assertIn('translationX = appNavTranslationX(', nav_transition)
+        self.assertNotIn('coerceIn', nav_transition)
+        self.assertIn('alpha = 1f', nav_transition)
+        self.assertNotIn('roundToInt', nav_transition)
         self.assertIn('clampOvershoot = false', nav_transition)
         for phase in ('commit', 'cancel', 'programmatic'):
             self.assertIn(f'{phase} = appNavSettleSpec', nav_transition)
         self.assertIn('enableCornerClip = false', screen)
+        self.assertIn('dimAmount = 0f', screen)
+        self.assertIn('backdropColor = background', screen)
+        self.assertIn('Modifier.fillMaxSize().clipToBounds()', screen)
         self.assertIn('blockInputDuringTransition = true', screen)
         self.assertIn('editorBackActive || !motionAllowed -> NavSwipeDirection.None', screen)
         self.assertIn('direction == LayoutDirection.Rtl -> NavSwipeDirection.RightToLeft', screen)
@@ -108,9 +116,12 @@ class SettingsNavigationTests(unittest.TestCase):
         ).splitlines()
         count = sum(Path(p).read_text().count('@Test') for p in files)
         gate = (ROOT / '.github/workflows/build.yml').read_text()
-        self.assertEqual(190, count)
-        gate = (ROOT / '.github/workflows/build.yml').read_text()
-        self.assertEqual(count, int(re.search(r'if total < (\d+) or failed', gate).group(1)))
+        nav_test = ROOT / 'shared/src/commonTest/kotlin/com/ohmyfly/ui/AppNavTransitionTest.kt'
+        self.assertEqual(8, nav_test.read_text().count('@Test'))
+        self.assertEqual(218, count)
+        floor = int(re.search(r'if total < (\d+) or failed', gate).group(1))
+        self.assertEqual(190, floor)
+        self.assertGreaterEqual(count, floor)
 
 
 if __name__ == '__main__':

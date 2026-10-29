@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.LayoutDirection
@@ -22,6 +25,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 internal fun SettingsActionRow(
     title: String,
+    icon: ImageVector,
     value: String? = null,
     onClick: () -> Unit,
 ) {
@@ -31,9 +35,11 @@ internal fun SettingsActionRow(
         onClick = hapticClick(onClick),
         onClickLabel = "打开$title",
         role = Role.Button,
+        startAction = { SettingsLeadingIcon(icon) },
         endActions = {
             if (!value.isNullOrBlank()) {
                 Text(value, fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End,
                     modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp))
             }
             Icon(
@@ -46,6 +52,6 @@ internal fun SettingsActionRow(
             )
         },
     ) {
-        Text(title, fontSize = 16.sp)
+        SettingsName(title)
     }
 }

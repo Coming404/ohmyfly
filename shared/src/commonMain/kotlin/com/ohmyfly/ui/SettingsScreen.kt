@@ -12,12 +12,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.unit.LayoutDirection
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.SettingsSession
 import com.ohmyfly.ui.settings.*
-import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.nav.core.NavBackStack
 import top.yukonga.miuix.kmp.nav.core.NavDisplay
 import top.yukonga.miuix.kmp.nav.core.NavDisplayEffects
@@ -56,35 +55,44 @@ internal fun SettingsScreen(
         direction == LayoutDirection.Rtl -> NavSwipeDirection.RightToLeft
         else -> NavSwipeDirection.LeftToRight
     }
-    NavDisplay(
-        backStack = backStack,
-        onBack = onBack,
-        modifier = Modifier.fillMaxSize(),
-        transition = if (motionAllowed) AppNavTransition else NavTransitions.None,
-        effects = if (motionAllowed) {
-            NavDisplayEffects(enableCornerClip = false, blockInputDuringTransition = true)
-        } else NavDisplayEffects.None,
-    ) {
-        entry<SettingsPage>(swipeDismiss = swipeDirection) { page ->
-            Column(Modifier.fillMaxSize().background(background)
-                .padding(top = if (showWriteError) contentPadding.calculateTopPadding() else 0.dp)) {
-                if (showWriteError && writeError != null) {
-                    BasicComponent(title = "设置未保存", summary = writeError)
-                    TextButton(text = "关闭提示", onClick = hapticClick(onDismissError))
-                }
-                if (session.state.readFailed && page != SettingsPage.Mirrors) {
-                    BasicComponent(title = "设置结果待确认", summary = "无法读取本地设置，已暂停写入。")
-                    TextButton(text = "重试读取", onClick = hapticClick { session.retryRead() })
-                }
-                when (page) {
-                    SettingsPage.Home -> SettingsHome(settings, onChange, onPage, version, listState, pagePadding)
-                    SettingsPage.Speed -> SpeedSettingsPage(settings, onChange, pagePadding)
-                    SettingsPage.Media -> MediaSettingsPage(settings, onChange, pagePadding)
-                    SettingsPage.Subscription -> SubscriptionSettingsPage(settings, onChange, pagePadding)
-                    SettingsPage.Mirrors -> MirrorSettingsPage(settings, onChange, pagePadding, onEditorBackChange,
-                        session, runner, onMirrorAddChange)
-                    SettingsPage.Privacy -> PrivacySettingsPage(settings, onChange, pagePadding)
-                    SettingsPage.About -> AboutSettingsPage(version, pagePadding)
+    SettingsEditHost(session) {
+        NavDisplay(
+            backStack = backStack,
+            onBack = onBack,
+            modifier = Modifier.fillMaxSize().clipToBounds(),
+            transition = if (motionAllowed) AppNavTransition else NavTransitions.None,
+            effects = if (motionAllowed) {
+                NavDisplayEffects(
+                    enableCornerClip = false,
+                    dimAmount = 0f,
+                    blockInputDuringTransition = true,
+                    backdropColor = background,
+                )
+            } else NavDisplayEffects.None,
+        ) {
+            entry<SettingsPage>(swipeDismiss = swipeDirection) { page ->
+                SettingsPageScope(page) {
+                    Column(Modifier.fillMaxSize().background(background)
+                        .padding(top = if (showWriteError) contentPadding.calculateTopPadding() else 0.dp)) {
+                        if (showWriteError && writeError != null) {
+                            SettingsInfo("设置未保存", summary = writeError, icon = MirrorIcons.Alert, isError = true)
+                            SettingsButton("关闭提示", DriftIcons.Clear, onClick = onDismissError)
+                        }
+                        if (session.state.readFailed && page != SettingsPage.Mirrors) {
+                            SettingsHint("设置结果待确认：无法读取本地设置，已暂停写入。", isError = true)
+                            SettingsButton("重试读取", SettingsIcons.Retry) { session.retryRead() }
+                        }
+                        when (page) {
+                            SettingsPage.Home -> SettingsHome(settings, onChange, onPage, version, listState, pagePadding)
+                            SettingsPage.Speed -> SpeedSettingsPage(settings, onChange, pagePadding)
+                            SettingsPage.Media -> MediaSettingsPage(settings, onChange, pagePadding)
+                            SettingsPage.Subscription -> SubscriptionSettingsPage(pagePadding)
+                            SettingsPage.Mirrors -> MirrorSettingsPage(settings, onChange, pagePadding, onEditorBackChange,
+                                session, runner, onMirrorAddChange)
+                            SettingsPage.Privacy -> PrivacySettingsPage(pagePadding)
+                            SettingsPage.About -> AboutSettingsPage(version, pagePadding)
+                        }
+                    }
                 }
             }
         }

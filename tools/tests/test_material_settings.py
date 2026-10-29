@@ -24,7 +24,9 @@ class MaterialSettingsTests(unittest.TestCase):
         self.assertIn('onChange { it.copy(materialMode = MaterialMode.valueOf(name)) }', home)
         self.assertNotIn('mutableStateOf', home)
         choice = (MAIN / 'ui/settings/ChoiceSetting.kt').read_text()
-        self.assertIn('OverlayDropdownPreference(', choice)
+        self.assertIn('OverlayDropdownPopup(', choice)
+        self.assertIn('DropdownArrowEndAction(', choice)
+        self.assertIn('SettingsName(title)', choice)
 
     def test_codec_adds_optional_key_without_new_store_or_schema(self):
         codec = (MAIN / 'settings/SettingsCodec.kt').read_text()

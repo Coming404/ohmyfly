@@ -65,12 +65,16 @@ class GlassAccessibilityTests(unittest.TestCase):
 
     def test_settings_errors_are_associated_with_input_and_actions_can_wrap(self):
         controls = (COMMON / 'ui/settings/SettingsControls.kt').read_text()
-        self.assertIn('TextField(value = draft, onValueChange = { draft = it }, label = title, modifier = Modifier.fillMaxWidth().semantics', controls)
+        components = (COMMON / 'ui/settings/SettingsComponents.kt').read_text()
+        reset = (COMMON / 'ui/settings/ResetSettings.kt').read_text()
+        self.assertIn('value = draft.value', controls)
+        self.assertIn('onValueChange = { edits.input(draft, it) }', controls)
         self.assertIn('SettingsInputMenu {', controls)
-        self.assertIn('validationError?.let { error(it) }', controls)
-        self.assertIn('liveRegion = LiveRegionMode.Polite', controls)
-        self.assertEqual(2, controls.count('FlowRow('))
-        self.assertIn('enabled = validationError == null && input != value', controls)
+        self.assertIn('contentDescription = title; draft.error?.let { error(it) }', controls)
+        self.assertIn('SettingsHint(it, isError = true)', controls)
+        self.assertIn('if (isError) liveRegion = LiveRegionMode.Polite', components)
+        self.assertIn('FlowRow(', reset)
+        self.assertIn('enabled = !state.busy', reset)
         self.assertNotIn('fontScale =', controls)
 
 

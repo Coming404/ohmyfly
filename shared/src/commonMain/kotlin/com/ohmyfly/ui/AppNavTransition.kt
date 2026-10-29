@@ -1,17 +1,15 @@
 package com.ohmyfly.ui
 
 import androidx.compose.ui.unit.LayoutDirection
-import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.nav.transition.NavMotion
 import top.yukonga.miuix.kmp.nav.transition.NavSettleSpec
 import top.yukonga.miuix.kmp.nav.transition.NavTransition
 import top.yukonga.miuix.kmp.nav.transition.navGraphicsTransition
-import top.yukonga.miuix.kmp.utils.PagerNavigationSpringSpec
 
-// Keep all NavDisplay settle phases aligned with the root pager's slightly underdamped spring.
+// About 4% full-step overshoot; subpage motion is independent of the root pager.
 private val appNavSettleSpec = NavSettleSpec.Spring(
-    dampingRatio = PagerNavigationSpringSpec.dampingRatio,
-    stiffness = PagerNavigationSpringSpec.stiffness,
+    dampingRatio = 0.72f,
+    stiffness = 400f,
     clampOvershoot = false,
 )
 
@@ -21,19 +19,18 @@ private val appNavMotion = NavMotion(
     programmatic = appNavSettleSpec,
 )
 
-/** Miuix-default slide/parallax geometry, driven by the app's shared spring settle motion. */
+// A role derived from depth changes at zero; keep one continuous, opaque slide across it.
+internal fun appNavTranslationX(relativeDepth: Float, width: Int, rtl: Boolean): Float =
+    (if (rtl) 1f else -1f) * relativeDepth * width
+
+/** Horizontal hierarchy push/pop with the same geometry for finger tracking and spring settle. */
 internal val AppNavTransition: NavTransition = navGraphicsTransition(
     motion = appNavMotion,
 ) { scope ->
-    val depth = scope.relativeDepth
-    val width = scope.layoutSize.width.toFloat()
-    val rtl = scope.layoutDirection == LayoutDirection.Rtl
-    if (depth <= 0f) {
-        val sign = if (rtl) -1f else 1f
-        translationX = (sign * (-depth).coerceIn(0f, 1f) * width).roundToInt().toFloat()
-    } else {
-        val covered = depth.coerceIn(0f, 1f)
-        translationX = (if (rtl) 1f else -1f) * covered * width * 0.25f
-        alpha = 1f - 0.1f * covered
-    }
+    alpha = 1f
+    translationX = appNavTranslationX(
+        relativeDepth = scope.relativeDepth,
+        width = scope.layoutSize.width,
+        rtl = scope.layoutDirection == LayoutDirection.Rtl,
+    )
 }
