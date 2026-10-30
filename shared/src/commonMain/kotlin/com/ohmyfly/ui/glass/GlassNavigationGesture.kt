@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sign
-import com.ohmyfly.startup.StartupRecords
 import kotlinx.coroutines.launch
 
 /** Only a visual/gesture preview. The App's destination is the sole committed selection. */
@@ -65,7 +64,6 @@ internal fun rememberGlassNavigationGesture(
         val response = remember(scope, count, inset, ltr) {
             val offset = Animatable(0f)
             lateinit var response: GlassNavigationGesture
-            var moved = false
             fun returnPanel() {
                 scope.launch {
                     if (deforming) offset.animateTo(0f, spring(1f, 300f, 0.5f))
@@ -83,26 +81,20 @@ internal fun rememberGlassNavigationGesture(
                 deformationAllowed = { deforming },
                 canDrag = { it.x in 0f..response.width },
                 onDragStarted = { position ->
-                    val index = glassTabAt(position.x, response.width, inset, count, ltr)
-                    moved = false
-                    StartupRecords.mark("导航按下 第 ${index + 1} 项")
-                    updateValue(index.toFloat())
+                    updateValue(glassTabAt(position.x, response.width, inset, count, ltr).toFloat())
                 },
                 onDragStopped = {
                     val index = targetValue.roundToInt().coerceIn(0, count - 1)
-                    StartupRecords.mark("导航拖动松手 第 ${index + 1} 项")
                     if (selected != index) select(index)
                     updateValue(index.toFloat())
                     returnPanel()
                 },
                 onDragCancelled = {
-                    StartupRecords.mark("导航抬起（点击或取消）")
                     updateValue(selected.toFloat())
                     returnPanel()
                 },
                 onDrag = { _, delta ->
                     if (response.tabWidth > 0f && delta.x != 0f) {
-                        if (!moved) { moved = true; StartupRecords.mark("导航开始拖动") }
                         updateValue(targetValue + delta.x / response.tabWidth * if (ltr) 1f else -1f)
                         if (deforming) scope.launch { offset.snapTo(offset.value + delta.x) }
                     }

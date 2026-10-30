@@ -86,6 +86,8 @@
 
 **点击卡顿（2026-10-31，更正）**：用户确认只有装新包后首次启动时，点击和拖动底栏、打开下拉框才卡。两次记录（20:46、21:17，液态玻璃）中 86 和 94 条操作事件之后 500ms 内主线程帧间隔都不超过 17ms。此前“CMP 在主线程同步绘制、可排除主线程以外的原因”的判断有误：那是 LegacyMetalRedrawer；CMP 1.12.0 默认 parallelRendering = true（ComposeContainerConfiguration），使用 SurfaceMetalRedrawer 和 CMPMetalLayer（CALayer 子类，自管 IOSurface 缓冲）。主线程只录制 Picture，drawPicture、flushAndSubmit（Skia 首次生成并编译着色器管线）在后台 RenderingDispatchQueue 上执行，新帧到来时旧的待绘帧被丢弃；CMPMetalLayer.findNextDrawable 在上一帧 GPU 未完成时返回 nil，nextDrawable 每 1ms 轮询。所以渲染线程或 GPU 卡住时主线程帧间隔照常 16.7ms，屏幕却不更新。第一版钩子交换 CAMetalLayer.nextDrawable，取得缓冲 0 次即因此。第二版改为包装 CMPMetalLayer 的 presentOnMainThread:onDisplay:（记录 contents 实际被替换的时间，即画面更新）和 nextDrawable（记录渲染线程等待上一帧 GPU 完成 ≥ 1ms 的时长），每条操作事件附其后 500ms 内最长画面更新间隔和最长等待。判读：画面更新间隔长而等待短，是渲染线程的 CPU 工作（推断为着色器首次编译），改法为启动画面期间提前绘制按压态等效果；等待也长，是 GPU 负载，改法为降低按压时的效果开销。
 
+**第二版钩子结果与决定（2026-10-31）**：22:00 记录（573eb3b，装新包后首次启动）主线程只有启动画面期间 989ms 长帧；画面更新 992 次，中位 16.7ms、P95 20.9ms，34 次超过 25ms；等待绘制缓冲仅 6 次、最长 4.5ms，排除 GPU 负载。长间隔都在第一次用到某个画面时：首次切到塔台 581ms，首次进设置三段约 190ms，首次拖动底栏多段 30 至 100ms，首次打开下拉框 254ms、首次关闭 123ms，首次切到柔光 126ms、液态 87ms，首次进航班 90ms；同样操作第二次约 20 至 25ms。推断为渲染线程首次编译 Metal 管线，系统着色器缓存在装新包后失效（Lens.kt 在 chromaticAberration > 0 时换用带色散的着色器，所以液态玻璃第一次按压也会编译）。用户决定接受现状，不做预热或着色器合并，也不做二次启动对照。随后按用户要求删除整套启动记录（双端 startup 包、关于页“导出启动记录”、Android FileProvider、iosApp/PresentTiming.swift 及其工程条目、shared 的 androidx.core 依赖与版本目录条目、底栏和下拉框事件点、相关测试），入口同步读取设置保留。
+
 **验收**：相同设备/温度/电量模式下重复测量并记录中位数、P95 帧耗和长帧。60Hz 的一帧约 16.7ms，120Hz 约 8.3ms；按设备实际刷新率评估。目标是支持设备上稳定、响应及时，不能在缺少设备记录时承诺全机型跑满 120fps。
 
 ### 3.5 应用深色模式导致状态栏图标不可见（原反馈 5）

@@ -40,8 +40,7 @@ class SettingsPressFeedbackTests(unittest.TestCase):
                         choice.index('SettingsRowFeedback {'))
         self.assertRegex(choice, r'CompositionLocalProvider\(LocalIndication provides popupIndication\)\s*\{\s*OverlayDropdownPopup\(')
         self.assertIn('holdDownState = held', choice)
-        self.assertIn('onDismiss = { expanded = false;', choice)
-        self.assertIn('onDismissFinished = { held = false;', choice)
+        self.assertIn('onDismiss = { expanded = false }, onDismissFinished = { held = false }', choice)
         self.assertIn('enabled = options.isNotEmpty()', choice)
 
     def test_feedback_cannot_consume_gestures_or_wait_for_press_animation(self):

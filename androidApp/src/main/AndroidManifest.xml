@@ -8,15 +8,6 @@
         android:label="OhMyFly"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
-        <provider
-            android:name=".StartupRecordProvider"
-            android:authorities="${applicationId}.startup-records"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/startup_record_paths" />
-        </provider>
         <activity
             android:name=".MainActivity"
             android:exported="true"

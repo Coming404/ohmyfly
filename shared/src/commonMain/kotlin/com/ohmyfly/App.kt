@@ -46,10 +46,6 @@ import com.ohmyfly.mirror.MirrorProbe
 import com.ohmyfly.mirror.createMirrorTransport
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.SettingsSession
-import com.ohmyfly.startup.StartupRecords
-import com.ohmyfly.startup.StartupFrameRecording
-import com.ohmyfly.startup.StartupSettingsRecording
-import com.ohmyfly.startup.startupFirstDraw
 import com.ohmyfly.ui.HeaderAction
 import com.ohmyfly.ui.settings.MirrorDialog
 import com.ohmyfly.ui.settings.MirrorIcons
@@ -74,12 +70,9 @@ fun App(
     version: String,
     onThemeChanged: (dark: Boolean, followsSystem: Boolean) -> Unit,
 ) {
-    val startupRecord = remember { StartupRecords.appComposed(version) }
-    StartupFrameRecording(startupRecord)
     PersistedSettings(settingsPath) { settings, onChange, session, onRetryRead ->
         val themeMode = settings.themeMode
         val dark = themeMode.isDark(isSystemInDarkTheme())
-        StartupSettingsRecording(startupRecord, session, settings, dark)
         LaunchedEffect(dark, themeMode) {
             onThemeChanged(dark, themeMode == ThemeMode.System)
         }
@@ -123,10 +116,8 @@ private fun AppContent(
     LaunchedEffect(destination, motionAllowed) {
         val targetPage = destinations.indexOf(destination)
         if (pagerState.settledPage != targetPage) {
-            StartupRecords.mark("页面切换开始 ${destination.label}")
             if (motionAllowed) pagerState.springAnimateToPage(targetPage)
             else pagerState.scrollToPage(targetPage)
-            StartupRecords.mark("页面切换结束 ${destination.label}")
         }
     }
     val settingsStack = rememberNavBackStack<SettingsPage>(SettingsPage.Home)
@@ -195,7 +186,7 @@ private fun AppContent(
             Box(
                 modifier = Modifier.fillMaxSize().consumeWindowInsets(padding)
                     .then(if (glassEnabled) Modifier.layerBackdrop(backdrop) else Modifier)
-                    .background(background).startupFirstDraw(),
+                    .background(background),
                 contentAlignment = Alignment.TopCenter,
             ) {
                 Box(Modifier.widthIn(max = 760.dp).fillMaxSize()) {

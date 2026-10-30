@@ -11,13 +11,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.core.view.WindowCompat
 import com.ohmyfly.App
 import com.ohmyfly.settings.androidSettingsPath
-import com.ohmyfly.startup.recordAndroidStartupEntry
 
 class MainActivity : ComponentActivity() {
     private var dynamicColorSeed by mutableStateOf<Color?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        recordAndroidStartupEntry(this)
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val path = androidSettingsPath(applicationContext)
