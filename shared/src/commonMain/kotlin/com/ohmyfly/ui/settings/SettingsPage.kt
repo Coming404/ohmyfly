@@ -13,6 +13,7 @@ internal enum class SettingsPage(val title: String) : NavKey {
     Mirrors("GitHub 镜像"),
     Privacy("数据与隐私"),
     About("关于"),
+    Sponsor("赞助"),
 }
 
 /** Settings currently has one child level; ignore stale/double taps from the home entry. */

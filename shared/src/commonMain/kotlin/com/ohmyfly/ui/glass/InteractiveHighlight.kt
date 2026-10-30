@@ -54,10 +54,6 @@ internal class InteractiveHighlight(
     fun Modifier.drawHighlight(alpha: () -> Float = highlightAlpha, sourceScale: Float = 1f): Modifier = drawWithContent {
         val progress = pressProgressAnimation.value * alpha().coerceIn(0f, 1f)
         if (progress > 0f) {
-            drawRect(
-                color = Color.White.copy(alpha = 0.06f * progress),
-                blendMode = BlendMode.Plus,
-            )
             val pos = position(size, positionAnimation.value) * sourceScale
             val spotSize = gestureSize.takeUnless { it == Size.Zero } ?: size
             val radius = ((spotRadius?.toPx() ?: (spotSize.minDimension * 1.2f)) * sourceScale)

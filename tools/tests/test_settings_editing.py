@@ -36,7 +36,7 @@ class SettingsEditingIntegrationTests(unittest.TestCase):
         section = components.split('internal fun SettingsSectionTitle(', 1)[1].split('@Composable', 1)[0]
         info = components.split('internal fun SettingsInfo(', 1)[1].split('@Composable', 1)[0]
         self.assertIn('fontSize = 15.sp', name)
-        self.assertIn('FontWeight.Normal', name)
+        self.assertIn('FontWeight.Medium', name)
         self.assertIn('fontSize = 15.sp', section)
         self.assertIn('FontWeight.Bold', section)
         self.assertIn('MiuixTheme.colorScheme.onSurface', section)

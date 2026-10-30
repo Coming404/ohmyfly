@@ -72,7 +72,7 @@ class GlassAccessibilityTests(unittest.TestCase):
         self.assertIn('SettingsInputMenu {', controls)
         self.assertIn('contentDescription = title; draft.error?.let { error(it) }', controls)
         self.assertIn('SettingsHint(it, isError = true)', controls)
-        self.assertIn('if (isError) liveRegion = LiveRegionMode.Polite', components)
+        self.assertIn('liveRegion = LiveRegionMode.Polite', components)
         self.assertIn('FlowRow(', reset)
         self.assertIn('enabled = !state.busy', reset)
         self.assertNotIn('fontScale =', controls)

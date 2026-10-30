@@ -7,12 +7,11 @@ import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.SpeedMode
 import com.ohmyfly.settings.SpeedSettings
 import com.ohmyfly.settings.SettingsLimits
-import com.ohmyfly.ui.DriftIcons
 
 @Composable
 internal fun SpeedSettingsPage(settings: AppSettings, onChange: (String, (AppSettings) -> AppSettings) -> Unit, padding: PaddingValues) {
     SettingsList(padding) {
-        item { SettingsPageIntro(SettingsPage.Speed.title, DriftIcons.Speed, "默认参数用于下次测试，不修改已有测量结果。") }
+        item { SettingsPageIntro(SettingsPage.Speed.title, "默认参数用于下次测试，不修改已有测量结果。") }
         item { SettingsSectionTitle("模式与目标", MirrorIcons.Globe) }
         item { SpeedTargets(settings, onChange) }
         item { SettingsSectionTitle("延迟测试", SettingsIcons.Timer) }

@@ -4,14 +4,17 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalUriHandler
 import com.ohmyfly.ui.DriftIcons
+import com.ohmyfly.startup.rememberExportStartupRecords
 
 @Composable
 internal fun AboutSettingsPage(version: String, padding: PaddingValues) {
     val uri = LocalUriHandler.current
+    val exportStartupRecords = rememberExportStartupRecords()
     SettingsList(padding) {
-        item { SettingsPageIntro("关于 OhMyFly", DriftIcons.Wave) }
+        item { SettingsPageIntro("关于 OhMyFly") }
         item { SettingsCard {
             SettingsInfo("版本", "", SettingsIcons.Hint, value = version)
+            SettingsActionRow("导出启动记录", SettingsIcons.Backup) { exportStartupRecords() }
             SettingsActionRow("项目主页", MirrorIcons.Github, "Coming404/ohmyfly") {
                 uri.openUri("https://github.com/Coming404/ohmyfly")
             }

@@ -30,28 +30,30 @@ internal fun SettingsActionRow(
     onClick: () -> Unit,
 ) {
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-    BasicComponent(
-        insideMargin = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        onClick = hapticClick(onClick),
-        onClickLabel = "打开$title",
-        role = Role.Button,
-        startAction = { SettingsLeadingIcon(icon) },
-        endActions = {
-            if (!value.isNullOrBlank()) {
-                Text(value, fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End,
-                    modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp))
-            }
-            Icon(
-                imageVector = MiuixIcons.Basic.ArrowRight,
-                contentDescription = null,
-                tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                modifier = Modifier.size(width = 10.dp, height = 16.dp).graphicsLayer {
-                    scaleX = if (rtl) -1f else 1f
-                },
-            )
-        },
-    ) {
-        SettingsName(title)
+    SettingsRowFeedback {
+        BasicComponent(
+            insideMargin = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            onClick = hapticClick(onClick),
+            onClickLabel = "打开$title",
+            role = Role.Button,
+            startAction = { SettingsLeadingIcon(icon) },
+            endActions = {
+                if (!value.isNullOrBlank()) {
+                    Text(value, fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End,
+                        modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp))
+                }
+                Icon(
+                    imageVector = MiuixIcons.Basic.ArrowRight,
+                    contentDescription = null,
+                    tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                    modifier = Modifier.size(width = 10.dp, height = 16.dp).graphicsLayer {
+                        scaleX = if (rtl) -1f else 1f
+                    },
+                )
+            },
+        ) {
+            SettingsName(title)
+        }
     }
 }

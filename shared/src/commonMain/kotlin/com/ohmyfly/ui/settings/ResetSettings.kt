@@ -60,7 +60,7 @@ internal fun ResetSettings(target: SettingsResetTarget) {
     val scope = rememberCoroutineScope()
     SettingsCard {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SettingsPageIntro(if (state.confirming) "确认${target.title}？" else target.title, SettingsIcons.Reset)
+            SettingsPageIntro(if (state.confirming) "确认${target.title}？" else target.title)
             SettingsHint(target.description)
             if (state.confirming) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

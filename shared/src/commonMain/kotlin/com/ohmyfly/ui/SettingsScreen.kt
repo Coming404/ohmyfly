@@ -70,6 +70,7 @@ internal fun SettingsScreen(
                                 session, runner, onMirrorAddChange)
                             SettingsPage.Privacy -> PrivacySettingsPage(contentPadding)
                             SettingsPage.About -> AboutSettingsPage(version, contentPadding)
+                            SettingsPage.Sponsor -> SponsorSettingsPage(contentPadding)
                         }
                     }
                 }

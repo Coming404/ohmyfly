@@ -4,12 +4,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.SubscriptionSettings
-import com.ohmyfly.ui.DriftIcons
 
 @Composable
 internal fun SubscriptionSettingsPage(padding: PaddingValues) {
     SettingsList(padding) {
-        item { SettingsPageIntro(SettingsPage.Subscription.title, DriftIcons.Subscriptions,
+        item { SettingsPageIntro(SettingsPage.Subscription.title,
             "塔台链接不会上传到第三方转换服务。") }
         item { SettingsSectionTitle("请求", MirrorIcons.Globe) }
         item {

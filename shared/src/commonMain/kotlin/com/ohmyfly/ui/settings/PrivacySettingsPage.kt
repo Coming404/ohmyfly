@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 @Composable
 internal fun PrivacySettingsPage(padding: PaddingValues) {
     SettingsList(padding) {
-        item { SettingsPageIntro(SettingsPage.Privacy.title, SettingsIcons.Lock) }
+        item { SettingsPageIntro(SettingsPage.Privacy.title) }
         item { SettingsSectionTitle("本地配置", SettingsIcons.Lock) }
         item { SettingsCard {
             SettingsInfo("应用私有存储", "设置仅保存在本机沙盒，文件不加密，不保存塔台令牌或代理密码。", SettingsIcons.Lock)

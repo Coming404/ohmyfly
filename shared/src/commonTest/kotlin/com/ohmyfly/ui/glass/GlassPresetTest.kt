@@ -8,12 +8,12 @@ import kotlin.test.assertTrue
 
 class GlassPresetTest {
     @Test
-    fun liquidBaseRetainsMeloxValuesInBothAppearances() {
+    fun liquidKeepsItsOpticsWithClearerThemeOpacity() {
         for (dark in listOf(false, true)) {
             val preset = glassPreset(MaterialMode.LiquidGlass, dark)
             assertEquals(4f, preset.blur)
             assertEquals(1.5f, preset.saturation)
-            assertEquals(0.4f, preset.surfaceAlpha)
+            assertEquals(if (dark) 0.10f else 0.08f, preset.surfaceAlpha)
             assertEquals(24f, preset.lensHeight)
             assertEquals(24f, preset.lensAmount)
             assertEquals(0.75f, preset.highlightAlpha)
@@ -41,16 +41,20 @@ class GlassPresetTest {
         val dark = glassPreset(MaterialMode.GaussianBlur, true)
         assertEquals(20f, light.blur)
         assertEquals(1f, light.saturation)
-        assertEquals(0.22f, light.surfaceAlpha)
-        assertEquals(0.28f, dark.surfaceAlpha)
+        assertEquals(0.12f, light.surfaceAlpha)
+        assertEquals(0.16f, dark.surfaceAlpha)
         assertFalse(light.liquidResponse)
     }
 
     @Test
-    fun softGlassIsMoreDiffuseAndOpaqueThanHighlightGlass() {
+    fun diffuseMaterialsKeepMoreCoverageThanClearGlass() {
         for (dark in listOf(false, true)) {
             val soft = glassPreset(MaterialMode.SoftGlass, dark)
             val highlight = glassPreset(MaterialMode.HighlightGlass, dark)
+            val gaussian = glassPreset(MaterialMode.GaussianBlur, dark)
+            val liquid = glassPreset(MaterialMode.LiquidGlass, dark)
+            assertTrue(gaussian.surfaceAlpha > maxOf(highlight.surfaceAlpha, liquid.surfaceAlpha))
+            assertTrue(soft.surfaceAlpha > gaussian.surfaceAlpha)
             assertTrue(soft.blur > highlight.blur)
             assertTrue(soft.surfaceAlpha > highlight.surfaceAlpha)
             assertTrue(soft.highlightBlur > highlight.highlightBlur)

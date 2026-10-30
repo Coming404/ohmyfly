@@ -13,7 +13,7 @@ internal fun MediaSettingsPage(settings: AppSettings, onChange: (String, (AppSet
     val media = settings.media
     fun update(name: String, change: (MediaSettings) -> MediaSettings) = onChange(name) { it.copy(media = change(it.media)) }
     SettingsList(padding) {
-        item { SettingsPageIntro(SettingsPage.Media.title, SettingsIcons.Media) }
+        item { SettingsPageIntro(SettingsPage.Media.title) }
         item {
             SettingsCard {
                 ToggleSetting("启用流媒体与 AI 检测", "在航班测试后运行所选检测项目。", media.enabled, SettingsIcons.Media) {

@@ -1,7 +1,6 @@
 package com.ohmyfly.ui
 
 import androidx.compose.foundation.LocalIndication
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -26,6 +25,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -48,6 +49,7 @@ import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val LocalHeaderSurface = staticCompositionLocalOf<@Composable () -> Modifier> { { Modifier } }
+private val StatusBarFade = 8.dp
 
 @Composable
 internal fun DriftTopBar(
@@ -61,17 +63,23 @@ internal fun DriftTopBar(
 ) {
     val pageColor = LocalAppSurfaceColors.current.page
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val statusBarInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
     val surface: @Composable () -> Modifier = {
         Modifier.chromeMaterial(backdrop, glassEnabled, dark, materialMode)
     }
     CompositionLocalProvider(LocalHeaderSurface provides surface) {
         Row(
+            // Only the status bar / cutout strip is opaque; scrolled content stays visible under the title and buttons.
             modifier = Modifier.fillMaxWidth()
-                .background(Brush.verticalGradient(
-                    0f to pageColor,
-                    0.8f to pageColor,
-                    1f to pageColor.copy(alpha = 0f),
-                ))
+                .drawBehind {
+                    // The gradient clamps to opaque above startY, so one rect covers the strip and its fade edge.
+                    val solid = statusBarInsets.getTop(this).toFloat()
+                    val end = solid + StatusBarFade.toPx()
+                    drawRect(
+                        Brush.verticalGradient(0f to pageColor, 1f to pageColor.copy(alpha = 0f), startY = solid, endY = end),
+                        size = Size(size.width, minOf(size.height, end)),
+                    )
+                }
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
                 .padding(horizontal = 16.dp, vertical = 4.dp)
                 .heightIn(min = 44.dp),

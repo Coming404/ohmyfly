@@ -19,10 +19,10 @@ internal data class GlassPreset(
 )
 
 internal fun glassPreset(mode: MaterialMode, dark: Boolean): GlassPreset = when (mode) {
-    MaterialMode.GaussianBlur -> GlassPreset(20f, 1f, 0f, if (dark) 0.28f else 0.22f, 8f, 2f, 0.12f, 2f)
-    MaterialMode.HighlightGlass -> GlassPreset(4f, 1.15f, 0f, if (dark) 0.22f else 0.16f, 16f, 6f, 1f, 2f)
-    MaterialMode.SoftGlass -> GlassPreset(24f, 1.05f, if (dark) 0f else 0.03f, if (dark) 0.36f else 0.30f, 16f, 4f, 0.45f, 4f)
-    MaterialMode.LiquidGlass -> GlassPreset(4f, 1.5f, 0f, 0.4f, 24f, 24f, 0.75f, 2f, liquidResponse = true)
+    MaterialMode.GaussianBlur -> GlassPreset(20f, 1f, 0f, if (dark) 0.16f else 0.12f, 8f, 2f, 0.12f, 2f)
+    MaterialMode.HighlightGlass -> GlassPreset(4f, 1.15f, 0f, if (dark) 0.08f else 0.06f, 16f, 6f, 1f, 2f)
+    MaterialMode.SoftGlass -> GlassPreset(24f, 1.05f, if (dark) 0f else 0.03f, if (dark) 0.22f else 0.18f, 16f, 4f, 0.45f, 4f)
+    MaterialMode.LiquidGlass -> GlassPreset(4f, 1.5f, 0f, if (dark) 0.10f else 0.08f, 24f, 24f, 0.75f, 2f, liquidResponse = true)
 }
 
 internal fun glassEffectsEnabled(

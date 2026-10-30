@@ -43,20 +43,22 @@ internal fun SettingsExpandableRow(
     expanded: Boolean,
     onClick: () -> Unit,
 ) {
-    BasicComponent(
-        insideMargin = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        modifier = Modifier.semantics { stateDescription = if (expanded) "已展开" else "已收起" },
-        startAction = { SettingsLeadingIcon(icon) },
-        onClick = hapticClick(onClick),
-        onClickLabel = if (expanded) "收起$title" else "展开$title",
-        role = Role.Button,
-        endActions = {
-            Text(value, fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                textAlign = TextAlign.End, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp))
-            SettingsExpansionArrow(expanded)
-        },
-    ) { SettingsName(title) }
+    SettingsRowFeedback {
+        BasicComponent(
+            insideMargin = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.semantics { stateDescription = if (expanded) "已展开" else "已收起" },
+            startAction = { SettingsLeadingIcon(icon) },
+            onClick = hapticClick(onClick),
+            onClickLabel = if (expanded) "收起$title" else "展开$title",
+            role = Role.Button,
+            endActions = {
+                Text(value, fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    textAlign = TextAlign.End, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp))
+                SettingsExpansionArrow(expanded)
+            },
+        ) { SettingsName(title) }
+    }
 }
 
 @Composable

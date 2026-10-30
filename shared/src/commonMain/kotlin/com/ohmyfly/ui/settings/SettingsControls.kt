@@ -82,18 +82,21 @@ internal fun ToggleSetting(
     enabled: Boolean = true,
     onChange: (Boolean) -> Unit,
 ) {
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 56.dp)
-            .toggleable(value, enabled = enabled, role = Role.Switch, onValueChange = hapticChange(onChange)).padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        SettingsLeadingIcon(leadingIcon)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            SettingsName(title)
-            if (summary.isNotBlank()) SettingsHint(summary)
+    SettingsRowFeedback {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                .toggleable(value, enabled = enabled, role = Role.Switch, onValueChange = hapticChange(onChange)).padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            // Matches the 8dp gap BasicComponent puts between startAction and content.
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SettingsLeadingIcon(leadingIcon)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                SettingsName(title)
+                if (summary.isNotBlank()) SettingsHint(summary)
+            }
+            Switch(checked = value, enabled = enabled, onCheckedChange = null, modifier = Modifier.clearAndSetSemantics {})
         }
-        Switch(checked = value, enabled = enabled, onCheckedChange = null, modifier = Modifier.clearAndSetSemantics {})
     }
 }
 
@@ -128,7 +131,6 @@ internal fun TextSetting(
                     readOnly = draft.saving || edits.session.state.readFailed,
                     singleLine = true,
                     textStyle = MiuixTheme.textStyles.main.copy(fontSize = 14.sp),
-                    leadingIcon = { SettingsLeadingIcon(leadingIcon) },
                     keyboardOptions = KeyboardOptions(keyboardType = keyboard, autoCorrectEnabled = false, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
                         edits.finish(draft, SettingFinish.Done)

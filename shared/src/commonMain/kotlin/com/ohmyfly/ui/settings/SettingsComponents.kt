@@ -35,7 +35,7 @@ internal fun SettingsLeadingIcon(icon: ImageVector) {
 
 @Composable
 internal fun SettingsName(text: String) {
-    Text(text, fontSize = 15.sp, fontWeight = FontWeight.Normal, color = MiuixTheme.colorScheme.onSurface)
+    Text(text, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = MiuixTheme.colorScheme.onSurface)
 }
 
 @Composable
@@ -49,24 +49,29 @@ internal fun SettingsSectionTitle(text: String, icon: ImageVector) {
 }
 
 @Composable
-internal fun SettingsPageIntro(title: String, icon: ImageVector, hint: String = "") {
-    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.semantics(mergeDescendants = true) { heading() }) {
-            Icon(icon, null, Modifier.size(24.dp), tint = MiuixTheme.colorScheme.primary)
-            Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface)
+internal fun SettingsPageIntro(title: String, hint: String = "") {
+    // Large title aligned with SettingsSectionTitle text; the top bar on sub pages carries no title.
+    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(title, fontSize = 30.sp, lineHeight = 36.sp, fontWeight = FontWeight.Bold,
+            color = MiuixTheme.colorScheme.onSurface, modifier = Modifier.semantics { heading() })
+        if (hint.isNotBlank()) {
+            Text(hint, fontSize = 13.sp, lineHeight = 18.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
         }
-        if (hint.isNotBlank()) SettingsHint(hint)
     }
 }
 
 @Composable
 internal fun SettingsHint(text: String, isError: Boolean = false) {
-    val color = if (isError) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.onSurfaceVariantSummary
+    if (!isError) {
+        Text(text, fontSize = 11.sp, fontWeight = FontWeight.Normal,
+            color = MiuixTheme.colorScheme.onSurfaceVariantActions, modifier = Modifier.fillMaxWidth())
+        return
+    }
+    val color = MiuixTheme.colorScheme.error
     Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {
-        if (isError) liveRegion = LiveRegionMode.Polite
+        liveRegion = LiveRegionMode.Polite
     }, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
-        Icon(if (isError) MirrorIcons.Alert else SettingsIcons.Hint, null, Modifier.size(16.dp), tint = color)
+        Icon(MirrorIcons.Alert, null, Modifier.size(16.dp), tint = color)
         Text(text, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = color, modifier = Modifier.weight(1f))
     }
 }

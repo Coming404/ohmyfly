@@ -12,15 +12,17 @@ class SettingsHomeTests(unittest.TestCase):
         home = (SETTINGS / 'SettingsHome.kt').read_text()
         screen = (UI / 'SettingsScreen.kt').read_text()
         self.assertIn('SettingsHome(settings, onChange, onPage, version', screen)
-        self.assertIn('SettingsIdentity(version)', home)
-        self.assertIn('Icon(DriftIcons.Wave', home)
-        self.assertIn('Modifier.size(32.dp)', home)
-        self.assertIn('Text(version, fontSize = 14.sp', home)
-        self.assertNotIn('塔台管理与航班起飞', home)
-        identity = home.split('private fun SettingsIdentity(', 1)[1]
-        self.assertNotIn('Column(', identity)
-        self.assertIn('Text("OhMyFly", fontSize = 18.sp', identity)
+        self.assertIn('SettingsBoardingPass(version, onSponsor = { onPage(SettingsPage.Sponsor) })', home)
         self.assertNotIn('summary =', home)
+        card = (SETTINGS / 'SettingsBoardingPass.kt').read_text()
+        self.assertIn('Icon(DriftIcons.BrandMark', card)
+        self.assertIn('Text(version, fontSize = 13.sp', card)
+        self.assertIn('onClick = hapticClick(onSponsor)', card)
+        self.assertIn('PathEffect.dashPathEffect', card)
+        self.assertNotIn('settings.', card)
+        sponsor = (SETTINGS / 'SponsorSettingsPage.kt').read_text()
+        self.assertIn('SettingsPageIntro(SettingsPage.Sponsor.title)', sponsor)
+        self.assertIn('SettingsPage.Sponsor -> SponsorSettingsPage(contentPadding)', screen)
 
     def test_home_preserves_six_subpages_with_persisted_material(self):
         home = (SETTINGS / 'SettingsHome.kt').read_text()
@@ -82,7 +84,8 @@ class SettingsHomeTests(unittest.TestCase):
     def test_spacing_is_shared_and_choices_are_not_persisted(self):
         controls = (SETTINGS / 'SettingsControls.kt').read_text()
         self.assertIn('horizontal = 16.dp', controls)
-        self.assertIn('Arrangement.spacedBy(16.dp)', controls)
+        toggle = controls.split('internal fun ToggleSetting(', 1)[1].split('@Composable', 1)[0]
+        self.assertIn('horizontalArrangement = Arrangement.spacedBy(8.dp)', toggle)
         choice = (SETTINGS / 'ChoiceSetting.kt').read_text()
         self.assertNotIn('rememberSaveable', choice)
         self.assertNotIn('AppSettings', choice)

@@ -1,26 +1,12 @@
 package com.ohmyfly.ui.settings
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.MaterialMode
 import com.ohmyfly.ui.DriftIcons
 import com.ohmyfly.ui.ThemeMode
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 internal fun SettingsHome(
@@ -32,7 +18,7 @@ internal fun SettingsHome(
     padding: PaddingValues,
 ) {
     SettingsList(padding, state) {
-        item(key = "identity") { SettingsIdentity(version) }
+        item(key = "identity") { SettingsBoardingPass(version, onSponsor = { onPage(SettingsPage.Sponsor) }) }
         item(key = "appearance-title") { SettingsSectionTitle("外观", SettingsIcons.Appearance) }
         item(key = "appearance") {
             SettingsCard {
@@ -74,21 +60,5 @@ internal fun SettingsHome(
                 SettingsActionRow(SettingsPage.About.title, SettingsIcons.Hint, onClick = { onPage(SettingsPage.About) })
             }
         }
-    }
-}
-
-@Composable
-private fun SettingsIdentity(version: String) {
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(DriftIcons.Wave, contentDescription = null, modifier = Modifier.size(32.dp),
-            tint = MiuixTheme.colorScheme.primary)
-        Text("OhMyFly", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f))
-        Text(version, fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            textAlign = TextAlign.End, modifier = Modifier.weight(1f, fill = false))
     }
 }

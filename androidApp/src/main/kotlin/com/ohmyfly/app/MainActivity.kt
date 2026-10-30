@@ -8,20 +8,29 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.core.view.WindowCompat
 import com.ohmyfly.App
 import com.ohmyfly.settings.androidSettingsPath
+import com.ohmyfly.startup.recordAndroidStartupEntry
 
 class MainActivity : ComponentActivity() {
     private var dynamicColorSeed by mutableStateOf<Color?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        recordAndroidStartupEntry(this)
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val path = androidSettingsPath(applicationContext)
         val info = packageManager.getPackageInfo(packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
         val version = "${info.versionName ?: "未知版本"} (${info.longVersionCode}) · Android"
         dynamicColorSeed = Color(getColor(android.R.color.system_accent1_500))
-        setContent { App(dynamicColorSeed = dynamicColorSeed, settingsPath = path, version = version) }
+        setContent {
+            App(dynamicColorSeed = dynamicColorSeed, settingsPath = path, version = version) { dark, _ ->
+                val systemBars = WindowCompat.getInsetsController(window, window.decorView)
+                systemBars.isAppearanceLightStatusBars = !dark
+                systemBars.isAppearanceLightNavigationBars = !dark
+            }
+        }
     }
 
     override fun onResume() {

@@ -1,9 +1,11 @@
 package com.ohmyfly.ui.settings
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,24 +47,29 @@ internal fun ChoiceSetting(
             onClick = { if (key != value) onChange(key) },
             icon = { modifier -> Icon(icon, null, modifier.size(20.dp)) })
     })
-    BasicComponent(
-        insideMargin = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        modifier = Modifier.semantics { stateDescription = current },
-        startAction = { SettingsLeadingIcon(icon) },
-        role = Role.DropdownList,
-        holdDownState = held,
-        enabled = options.isNotEmpty(),
-        onClick = hapticClick { expanded = !expanded; if (expanded) held = true },
-        onClickLabel = "选择$title",
-        endActions = {
-            Text(current, fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                textAlign = TextAlign.End, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp))
-            DropdownArrowEndAction(actionColor = MiuixTheme.colorScheme.onSurfaceVariantActions)
-            OverlayDropdownPopup(entry = entry, show = expanded,
-                onDismiss = { expanded = false }, onDismissFinished = { held = false },
-                maxHeight = null, dropdownColors = DropdownDefaults.dropdownColors(),
-                renderInRootScaffold = true, collapseOnSelection = true)
-        },
-    ) { SettingsName(title) }
+    val popupIndication = LocalIndication.current
+    SettingsRowFeedback {
+        BasicComponent(
+            insideMargin = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.semantics { stateDescription = current },
+            startAction = { SettingsLeadingIcon(icon) },
+            role = Role.DropdownList,
+            holdDownState = held,
+            enabled = options.isNotEmpty(),
+            onClick = hapticClick { expanded = !expanded; if (expanded) held = true },
+            onClickLabel = "选择$title",
+            endActions = {
+                Text(current, fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    textAlign = TextAlign.End, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp))
+                DropdownArrowEndAction(actionColor = MiuixTheme.colorScheme.onSurfaceVariantActions)
+                CompositionLocalProvider(LocalIndication provides popupIndication) {
+                    OverlayDropdownPopup(entry = entry, show = expanded,
+                        onDismiss = { expanded = false }, onDismissFinished = { held = false },
+                        maxHeight = null, dropdownColors = DropdownDefaults.dropdownColors(),
+                        renderInRootScaffold = true, collapseOnSelection = true)
+                }
+            },
+        ) { SettingsName(title) }
+    }
 }

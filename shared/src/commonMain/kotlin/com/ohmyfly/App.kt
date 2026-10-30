@@ -35,6 +35,7 @@ import com.ohmyfly.ui.SettingsScreen
 import com.ohmyfly.ui.SpeedScreen
 import com.ohmyfly.ui.SubscriptionsScreen
 import com.ohmyfly.ui.AppTheme
+import com.ohmyfly.ui.ThemeMode
 import com.ohmyfly.ui.AppHaptics
 import com.ohmyfly.ui.hapticClick
 import com.ohmyfly.ui.AppMotion
@@ -45,6 +46,10 @@ import com.ohmyfly.mirror.MirrorProbe
 import com.ohmyfly.mirror.createMirrorTransport
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.SettingsSession
+import com.ohmyfly.startup.StartupRecords
+import com.ohmyfly.startup.StartupFrameRecording
+import com.ohmyfly.startup.StartupSettingsRecording
+import com.ohmyfly.startup.startupFirstDraw
 import com.ohmyfly.ui.HeaderAction
 import com.ohmyfly.ui.settings.MirrorDialog
 import com.ohmyfly.ui.settings.MirrorIcons
@@ -63,11 +68,24 @@ import top.yukonga.miuix.kmp.nav.core.rememberNavBackStack
 import top.yukonga.miuix.kmp.utils.springAnimateToPage
 
 @Composable
-fun App(dynamicColorSeed: Color?, settingsPath: String, version: String) {
+fun App(
+    dynamicColorSeed: Color?,
+    settingsPath: String,
+    version: String,
+    onThemeChanged: (dark: Boolean, followsSystem: Boolean) -> Unit,
+) {
+    val startupRecord = remember { StartupRecords.appComposed(version) }
+    StartupFrameRecording(startupRecord)
     PersistedSettings(settingsPath) { settings, onChange, session, onRetryRead ->
+        val themeMode = settings.themeMode
+        val dark = themeMode.isDark(isSystemInDarkTheme())
+        StartupSettingsRecording(startupRecord, session, settings, dark)
+        LaunchedEffect(dark, themeMode) {
+            onThemeChanged(dark, themeMode == ThemeMode.System)
+        }
         AppMotion(settings.reduceMotion) {
             AppHaptics(settings.hapticEnabled, settings.hapticLevel) {
-                AppContent(dynamicColorSeed, settings, onChange, version, session, onRetryRead)
+                AppContent(dynamicColorSeed, dark, settings, onChange, version, session, onRetryRead)
             }
         }
     }
@@ -76,6 +94,7 @@ fun App(dynamicColorSeed: Color?, settingsPath: String, version: String) {
 @Composable
 private fun AppContent(
     dynamicColorSeed: Color?,
+    dark: Boolean,
     settings: AppSettings,
     onChange: (String, (AppSettings) -> AppSettings) -> Unit,
     version: String,
@@ -113,7 +132,6 @@ private fun AppContent(
     var mirrorEditorBack by remember { mutableStateOf<(() -> Unit)?>(null) }
     var mirrorAdd by remember { mutableStateOf<(() -> Unit)?>(null) }
     val mirrorPage = destination == AppDestination.Settings && settingsPage == SettingsPage.Mirrors
-    val themeMode = settings.themeMode
     val reduceTransparency = settings.reduceTransparency
     val systemReduceTransparency by rememberSystemReduceTransparency()
     val settingsChild = destination == AppDestination.Settings && settingsPage != SettingsPage.Home
@@ -128,7 +146,6 @@ private fun AppContent(
     val speedState = rememberLazyListState()
     val nodesState = rememberLazyListState()
     val settingsState = rememberLazyListState()
-    val dark = themeMode.isDark(isSystemInDarkTheme())
 
     AppTheme(dynamicColorSeed, dark) {
         val background = LocalAppSurfaceColors.current.page
@@ -176,7 +193,7 @@ private fun AppContent(
             Box(
                 modifier = Modifier.fillMaxSize().consumeWindowInsets(padding)
                     .then(if (glassEnabled) Modifier.layerBackdrop(backdrop) else Modifier)
-                    .background(background),
+                    .background(background).startupFirstDraw(),
                 contentAlignment = Alignment.TopCenter,
             ) {
                 Box(Modifier.widthIn(max = 760.dp).fillMaxSize()) {

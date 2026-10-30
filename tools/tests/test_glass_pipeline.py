@@ -33,6 +33,14 @@ class GlassPipelineTests(unittest.TestCase):
         self.assertIn('onDrawSurface = { drawRect(surface.copy(alpha = preset.surfaceAlpha)) }', effects)
         self.assertNotIn('textureBlur(', effects)
 
+    def test_press_does_not_add_a_uniform_white_plus_layer(self):
+        highlight = (GLASS / 'InteractiveHighlight.kt').read_text()
+        self.assertNotRegex(
+            highlight,
+            r'drawRect\(\s*color\s*=\s*Color\.White(?:\.copy\([^)]*\))?,'
+            r'\s*blendMode\s*=\s*BlendMode\.Plus',
+        )
+
     def test_refraction_displaces_input_sampling_and_shares_boundary(self):
         lens = (GLASS / 'Lens.kt').read_text()
         self.assertIn('runtimeShaderEffect(', lens)
