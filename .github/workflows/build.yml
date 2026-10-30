@@ -31,8 +31,8 @@ jobs:
           log-accepted-android-sdk-licenses: false
       - run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0'
       - uses: gradle/actions/setup-gradle@v6.4.0
-      - name: Install signature-check dependency
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
+        with:
+          cache-read-only: false
       - name: Restore private test-release keystore
         env:
           ANDROID_RELEASE_STORE_BASE64: ${{ secrets.ANDROID_RELEASE_STORE_BASE64 }}
@@ -40,75 +40,57 @@ jobs:
           python3 - <<'PY'
           import base64, os
           from pathlib import Path
-          target = Path(os.environ['RUNNER_TEMP']) / 'ohmydrift-release.p12'
+          target = Path(os.environ['RUNNER_TEMP']) / 'ohmyfly-release.p12'
           target.write_bytes(base64.b64decode(os.environ['ANDROID_RELEASE_STORE_BASE64'], validate=True))
           target.chmod(0o600)
           PY
-      - name: Run shared tests and build signed Release APK and AAB
+      - name: Run shared tests and build signed Release APK
         env:
-          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/ohmydrift-release.p12
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/ohmyfly-release.p12
           ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
           ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
           ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
-        run: ./gradlew :shared:testAndroidHostTest :androidApp:assembleRelease :androidApp:bundleRelease --stacktrace
+        run: ./gradlew :shared:testAndroidHostTest :androidApp:assembleRelease --stacktrace
       - name: Confirm shared test results
         run: |
           python3 - <<'PY'
-          import os, subprocess, xml.etree.ElementTree as ET
+          import os, xml.etree.ElementTree as ET
           from pathlib import Path
-          paths = subprocess.check_output(['rg', '--files', 'shared/build/test-results', '-g', 'TEST-*.xml'], text=True).splitlines()
+          paths = sorted(Path('shared/build/test-results').rglob('TEST-*.xml'))
           results = [ET.parse(path).getroot() for path in paths]
           total = sum(int(result.get('tests', '0')) for result in results)
           failed = sum(int(result.get('failures', '0')) + int(result.get('errors', '0')) + int(result.get('skipped', '0')) for result in results)
-          if total < 174 or failed:
-              raise SystemExit(f'Expected at least 174 passing shared tests, got {total} with {failed} failed/skipped')
+          if total < 190 or failed:
+              raise SystemExit(f'Expected at least 190 passing shared tests, got {total} with {failed} failed/skipped')
           summary = f'Kotlin commonTest: {total} passed, no failures or skips.\n'
           print(summary)
           with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as output:
               output.write(summary)
           PY
-      - name: Verify signatures and collect Release artifacts
+      - name: Verify signature and collect Release APK
         shell: bash
-        env:
-          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/ohmydrift-release.p12
-          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
         run: |
           set -euo pipefail
           mkdir -p build/release/android
           apk=(androidApp/build/outputs/apk/release/*.apk)
-          aab=(androidApp/build/outputs/bundle/release/*.aab)
           test "${#apk[@]}" -eq 1 && test -f "${apk[0]}"
-          test "${#aab[@]}" -eq 1 && test -f "${aab[0]}"
           "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --verbose --print-certs "${apk[0]}" | tee build/release/android/signature.txt
           "$ANDROID_HOME/build-tools/37.0.0/aapt" dump badging "${apk[0]}" > "$RUNNER_TEMP/apk-badging.txt"
-          if rg -q '^application-debuggable' "$RUNNER_TEMP/apk-badging.txt"; then
+          if grep -q '^application-debuggable' "$RUNNER_TEMP/apk-badging.txt"; then
             echo 'Refusing to publish a debuggable APK'; exit 1
           fi
-          python3 tools/normalize_aab.py "${aab[0]}" "$RUNNER_TEMP/ohmydrift-release-normalized.aab"
-          jarsigner -verify -strict -keystore "$ANDROID_KEYSTORE_PATH" -storepass:env ANDROID_RELEASE_STORE_PASSWORD "$RUNNER_TEMP/ohmydrift-release-normalized.aab" | tee "$RUNNER_TEMP/bundle-verification.txt"
-          rg -q 'jar verified' "$RUNNER_TEMP/bundle-verification.txt"
-          if rg -q '^Warning:' "$RUNNER_TEMP/bundle-verification.txt"; then
-            echo 'AAB verification still reports warnings'; exit 1
-          fi
-          cp "${apk[0]}" build/release/android/ohmydrift-release.apk
-          cp "$RUNNER_TEMP/ohmydrift-release-normalized.aab" build/release/android/ohmydrift-release.aab
-          (cd build/release/android && sha256sum *.apk *.aab > SHA256SUMS.txt)
+          cp "${apk[0]}" build/release/android/ohmyfly-release.apk
+          (cd build/release/android && sha256sum *.apk > SHA256SUMS.txt)
           cat build/release/android/SHA256SUMS.txt >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7.0.2
         with:
-          path: build/release/android/ohmydrift-release.apk
-          archive: false
-          if-no-files-found: error
-          retention-days: 7
-      - uses: actions/upload-artifact@v7.0.2
-        with:
-          path: build/release/android/ohmydrift-release.aab
+          path: build/release/android/ohmyfly-release.apk
           archive: false
           if-no-files-found: error
           retention-days: 7
       - name: Remove restored keystore
         if: always()
-        run: rm -f "$RUNNER_TEMP/ohmydrift-release.p12"
+        run: rm -f "$RUNNER_TEMP/ohmyfly-release.p12"
   ios:
     if: inputs.platform == 'ios' || inputs.platform == 'both'
     runs-on: macos-26
@@ -129,7 +111,15 @@ jobs:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
       - run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0'
+      # Kotlin/Native toolchain (LLVM, sysroot) is otherwise downloaded on every run.
+      - uses: actions/cache@v6.1.0
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('gradle/libs.versions.toml') }}
+      # Release builds run only from feature branches; let them save the Gradle cache.
       - uses: gradle/actions/setup-gradle@v6.4.0
+        with:
+          cache-read-only: false
       - run: xcodebuild -version
       - name: Archive unsigned arm64 iPhoneOS Release app
         run: >-
@@ -137,23 +127,23 @@ jobs:
           -scheme iosApp -configuration Release
           -sdk iphoneos
           -destination 'generic/platform=iOS'
-          -archivePath build/ios-device/ohmydrift.xcarchive
+          -archivePath build/ios-device/ohmyfly.xcarchive
           -derivedDataPath build/ios-device/DerivedData
           ARCHS=arm64 ONLY_ACTIVE_ARCH=NO
           IPHONEOS_DEPLOYMENT_TARGET=16.0
-          PRODUCT_BUNDLE_IDENTIFIER=dev.ohmydrift.app
+          PRODUCT_BUNDLE_IDENTIFIER=com.ohmyfly.app
           CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
           CODE_SIGN_IDENTITY='' DEVELOPMENT_TEAM=''
           DEBUG_INFORMATION_FORMAT=dwarf-with-dsym
           SKIP_INSTALL=NO archive
       - name: Validate and package device IPA
         run: |
-          python3 tools/package_ios_release.py build/ios-device/ohmydrift.xcarchive build/release/ios
+          python3 tools/package_ios_release.py build/ios-device/ohmyfly.xcarchive build/release/ios
           (cd build/release/ios && shasum -a 256 *.ipa > SHA256SUMS.txt)
           cat build/release/ios/build-info.json build/release/ios/SHA256SUMS.txt >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7.0.2
         with:
-          path: build/release/ios/ohmydrift-release-unsigned.ipa
+          path: build/release/ios/ohmyfly-release-unsigned.ipa
           archive: false
           if-no-files-found: error
           retention-days: 7

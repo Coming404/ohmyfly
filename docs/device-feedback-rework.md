@@ -1,12 +1,12 @@
 # iOS 真机反馈与双端体验修正方案
 
-状态：**提案，尚未实施**。日期：2026-10-20。
+状态：各阶段进度以 [NOW.md](context/NOW.md#真机反馈阶段) 为准，本文只保存需求与方案。日期：2026-10-20；2026-10-23 追加[第 8 节继续改进需求](#8-继续改进需求2026-10-23)。
 
 基线：仓库 `6d75347`，可执行代码 `78d80bd`；该基线已通过双端 Release 构建及 146 项 Kotlin 共享测试。用户本次 iOS 真机反馈说明：构建通过不等于视觉、触控和性能验收通过。本轮只交付文档，不修改运行时代码、不提交推送、不触发构建。
 
 ## 1. 范围与证据
 
-- 保留 Android/iOS 共享 Compose UI、Miuix 0.9.4、五个一级入口、四种材质及现有设置持久化；不改成两套原生页面，不扩展订阅/测速核心。
+- 保留 Android/iOS 共享 Compose UI、Miuix 0.9.4、五个一级入口、四种材质及现有设置持久化；不改成两套原生页面，不扩展塔台/起飞核心。
 - Melox 参照固定 `49ee06aa1f01a67eb5ea1d5cc7307ddfd571a534`，仅移植适用几何与效果，不复制播放器业务或其修改版依赖。
 - 截图证据：[底栏放大图](minis://attachments/uploads/photo_FEBA6B7D.jpeg)、[设置全屏图](minis://attachments/uploads/photo_5AFC73BE.png)、[深色子页顶部](minis://attachments/uploads/photo_B3B98A23.jpeg)。保留原图，不以裁图像素直接推断 dp/pt。
 - **已确认**表示截图或当前源码可直接证明；**待测假设**表示尚无真机录屏、调用轨迹或性能采样，不能当成已定位根因。
@@ -53,6 +53,10 @@
 
 **验收**：浅/深、纯色/文字/复杂背景四种材质对照；静止、按下、长按、拖动、释放录屏；按压前后仍能辨认背后内容，且不会采样到自身造成累积变灰。
 
+**2026-10-30 实现（待真机目测）**：表面覆盖 alpha（浅/深）调整为高斯 0.12/0.16、高光 0.06/0.08、柔光 0.18/0.22、液态 0.08/0.10；删除按压时整块 0.06 白色 Plus 加亮，保留手指位置光斑（用户决定）、形变、色散与内阴影。非液态的选中胶囊会采样隐藏录制层，因此保留四种材质的隐藏录制。
+
+**2026-10-31 真机反馈与改法（未编译）**：纯色背景上液态底栏内部与页面同为 #F0F1F3，只有白色顶缘高光，看起来像一层浅灰膜。原因：染色用 Miuix 浅色 surface（#F7F7F7）乘 0.08，在纯色上几乎不变，在白卡片上反而压暗；纯色背景没有边缘，模糊与折射看不出来。Melox 用 surfaceContainer（浅色为白）乘 0.4。用户选定：浅色模式下四种材质的底栏、顶部按钮和消息卡片都改用白色染色（GlassEffects.glassTint），深色保持 surface；液态浅色 alpha 0.08 改为 0.30（页面 F0 变为约 F4，背后黑字约 #4C），其余材质 alpha 不变。
+
 ### 3.3 顶部安全区和首屏留白过大（原反馈 3）
 
 **已确认**：顶栏在系统 safeDrawing 之外还有上下各 8dp 和至少 48dp 主体。iOS SwiftUI 宿主使用 ignoresSafeArea，Compose 顶栏自行消费顶部/横向安全区；仅凭截图不能断言系统安全区被重复计算。标题到品牌、品牌到分组的距离还包括内容布局，不全属于安全区。
@@ -62,6 +66,7 @@
 - 不采用“只避开屏幕中心，左右控件直接顶到状态栏”的统一算法。系统安全区包含硬件与系统 UI；Android 孔位也不保证在中央。
 - 先逐层量出宿主、Scaffold、顶栏、列表的实际 inset 与内容 padding，系统 inset 只消费一次；删除冗余品牌区/分组间隔，而不是把所有留白都压到系统状态栏内。
 - 紧凑顶栏拟以 44dp 主体、上下 4dp 为首轮目标，系统 inset 另计；最终由双端布局与触区检验，不硬编码机型或刘海高度。
+- 2026-10-30 真机反馈：顶栏背后的页面色渐变覆盖到顶栏高度 80%，滚动内容被遮挡，看起来和缩小前一样。用户选择只遮挡状态栏：实色只铺满系统顶部 inset（状态栏、刘海或灵动岛），向下 8dp 渐隐；标题和按钮浮在内容上，内容可滚到灵动岛下沿，和底部悬浮栏的处理一致。
 
 **验收**：iOS 刘海/灵动岛、Android 中央/非中央挖孔、无挖孔；横竖屏、键盘、放大字体、状态栏变化无覆盖。底部继续只消费一次 inset，悬浮栏下的列表最后一项必须能滚到完整可见。
 
@@ -74,6 +79,14 @@
 - 优先检查采样面积、重复录制、离屏图层、shader 建立位置、每帧对象分配、无变化仍触发的重组、隐藏/后台传感器。可缓存的编译结果按实际参数复用，不缓存过期背景画面。
 - 仅在测量证实首次编译为瓶颈时，评估受控预热/分阶段初始化；不能用启动延时、假加载屏或永久降低材质来掩盖问题。
 - 首选 Xcode Instruments 与 Android 官方帧分析工具；不预设新增第三方运行时依赖。若确需新增 KMP 库，另核对 Klibs 的双端目标、版本、许可及收益。
+
+**测量结果（2026-10-30，iPhone13,2，iOS 16.6.1，60Hz，应用内启动记录）**：装新包后首次启动，首帧 412ms 后有一个 851ms 长帧，与设置读取结果同在 1172ms 结束；再次冷启动只有设置到达后的 61ms 长帧；选柔光时冷启动在设置到达时有 104ms 长帧。启动 1.2 秒后帧间隔稳定在 16.7ms。原因：PersistedSettings 先用 AppSettings() 默认值（液态玻璃）组合并绘制首帧，读到设置后整页换材质；首次 851ms 推断为玻璃着色器首次编译 Metal 管线，未直接证实。Skiko 0.150.1 的 DirectContext.makeMetal 不传 GrContextOptions，无法接入 Skia 持久缓存，Skia 运行时生成的着色器也不能用 MTLBinaryArchive 预编译，所以不做打包缓存。
+
+**已改（未提交）**：参照 Melox MeloxViewModel 的 initialSettings，PersistedSettings 在创建会话时用 runBlocking(Dispatchers.IO) 读取 repo.data.first()，作为 SettingsSession 的 initial（settings 与 confirmedSettings 同时设置）；读取期间启动画面保持。同步读取失败时 initial 为 null，回到原有异步读取并由 readFailed 报错。首帧只渲染用户所选材质，只有选液态玻璃时才绘制液态玻璃。
+
+**点击卡顿（2026-10-31，更正）**：用户确认只有装新包后首次启动时，点击和拖动底栏、打开下拉框才卡。两次记录（20:46、21:17，液态玻璃）中 86 和 94 条操作事件之后 500ms 内主线程帧间隔都不超过 17ms。此前“CMP 在主线程同步绘制、可排除主线程以外的原因”的判断有误：那是 LegacyMetalRedrawer；CMP 1.12.0 默认 parallelRendering = true（ComposeContainerConfiguration），使用 SurfaceMetalRedrawer 和 CMPMetalLayer（CALayer 子类，自管 IOSurface 缓冲）。主线程只录制 Picture，drawPicture、flushAndSubmit（Skia 首次生成并编译着色器管线）在后台 RenderingDispatchQueue 上执行，新帧到来时旧的待绘帧被丢弃；CMPMetalLayer.findNextDrawable 在上一帧 GPU 未完成时返回 nil，nextDrawable 每 1ms 轮询。所以渲染线程或 GPU 卡住时主线程帧间隔照常 16.7ms，屏幕却不更新。第一版钩子交换 CAMetalLayer.nextDrawable，取得缓冲 0 次即因此。第二版改为包装 CMPMetalLayer 的 presentOnMainThread:onDisplay:（记录 contents 实际被替换的时间，即画面更新）和 nextDrawable（记录渲染线程等待上一帧 GPU 完成 ≥ 1ms 的时长），每条操作事件附其后 500ms 内最长画面更新间隔和最长等待。判读：画面更新间隔长而等待短，是渲染线程的 CPU 工作（推断为着色器首次编译），改法为启动画面期间提前绘制按压态等效果；等待也长，是 GPU 负载，改法为降低按压时的效果开销。
+
+**第二版钩子结果与决定（2026-10-31）**：22:00 记录（573eb3b，装新包后首次启动）主线程只有启动画面期间 989ms 长帧；画面更新 992 次，中位 16.7ms、P95 20.9ms，34 次超过 25ms；等待绘制缓冲仅 6 次、最长 4.5ms，排除 GPU 负载。长间隔都在第一次用到某个画面时：首次切到塔台 581ms，首次进设置三段约 190ms，首次拖动底栏多段 30 至 100ms，首次打开下拉框 254ms、首次关闭 123ms，首次切到柔光 126ms、液态 87ms，首次进航班 90ms；同样操作第二次约 20 至 25ms。推断为渲染线程首次编译 Metal 管线，系统着色器缓存在装新包后失效（Lens.kt 在 chromaticAberration > 0 时换用带色散的着色器，所以液态玻璃第一次按压也会编译）。用户决定接受现状，不做预热或着色器合并，也不做二次启动对照。随后按用户要求删除整套启动记录（双端 startup 包、关于页“导出启动记录”、Android FileProvider、iosApp/PresentTiming.swift 及其工程条目、shared 的 androidx.core 依赖与版本目录条目、底栏和下拉框事件点、相关测试），入口同步读取设置保留。
 
 **验收**：相同设备/温度/电量模式下重复测量并记录中位数、P95 帧耗和长帧。60Hz 的一帧约 16.7ms，120Hz 约 8.3ms；按设备实际刷新率评估。目标是支持设备上稳定、响应及时，不能在缺少设备记录时承诺全机型跑满 120fps。
 
@@ -95,16 +108,19 @@
 
 | 用途 | 当前/官方基线 | 本轮首选目标 |
 | --- | --- | --- |
-| 设置行名称 | 自定义 16sp；部分官方选择行 17sp | 统一 15sp Normal，重点项才加粗 |
+| 设置行名称 | 自定义 16sp；部分官方选择行 17sp | 统一 15sp Medium（2026-10-30 用户由 Normal 改为 Medium）；图标与名称间距统一 8dp，与 BasicComponent 一致 |
 | 右侧值/输入内容 | 14sp 或组件自身样式 | 14sp，保持与主标题明显层级 |
-| 必要辅助/校验信息 | 部分自绘内容继承主样式 | 12sp，配合必要提示/错误图标 |
-| 分组标题 | SmallTitle 默认 14sp Bold | 13sp Medium，靠层级和留白分组 |
+| 必要辅助/校验信息 | 部分自绘内容继承主样式 | 辅助信息 11sp 浅灰（onSurfaceVariantActions）、无图标；校验错误 12sp 红色配警告图标（2026-10-30 用户修正） |
+| 分组标题 | SmallTitle 默认 14sp Bold | 15sp Bold、主题正文色 onSurface；浅色呈深色、深色反转（2026-10-29 用户修正） |
 | 底栏标签 | 11sp，Medium/Bold | 保持 11sp，Normal/Bold |
 
 - iOS 优先沿用系统解析器及现有回退链，核对中文系统回退、粗体开关、数字与英文；不打包 SF 私有字体文件，不指定不可移植的私有字体名绕过框架。
 - Android 使用系统 sans-serif 与系统中文/符号回退，尊重厂商系统字体选择，不强制复制苹果字体。
 - 不全局缩放 density/fontScale，不禁用用户字体放大；上述为默认缩放下的设计目标，大字时允许行高增长与值换行。
 - 以同机原生系统字样作为对照；若系统解析结果正确，就只修字体层级与字重，而不是另造一套字体加载器。
+- 2026-10-30 用户决定：iOS 继续使用系统 SF，按 Apple 各字号的字距与字重校正 Skia 排版差异；Android 使用系统字体。Apple SF 许可只允许制作 Apple 平台界面样稿且禁止再分发，Android 不打包 SF。
+- 2026-10-30 调研（Compose 1.12.0 → Skiko 0.150.1 → Skia m150 内置 HarfBuzz）：HarfBuzz 只在字体同时含 trak 与 STAT 表时应用字距表，Skia 的 SkShaper 不设置 ptem，HarfBuzz 按默认 12pt 取值。SF Pro 的 Normal 字距在 12pt 为 0，所以 Compose 中西文字距不随字号变化，不会与手动字距叠加。苹方含 trak、无 STAT，Compose 不应用；原生 CoreText 是否对苹方应用 trak 未验证，所用苹方文件来源未核实。
+- HIG iOS SF Pro 字距（pt）：11 +0.06，12 0，13 -0.08，14 -0.15，15 -0.23，16 -0.31，17 -0.43，18 -0.44，20 -0.45。项目文字为 11–18sp。苹方 trak 为 +0.019～+0.022 em（10–20pt）。西文与中文的偏差方向相反，统一设置 letterSpacing 会同时作用于中文（Skia 按字符簇加间距）。
 
 **验收**：中文/英文/数字/符号无缺字，Normal/Bold 不假粗；深浅、大字体、系统粗体与长值不裁切，辅助信息不会与主设置名称同等突出。
 
@@ -120,6 +136,16 @@
 **验收**：点击即开始反馈；打开/切选/关闭连贯；当前项、焦点、外部点击关闭、返回关闭、列表滚动和读屏保持；显示期间切主题/材质不出现旧色残留。
 
 ### 3.8 设置图标、值位置、即时编辑与镜像页（原反馈 8）
+
+**2026-10-29 最新确认，优先于下文早期方案**：
+- 设置页面内所有设置项配对应语义图标；卡片外分组标题采用第 3.6 节新规格。辅助说明不配图标，校验错误配警告图标，不单靠颜色表达；展开后的输入框左侧不重复设置行图标（2026-10-30 用户修正）。
+- 原位展开项参照“点击震动”补展开/收起箭头与语义；内容高度及箭头使用弹簧，遵循减少动态效果。今后默认禁止淡入淡出，除非没有可选方案或有明确更优理由再讨论。
+- 仅普通设置删除保存/取消，完成输入、失焦或收起时校验并自动保存；镜像新增/编辑弹窗继续手动保存。无效或保存失败时保留草稿，不把乐观值视为已保存。
+- 设置首页品牌区改为紧凑横向结构，名称与版本清楚排列；子页当前页面说明重新设计为图标/页名与必要提示，不保留冗余三行简介或无用解释段落。
+- 2026-10-30 用户要求重新设计并确认：首页为登机牌卡片（SettingsBoardingPass.kt）。上半部分为 52dp 品牌蓝 #346DF1 连续圆角图标（六边形 BrandMark 替换 Wave）、20sp Bold 名称、13sp 版本号（平台名由各端入口传入）、右侧粉色“赞助”胶囊，整块点击进入赞助页；中间虚线撕口与两侧半圆缺口；下半部分为口号。子页说明采用方案 A 大标题：去掉图标，30sp Bold 页名，下方 13sp 次要色提示，与分组标题左对齐。新增 SettingsPage.Sponsor 赞助占位页，赞助渠道和赞助人员数据接入前只显示页名。
+- 恢复本页使用对应设置默认构造值；恢复全部使用完整 AppSettings()，包含默认镜像列表与选中状态。重置入口、卡片、图标、确认按钮按主题语义重新设计，执行前二次确认。
+- 统一消息面向当前及后续应用功能；复用已有 SettingsSession/SettingsUiState 的保存事实，确认写入后显示成功，失败、输入错误、结果待确认分别表达。公共消息宿主尚未实施，待独立批准。
+- 执行节奏：每次仅派一个代理，完成并验收后再经用户批准派下一个；设置 UI/自动保存/恢复默认任务代码与轻量检查已完成，尚未编译或真机验收；顶底栏及统一消息任务暂缓。当前证据见 [NOW](context/NOW.md)。
 
 2026-10-21 镜像局部源码交付：[最新交互规格](design/mirror-settings/PRD.md)、[R2 线框](design/mirror-settings/index.html)。主列表、管理／编辑／删除弹窗及底部测试栏已接入源码；用户最新要求为普通拼接行无卡片、底部手动保存、HTTP(S)／裸域名输入、移除直连条目、空列表图标＋加粗提示无新增按钮。关闭镜像只直连；开启后镜像全部失败才直连。设置输入框增加 iOS 局部菜单抑制。结构／73项Python／diff检查通过；未构建／未真机验收。其余设置页面和第8项整体仍未完成。下文通用即时编辑建议不再适用于镜像新增／编辑，以局部规格为准。
 
@@ -182,6 +208,8 @@
 
 **验收**：在静止设置页及滚动停止后，轻点/快点均有及时反馈并且只执行一次；按下后滑动不误触，取消后无残留灰底；回调不依赖按压动画完成。结果以设置卡片录屏和事件/帧时间线为准，不用底栏交互测试代替。
 
+**2026-10-30 实现（待真机确认）**：源码确认两段延迟。Compose 1.12.0 在可滚动容器内等待滚动判定后才发送 Press（iOS 等待 150ms，`Clickable.ios.kt`），快速轻点会在松手时补发 Press/Release；Miuix `MiuixIndication` 再叠加弹簧进入动画，松手时还要等进入动画完成。新增 `SettingsRowFeedback`，只用于可点击的设置行、选择行、展开行和开关行：收到 Press 立即显示 0.10 灰底，松手后 80ms 渐隐，滑动取消时立即撤销；下拉弹层内的选项仍用 Miuix 原有反馈。150ms 滚动判定保留，用于防止滑动误触。点击回调、震动和导航输入未改，没有找到首次点击丢失的源码证据。
+
 ### 3.11 全局点击震动（原反馈 11）
 
 **需求解释**：“调整震动发现”按上下文理解为调整震动强度。新增全局点击反馈开关，强度轻/中/强，默认中；提案默认开关开启，已有用户首次读取按该默认初始化，不覆盖显式选择。
@@ -233,20 +261,20 @@
 
 | 对象 | 当前入口 | 实施边界 |
 | --- | --- | --- |
-| App 生效主题 | shared/src/commonMain/kotlin/dev/ohmydrift/App.kt:92 | 统一向系统宿主发布生效外观，不另存主题状态 |
+| App 生效主题 | shared/src/commonMain/kotlin/com/ohmyfly/App.kt:92 | 统一向系统宿主发布生效外观，不另存主题状态 |
 | 顶部 inset 与布局 | ui/DriftTopBar.kt:52–85 | 保留系统 inset，调整额外内距、视觉按钮与标题 |
-| iOS Compose 宿主 | shared/src/iosMain/kotlin/dev/ohmydrift/MainViewController.kt；iosApp/iosApp/ContentView.swift | 需补共享主题到真实 SwiftUI/UIKit 宿主的联动，避免仅改页面颜色 |
-| Android 系统栏 | androidApp/src/main/kotlin/dev/ohmydrift/app/MainActivity.kt:20–25 | 需核对手动主题下系统栏前景，继续保留边到边布局 |
+| iOS Compose 宿主 | shared/src/iosMain/kotlin/com/ohmyfly/MainViewController.kt；iosApp/iosApp/ContentView.swift | 需补共享主题到真实 SwiftUI/UIKit 宿主的联动，避免仅改页面颜色 |
+| Android 系统栏 | androidApp/src/main/kotlin/com/ohmyfly/app/MainActivity.kt:20–25 | 需核对手动主题下系统栏前景，继续保留边到边布局 |
 | iOS 高刷许可 | iosApp/iosApp/Info.plist 的 CADisableMinimumFrameDurationOnPhone | 已启用，不把重复加开关写成性能优化 |
 | 默认字体 | 固定 Compose PlatformFont.skiko.kt 的 GenericFontFamiliesMapping | 已有系统字体及回退，不额外分发 SF 字体资源 |
 
-上述 ui/ 相对路径均位于 shared/src/commonMain/kotlin/dev/ohmydrift/。
+上述 ui/ 相对路径均位于 shared/src/commonMain/kotlin/com/ohmyfly/。
 
 ### 5.2 Melox 几何与当前值对照
 
 这些是两个项目的实现值，不是 iOS 26 官方参数。Melox 默认四入口，当前五入口，不能把其单项宽度直接乘五照抄。
 
-| 项目 | 当前 ohmydrift | 固定 Melox | 本轮目标 |
+| 项目 | 当前 OhMyFly | 固定 Melox | 本轮目标 |
 | --- | --- | --- | --- |
 | 外轮廓 | GlassShape(24dp) 平滑方圆角 | CircleShape 胶囊 | 采用胶囊几何；裁剪/折射/高光/阴影一致 |
 | 默认主体高度 | 最小 64dp、允许增长 | 固定 64dp | 首轮 64dp 基线、保留大字增长；不能声称照搬后高度会自动变小 |
@@ -325,7 +353,48 @@ Overlay 使用现有 Scaffold 弹层宿主并随页面生命周期；Window 使�
 - [Miuix 固定 0.9.4 源码](https://github.com/miuix-kotlin-multiplatform/miuix/tree/39c40f99844227b853f0049a0933b1f3ae6c00ba)；[默认 TextStyles](https://github.com/miuix-kotlin-multiplatform/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/theme/TextStyles.kt)。
 - 固定 Miuix 源码证据：[Preference 公开参数](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-preference/src/commonMain/kotlin/top/yukonga/miuix/kmp/preference/OverlayDropdownPreference.kt#L58-L76)、[菜单动画默认](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/basic/ListPopup.kt#L198-L215)、[实色外壳](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/basic/ListPopup.kt#L594-L624)、[公共 PopupLayout](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/utils/MiuixPopupUtils.kt#L249-L290)。
 - 反馈与导航：[MiuixIndication 时序](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/utils/MiuixIndication.kt#L25-L90)、[导航默认时序](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/docs/guide/miuix-nav.md#L170-L199)、[Spring 约束](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-nav/src/commonMain/kotlin/top/yukonga/miuix/kmp/nav/transition/NavMotion.kt#L20-L45)。
-- 自动保存现有能力：[SettingsSession](../shared/src/commonMain/kotlin/dev/ohmydrift/settings/SettingsSession.kt)、[SettingsControls](../shared/src/commonMain/kotlin/dev/ohmydrift/ui/settings/SettingsControls.kt)、[镜像编辑状态](../shared/src/commonMain/kotlin/dev/ohmydrift/ui/settings/MirrorSettingsPage.kt)。
+- 自动保存现有能力：[SettingsSession](../shared/src/commonMain/kotlin/com/ohmyfly/settings/SettingsSession.kt)、[SettingsControls](../shared/src/commonMain/kotlin/com/ohmyfly/ui/settings/SettingsControls.kt)、[镜像编辑状态](../shared/src/commonMain/kotlin/com/ohmyfly/ui/settings/MirrorSettingsPage.kt)。
 - [Compose 固定版字体映射/回退](https://github.com/JetBrains/compose-multiplatform-core/blob/f29d2f99f3beafc60992c6a73dbbaa9f841c5d4c/compose/ui/ui-text/src/skikoMain/kotlin/androidx/compose/ui/text/platform/PlatformFont.skiko.kt)、[平台文字差异](https://kotlinlang.org/docs/multiplatform/compose-platform-specifics.html#text)。
 - [Apple 布局与安全区](https://developer.apple.com/design/human-interface-guidelines/layout)、[字体](https://developer.apple.com/design/human-interface-guidelines/typography)、[材质](https://developer.apple.com/design/human-interface-guidelines/materials)、[无障碍](https://developer.apple.com/design/human-interface-guidelines/accessibility)。
 - [Apple preferredColorScheme](https://developer.apple.com/documentation/swiftui/view/preferredcolorscheme(_:))、[UIViewController 外观覆盖](https://developer.apple.com/documentation/uikit/uiviewcontroller/overrideuserinterfacestyle)、[safeAreaInsets](https://developer.apple.com/documentation/uikit/uiview/safeareainsets)。Apple API 页本轮提取仅取得页面元信息，具体宿主调用形态仍需实施时核实，未将标题当成完整接口验证。
+
+## 8. 继续改进需求（2026-10-23）
+
+来源：用户 2026-10-23 提出并确认细节，作为 D 阶段之后的继续优化。本节保留需求及确认时的状态，当前实施进度以 [NOW](context/NOW.md) 为准。U4 已于 2026-10-29 按用户要求暂缓，后续再议。
+
+### 8.1 条目
+
+| ID | 需求 | 期望 | 验收 | 状态 |
+| --- | --- | --- | --- | --- |
+| U1 | 弹窗与下拉动画 | 进入弹簧加大回弹、提高刚度以缩短进入；遮罩淡入缩短；退出用更短的缓动或弹簧。具体数值由实施方选定，要求人眼能明显感知回弹与更快进入 | 双端录屏对比前后进入时长与回弹，改动可被明显感知；连续开关、动画中关闭不残留遮罩；实施报告列出 Miuix 默认值与新值 | 已确认 |
+| U2 | 全层级弹簧切页 | 一级、二级、三级及更深页面切换全部用弹簧；默认参数与 U1 同一组更有回弹的参数 | 各层级前进、返回、手势返回均为弹簧；减少动态时直接换页 | 已确认 |
+| U3 | 镜像编辑器“拼接方式”对齐 | 见[镜像页规格](design/mirror-settings/PRD.md#弹窗与菜单) | AC-M12 | 已确认 |
+| U4 | 统一 Sink 按压反馈 | 所有可点击区域使用统一 Sink 按压反馈；底部导航栏除外 | 逐页盘点可点击区域；底栏保持现状；与 [3.10](#310-设置页卡片点击不灵与灰色反馈滞后原反馈-10) 点击时序一并验证 | 暂缓；用户决定暂时不做，后续再议（2026-10-29） |
+| U5 | App 名称 | 改为 OhMyFly | Android 启动器名、iOS 显示名、页面内品牌文字一致 | 已确认 |
+| U6 | 包名 | Kotlin 包根 `dev.ohmydrift` → `com.ohmyfly`；Android applicationId 与 iOS bundle identifier 为 `com.ohmyfly.app`；shared 模块 namespace 由实施方按惯例选定（如 `com.ohmyfly.shared`） | 包引用、import、namespace、bundle id、测试、文档、CI 无旧值残留 | 已确认 |
+| U7 | 订阅 → 塔台 | 入口名及所有页面内“订阅”文案替换 | 全文案检索无残留 | 已确认 |
+| U8 | 节点库 → 航班 | 入口名及所有页面内“节点”文案替换 | 同上 | 已确认 |
+| U9 | 测速 → 起飞 | 入口名及所有页面内“测速”文案替换 | 同上 | 已确认 |
+| U10 | 配置后台异步、启动无加载界面 | 配置读取与持久化在后台；启动不显示“正在读取本地设置…”等文案或界面。读取失败时用弹窗提示，由图标、文字、按钮组合表达（如重试） | 冷启动直接进入主界面；模拟读取失败时出现弹窗且原文件不被覆盖；重试成功后弹窗关闭 | 代码完成（待构建） |
+| U11 | 删除旧配置与兼容逻辑 | 不需要的、过时的、尚未实现功能的配置与代码全部删除，不保留：含 `MirrorMode.Template` 及“原模板”显示、未知 key 保留、`mirror.order` 遗留清理逻辑，以及其他同类项。设置页面内已有的子页与配置项（起飞、流媒体与 AI、塔台与过滤等）保留，不在删除范围（2026-10-24 用户确认） | 实施前列出删除清单；删除后无引用残留，测试同步更新 | 代码完成（待构建） |
+| U12 | iOS 输入框浮动工具栏 | 双击或长按输入框时显示系统默认浮动工具栏（选择、全选、复制、粘贴等）；单击聚焦时不弹出工具栏 | iOS 真机：单击只聚焦；双击、长按出现工具栏且各项可用；Android 行为不变 | 已确认 |
+
+### 8.2 现状事实（实施参考）
+
+| 主题 | 事实 | 依据 |
+| --- | --- | --- |
+| 镜像页弹层 | 用 Overlay 系列（OverlayDialog、OverlayDropdownPopup、OverlayIconDropdownMenu），不是 Window 系列；Window 走平台 Dialog，不依赖 Scaffold | 用户确认 |
+| 弹窗默认运动 | 手机底部滑入弹簧，阻尼 0.88 / 刚度 450；退出 tween 260ms；遮罩淡入 300ms、淡出 250ms | 用户确认，Miuix 0.9.4 |
+| 下拉默认运动 | 展开比例弹簧，阻尼 0.82 / 刚度 362.5；内容淡入 200ms、淡出 150ms；遮罩 300ms / 150ms | 用户确认，Miuix 0.9.4 |
+| 参数可控性 | 上述参数在 Miuix 0.9.4 封装层未暴露，需改内部实现或替换组件，与 [5.4](#54-miuix-弹层种类与本项目取舍) 的适配边界一并决定 | 用户确认 |
+| “原模板” | 旧拼接模式 `MirrorMode.Template`（地址含 `{url}`），为兼容存量配置保留；U11 将删除 | 用户确认；`MirrorEditor.kt` |
+| App.kt | Compose 根组件（233 行），不是系统入口；系统入口为 MainActivity / MainViewController。可整理，但不为凑行数拆包装层 | 用户确认 |
+| 持久化 | UI 状态同步更新，磁盘写入异步（DataStore 协程事务）；镜像保存等待真实写入确认 | 用户确认 |
+| 启动加载界面 | 设置未读出时显示品牌名与“正在读取本地设置…”，读失败显示“重试” | `PersistedSettings.kt` 第 41–51 行，2026-10-23 核对 |
+| iOS 输入菜单 | 设置输入框通过 `LocalTextToolbar` 提供永远隐藏的 TextToolbar，所有途径都不显示工具栏；U12 需改为仅抑制单击聚焦时的弹出 | `SettingsInputMenu.ios.kt`，2026-10-23 核对 |
+| Overscroll | MiuixTheme 自动提供 MiuixOverscrollFactory，设置页 LazyColumn 已继承；只在顶/底越界拖拽时可见 | 用户确认 |
+| 改名波及面 | 所有旧 `dev.ohmydrift` 包引用与 import、Android applicationId/namespace、iOS bundle identifier、测试与文档；改名后旧本地数据不可见，不需保留 | 用户确认；`androidApp/build.gradle.kts`、`shared/build.gradle.kts`、`iosApp/Configuration/Config.xcconfig` |
+
+### 8.3 待确认
+
+无。实施方选定的数值与 namespace 在实施报告中列出，由用户真机验收确认。

@@ -97,7 +97,7 @@ def check(root: Path = ROOT) -> list[str]:
     actual = hashlib.sha256((root / 'gradle/wrapper/gradle-wrapper.jar').read_bytes()).hexdigest()
     if actual != WRAPPER_SHA256:
         errors.append('wrapper JAR differs from the inspected official template copy')
-    app = (root / 'shared/src/commonMain/kotlin/dev/ohmydrift/App.kt').read_text()
+    app = (root / 'shared/src/commonMain/kotlin/com/ohmyfly/App.kt').read_text()
     if 'import top.yukonga.miuix.kmp.basic.Scaffold' not in app:
         errors.append('Miuix Scaffold import missing')
     return errors

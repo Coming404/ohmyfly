@@ -4,7 +4,7 @@ import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-COMMON = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+COMMON = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
 UI = COMMON / 'ui'
 GLASS = UI / 'glass'
 
@@ -21,11 +21,11 @@ class MotionPolicyTests(unittest.TestCase):
         self.assertIn('target[reduceMotion] = settings.reduceMotion', codec)
         self.assertIn('reduceMotion = preferences.read(reduceMotion, defaults.reduceMotion)', codec)
         self.assertIn('ToggleSetting("减少动态效果", value = settings.reduceMotion', home)
-        self.assertIn('onChange { it.copy(reduceMotion = enabled) }', home)
+        self.assertIn('onChange("减少动态效果") { it.copy(reduceMotion = enabled) }', home)
         self.assertIn('AppMotion(settings.reduceMotion) {', app)
         self.assertNotIn('mutableStateOf(settings.reduceMotion)', home + app)
         for file in ('MotionSettingsTest.kt', 'MotionSettingsSessionTest.kt'):
-            self.assertTrue((ROOT / 'shared/src/commonTest/kotlin/dev/ohmydrift/settings' / file).exists())
+            self.assertTrue((ROOT / 'shared/src/commonTest/kotlin/com/ohmyfly/settings' / file).exists())
 
     def test_system_scale_is_observed_not_replaced_or_written(self):
         policy = (UI / 'AppMotion.kt').read_text()
@@ -45,7 +45,7 @@ class MotionPolicyTests(unittest.TestCase):
             self.assertIn('return if (motionAllowed) current else target', source)
             self.assertIn('tween(AppTransitionDurationMillis)', source)
         screen = (UI / 'SettingsScreen.kt').read_text()
-        self.assertIn('if (motionAllowed) NavTransitions.MiuixDefault else NavTransitions.None', screen)
+        self.assertIn('if (motionAllowed) AppNavTransition else NavTransitions.None', screen)
         self.assertIn('else NavDisplayEffects.None', screen)
         self.assertIn('editorBackActive || !motionAllowed -> NavSwipeDirection.None', screen)
         self.assertNotIn('key(motionAllowed)', screen)

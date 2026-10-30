@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ohmydrift"
+rootProject.name = "ohmyfly"
 include(":shared", ":androidApp")

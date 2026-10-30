@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-MAIN = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+MAIN = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
 
 
 class MaterialSettingsTests(unittest.TestCase):
@@ -21,10 +21,12 @@ class MaterialSettingsTests(unittest.TestCase):
         home = (MAIN / 'ui/settings/SettingsHome.kt').read_text()
         self.assertIn('ChoiceSetting("界面材质", settings.materialMode.name', home)
         self.assertIn('MaterialMode.entries.map { it.name to it.label }', home)
-        self.assertIn('onChange { it.copy(materialMode = MaterialMode.valueOf(name)) }', home)
+        self.assertIn('onChange("界面材质") { it.copy(materialMode = MaterialMode.valueOf(name)) }', home)
         self.assertNotIn('mutableStateOf', home)
         choice = (MAIN / 'ui/settings/ChoiceSetting.kt').read_text()
-        self.assertIn('OverlayDropdownPreference(', choice)
+        self.assertIn('OverlayDropdownPopup(', choice)
+        self.assertIn('DropdownArrowEndAction(', choice)
+        self.assertIn('SettingsName(title)', choice)
 
     def test_codec_adds_optional_key_without_new_store_or_schema(self):
         codec = (MAIN / 'settings/SettingsCodec.kt').read_text()
@@ -39,7 +41,7 @@ class MaterialSettingsTests(unittest.TestCase):
     def test_reduced_transparency_keeps_existing_fallback(self):
         app = (MAIN / 'App.kt').read_text()
         self.assertIn('val glassEnabled = glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)', app)
-        self.assertEqual(3, app.count('glassEnabled = glassEnabled,'))
+        self.assertEqual(2, app.count('glassEnabled = glassEnabled,'))
         self.assertNotIn('materialMode =', (MAIN / 'PersistedSettings.kt').read_text())
         presets = (MAIN / 'ui/glass/GlassPreset.kt').read_text()
         self.assertIn('!reduceTransparency && !systemReduceTransparency && shaderSupported', presets)

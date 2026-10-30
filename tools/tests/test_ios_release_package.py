@@ -40,12 +40,12 @@ class IOSReleasePackageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             app = Path(directory)
             info = {'CFBundleSupportedPlatforms': ['iPhoneOS'], 'DTPlatformName': 'iphoneos',
-                    'MinimumOSVersion': '16.0', 'CFBundleExecutable': 'ohmydrift',
-                    'CFBundleIdentifier': 'dev.ohmydrift.app'}
+                    'MinimumOSVersion': '16.0', 'CFBundleExecutable': 'OhMyFly',
+                    'CFBundleIdentifier': 'com.ohmyfly.app'}
             (app / 'Info.plist').write_bytes(plistlib.dumps(info))
-            (app / 'ohmydrift').write_bytes(executable())
+            (app / 'OhMyFly').write_bytes(executable())
             self.assertFalse(module.validate_app(app)['signed'])
-            (app / 'ohmydrift').write_bytes(executable(platform=7))
+            (app / 'OhMyFly').write_bytes(executable(platform=7))
             with self.assertRaises(ValueError):
                 module.validate_app(app)
 
@@ -54,9 +54,9 @@ class IOSReleasePackageTests(unittest.TestCase):
             app = Path(directory)
             info = {'CFBundleSupportedPlatforms': ['iPhoneSimulator'],
                     'DTPlatformName': 'iphonesimulator', 'MinimumOSVersion': '16.0',
-                    'CFBundleExecutable': 'ohmydrift', 'CFBundleIdentifier': 'dev.ohmydrift.app'}
+                    'CFBundleExecutable': 'OhMyFly', 'CFBundleIdentifier': 'com.ohmyfly.app'}
             (app / 'Info.plist').write_bytes(plistlib.dumps(info))
-            (app / 'ohmydrift').write_bytes(executable())
+            (app / 'OhMyFly').write_bytes(executable())
             with self.assertRaises(ValueError):
                 module.validate_app(app)
             info.update(CFBundleSupportedPlatforms=['iPhoneOS'], DTPlatformName='iphoneos')
@@ -68,21 +68,21 @@ class IOSReleasePackageTests(unittest.TestCase):
     def test_packages_only_ipa_not_generic_zip_archives(self):
         with tempfile.TemporaryDirectory() as directory:
             archive = Path(directory) / 'app.xcarchive'
-            app = archive / 'Products/Applications/ohmydrift.app'
+            app = archive / 'Products/Applications/OhMyFly.app'
             app.mkdir(parents=True)
             (archive / 'Info.plist').write_bytes(plistlib.dumps({
-                'ApplicationProperties': {'ApplicationPath': 'Applications/ohmydrift.app'}}))
+                'ApplicationProperties': {'ApplicationPath': 'Applications/OhMyFly.app'}}))
             (app / 'Info.plist').write_bytes(plistlib.dumps({
                 'CFBundleSupportedPlatforms': ['iPhoneOS'], 'DTPlatformName': 'iphoneos',
-                'MinimumOSVersion': '16.0', 'CFBundleExecutable': 'ohmydrift',
-                'CFBundleIdentifier': 'dev.ohmydrift.app'}))
-            (app / 'ohmydrift').write_bytes(executable())
+                'MinimumOSVersion': '16.0', 'CFBundleExecutable': 'OhMyFly',
+                'CFBundleIdentifier': 'com.ohmyfly.app'}))
+            (app / 'OhMyFly').write_bytes(executable())
             (archive / 'dSYMs').mkdir()
             output = Path(directory) / 'output'
             with patch.object(module.subprocess, 'run') as run:
                 module.package(archive, output)
             self.assertEqual(run.call_count, 1)
-            self.assertEqual(run.call_args.args[0][-1], str(output / 'ohmydrift-release-unsigned.ipa'))
+            self.assertEqual(run.call_args.args[0][-1], str(output / 'ohmyfly-release-unsigned.ipa'))
             self.assertTrue((output / 'build-info.json').is_file())
 
 

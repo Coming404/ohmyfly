@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-COMMON = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+COMMON = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
 GLASS = COMMON / 'ui/glass'
 
 
@@ -20,7 +20,7 @@ class GlassPipelineTests(unittest.TestCase):
         catalog = (ROOT / 'gradle/libs.versions.toml').read_text()
         self.assertIn('androidx-lifecycle-runtime-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }', catalog)
         self.assertIn('implementation(libs.androidx.lifecycle.runtime.compose)', (ROOT / 'shared/build.gradle.kts').read_text())
-        ios = (ROOT / 'shared/src/iosMain/kotlin/dev/ohmydrift/ui/glass/sensor/GlassGravity.ios.kt').read_text()
+        ios = (ROOT / 'shared/src/iosMain/kotlin/com/ohmyfly/ui/glass/sensor/GlassGravity.ios.kt').read_text()
         for constant in ('UIInterfaceOrientationPortrait', 'UIInterfaceOrientationLandscapeRight',
                          'UIInterfaceOrientationPortraitUpsideDown', 'UIInterfaceOrientationLandscapeLeft',
                          'UISceneActivationStateForegroundActive'):
@@ -32,6 +32,14 @@ class GlassPipelineTests(unittest.TestCase):
         self.assertEqual(1, effects.count('effects = { glassEffects('))
         self.assertIn('onDrawSurface = { drawRect(surface.copy(alpha = preset.surfaceAlpha)) }', effects)
         self.assertNotIn('textureBlur(', effects)
+
+    def test_press_does_not_add_a_uniform_white_plus_layer(self):
+        highlight = (GLASS / 'InteractiveHighlight.kt').read_text()
+        self.assertNotRegex(
+            highlight,
+            r'drawRect\(\s*color\s*=\s*Color\.White(?:\.copy\([^)]*\))?,'
+            r'\s*blendMode\s*=\s*BlendMode\.Plus',
+        )
 
     def test_refraction_displaces_input_sampling_and_shares_boundary(self):
         lens = (GLASS / 'Lens.kt').read_text()

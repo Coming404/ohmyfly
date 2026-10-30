@@ -1,23 +1,23 @@
 # UI 实现与验收
 
-Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留五个入口：概览、订阅、测速、节点库、设置。生产源码不包含固定假节点、固定延迟、开发状态页脚或占位文件名。当前目录初始为空；订阅读取、安全凭据存储、Go节点测速尚未接入。本轮主题/表面/设置首页/顶底栏/NavDisplay、玻璃及双端传感器、自有运动策略已在78d80bd通过[双端Release构建](https://github.com/Coming404/ohmydrift/actions/runs/39426815748)，146项共享测试全部通过，无失败或跳过；视觉、无障碍、传感器与性能仍待真机验收，不代表节点／媒体业务完成。
+Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留五个入口：概览、塔台、起飞、航班、设置。生产源码不包含固定假航班、固定延迟、开发状态页脚或占位文件名。当前目录初始为空；塔台读取、安全凭据存储、Go航班起飞尚未接入。本轮主题/表面/设置首页/顶底栏/NavDisplay、玻璃及双端传感器、自有运动策略已在78d80bd通过[双端Release构建](https://github.com/Coming404/ohmyfly/actions/runs/39426815748)，146项共享测试全部通过，无失败或跳过；视觉、无障碍、传感器与性能仍待真机验收，不代表航班／媒体业务完成。
 
 ## 页面与状态
 
 | 页面 | 当前内容 |
 |---|---|
 | 概览 | 目录数量、已选数量、最近结果空状态、四个功能入口 |
-| 订阅 | 正式订阅空状态；不读取文件或请求网络 |
-| 测速 | 选中节点范围、待测列表；引擎接通前开始按钮禁用 |
-| 节点库 | 节点摘要、地区分类、多选、当前分类全选及全局清空；没有节点时显示空状态 |
+| 塔台 | 正式空状态；不读取文件或请求网络 |
+| 起飞 | 选中航班范围、待起飞列表；引擎接通前开始按钮禁用 |
+| 航班 | 航班摘要、地区分类、多选、当前分类全选及全局清空；没有航班时显示空状态 |
 | 设置 | 分组子页、真实设置持久化、GitHub镜像管理与独立HTTP探测；[详细边界](settings.md) |
 
-一级选择与五个滚动位置由App持有，当前一级入口按稳定名称保存。设置子页使用App唯一可保存NavBackStack，SettingsScreen的NavDisplay实际承载页面；不把一级底栏点击入栈，也不复制AppSettings。节点摘要通过参数下传，未知延迟为空并显示“未测速”，不得用固定数值填充。选择夹具只存在于commonTest，不参与应用运行时。
+一级选择与五个滚动位置由App持有，当前一级入口按稳定名称保存。设置子页使用App唯一可保存NavBackStack，SettingsScreen的NavDisplay实际承载页面；不把一级底栏点击入栈，也不复制AppSettings。航班摘要通过参数下传，未知延迟为空并显示“未起飞”，不得用固定数值填充。选择夹具只存在于commonTest，不参与应用运行时。
 
 ## 悬浮控制层与材质
 
 - 顶部统一显示当前页名，一级/子页均为18sp Semibold单行，不显示品牌或副标题；标题无胶囊与阴影，保留字体缩放、heading语义和完整读屏文本。
-- 子页返回是纯图标，复用官方IconButton/现有HeaderAction，24dp图形、48dp触区，LTR/RTL方向正确；节点库既有两个真实动作移到末端独立容器，无动作页不建空胶囊。
+- 子页返回是纯图标，复用官方IconButton/现有HeaderAction，24dp图形、48dp触区，LTR/RTL方向正确；航班页既有两个真实动作移到末端独立容器，无动作页不建空胶囊。
 - 顶部左右16dp、上下8dp、主体至少48dp，另计顶部/横向safeDrawing；标题下是当前页面色的基础渐隐底（前80%保持不透明、末20%到透明），避免滚动正文干扰页名。这不是新的模糊/折射预设，功能按钮与底栏仍用原ChromeMaterial参数。
 - 底部改为应用局部Box/Row与五个等宽Column选择项，上24dp图标、下11sp标签常显，间距4dp、行高14sp，普通Medium/选中Bold；选中取主题primary，未选中取onSurfaceVariantSummary，按下alpha 0.6作为即时反馈。标准Compose selectableGroup/selectable(Role.Tab)提供唯一选择语义，图标装饰性不重复读名。
 - 主体最小64dp而非固定高度，文本跟随字体缩放；单行溢出时省略，完整文本仍供读屏。左右最少16dp、底部safeDrawing之外8dp，横向安全区只处理一次；宽屏最大560dp居中，内部左右4dp。App仍是唯一导航状态源，子页隐藏、列表contentPadding与单一Backdrop不改。
@@ -59,11 +59,11 @@ Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留五个入口�
 
 ## 设置首页与预设选择弹层
 
-首页包含40dp Wave标记、ohmydrift、单行产品简介及实际平台版本；明暗模式、界面材质与减少透明效果直接在外观组修改。六个复杂设置继续进入子页，旧外观子页已移除。
+首页包含40dp Wave标记、OhMyFly、单行产品简介及实际平台版本；明暗模式、界面材质与减少透明效果直接在外观组修改。六个复杂设置继续进入子页，旧外观子页已移除。
 
-没有下级设置、只从已有值中选择的主题/材质/测速默认模式，复用官方OverlayDropdownPreference：当前值＋常驻上下双箭头，点击打开邻近的选择弹层，当前项对勾，单选即关闭。弹层状态、菜单语义、触感、遮罩与进出场直接交由官方组件，复用App根Scaffold，不新增Window、嵌套宿主、额外BackHandler或自定义动画。旧原地展开区、两处页面展开状态及旋转箭头分支已删除。
+没有下级设置、只从已有值中选择的主题/材质/起飞默认模式，复用官方OverlayDropdownPreference：当前值＋常驻上下双箭头，点击打开邻近的选择弹层，当前项对勾，单选即关闭。弹层状态、菜单语义、触感、遮罩与进出场直接交由官方组件，复用App根Scaffold，不新增Window、嵌套宿主、额外BackHandler或自定义动画。旧原地展开区、两处页面展开状态及旋转箭头分支已删除。
 
-跳转行仍由BasicComponent承载16sp标题/14sp当前值，开关同样16/14sp，普通右箭头（RTL镜像）仅表示子页。预设选择行恢复官方headline1/body2字号、默认16dp内边距与BasicComponent 56dp下限，不为16sp覆盖再嵌套主题。设置列表左右和相邻项间距仍16dp。ChoiceOption的官方RadioButton保留给节点分类、镜像编辑等原调用方，不用于重新绘制官方菜单。
+跳转行仍由BasicComponent承载16sp标题/14sp当前值，开关同样16/14sp，普通右箭头（RTL镜像）仅表示子页。预设选择行恢复官方headline1/body2字号、默认16dp内边距与BasicComponent 56dp下限，不为16sp覆盖再嵌套主题。设置列表左右和相邻项间距仍16dp。ChoiceOption的官方RadioButton保留给航班分类、镜像编辑等原调用方，不用于重新绘制官方菜单。
 
 6.4的源码检查补齐了iOS系统减少透明效果输入、最后绘制的键盘焦点轮廓，以及设置字段error/liveRegion语义和操作行FlowRow。没有改写用户材质选择，也没有新增设置摘要；[设备验收矩阵](#64-无障碍与降级设备矩阵)仍待执行。第7项另补应用减少动态偏好与主题/材质180ms单树过渡，范围及限制见下节。
 
@@ -90,7 +90,7 @@ ThemeController根仍负责生成与动态标记；仅在其内使用官方color
 - `App.kt`：单一采样源与页面切换；`ui/AppTheme.kt`集中原有主题控制器和唯一MiuixTheme根，`ui/AppSurfaceColors.kt`只派生页面/设置卡片/卡片前景/轮廓，不持有另一份主题状态。`PersistedSettings.kt`统一加载与保存错误处理，`settings/`持有模型和DataStore；`mirror/`负责有界公开资源探测。
 - `ui/{DriftTopBar,DriftNavigationBar,ChromeMaterial}.kt`：悬浮控制层与共享材质；`ui/NavigationBarShape.kt`是官方平滑Path到Compose Shape的最小适配，不持有状态。
 - `ui/PagePadding.kt`：逻辑方向安全区和内容留白合并。
-- `ui/{NodeSummary,NodeSelection,NodeSelectionActions,ChoiceOption}.kt`：节点摘要、选择逻辑和控件。
+- `ui/{NodeSummary,NodeSelection,NodeSelectionActions,ChoiceOption}.kt`：航班摘要、选择逻辑和控件。
 - `ui/{OverviewScreen,SubscriptionsScreen,SpeedScreen,NodesScreen,SettingsScreen}.kt`：五页。
 - `commonTest`：NodeSelectionTest、PagePaddingTest、AppDestinationTest、ThemeModeTest等，SettingsNavigationTest六项覆盖开页/防重/根保护/序列化；MaterialSettingsTest新增六项覆盖材质默认/往返/旧值迁移/损坏回退/透明度偏好保留，SettingsCodecTest补非默认材质往返。当前146项已在78d80bd的Android host任务执行且全部通过，无失败或跳过；真实测试保留标准命名。
 
@@ -101,7 +101,7 @@ ThemeController根仍负责生成与动态标记；仅在其内使用官方color
 1. 五页切换时只显示一个18sp紧凑页名，子页返回为纯图标；无重复品牌、内容大标题或空操作胶囊。首末项可见，滚动正文不干扰标题，底栏仍没有全宽白底。
 2. 浅/深色及减少透明效果下，顶底参数与回退保持一致，无黑白闪烁或残留旧主题采样。
 3. 横屏、刘海/手势区、RTL与大字体下按钮仍可触达，页名必要时省略但读屏文本完整；标题和返回按钮不依赖固定高度裁剪。
-4. 空目录不显示假延迟；节点后端接通前不能启动节点测速。镜像探测独立实现且只在用户主动点击时联网，不把镜像结果当节点结果。
+4. 空目录不显示假延迟；航班后端接通前不能启动航班起飞。镜像探测独立实现且只在用户主动点击时联网，不把镜像结果当航班结果。
 5. VoiceOver/TalkBack正确播报目的地、选择状态和操作名称，装饰图标不重复播报。
 6. 最低iOS16/Android13真机检查；用Instruments/帧时间对比滚动与切页，不把静态审查当成卡顿根因或GPU性能证据。
 

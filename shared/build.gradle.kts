@@ -12,7 +12,7 @@ kotlin {
     jvmToolchain(21)
 
     android {
-        namespace = "dev.ohmydrift.shared"
+        namespace = "com.ohmyfly.shared"
         compileSdk {
             version = release(libs.versions.android.compileSdk.get().toInt())
         }

@@ -42,11 +42,11 @@ class ProductionUiTests(unittest.TestCase):
                 self.assertNotRegex(path.read_text(), markers)
 
     def test_dynamic_seed_is_connected_without_wallpaper_permissions(self):
-        shared = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
-        host = (ROOT / 'androidApp/src/main/kotlin/dev/ohmydrift/app/MainActivity.kt').read_text()
+        shared = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
+        host = (ROOT / 'androidApp/src/main/kotlin/com/ohmyfly/app/MainActivity.kt').read_text()
         app = (shared / 'App.kt').read_text()
         theme = (shared / 'ui/AppTheme.kt').read_text()
-        ios = (ROOT / 'shared/src/iosMain/kotlin/dev/ohmydrift/MainViewController.kt').read_text()
+        ios = (ROOT / 'shared/src/iosMain/kotlin/com/ohmyfly/MainViewController.kt').read_text()
         manifest = (ROOT / 'androidApp/src/main/AndroidManifest.xml').read_text()
         self.assertIn('system_accent1_500', host)
         self.assertRegex(host, r'(?s)override fun onResume\(\).*?dynamicColorSeed = Color\(getColor\(android.R.color.system_accent1_500\)\)')
@@ -60,7 +60,7 @@ class ProductionUiTests(unittest.TestCase):
         self.assertIn('App(dynamicColorSeed = null', ios)
         self.assertNotRegex(manifest, r'READ_MEDIA|READ_EXTERNAL_STORAGE|READ_WALLPAPER')
     def test_settings_cards_share_one_surface_and_squircle_border(self):
-        shared = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+        shared = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
         app = (shared / 'App.kt').read_text()
         theme = (shared / 'ui/AppTheme.kt').read_text()
         controls = (shared / 'ui/settings/SettingsControls.kt').read_text()
@@ -79,6 +79,41 @@ class ProductionUiTests(unittest.TestCase):
                 continue
             with self.subTest(path=path.relative_to(ROOT)):
                 self.assertNotRegex(path.read_text(), r'(?<![\w])Card\(')
+
+    def test_system_bars_share_the_applied_theme_without_keying_navigation(self):
+        app = (ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly/App.kt').read_text()
+        root = app.split('private fun AppContent(', 1)[0]
+        self.assertEqual(1, app.count('isSystemInDarkTheme()'))
+        self.assertIn('val dark = themeMode.isDark(isSystemInDarkTheme())', root)
+        self.assertRegex(root, r'(?s)LaunchedEffect\(dark,\s*themeMode\)\s*\{\s*'
+                               r'onThemeChanged\(dark,\s*themeMode == ThemeMode\.System\)')
+        self.assertIn('AppContent(dynamicColorSeed, dark, settings', root)
+        self.assertIn('AppTheme(dynamicColorSeed, dark)', app)
+        self.assertNotRegex(app, r'\bkey\s*\([^)]*(?:dark|themeMode)')
+
+    def test_ios_clears_manual_appearance_on_the_existing_swiftui_host(self):
+        entry = (ROOT / 'shared/src/iosMain/kotlin/com/ohmyfly/MainViewController.kt').read_text()
+        swift = (ROOT / 'iosApp/iosApp/ContentView.swift').read_text()
+        self.assertIn('onThemeChanged = onThemeChanged', entry)
+        self.assertRegex(swift, r'followsSystem\.boolValue\s*\?\s*nil\s*:\s*'
+                                r'\(dark\.boolValue\s*\?\s*\.dark\s*:\s*\.light\)')
+        self.assertEqual(1, swift.count('.preferredColorScheme(colorScheme)'))
+        self.assertIn('.ignoresSafeArea()', swift)
+        self.assertEqual(1, swift.count('MainViewControllerKt.MainViewController'))
+        update = swift.split('func updateUIViewController', 1)[1]
+        self.assertNotIn('MainViewControllerKt.MainViewController', update)
+        self.assertNotRegex(swift, r'\.id\s*\(')
+        self.assertNotIn('overrideUserInterfaceStyle', entry + swift)
+
+    def test_android_updates_both_icon_sets_without_changing_system_settings(self):
+        host = (ROOT / 'androidApp/src/main/kotlin/com/ohmyfly/app/MainActivity.kt').read_text()
+        self.assertIn('enableEdgeToEdge()', host)
+        self.assertRegex(host, r'(?s)App\([^)]*\)\s*\{\s*dark,\s*_\s*->')
+        self.assertIn('WindowCompat.getInsetsController(window, window.decorView)', host)
+        for bar in ('Status', 'Navigation'):
+            self.assertIn(f'isAppearanceLight{bar}Bars = !dark', host)
+        self.assertEqual(1, len(re.findall(r'\bsetContent\s*\{', host)))
+        self.assertNotRegex(host, r'\b(recreate|setDefaultNightMode|setApplicationNightMode)\s*\(')
 
 
 if __name__ == '__main__':

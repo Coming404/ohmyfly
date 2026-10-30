@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-COMMON = ROOT / 'shared/src/commonMain/kotlin/dev/ohmydrift'
+COMMON = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
 UI = COMMON / 'ui'
 GLASS = UI / 'glass'
 
@@ -14,7 +14,7 @@ class BottomNavigationTests(unittest.TestCase):
         surface = (GLASS / 'GlassNavigationSurface.kt').read_text()
         destinations = (UI / 'AppDestination.kt').read_text()
         app = (COMMON / 'App.kt').read_text()
-        labels = ['概览', '订阅', '测速', '节点库', '设置']
+        labels = ['概览', '塔台', '起飞', '航班', '设置']
         positions = [destinations.index(f'("{label}"') for label in labels]
         self.assertEqual(sorted(positions), positions)
         self.assertIn('GlassNavigationSurface(', nav)
@@ -31,12 +31,16 @@ class BottomNavigationTests(unittest.TestCase):
         tabs = (GLASS / 'GlassNavigationTabs.kt').read_text()
         self.assertIn('Column(', tabs)
         self.assertLess(tabs.index('Icon(item.icon'), tabs.index('Text('))
-        self.assertIn('item.label,', tabs)
-        self.assertIn('Modifier.size(24.dp)', tabs)
+        self.assertIn('NavigationLabel(item.label, selected, color)', tabs)
+        self.assertIn('Modifier.size(22.dp)', tabs)
         self.assertIn('fontSize = 11.sp', tabs)
         self.assertIn('lineHeight = 14.sp', tabs)
-        self.assertIn('Arrangement.spacedBy(4.dp, Alignment.CenterVertically)', tabs)
-        self.assertIn('if (selected) FontWeight.Bold else FontWeight.Medium', tabs)
+        self.assertIn('Arrangement.spacedBy(1.dp, Alignment.CenterVertically)', tabs)
+        label = tabs.split('private fun NavigationLabel(', 1)[1]
+        self.assertIn('listOf(FontWeight.Normal, FontWeight.Bold).forEach { weight ->', label)
+        self.assertIn('fontWeight = weight', label)
+        self.assertIn('color = if (selected == (weight == FontWeight.Bold)) color else Color.Transparent', label)
+        self.assertNotIn('fontWeight = if', label)
         self.assertNotIn('TooltipBox', tabs)
 
     def test_equal_touch_regions_and_single_tab_semantics(self):
@@ -52,8 +56,10 @@ class BottomNavigationTests(unittest.TestCase):
         self.assertIn('contentDescription = null', tabs)
         self.assertIn('if (!recording && pressed) tint.copy(alpha = 0.6f)', tabs)
         self.assertIn('if (recording) Modifier else Modifier', tabs)
-        self.assertIn('maxLines = 1', tabs)
-        self.assertIn('overflow = TextOverflow.Ellipsis', tabs)
+        self.assertIn('softWrap = true', tabs)
+        self.assertNotIn('maxLines = 1', tabs)
+        self.assertNotIn('TextOverflow.Ellipsis', tabs)
+        self.assertIn('clearAndSetSemantics { contentDescription = label }', tabs)
         # The recording copy is drawing only: no duplicate semantics or pointer input.
         self.assertIn('clearAndSetSemantics {}', surface)
         self.assertIn('GlassNavigationTabs(destination.ordinal, {}, recording = true)', surface)
@@ -63,8 +69,8 @@ class BottomNavigationTests(unittest.TestCase):
         app = (COMMON / 'App.kt').read_text()
         self.assertIn('WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)', nav)
         self.assertEqual(1, nav.count('.windowInsetsPadding('))
-        self.assertIn('padding(start = 16.dp, end = 16.dp, bottom = 8.dp)', nav)
-        self.assertIn('Modifier.widthIn(max = 560.dp).fillMaxWidth()', nav)
+        self.assertIn('padding(start = 24.dp, end = 24.dp, bottom = 8.dp)', nav)
+        self.assertIn('Modifier.widthIn(max = 420.dp).fillMaxWidth()', nav)
         self.assertLess(nav.index('.windowInsetsPadding('), nav.index('GlassNavigationSurface('))
         self.assertIn('.consumeWindowInsets(padding)', app)
         self.assertIn('Modifier.layerBackdrop(backdrop)', app)
@@ -75,6 +81,12 @@ class BottomNavigationTests(unittest.TestCase):
         ch = (UI / 'ChromeMaterial.kt').read_text()
         shape = (GLASS / 'GlassShape.kt').read_text()
         self.assertIn('NavigationBarShape', surface)
+        self.assertIn('val capsuleShape = NavigationBarShape', surface)
+        outline = (UI / 'NavigationBarShape.kt').read_text()
+        self.assertIn('CircleShape.createOutline(size, layoutDirection, density)', outline)
+        self.assertIn('-size.minDimension * 0.5f', outline)
+        self.assertIn('if (tile < 0.0)', shape)
+        self.assertIn('p - clamp(p, -extent, extent)', shape)
         self.assertIn('glassSurface(', surface)
         self.assertIn('glassNavigationCapsule(', surface)
         self.assertIn('rememberCombinedBackdrop(backdrop, tabsBackdrop)', surface)
