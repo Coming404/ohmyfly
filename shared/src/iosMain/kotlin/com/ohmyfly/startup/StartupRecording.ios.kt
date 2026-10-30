@@ -19,6 +19,7 @@ import kotlinx.cinterop.value
 import okio.Path.Companion.toPath
 import platform.Foundation.NSDate
 import platform.Foundation.NSURL
+import platform.Foundation.timeIntervalSince1970
 import platform.QuartzCore.CACurrentMediaTime
 import platform.UIKit.UIActivityViewController
 import platform.UIKit.UIApplication
@@ -26,6 +27,7 @@ import platform.UIKit.UIDevice
 import platform.UIKit.UISceneActivationStateForegroundActive
 import platform.UIKit.UIScreen
 import platform.UIKit.UIWindowScene
+import platform.UIKit.popoverPresentationController
 import platform.darwin.CTL_KERN
 import platform.darwin.KERN_PROC
 import platform.darwin.KERN_PROC_PID
@@ -48,7 +50,7 @@ fun recordIosStartupEntry() {
         origin = if (processStart == null) "MainViewController 入口（sysctl 不可用；非进程启动）"
             else "sysctl kinfo_proc.p_starttime，入口时映射至 CACurrentMediaTime 单调时钟",
         processStartKnown = processStart != null,
-        recordedAt = NSDate().description,
+        recordedAt = NSDate().toString(),
         model = machineModel() ?: device.model,
         systemVersion = "${device.systemName} ${device.systemVersion}",
         refreshRate = refreshRate,

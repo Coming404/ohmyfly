@@ -55,6 +55,8 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
+            // FileProvider for sharing startup records; same version activity 1.13.0 already resolves.
+            implementation(libs.androidx.core)
         }
         if (providers.systemProperty("os.name").get().startsWith("Mac")) {
             iosMain.dependencies {
