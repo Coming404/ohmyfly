@@ -8,7 +8,6 @@ struct ComposeView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         MainViewControllerKt.MainViewController { dark, followsSystem in
             colorScheme = followsSystem.boolValue ? nil : (dark.boolValue ? .dark : .light)
-            return KotlinUnit()
         }
     }
 
