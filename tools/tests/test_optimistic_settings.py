@@ -11,7 +11,7 @@ class OptimisticSettingsTests(unittest.TestCase):
         entry = (COMMON / 'PersistedSettings.kt').read_text()
         self.assertIn('remember(path, repository, retry)', entry)
         self.assertIn('runBlocking(Dispatchers.IO) { repo.data.first() }', entry)
-        self.assertIn('SettingsSession(repo.data, repo::update, initial)', entry)
+        self.assertIn('SettingsSession(repo.data, initial, repo::update)', entry)
         self.assertIn('LaunchedEffect(session) { session.run() }', entry)
         self.assertIn('val state = session.state', entry)
         self.assertIn('val current = state.settings', entry)

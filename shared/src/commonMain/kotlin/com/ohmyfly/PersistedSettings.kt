@@ -35,7 +35,7 @@ internal fun PersistedSettings(
         // chosen material; the launch screen stays up meanwhile. Failures fall through to the
         // async reader, which reports them through readFailed.
         val initial = repository?.let { repo -> runCatching { runBlocking(Dispatchers.IO) { repo.data.first() } }.getOrNull() }
-        (repository?.let { repo -> SettingsSession(repo.data, repo::update, initial) }
+        (repository?.let { repo -> SettingsSession(repo.data, initial, repo::update) }
             ?: SettingsSession(flow { error("设置存储不可用") }) { error("设置存储不可用") })
             .apply { onMessage = messages::show }
     }

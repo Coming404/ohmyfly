@@ -21,8 +21,8 @@ import kotlinx.coroutines.launch
 /** 只在 UI 线程调用；生命周期由 PersistedSettings 的单个 LaunchedEffect 持有。 */
 internal class SettingsSession(
     private val values: Flow<AppSettings>,
-    private val update: suspend ((AppSettings) -> AppSettings) -> Unit,
     initial: AppSettings? = null,
+    private val update: suspend ((AppSettings) -> AppSettings) -> Unit,
 ) {
     var state by mutableStateOf(
         initial?.let { SettingsUiState(settings = it, confirmedSettings = it) } ?: SettingsUiState(),
