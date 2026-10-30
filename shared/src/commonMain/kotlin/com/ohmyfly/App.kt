@@ -123,8 +123,10 @@ private fun AppContent(
     LaunchedEffect(destination, motionAllowed) {
         val targetPage = destinations.indexOf(destination)
         if (pagerState.settledPage != targetPage) {
+            StartupRecords.mark("页面切换开始 ${destination.label}")
             if (motionAllowed) pagerState.springAnimateToPage(targetPage)
             else pagerState.scrollToPage(targetPage)
+            StartupRecords.mark("页面切换结束 ${destination.label}")
         }
     }
     val settingsStack = rememberNavBackStack<SettingsPage>(SettingsPage.Home)

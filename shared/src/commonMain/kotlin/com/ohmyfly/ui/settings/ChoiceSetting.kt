@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ohmyfly.startup.StartupRecords
 import com.ohmyfly.ui.hapticClick
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.DropdownArrowEndAction
@@ -44,7 +45,7 @@ internal fun ChoiceSetting(
     // The stock preference hardcodes Medium; only its row is replaced to meet 15sp Normal.
     val entry = DropdownEntry(options.map { (key, label) ->
         DropdownItem(text = label, selected = key == value,
-            onClick = { if (key != value) onChange(key) },
+            onClick = { StartupRecords.mark("下拉框选择 $title：$label"); if (key != value) onChange(key) },
             icon = { modifier -> Icon(icon, null, modifier.size(20.dp)) })
     })
     val popupIndication = LocalIndication.current
@@ -56,7 +57,11 @@ internal fun ChoiceSetting(
             role = Role.DropdownList,
             holdDownState = held,
             enabled = options.isNotEmpty(),
-            onClick = hapticClick { expanded = !expanded; if (expanded) held = true },
+            onClick = hapticClick {
+                expanded = !expanded
+                if (expanded) held = true
+                StartupRecords.mark(if (expanded) "下拉框打开 $title" else "下拉框收起 $title")
+            },
             onClickLabel = "选择$title",
             endActions = {
                 Text(current, fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -65,7 +70,8 @@ internal fun ChoiceSetting(
                 DropdownArrowEndAction(actionColor = MiuixTheme.colorScheme.onSurfaceVariantActions)
                 CompositionLocalProvider(LocalIndication provides popupIndication) {
                     OverlayDropdownPopup(entry = entry, show = expanded,
-                        onDismiss = { expanded = false }, onDismissFinished = { held = false },
+                        onDismiss = { expanded = false; StartupRecords.mark("下拉框关闭 $title") },
+                        onDismissFinished = { held = false; StartupRecords.mark("下拉框关闭动画结束 $title") },
                         maxHeight = null, dropdownColors = DropdownDefaults.dropdownColors(),
                         renderInRootScaffold = true, collapseOnSelection = true)
                 }

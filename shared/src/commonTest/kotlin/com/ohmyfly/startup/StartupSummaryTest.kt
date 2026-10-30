@@ -39,6 +39,20 @@ class StartupSummaryTest {
     }
 
     @Test
+    fun eventWindowIncludesIntervalsThatOverlapIt() {
+        val intervals = listOf(
+            StartupFrameInterval(endMillis = 990.0, durationMillis = 100.0),
+            StartupFrameInterval(endMillis = 1050.0, durationMillis = 300.0),
+            StartupFrameInterval(endMillis = 1600.0, durationMillis = 40.0),
+            StartupFrameInterval(endMillis = 1700.0, durationMillis = 20.0),
+        )
+        // Ends before the event: excluded. Started before but ended inside: included. Starts after: excluded.
+        assertEquals(300.0, longestIntervalAfter(intervals, 1000.0, 500.0)?.durationMillis)
+        assertEquals(40.0, longestIntervalAfter(intervals, 1100.0, 500.0)?.durationMillis)
+        assertNull(longestIntervalAfter(intervals, 1650.0, 10.0))
+    }
+
+    @Test
     fun fewerThanTwoFramesCannotProduceAnInterval() {
         val empty = summarizeStartupFrames(longArrayOf(), doubleArrayOf(), 0, 60.0)
         assertEquals(0, empty.frameCount)

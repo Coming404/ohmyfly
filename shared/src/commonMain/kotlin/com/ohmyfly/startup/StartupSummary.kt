@@ -16,15 +16,32 @@ internal data class StartupFrameSummary(
     val longestFrames: List<StartupFrameInterval>,
 )
 
+internal const val STARTUP_EVENT_WINDOW_MILLIS = 500.0
+
+internal data class StartupEvent(val elapsedMillis: Double, val label: String)
+
+internal fun startupIntervals(frameNanos: LongArray, elapsedMillis: DoubleArray, frameCount: Int) =
+    (1 until frameCount).map { index ->
+        StartupFrameInterval(elapsedMillis[index], (frameNanos[index] - frameNanos[index - 1]) / 1_000_000.0)
+    }
+
+/** Longest interval overlapping [start, start + window]; an interval ends at endMillis and began duration earlier. */
+internal fun longestIntervalAfter(intervals: List<StartupFrameInterval>, start: Double, window: Double) =
+    intervals.filter { it.endMillis >= start && it.endMillis - it.durationMillis <= start + window }
+        .maxByOrNull { it.durationMillis }
+
 internal fun summarizeStartupFrames(
     frameNanos: LongArray,
     elapsedMillis: DoubleArray,
     frameCount: Int,
     refreshRate: Double,
+): StartupFrameSummary = summarizeStartupIntervals(startupIntervals(frameNanos, elapsedMillis, frameCount), frameCount, refreshRate)
+
+internal fun summarizeStartupIntervals(
+    intervals: List<StartupFrameInterval>,
+    frameCount: Int,
+    refreshRate: Double,
 ): StartupFrameSummary {
-    val intervals = (1 until frameCount).map { index ->
-        StartupFrameInterval(elapsedMillis[index], (frameNanos[index] - frameNanos[index - 1]) / 1_000_000.0)
-    }
     val sorted = intervals.sortedBy { it.durationMillis }
     val count = sorted.size
     val median = if (count == 0) null else if (count % 2 == 0) {

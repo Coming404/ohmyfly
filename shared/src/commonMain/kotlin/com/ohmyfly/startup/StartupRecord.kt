@@ -58,6 +58,8 @@ internal object StartupRecords {
 
     fun appComposed(version: String): StartupRecord = current.also { it.appComposed(version) }
 
+    fun mark(label: String) = current.mark(label)
+
     private suspend fun persist(record: StartupRecord) = fileMutex.withLock {
         val fs = FileSystem.SYSTEM
         val path = record.device.path.toPath()
@@ -85,6 +87,14 @@ internal class StartupRecord(val device: StartupDevice, private val sequence: In
     private var firstDrawMillis: Double? = null
     private var appearance: AppSettings? = null
     private var dark = false
+    private val presentNanos = LongArray(capacity)
+    private val presentElapsedMillis = DoubleArray(capacity)
+    private var presentCount = 0
+    private var droppedPresents = 0
+    private val events = ArrayList<StartupEvent>()
+    private var eventsTruncated = false
+
+    val presentSampling: Boolean get() = withinWindow()
 
     fun remainingMillis(): Long = ceil(deadlineMillis - startupUptimeMillis()).toLong().coerceAtLeast(0)
 
@@ -121,6 +131,25 @@ internal class StartupRecord(val device: StartupDevice, private val sequence: In
         frameCount += 1
     }
 
+    fun mark(label: String) {
+        if (!withinWindow()) return
+        if (events.size == MAX_STARTUP_EVENTS) eventsTruncated = true
+        else events += StartupEvent(elapsedMillis(), label)
+    }
+
+    /** iOS presented handler, delivered on main. presentedTime 0 means the drawable never reached the screen. */
+    fun samplePresent(presentedMillis: Double) {
+        if (!withinWindow()) return
+        if (presentedMillis <= 0.0) {
+            droppedPresents += 1
+            return
+        }
+        if (presentCount == capacity) return
+        presentNanos[presentCount] = (presentedMillis * 1_000_000).roundToLong()
+        presentElapsedMillis[presentCount] = presentedMillis - device.zeroUptimeMillis
+        presentCount += 1
+    }
+
     fun stop() { recording = false }
 
     private fun withinWindow(): Boolean = recording && startupUptimeMillis() < deadlineMillis
@@ -143,7 +172,11 @@ internal class StartupRecord(val device: StartupDevice, private val sequence: In
         appendLine("首帧绘制: ${firstDrawMillis.stage()}（Compose 根内容 drawContent 完成，非 GPU 呈现）")
         appendLine("记录窗口: 平台入口起 $STARTUP_WINDOW_MILLIS ms；窗口外帧不纳入统计")
         appendAppearance(appearance, dark)
-        appendFrames(summarizeStartupFrames(frameNanos, frameElapsedMillis, frameCount, device.refreshRate))
+        val frames = startupIntervals(frameNanos, frameElapsedMillis, frameCount)
+        val presents = startupIntervals(presentNanos, presentElapsedMillis, presentCount)
+        appendFrames(summarizeStartupIntervals(frames, frameCount, device.refreshRate))
+        appendPresents(summarizeStartupIntervals(presents, presentCount, device.refreshRate))
+        appendEvents(frames, presents)
     }
 
     private fun StringBuilder.appendAppearance(settings: AppSettings?, isDark: Boolean) {
@@ -159,15 +192,50 @@ internal class StartupRecord(val device: StartupDevice, private val sequence: In
     private fun StringBuilder.appendFrames(summary: StartupFrameSummary) {
         appendLine("帧采样: App 根部 withFrameNanos；间隔取相邻帧时间戳差；时间点为区间结束回调时间")
         appendLine("帧数: ${summary.frameCount}；间隔数: ${(summary.frameCount - 1).coerceAtLeast(0)}")
+        appendIntervals(summary, "帧")
+    }
+
+    private fun StringBuilder.appendPresents(summary: StartupFrameSummary) {
+        appendLine("上屏采样: CAMetalDrawable presentedTime（画面实际显示到屏幕的时间）；时间点为该次上屏时间")
+        if (summary.frameCount == 0 && droppedPresents == 0) {
+            appendLine("上屏次数: 0（Android 不记录；iOS 为 0 表示没有收到上屏回调）")
+            return
+        }
+        appendLine("上屏次数: ${summary.frameCount}；未上屏（presentedTime 为 0）: $droppedPresents")
+        appendIntervals(summary, "上屏间隔")
+    }
+
+    private fun StringBuilder.appendIntervals(summary: StartupFrameSummary, kind: String) {
         appendLine("间隔中位数: ${summary.medianMillis.statistic()}；P95: ${summary.p95Millis.statistic()}（nearest-rank）")
-        appendLine("长帧阈值: > ${(1.5 * 1000 / device.refreshRate).ms()} ms（1.5 × 刷新周期）")
-        appendLine("长帧次数: ${summary.longFrames.size}")
-        summary.longFrames.forEach { appendLine("  时间点 ${it.endMillis.ms()} ms，时长 ${it.durationMillis.ms()} ms") }
-        appendLine("最长的 5 帧（不足 5 个间隔则全部列出）:")
-        summary.longestFrames.forEach { appendLine("  时间点 ${it.endMillis.ms()} ms，时长 ${it.durationMillis.ms()} ms") }
+        appendLine("长${kind}阈值: > ${(1.5 * 1000 / device.refreshRate).ms()} ms（1.5 × 刷新周期）")
+        appendLine("长${kind}次数: ${summary.longFrames.size}")
+        summary.longFrames.take(MAX_LISTED_INTERVALS).forEach { appendInterval(it) }
+        if (summary.longFrames.size > MAX_LISTED_INTERVALS) {
+            appendLine("  其余 ${summary.longFrames.size - MAX_LISTED_INTERVALS} 次未列出")
+        }
+        appendLine("最长的 5 个${kind}（不足 5 个间隔则全部列出）:")
+        summary.longestFrames.forEach { appendInterval(it) }
+    }
+
+    private fun StringBuilder.appendInterval(interval: StartupFrameInterval) =
+        appendLine("  时间点 ${interval.endMillis.ms()} ms，时长 ${interval.durationMillis.ms()} ms")
+
+    private fun StringBuilder.appendEvents(frames: List<StartupFrameInterval>, presents: List<StartupFrameInterval>) {
+        val truncated = if (eventsTruncated) "，超过 $MAX_STARTUP_EVENTS 条后不再记录" else ""
+        appendLine("操作事件: ${events.size} 条$truncated；每条附其后 ${STARTUP_EVENT_WINDOW_MILLIS.ms()} ms 内最长帧间隔和最长上屏间隔")
+        events.forEach { event ->
+            val frame = longestIntervalAfter(frames, event.elapsedMillis, STARTUP_EVENT_WINDOW_MILLIS)
+            val present = longestIntervalAfter(presents, event.elapsedMillis, STARTUP_EVENT_WINDOW_MILLIS)
+            appendLine("  ${event.elapsedMillis.ms()} ms ${event.label}：帧 ${frame?.durationMillis.measured()}，" +
+                "上屏 ${present?.durationMillis.measured()}")
+        }
     }
 }
 
+private const val MAX_STARTUP_EVENTS = 200
+private const val MAX_LISTED_INTERVALS = 30
+
+private fun Double?.measured(): String = if (this == null) "无数据" else "${ms()} ms"
 private fun Double.ms(): String = ((this * 1000).roundToLong() / 1000.0).toString()
 private fun Double?.stage(): String = if (this == null) "未在窗口内到达" else "${ms()} ms"
 private fun Double?.statistic(): String = if (this == null) "无足够帧" else "${ms()} ms"

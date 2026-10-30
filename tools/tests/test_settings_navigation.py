@@ -119,7 +119,7 @@ class SettingsNavigationTests(unittest.TestCase):
         gate = (ROOT / '.github/workflows/build.yml').read_text()
         nav_test = ROOT / 'shared/src/commonTest/kotlin/com/ohmyfly/ui/AppNavTransitionTest.kt'
         self.assertEqual(8, nav_test.read_text().count('@Test'))
-        self.assertEqual(230, count)
+        self.assertEqual(231, count)
         floor = int(re.search(r'if total < (\d+) or failed', gate).group(1))
         self.assertEqual(190, floor)
         self.assertGreaterEqual(count, floor)

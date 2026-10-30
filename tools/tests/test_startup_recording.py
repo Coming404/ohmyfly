@@ -68,6 +68,19 @@ class StartupRecordingTests(unittest.TestCase):
                      'StartupSettingsRecording(startupRecord, session, settings, dark)', 'startupFirstDraw()'):
             self.assertIn(call, app)
 
+    def test_ios_present_hook_is_built_and_installed(self):
+        # A Swift file missing from the Sources phase compiles silently away and records nothing.
+        project = (ROOT / 'iosApp/iosApp.xcodeproj/project.pbxproj').read_text()
+        self.assertEqual(2, project.count('/* PresentTiming.swift in Sources */'))
+        swift = (ROOT / 'iosApp/iosApp/PresentTiming.swift').read_text()
+        self.assertIn('method_exchangeImplementations', swift)
+        self.assertIn('PresentTimingKt.startupPresentRecording()', swift)
+        self.assertIn('PresentTimingKt.startupPresented(seconds:', swift)
+        self.assertIn('PresentTiming.install()', (ROOT / 'iosApp/iosApp/ContentView.swift').read_text())
+        kotlin = (SHARED / 'iosMain/kotlin/com/ohmyfly/startup/PresentTiming.kt').read_text()
+        self.assertIn('fun startupPresentRecording(): Boolean', kotlin)
+        self.assertIn('fun startupPresented(seconds: Double)', kotlin)
+
     def test_android_provider_is_private_and_only_exposes_log_directory(self):
         manifest = ET.parse(ROOT / 'androidApp/src/main/AndroidManifest.xml').getroot()
         provider = next(p for p in manifest.findall('application/provider')
