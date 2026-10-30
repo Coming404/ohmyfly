@@ -22,11 +22,14 @@ import kotlinx.coroutines.launch
 internal class SettingsSession(
     private val values: Flow<AppSettings>,
     private val update: suspend ((AppSettings) -> AppSettings) -> Unit,
+    initial: AppSettings? = null,
 ) {
-    var state by mutableStateOf(SettingsUiState())
+    var state by mutableStateOf(
+        initial?.let { SettingsUiState(settings = it, confirmedSettings = it) } ?: SettingsUiState(),
+    )
         private set
 
-    private var confirmed: AppSettings? = null
+    private var confirmed: AppSettings? = initial
     private var scope: CoroutineScope? = null
     private var reader: Job? = null
     private var recovery: Job? = null

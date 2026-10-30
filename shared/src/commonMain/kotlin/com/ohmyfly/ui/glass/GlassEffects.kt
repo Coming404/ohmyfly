@@ -29,6 +29,9 @@ internal fun BackdropEffectScope.glassEffects(preset: GlassPreset, pressProgress
     )
 }
 
+/** Light glass is tinted white so it can only lift content; Miuix light surface (F7F7F7) grays white cards. */
+internal fun glassTint(surface: Color, dark: Boolean): Color = if (dark) surface else Color.White
+
 internal fun Modifier.glassSurface(
     backdrop: Backdrop,
     shape: GlassShape,

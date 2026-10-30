@@ -66,6 +66,7 @@ internal fun GlassNavigationSurface(
     val highlight = rememberGlassHighlight(enabled, motion, preset)
     val capsuleHighlight = rememberGlassHighlight(enabled, motion, preset, extraDegrees = 90f)
     val surface = MiuixTheme.colorScheme.surface
+    val tint = glassTint(surface, dark)
     val spot = if (enabled && preset.liquidResponse && motion) response.spot else null
     val tabsBackdrop = rememberLayerBackdrop()
     val combined = rememberCombinedBackdrop(backdrop, tabsBackdrop)
@@ -80,7 +81,7 @@ internal fun GlassNavigationSurface(
         Box(
             Modifier.matchParentSize().then(
                 if (enabled) Modifier.glassSurface(
-                    backdrop, NavigationBarShape, preset, surface, highlight,
+                    backdrop, NavigationBarShape, preset, tint, highlight,
                     layerBlock = {
                         val scale = 1f + 16.dp.toPx() / size.width.coerceAtLeast(1f) * response.drag.pressProgress
                         scaleX = scale; scaleY = scale
@@ -107,7 +108,7 @@ internal fun GlassNavigationSurface(
                 modifier = Modifier.matchParentSize().clearAndSetSemantics {}
                     .graphicsLayer { alpha = 0f }
                     .layerBackdrop(tabsBackdrop)
-                    .glassSurface(backdrop, NavigationBarShape, preset, surface, highlight)
+                    .glassSurface(backdrop, NavigationBarShape, preset, tint, highlight)
                     .clip(NavigationBarShape).then(spot?.modifier ?: Modifier)
                     .padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,

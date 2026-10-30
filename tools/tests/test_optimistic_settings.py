@@ -10,7 +10,8 @@ class OptimisticSettingsTests(unittest.TestCase):
     def test_composition_renders_defaults_and_retries_repository_creation(self):
         entry = (COMMON / 'PersistedSettings.kt').read_text()
         self.assertIn('remember(path, repository, retry)', entry)
-        self.assertIn('SettingsSession(repo.data, repo::update)', entry)
+        self.assertIn('runBlocking(Dispatchers.IO) { repo.data.first() }', entry)
+        self.assertIn('SettingsSession(repo.data, repo::update, initial)', entry)
         self.assertIn('LaunchedEffect(session) { session.run() }', entry)
         self.assertIn('val state = session.state', entry)
         self.assertIn('val current = state.settings', entry)
@@ -24,7 +25,8 @@ class OptimisticSettingsTests(unittest.TestCase):
 
     def test_first_read_must_finish_before_any_write(self):
         session = (COMMON / 'settings/SettingsSession.kt').read_text()
-        self.assertIn('var state by mutableStateOf(SettingsUiState())', session)
+        self.assertIn('initial?.let { SettingsUiState(settings = it, confirmedSettings = it) } ?: SettingsUiState()', session)
+        self.assertIn('private var confirmed: AppSettings? = initial', session)
         enqueue = session.split('private fun enqueue(', 1)[1].split('fun retryRead()', 1)[0]
         self.assertIn('activeScope == null || confirmed == null || state.readFailed', enqueue)
         self.assertLess(enqueue.index('validateSettings(next)'), enqueue.index('pending.addLast(change)'))

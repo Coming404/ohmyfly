@@ -16,6 +16,7 @@ import com.ohmyfly.ui.glass.GlassShape
 import com.ohmyfly.ui.glass.InteractiveHighlight
 import com.ohmyfly.ui.glass.rememberAnimatedGlassPreset
 import com.ohmyfly.ui.glass.glassSurface
+import com.ohmyfly.ui.glass.glassTint
 import com.ohmyfly.ui.glass.rememberGlassHighlight
 import com.ohmyfly.ui.LocalAppMotionAllowed
 import top.yukonga.miuix.kmp.blur.Backdrop
@@ -46,7 +47,7 @@ internal fun Modifier.chromeMaterial(
         .clip(shape)
     val material = if (enabled) {
         base.glassSurface(
-            backdrop, shape, preset, surface, highlight,
+            backdrop, shape, preset, glassTint(surface, dark), highlight,
             pressProgress = { spot?.pressProgress ?: 0f },
         ).then(spot?.modifier ?: Modifier).then(spot?.trackingGestureModifier ?: Modifier)
     } else {

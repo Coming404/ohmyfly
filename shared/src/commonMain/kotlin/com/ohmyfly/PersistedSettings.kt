@@ -12,7 +12,11 @@ import com.ohmyfly.settings.SettingsSession
 import com.ohmyfly.settings.createSettingsRepository
 import com.ohmyfly.ui.AppMessageState
 import com.ohmyfly.ui.LocalAppMessages
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.runBlocking
 
 /**
  * 设置读取与保存的唯一入口：点击经校验后由 [SettingsSession] 立即更新界面，
@@ -27,7 +31,11 @@ internal fun PersistedSettings(
     var retry by remember { mutableStateOf(0) }
     val repository = remember(path, retry) { runCatching { createSettingsRepository(path) }.getOrNull() }
     val session = remember(path, repository, retry) {
-        (repository?.let { repo -> SettingsSession(repo.data, repo::update) }
+        // Block the first composition on the stored values so the first frame already uses the
+        // chosen material; the launch screen stays up meanwhile. Failures fall through to the
+        // async reader, which reports them through readFailed.
+        val initial = repository?.let { repo -> runCatching { runBlocking(Dispatchers.IO) { repo.data.first() } }.getOrNull() }
+        (repository?.let { repo -> SettingsSession(repo.data, repo::update, initial) }
             ?: SettingsSession(flow { error("设置存储不可用") }) { error("设置存储不可用") })
             .apply { onMessage = messages::show }
     }

@@ -16,7 +16,6 @@ import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.icon.extended.Rename
 import top.yukonga.miuix.kmp.icon.extended.Reset
 import top.yukonga.miuix.kmp.icon.extended.Search
-import top.yukonga.miuix.kmp.icon.extended.Send
 import top.yukonga.miuix.kmp.icon.extended.Theme
 import top.yukonga.miuix.kmp.icon.extended.Timer
 import top.yukonga.miuix.kmp.icon.extended.Tune
@@ -31,7 +30,6 @@ internal object SettingsIcons {
     val Haptic = MiuixIcons.Phone
     val Tune = MiuixIcons.Tune
     val Sponsor = MiuixIcons.FavoritesFill
-    val Motto = MiuixIcons.Send
     val Hint = MiuixIcons.Info
     val Reset = MiuixIcons.Reset
     val Retry = MiuixIcons.Refresh
