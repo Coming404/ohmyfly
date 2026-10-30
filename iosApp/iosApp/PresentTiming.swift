@@ -16,10 +16,12 @@ enum PresentTiming {
         else { return }
         installed = true
         method_exchangeImplementations(original, replacement)
+        PresentTimingKt.startupPresentHookInstalled()
     }
 
     fileprivate static func observe(_ drawable: CAMetalDrawable) {
         guard Thread.isMainThread, PresentTimingKt.startupPresentRecording() else { return }
+        PresentTimingKt.startupDrawableObserved()
         drawable.addPresentedHandler { presented in
             let seconds = presented.presentedTime
             DispatchQueue.main.async { PresentTimingKt.startupPresented(seconds: seconds) }

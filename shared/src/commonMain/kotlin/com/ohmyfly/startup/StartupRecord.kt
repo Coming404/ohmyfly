@@ -91,6 +91,8 @@ internal class StartupRecord(val device: StartupDevice, private val sequence: In
     private val presentElapsedMillis = DoubleArray(capacity)
     private var presentCount = 0
     private var droppedPresents = 0
+    private var presentHookInstalled = false
+    private var observedDrawables = 0
     private val events = ArrayList<StartupEvent>()
     private var eventsTruncated = false
 
@@ -135,6 +137,12 @@ internal class StartupRecord(val device: StartupDevice, private val sequence: In
         if (!withinWindow()) return
         if (events.size == MAX_STARTUP_EVENTS) eventsTruncated = true
         else events += StartupEvent(elapsedMillis(), label)
+    }
+
+    fun markPresentHookInstalled() { presentHookInstalled = true }
+
+    fun observeDrawable() {
+        if (withinWindow()) observedDrawables += 1
     }
 
     /** iOS presented handler, delivered on main. presentedTime 0 means the drawable never reached the screen. */
@@ -197,6 +205,7 @@ internal class StartupRecord(val device: StartupDevice, private val sequence: In
 
     private fun StringBuilder.appendPresents(summary: StartupFrameSummary) {
         appendLine("上屏采样: CAMetalDrawable presentedTime（画面实际显示到屏幕的时间）；时间点为该次上屏时间")
+        appendLine("上屏钩子: ${if (presentHookInstalled) "已安装" else "未安装"}；窗口内取得绘制缓冲 $observedDrawables 次")
         if (summary.frameCount == 0 && droppedPresents == 0) {
             appendLine("上屏次数: 0（Android 不记录；iOS 为 0 表示没有收到上屏回调）")
             return

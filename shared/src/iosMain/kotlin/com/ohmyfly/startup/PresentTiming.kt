@@ -2,6 +2,12 @@ package com.ohmyfly.startup
 
 // Called from iosApp PresentTiming.swift, which hooks CAMetalLayer.nextDrawable. Main thread only.
 
+/** Swift swapped CAMetalLayer.nextDrawable. */
+fun startupPresentHookInstalled() = StartupRecords.current.markPresentHookInstalled()
+
+/** The hook received a drawable inside the startup window. */
+fun startupDrawableObserved() = StartupRecords.current.observeDrawable()
+
 /** Whether the current startup window still wants presented-time samples. */
 fun startupPresentRecording(): Boolean = StartupRecords.current.presentSampling
 
