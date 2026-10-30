@@ -73,13 +73,19 @@ class StartupRecordingTests(unittest.TestCase):
         project = (ROOT / 'iosApp/iosApp.xcodeproj/project.pbxproj').read_text()
         self.assertEqual(2, project.count('/* PresentTiming.swift in Sources */'))
         swift = (ROOT / 'iosApp/iosApp/PresentTiming.swift').read_text()
-        self.assertIn('method_exchangeImplementations', swift)
+        # Compose 1.12 parallel rendering uses CMPMetalLayer, never CAMetalLayer.
+        self.assertIn('NSClassFromString("CMPMetalLayer")', swift)
+        self.assertIn('"presentOnMainThread:onDisplay:"', swift)
+        self.assertIn('NSSelectorFromString("nextDrawable")', swift)
+        self.assertNotIn('CAMetalLayer.self', swift)
+        self.assertIn('PresentTimingKt.startupDrawableWaited(', swift)
         self.assertIn('PresentTimingKt.startupPresentRecording()', swift)
         self.assertIn('PresentTimingKt.startupPresented(seconds:', swift)
         self.assertIn('PresentTiming.install()', (ROOT / 'iosApp/iosApp/ContentView.swift').read_text())
         kotlin = (SHARED / 'iosMain/kotlin/com/ohmyfly/startup/PresentTiming.kt').read_text()
         self.assertIn('fun startupPresentRecording(): Boolean', kotlin)
         self.assertIn('fun startupPresented(seconds: Double)', kotlin)
+        self.assertIn('fun startupDrawableWaited(endSeconds: Double, waitSeconds: Double)', kotlin)
 
     def test_android_provider_is_private_and_only_exposes_log_directory(self):
         manifest = ET.parse(ROOT / 'androidApp/src/main/AndroidManifest.xml').getroot()

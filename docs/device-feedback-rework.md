@@ -84,7 +84,7 @@
 
 **已改（未提交）**：参照 Melox MeloxViewModel 的 initialSettings，PersistedSettings 在创建会话时用 runBlocking(Dispatchers.IO) 读取 repo.data.first()，作为 SettingsSession 的 initial（settings 与 confirmedSettings 同时设置）；读取期间启动画面保持。同步读取失败时 initial 为 null，回到原有异步读取并由 readFailed 报错。首帧只渲染用户所选材质，只有选液态玻璃时才绘制液态玻璃。
 
-**点击卡顿（2026-10-31，未编译）**：用户确认只有装新包后首次启动时，点击和拖动底栏、打开下拉框才卡。19:08 记录在点击期间主线程帧间隔全部为 16.7 至 18.4ms，因为 CMP 1.12.0 的 MetalRedrawer 在主线程同步绘制，所以可排除主线程阻塞。CAMetalLayer 保持默认 3 个 drawable，commit 不等待 GPU，GPU 晚出不会反映在主线程记录里。启动记录新增两项：操作事件（底栏按下、开始拖动、拖动松手、抬起，页面切换开始和结束，下拉框打开、收起、选择、关闭、关闭动画结束），每条附其后 500ms 内最长帧间隔和最长上屏间隔；iOS 上屏时间（iosApp/PresentTiming.swift 交换 CAMetalLayer.nextDrawable，给每个 drawable 加 presentedHandler，只在 20 秒窗口内记录，presentedTime 为 0 计为未上屏）。
+**点击卡顿（2026-10-31，更正）**：用户确认只有装新包后首次启动时，点击和拖动底栏、打开下拉框才卡。两次记录（20:46、21:17，液态玻璃）中 86 和 94 条操作事件之后 500ms 内主线程帧间隔都不超过 17ms。此前“CMP 在主线程同步绘制、可排除主线程以外的原因”的判断有误：那是 LegacyMetalRedrawer；CMP 1.12.0 默认 parallelRendering = true（ComposeContainerConfiguration），使用 SurfaceMetalRedrawer 和 CMPMetalLayer（CALayer 子类，自管 IOSurface 缓冲）。主线程只录制 Picture，drawPicture、flushAndSubmit（Skia 首次生成并编译着色器管线）在后台 RenderingDispatchQueue 上执行，新帧到来时旧的待绘帧被丢弃；CMPMetalLayer.findNextDrawable 在上一帧 GPU 未完成时返回 nil，nextDrawable 每 1ms 轮询。所以渲染线程或 GPU 卡住时主线程帧间隔照常 16.7ms，屏幕却不更新。第一版钩子交换 CAMetalLayer.nextDrawable，取得缓冲 0 次即因此。第二版改为包装 CMPMetalLayer 的 presentOnMainThread:onDisplay:（记录 contents 实际被替换的时间，即画面更新）和 nextDrawable（记录渲染线程等待上一帧 GPU 完成 ≥ 1ms 的时长），每条操作事件附其后 500ms 内最长画面更新间隔和最长等待。判读：画面更新间隔长而等待短，是渲染线程的 CPU 工作（推断为着色器首次编译），改法为启动画面期间提前绘制按压态等效果；等待也长，是 GPU 负载，改法为降低按压时的效果开销。
 
 **验收**：相同设备/温度/电量模式下重复测量并记录中位数、P95 帧耗和长帧。60Hz 的一帧约 16.7ms，120Hz 约 8.3ms；按设备实际刷新率评估。目标是支持设备上稳定、响应及时，不能在缺少设备记录时承诺全机型跑满 120fps。
 

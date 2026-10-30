@@ -90,9 +90,8 @@ internal class StartupRecord(val device: StartupDevice, private val sequence: In
     private val presentNanos = LongArray(capacity)
     private val presentElapsedMillis = DoubleArray(capacity)
     private var presentCount = 0
-    private var droppedPresents = 0
     private var presentHookInstalled = false
-    private var observedDrawables = 0
+    private val drawableWaits = ArrayList<StartupFrameInterval>()
     private val events = ArrayList<StartupEvent>()
     private var eventsTruncated = false
 
@@ -141,21 +140,19 @@ internal class StartupRecord(val device: StartupDevice, private val sequence: In
 
     fun markPresentHookInstalled() { presentHookInstalled = true }
 
-    fun observeDrawable() {
-        if (withinWindow()) observedDrawables += 1
-    }
-
-    /** iOS presented handler, delivered on main. presentedTime 0 means the drawable never reached the screen. */
+    /** iOS: CMPMetalLayer contents replaced on main at this uptime. */
     fun samplePresent(presentedMillis: Double) {
-        if (!withinWindow()) return
-        if (presentedMillis <= 0.0) {
-            droppedPresents += 1
-            return
-        }
-        if (presentCount == capacity) return
+        if (!withinWindow() || presentCount == capacity) return
         presentNanos[presentCount] = (presentedMillis * 1_000_000).roundToLong()
         presentElapsedMillis[presentCount] = presentedMillis - device.zeroUptimeMillis
         presentCount += 1
+    }
+
+    /** iOS render thread blocked in nextDrawable until the previous frame's GPU work finished. */
+    fun sampleDrawableWait(endMillis: Double, waitMillis: Double) {
+        if (withinWindow() && drawableWaits.size < capacity) {
+            drawableWaits += StartupFrameInterval(endMillis - device.zeroUptimeMillis, waitMillis)
+        }
     }
 
     fun stop() { recording = false }
@@ -184,6 +181,7 @@ internal class StartupRecord(val device: StartupDevice, private val sequence: In
         val presents = startupIntervals(presentNanos, presentElapsedMillis, presentCount)
         appendFrames(summarizeStartupIntervals(frames, frameCount, device.refreshRate))
         appendPresents(summarizeStartupIntervals(presents, presentCount, device.refreshRate))
+        appendDrawableWaits()
         appendEvents(frames, presents)
     }
 
@@ -204,14 +202,15 @@ internal class StartupRecord(val device: StartupDevice, private val sequence: In
     }
 
     private fun StringBuilder.appendPresents(summary: StartupFrameSummary) {
-        appendLine("上屏采样: CAMetalDrawable presentedTime（画面实际显示到屏幕的时间）；时间点为该次上屏时间")
-        appendLine("上屏钩子: ${if (presentHookInstalled) "已安装" else "未安装"}；窗口内取得绘制缓冲 $observedDrawables 次")
-        if (summary.frameCount == 0 && droppedPresents == 0) {
-            appendLine("上屏次数: 0（Android 不记录；iOS 为 0 表示没有收到上屏回调）")
-            return
-        }
-        appendLine("上屏次数: ${summary.frameCount}；未上屏（presentedTime 为 0）: $droppedPresents")
-        appendIntervals(summary, "上屏间隔")
+        appendLine("画面更新采样: Compose 在后台渲染线程绘制，主线程把结果换进 CMPMetalLayer 的时间；Android 不记录")
+        appendLine("画面更新钩子: ${if (presentHookInstalled) "已安装" else "未安装"}；画面更新次数: ${summary.frameCount}")
+        appendIntervals(summary, "画面更新间隔")
+    }
+
+    private fun StringBuilder.appendDrawableWaits() {
+        val longest = drawableWaits.sortedByDescending { it.durationMillis }
+        appendLine("等待绘制缓冲: 渲染线程等上一帧 GPU 完成 ≥ 1 ms 的次数 ${drawableWaits.size}；最长 5 次:")
+        longest.take(5).forEach { appendInterval(it) }
     }
 
     private fun StringBuilder.appendIntervals(summary: StartupFrameSummary, kind: String) {
@@ -231,12 +230,13 @@ internal class StartupRecord(val device: StartupDevice, private val sequence: In
 
     private fun StringBuilder.appendEvents(frames: List<StartupFrameInterval>, presents: List<StartupFrameInterval>) {
         val truncated = if (eventsTruncated) "，超过 $MAX_STARTUP_EVENTS 条后不再记录" else ""
-        appendLine("操作事件: ${events.size} 条$truncated；每条附其后 ${STARTUP_EVENT_WINDOW_MILLIS.ms()} ms 内最长帧间隔和最长上屏间隔")
+        appendLine("操作事件: ${events.size} 条$truncated；每条附其后 ${STARTUP_EVENT_WINDOW_MILLIS.ms()} ms 内最长帧间隔、画面更新间隔和等待缓冲")
         events.forEach { event ->
             val frame = longestIntervalAfter(frames, event.elapsedMillis, STARTUP_EVENT_WINDOW_MILLIS)
             val present = longestIntervalAfter(presents, event.elapsedMillis, STARTUP_EVENT_WINDOW_MILLIS)
+            val wait = longestIntervalAfter(drawableWaits, event.elapsedMillis, STARTUP_EVENT_WINDOW_MILLIS)
             appendLine("  ${event.elapsedMillis.ms()} ms ${event.label}：帧 ${frame?.durationMillis.measured()}，" +
-                "上屏 ${present?.durationMillis.measured()}")
+                "画面更新 ${present?.durationMillis.measured()}，等待缓冲 ${wait?.durationMillis.measured()}")
         }
     }
 }
