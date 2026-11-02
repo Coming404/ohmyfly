@@ -38,6 +38,18 @@ func parseLink(text string) (map[string]any, bool, bool, error) {
 		node, err = parseWireGuardLink(normalized)
 	case "snell":
 		node, err = parseSnellLink(normalized)
+	case "socks5", "socks4", "socks", "socks5+tls":
+		node, err = parseSocksLink(normalized)
+	case "tg":
+		node, err = parseTelegramProxyLink(normalized)
+	case "http", "https":
+		// Plain http(s) lines may be subscription URLs, so only t.me proxy links are handled here.
+		if !isTelegramHTTPProxyLink(normalized) {
+			return nil, false, false, nil
+		}
+		node, err = parseTelegramProxyLink(normalized)
+	case "ssh":
+		node, err = parseSSHLink(normalized)
 	default:
 		return nil, false, false, nil
 	}
