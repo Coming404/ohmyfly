@@ -1,9 +1,61 @@
 # native-core
 
-预留 Go 本地核心目录，尚未接入实际依赖或编译产物。
+OhMyFly 的纯 Go 核心。它读取订阅内容（Clash/Mihomo YAML、逐行分享链接、Base64），把每个节点解析成统一的 `flight.Flight`，再做字段规范化和内容指纹。代码都在 `internal/`。SQLite 存储、网络拉取和 gomobile 桥接尚未开始。
 
-下一步先确定 Go/Mihomo 工具链并验证最小 Android AAR、iOS XCFramework，再接入塔台解析与起飞。不要把桌面或服务端程序整体复制进来，也不要加入一个假的可运行后端掩盖未完成状态。
+## 模块与依赖
 
-边界：初始化沙盒路径、导入配置、启动任务、有限事件回调、取消、释放。Kotlin不接收起飞数据流。航班凭证及去重指纹不得进入日志。
+- Go module：`github.com/Coming404/ohmyfly/native-core`
+- Go 指令：`go 1.27.0`，本机验证使用 go1.27.3
+- YAML：`go.yaml.in/yaml/v3 v3.0.6`（MIT/Apache-2.0）
+- 除标准库和上述 YAML 依赖外没有其他依赖
 
-参考入口见 [资料索引](../docs/references.md#go-核心与上游实现)。版本与许可证评估后再创建 go.mod。
+## API
+
+```go
+func towerparse.Parse(r io.Reader, emit func(flight.Flight) error) (towerparse.Stats, error)
+func towerparse.DetectFormat(prefix []byte) towerparse.Format
+func flight.Normalize(input map[string]any) (flight.Flight, error)
+func flight.Fingerprint(value flight.Flight) [32]byte
+const flight.FingerprintVersion = 1
+```
+
+`Parse` 流式读取并逐条回调，不保存全量指纹集合。`Stats` 记录格式计数、候选/成功/跳过数量、按原因统计的跳过数量和 `proxy-providers` 条目。错误和统计原因只包含行号或协议/原因，不输出原始链接、凭据或指纹。
+
+## 已实现
+
+- 格式识别：读开头一段判断 YAML、分享链接或 Base64。YAML 根键 `proxies` / `proxy-providers` 的裸键、双引号、单引号写法都能识别。Base64 支持 URL-safe 字符、缺 padding、换行和百分号编码，最多重新识别 3 轮。
+- YAML：流式扫描顶层 `proxies`，单条条目缓冲有上限；支持块式列表项、flow 集合和块标量，只读第一个文档。tab 和缩进错乱的条目会尝试恢复，恢复不了的按原因计入跳过。`proxy-providers` 只提取名称、URL 和其他字段，不拉取。
+- 分享链接（按 scheme 分发）：
+  - `vless`（含 Reality、XHTTP）、`vmess` / `vmess1`、`ss`、`ssr`、`trojan`
+  - `hysteria` / `hy`、`hysteria2` / `hy2`、`tuic`、`anytls`、`wireguard` / `wg`、`snell`
+  - `socks5`、`socks4`、`socks`、`socks5+tls`、`ssh`
+  - `tg` 和 t.me 上的 socks/http/https 代理链接；普通 `http(s)` 行跳过，避免把订阅地址当成代理
+- 字段规范化：端口数字/字符串统一，域名大小写与尾点归一，IPv4/IPv6 归一，公开字段别名折叠，Reality `short-id` 规范化，WS `ed=<n>` 转为 `max-early-data` 并保留其他 query，未知字段透传。
+- SHA-256 内容指纹：忽略 `name`、`_meta` 和任意层级下划线开头的字段；名称、端口表示、别名写法不同的等价内容指纹相同。
+
+## 尚未实现
+
+- 去重（计划按 sublinkPro 的内容哈希规则，忽略 name、dialer-proxy、udp、tfo、client-fingerprint）。
+- 裸 `IP:端口`、混杂文本提取、proxy-provider 递归拉取、SQLite、网络、gomobile。
+- YAML 已知未覆盖：引号根键的冒号前有空格、根级 flow 映射 `{proxies: ...}`。
+
+## 来源与许可
+
+分享链接解析按 SubBoost `401534742802e2b1542783197ce66451bad82739` 逐函数移植，上游许可为 AGPL-3.0-only。每个移植文件的第一行写明上游文件路径和提交。subs-check-pro 只参考了思路，没有复制代码。
+
+native-core 随仓库整体按 GNU Affero General Public License v3.0 only（`AGPL-3.0-only`）发布，全文见仓库根目录 [LICENSE](../LICENSE)。依赖 `go.yaml.in/yaml/v3` 保留其 MIT/Apache-2.0 许可。
+
+## 测试
+
+iSH 上多线程运行曾出现 `fatal: bad g in signal handler`，所以固定单线程：
+
+```sh
+cd native-core
+export GOMAXPROCS=1
+gofmt -l .
+go vet ./...
+go test -count=1 -p 1 ./...
+go test -run '^$' -bench . -benchtime=1x ./internal/towerparse
+```
+
+共 102 个测试函数，覆盖格式识别、YAML 容错、各协议链接与 SubBoost 行为对照、指纹等价规则。3 个 benchmark 分别用 1 万条 YAML、链接和 Base64 链接。
