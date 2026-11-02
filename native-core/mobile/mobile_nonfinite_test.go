@@ -17,10 +17,7 @@ func TestParseSubscriptionUsesJSONNullForNonFiniteValues(t *testing.T) {
       plus: .inf
       minus: -.inf
 `
-	encoded, err := ParseSubscription(content)
-	if err != nil {
-		t.Fatalf("ParseSubscription() error = %v", err)
-	}
+	encoded := ParseSubscription(content)
 	var result struct {
 		Nodes []struct {
 			Fields map[string]any `json:"fields"`

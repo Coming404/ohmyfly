@@ -29,8 +29,17 @@ data class NativeSubscriptionNode(
     val fromBase64: Boolean,
 )
 
+class NativeCoreException(message: String) : Exception(message)
+
 private val nativeJson = Json { ignoreUnknownKeys = true }
 
 /** 解码 Go 桥接 ParseSubscription 返回的 JSON。 */
 internal fun decodeNativeSubscription(json: String): NativeSubscription =
     nativeJson.decodeFromString(NativeSubscription.serializer(), json)
+
+/** 解码桥接返回值；含 error 字段时抛出 NativeCoreException。 */
+internal fun decodeNativeSubscriptionResult(json: String): NativeSubscription {
+    val result = nativeJson.parseToJsonElement(json).jsonObject
+    result["error"]?.let { throw NativeCoreException(it.jsonPrimitive.content) }
+    return nativeJson.decodeFromJsonElement(NativeSubscription.serializer(), result)
+}

@@ -19,7 +19,29 @@ func Version() string {
 }
 
 // ParseSubscription 解析订阅原文并返回 JSON 结果。
-func ParseSubscription(content string) (string, error) {
+// 失败时返回 {"error":"..."}。这里不用 error 返回值：gomobile 会把它导出为
+// NSError** 参数，Kotlin/Native cinterop 无法导入这类声明。
+func ParseSubscription(content string) string {
+	encoded, err := parseSubscription(content)
+	if err != nil {
+		return encodeError(err)
+	}
+	return encoded
+}
+
+type errorResult struct {
+	Error string `json:"error"`
+}
+
+func encodeError(err error) string {
+	encoded, marshalErr := json.Marshal(errorResult{Error: err.Error()})
+	if marshalErr != nil {
+		return `{"error":"marshal error result"}`
+	}
+	return string(encoded)
+}
+
+func parseSubscription(content string) (string, error) {
 	result := subscriptionResult{
 		Nodes: make([]subscriptionNode, 0),
 	}

@@ -78,9 +78,9 @@ func TestParseSubscription(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			encodedResult, err := ParseSubscription(test.content)
+			encodedResult, err := parseSubscription(test.content)
 			if err != nil {
-				t.Fatalf("ParseSubscription() error = %v", err)
+				t.Fatalf("parseSubscription() error = %v", err)
 			}
 			var got parsedResponse
 			if err := json.Unmarshal([]byte(encodedResult), &got); err != nil {

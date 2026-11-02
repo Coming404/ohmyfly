@@ -3,8 +3,18 @@ package com.ohmyfly.nativecore
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class NativeSubscriptionTest {
+    @Test
+    fun rejectsGoBridgeError() {
+        val error = assertFailsWith<NativeCoreException> {
+            decodeNativeSubscriptionResult("""{"error":"parse subscription: boom"}""")
+        }
+
+        assertEquals("parse subscription: boom", error.message)
+    }
+
     @Test
     fun decodesGoBridgeOutput() {
         val result = decodeNativeSubscription(GO_BRIDGE_OUTPUT)
