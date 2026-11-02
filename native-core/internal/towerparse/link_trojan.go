@@ -16,12 +16,9 @@ func parseTrojanLink(raw string) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	password := ""
-	if parsed.User != nil {
-		password = parsed.User.Username()
-		if extra, ok := parsed.User.Password(); ok && extra != "" {
-			password += ":" + extra
-		}
+	password := parsed.Username
+	if parsed.Password != "" {
+		password += ":" + parsed.Password
 	}
 	if password == "" {
 		return nil, fmt.Errorf("missing password")

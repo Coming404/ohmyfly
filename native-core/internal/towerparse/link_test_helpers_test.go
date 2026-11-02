@@ -19,3 +19,12 @@ func parseTestLink(t *testing.T, link string) flight.Flight {
 	}
 	return parsed[0]
 }
+
+func assertMapAbsent(t *testing.T, got map[string]any, fields ...string) {
+	t.Helper()
+	for _, field := range fields {
+		if _, exists := got[field]; exists {
+			t.Errorf("unexpected field %q", field)
+		}
+	}
+}

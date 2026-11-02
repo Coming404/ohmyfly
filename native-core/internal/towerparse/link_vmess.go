@@ -150,20 +150,16 @@ func parseVMessURIConfig(content, fragment string, kitsunebi bool) (map[string]a
 	if err != nil {
 		return nil, false, err
 	}
-	rawIdentity := ""
-	hasPassword := false
-	if parsed.User != nil {
-		rawIdentity = parsed.User.Username()
-		if password, ok := parsed.User.Password(); ok {
-			rawIdentity = password
-			hasPassword = true
-		}
+	rawIdentity := parsed.Username
+	hasPassword := parsed.HasPassword
+	if hasPassword {
+		rawIdentity = parsed.Password
 	}
 	identity := rawIdentity
 	network := linkString(query, "network", "net", "type")
 	tls := strings.EqualFold(linkString(query, "security"), "tls") || strings.EqualFold(linkString(query, "tls"), "true") || linkString(query, "tls") == "1"
 	if hasPassword {
-		parts := strings.SplitN(parsed.User.Username(), "+", 2)
+		parts := strings.SplitN(parsed.Username, "+", 2)
 		if network == "" || network == "tcp" {
 			network = parts[0]
 		}
@@ -199,10 +195,7 @@ func parseVMessURIConfig(content, fragment string, kitsunebi bool) (map[string]a
 	if strings.EqualFold(linkString(query, "headerType", "header_type", "header-type"), "http") {
 		network = "http"
 	}
-	path := parsed.EscapedPath()
-	if path != "" {
-		path, _ = url.PathUnescape(path)
-	}
+	path := linkDecodeComponent(parsed.Path)
 	if path == "/" {
 		path = ""
 	}

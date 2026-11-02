@@ -40,7 +40,7 @@ func TestSubBoostURLDecodeHelpers(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if parsed.Hostname() != "2001:db8::1" || parsed.Port() != "443" || parsed.Path != "/path/to" || parsed.Fragment != "Hash" || query.Get("remarks") != "Node One" || query.Get("empty") != "" {
+		if parsed.Hostname != "2001:db8::1" || parsed.Port != "443" || parsed.Path != "/path/to" || parsed.Fragment != "Hash" || query.Get("remarks") != "Node One" || query.Get("empty") != "" {
 			t.Fatalf("unexpected URL: %#v query=%#v", parsed, query)
 		}
 		if linkName("Node+One", "") != "Node One" || linkName("", "fallback") != "fallback" {

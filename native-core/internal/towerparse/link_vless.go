@@ -10,15 +10,16 @@ import (
 func parseVLESSLink(raw string) (map[string]any, error) {
 	raw = normalizeLinkScheme(raw, "vless")
 	body := strings.TrimPrefix(raw, "vless://")
-	authority := body
-	suffix := ""
-	if index := strings.IndexAny(body, "?#"); index >= 0 {
-		authority, suffix = body[:index], body[index:]
-	}
+	// Mirrors upstream normalizeShadowrocketUri: only a non-standard
+	// authority followed by a query is decoded as a Shadowrocket payload.
 	isShadowrocket := false
-	if !strings.Contains(authority, "@") {
-		if decoded, decodeErr := decodeLinkText(authority); decodeErr == nil && strings.Contains(decoded, "@") {
-			body = decoded + suffix
+	if trimmed := strings.TrimSpace(body); !hasStandardVLESSAuthority(trimmed) {
+		if queryIndex := strings.IndexByte(trimmed, '?'); queryIndex >= 0 {
+			decoded, decodeErr := decodeLinkText(strings.TrimSpace(trimmed[:queryIndex]))
+			if decodeErr != nil {
+				return nil, fmt.Errorf("invalid vless payload")
+			}
+			body = decoded + trimmed[queryIndex:]
 			isShadowrocket = true
 		}
 	}
@@ -31,17 +32,10 @@ func parseVLESSLink(raw string) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	uuid := ""
-	if parsed.User != nil {
-		uuid = parsed.User.Username()
-		if password, ok := parsed.User.Password(); ok && password != "" {
-			combined := uuid + ":" + password
-			if index := strings.LastIndexByte(combined, ':'); index >= 0 {
-				uuid = combined[index+1:]
-			} else {
-				uuid = combined
-			}
-		}
+	uuid := parsed.Username
+	if parsed.Password != "" {
+		combined := uuid + ":" + parsed.Password
+		uuid = combined[strings.LastIndexByte(combined, ':')+1:]
 	}
 	if uuid == "" {
 		return nil, fmt.Errorf("missing uuid")
@@ -410,4 +404,45 @@ func applyVLESSTransport(node map[string]any, options vlessTransportOptions) err
 		return fmt.Errorf("unsupported transport: %s", network)
 	}
 	return nil
+}
+
+// hasStandardVLESSAuthority mirrors upstream hasStandardVlessAuthority.
+func hasStandardVLESSAuthority(raw string) bool {
+	if index := strings.IndexByte(raw, '#'); index >= 0 {
+		raw = raw[:index]
+	}
+	if index := strings.IndexByte(raw, '?'); index >= 0 {
+		raw = raw[:index]
+	}
+	authority := strings.TrimSuffix(raw, "/")
+	atIndex := strings.LastIndexByte(authority, '@')
+	if atIndex <= 0 {
+		return false
+	}
+	hostPort := authority[atIndex+1:]
+	if hostPort == "" {
+		return false
+	}
+	if strings.HasPrefix(hostPort, "[") {
+		bracketEnd := strings.IndexByte(hostPort, ']')
+		if bracketEnd < 0 {
+			return false
+		}
+		after := hostPort[bracketEnd+1:]
+		return strings.HasPrefix(after, ":") && isLinkDigitString(after[1:])
+	}
+	colonIndex := strings.LastIndexByte(hostPort, ':')
+	return colonIndex > 0 && isLinkDigitString(hostPort[colonIndex+1:])
+}
+
+func isLinkDigitString(value string) bool {
+	if value == "" {
+		return false
+	}
+	for i := 0; i < len(value); i++ {
+		if value[i] < '0' || value[i] > '9' {
+			return false
+		}
+	}
+	return true
 }

@@ -4,7 +4,6 @@ package towerparse
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"strings"
 )
 
@@ -21,21 +20,16 @@ func parseSSLink(raw string) (map[string]any, error) {
 		queryString = content[index+1:]
 		content = content[:index]
 	}
-	query, err := url.ParseQuery(queryString)
-	if err != nil {
-		return nil, err
-	}
+	query := linkSearchParams(queryString)
+	var err error
 	name := linkName(fragment, "")
 	var cipher, password, server string
 	var port int
 	atIndex := strings.LastIndexByte(content, '@')
 	if atIndex >= 0 {
-		userinfo, decodeErr := url.PathUnescape(content[:atIndex])
-		if decodeErr != nil {
-			return nil, decodeErr
-		}
+		userinfo := linkDecodeComponent(content[:atIndex])
 		serverPart := content[atIndex+1:]
-		server, port, err = splitLinkServerPort(serverPart, 0)
+		server, port, err = splitSSServerPort(serverPart)
 		if err != nil {
 			return nil, err
 		}
@@ -63,13 +57,10 @@ func parseSSLink(raw string) (map[string]any, error) {
 		if err != nil {
 			return nil, err
 		}
-		server, port, err = splitLinkServerPort(decoded[atIndex+1:], 0)
+		server, port, err = splitSSServerPort(decoded[atIndex+1:])
 		if err != nil {
 			return nil, err
 		}
-	}
-	if server == "" || port < 1 || port > 65535 {
-		return nil, fmt.Errorf("invalid ss server or port")
 	}
 	if name == "" {
 		name = linkDefaultName(server, port)
@@ -105,35 +96,29 @@ func parseSSLink(raw string) (map[string]any, error) {
 
 func splitCipherPassword(value string) (string, string, error) {
 	index := strings.IndexByte(value, ':')
-	if index <= 0 {
+	if index < 0 {
 		return "", "", fmt.Errorf("invalid ss credentials")
 	}
 	return value[:index], value[index+1:], nil
 }
 
-func splitLinkServerPort(value string, fallback int) (string, int, error) {
-	value = strings.TrimSuffix(strings.TrimSpace(value), "/")
-	if strings.HasPrefix(value, "[") {
-		end := strings.IndexByte(value, ']')
-		if end < 0 {
-			return "", 0, fmt.Errorf("invalid server")
-		}
-		server := value[1:end]
-		port, err := linkPort(strings.TrimPrefix(value[end+1:], ":"), fallback)
-		if err != nil {
-			return "", 0, err
-		}
-		return server, port, nil
-	}
+// splitSSServerPort mirrors upstream ss.ts: split on the last ":", parseInt
+// the port, and strip IPv6 brackets only when the host is fully wrapped.
+// Empty hosts are accepted, matching upstream.
+func splitSSServerPort(value string) (string, int, error) {
 	index := strings.LastIndexByte(value, ':')
-	if index <= 0 {
-		return "", 0, fmt.Errorf("missing port")
+	if index < 0 {
+		return "", 0, fmt.Errorf("missing ss port")
 	}
-	port, err := linkPort(value[index+1:], fallback)
-	if err != nil {
-		return "", 0, err
+	port, err := linkPort(value[index+1:], 0)
+	if err != nil || port == 0 {
+		return "", 0, fmt.Errorf("invalid ss port")
 	}
-	return value[:index], port, nil
+	server := value[:index]
+	if len(server) >= 2 && server[0] == '[' && server[len(server)-1] == ']' {
+		server = server[1 : len(server)-1]
+	}
+	return server, port, nil
 }
 
 func addSSPlugin(node map[string]any, raw string) {

@@ -26,6 +26,12 @@ func parseLink(text string) (map[string]any, bool, bool, error) {
 		node, err = parseTrojanLink(normalized)
 	case "ssr":
 		node, err = parseSSRLink(normalized)
+	case "hysteria", "hy":
+		node, err = parseHysteriaLink(normalized)
+	case "hysteria2", "hy2":
+		node, err = parseHysteria2Link(normalized)
+	case "tuic":
+		node, err = parseTUICLink(normalized)
 	default:
 		return nil, false, false, nil
 	}
