@@ -1,0 +1,100 @@
+name: Native core mobile libraries
+on:
+  push:
+    paths:
+      - native-core/**
+      - .github/workflows/native-core.yml
+  pull_request:
+    paths:
+      - native-core/**
+      - .github/workflows/native-core.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  # gomobile init installs gobind@latest; restore the pinned gobind before binding.
+  GOMOBILE_VERSION: v0.0.0-20261011034528-197770444867
+defaults:
+  run:
+    shell: bash
+    working-directory: native-core
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: native-core/go.mod
+          cache-dependency-path: native-core/go.sum
+      - uses: actions/setup-java@v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v4.0.4
+        with:
+          cmdline-tools-version: '12266719'
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Install Android SDK and NDK
+        run: |
+          sdkmanager 'platforms;android-33' 'ndk;27.2.12479018'
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+      - name: Install and initialize gomobile
+        run: |
+          go install "golang.org/x/mobile/cmd/gomobile@${GOMOBILE_VERSION}"
+          gomobile init
+          go install "golang.org/x/mobile/cmd/gobind@${GOMOBILE_VERSION}"
+      - name: Prepare isolated module
+        run: |
+          mkdir -p "$RUNNER_TEMP/build"
+          cp -R . "$RUNNER_TEMP/native-core"
+      - name: Build Android AAR
+        working-directory: ${{ runner.temp }}/native-core
+        run: |
+          go get -tool "golang.org/x/mobile/cmd/gobind@${GOMOBILE_VERSION}"
+          gomobile bind -target=android -androidapi=33 -o "$RUNNER_TEMP/build/native-core.aar" ./mobile
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          path: ${{ runner.temp }}/build/native-core.aar
+          archive: false
+          if-no-files-found: error
+          retention-days: 7
+  ios:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: native-core/go.mod
+          cache-dependency-path: native-core/go.sum
+      - uses: maxim-lobanov/setup-xcode@v1.7.0
+        with:
+          xcode-version: '26.3'
+      - name: Install and initialize gomobile
+        run: |
+          go install "golang.org/x/mobile/cmd/gomobile@${GOMOBILE_VERSION}"
+          gomobile init
+          go install "golang.org/x/mobile/cmd/gobind@${GOMOBILE_VERSION}"
+      - name: Prepare isolated module
+        run: |
+          mkdir -p "$RUNNER_TEMP/build"
+          cp -R . "$RUNNER_TEMP/native-core"
+      - name: Build iOS XCFramework
+        working-directory: ${{ runner.temp }}/native-core
+        run: |
+          go get -tool "golang.org/x/mobile/cmd/gobind@${GOMOBILE_VERSION}"
+          gomobile bind -target=ios -iosversion=16.0 -o "$RUNNER_TEMP/build/NativeCore.xcframework" ./mobile
+          ditto -c -k --keepParent "$RUNNER_TEMP/build/NativeCore.xcframework" "$RUNNER_TEMP/build/NativeCore.xcframework.zip"
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          path: ${{ runner.temp }}/build/NativeCore.xcframework.zip
+          archive: false
+          if-no-files-found: error
+          retention-days: 7

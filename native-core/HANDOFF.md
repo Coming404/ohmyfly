@@ -1,6 +1,6 @@
 # 交接文档：OhMyFly native-core（Go 核心）
 
-> 生成时间: 2026-11-02 15:12 +08:00 | 工作树: `/var/minis/workspace/ohmydrift-core` | 分支: `feat/native-core`（无上游，未 push） | HEAD: `11bb11f` | 未提交改动: `native-core/README.md`（内容过时，见第 5 节）、本文件（未跟踪）
+> 生成时间: 2026-11-02 15:12 +08:00（17:31 同步提交状态） | 工作树: `/var/minis/workspace/ohmydrift-core` | 分支: `feat/native-core`（无上游，未 push） | HEAD: `6d927d8` | 未提交改动: 以 `git status --short` 为准
 >
 > 状态来源：任务图 `/var/minis/workspace/multi-agent/runs/20261101-2311-native-core/graph.json`。本文件只是快照。仓库根目录 `HANDOFF.md` 是 App 侧 U10/U11 的旧交接（已跟踪），与本任务无关，未改动。
 
@@ -65,7 +65,7 @@
 - **push / 合并 main 未授权**：切片 C 需要 push 才能在 Actions 产出 AAR 与 XCFramework。
 - **A2d 未覆盖项**：引号根键冒号前有空格；根级 flow 映射 `{proxies: ...}`；yaml_scan.go 未对照子代理交付逐行复审。
 - **已实现协议剩余核查**：Hysteria v1 版本判定、TUIC `fast-open`/`tfo`、XHTTP 复审、超大可选整数受 Go int 限制。上游 TS 未实际运行，对照均为静态阅读。
-- **U1 已实施**（2026-11-02 17:20，未提交）：见文末「U1 实施」节。
+- **U1 已实施**（2026-11-02 17:20，已提交 `553dd89`）：见文末「U1 实施」节。
 - **任务图旧待办**：`pending_main` 里的 Go 升级条目已过时（已装 go1.27.3），尚未清掉。
 - **`/tmp` 临时产物**：现有 350 项（脚本、日志、graph 备份、`*.orig`、`*.broken`），清理需用户确认。
 - **`docs/context/NOW.md`**：AGENTS.md 第 112 行要求交接时更新。已经用户批准，在进展表加了一行 Go 核心（只改了工作区，未暂存）。合并 main 时可能冲突。
@@ -76,7 +76,7 @@
 - [ ] **处理 README**：入口 `native-core/README.md`；验证：内容与 go.mod、已实现协议和移植声明一致。需用户决定。
 - [ ] **切片 C：gomobile 桥接 + SQLite 驱动**：写入范围 `native-core/`、`.github/workflows/`；验证：Actions 产出 AAR 与 XCFramework。需 push 授权（外部副作用）。
 - [ ] **切片 D：SQLite 存储与导入流水线**：批量事务、keyset 分页、分组、proxy-providers 递归拉取；依赖 C。
-- [x] **U1 TS 对齐**：已实施，未提交，见文末「U1 实施」节。
+- [x] **U1 TS 对齐**：已提交 `553dd89`，见文末「U1 实施」节。
 - [ ] **剩余核查与去重实现**：见第 5 节与第 3 节 sublinkPro 决定。
 - [ ] **清理 `/tmp`**：需用户确认后再删。
 
@@ -84,7 +84,7 @@
 
 1. `cd /var/minis/workspace/ohmydrift-core`，先读 `CLAUDE.md`、`AGENTS.md`，再读本文件和 graph.json。
 2. Go 工作先加载 `/var/minis/skills/golang-how-to/SKILL.md`、`golang-code-style`、`golang-modernize`、`golang-gopls`。导航优先 gopls MCP，再 CLI，最后 rg。MCP 工作区用 `/var/minis/shared/gopls-mcp/gopls-ws <目录>` 切换，当前为 `native-core`；App 重启后未验证。
-3. 安全核验（只读加测试；预期 HEAD `11bb11f`，README 与 NOW.md 为未提交修改，本文件未跟踪）：
+3. 安全核验（只读加测试；预期 HEAD `6d927d8` 或其后的提交，未提交改动以 `git status --short` 为准）：
 
         cd /var/minis/workspace/ohmydrift-core
         git status --short --branch
@@ -111,7 +111,7 @@
 - 偏离：上游注册顺序为 clash-yaml → platform-config → config-lines → link-lines。满足 `!isClashYamlContent && looksLikePlatformConfigContent` 的内容，上游由 platform-config 处理；本地会落到后续路径，节点数、跳过计数与原因与上游不同。
 - config-lines 同样不移植（16:34 用户决定：本项目从未支持这类导入）。上游 config-lines 是 Surge 风格的 `名称 = 类型, 地址, 端口, key=value` 单行配置，且每行先尝试 parsePlatformProxyLine。本地移植范围只剩 clash-yaml（整篇加载 + 本地扫描回落）。
 
-## 数字密码类字段修复（2026-11-02 17:02，未提交）
+## 数字密码类字段修复（2026-11-02 17:02，已提交 `553dd89`）
 
 - 位置：`internal/flight/normalize.go` 的 `mihomoStringScalarFields`、`normalizeStringScalars`、`mihomoStringScalar`、`safeIntegerText`，在 `Normalize` 中确定 type 之后调用（第 26 行），只检查顶层字段。
 - 字段集合与上游 `string-scalar.ts` 的 `MIHOMO_STRING_SCALAR_FIELDS` 一致：password、username、psk、auth-str、token、private-key-passphrase、obfs-password。
@@ -130,7 +130,7 @@
 - link-lines 回落保留：不属于 16:34 的排除范围。入口顺序为 clash-yaml → link-lines（platform-config、config-lines 不移植）。
 - U1 按上游：trim 字符集合、linkFormComponent 截断 UTF-8、非法 UTF-8 Base64 三处对齐上游 JS 行为。已于 17:20 实施，见文末「U1 实施」节。
 
-## U1 实施（2026-11-02 17:20，未提交）
+## U1 实施（2026-11-02 17:20，已提交 `553dd89`）
 
 - 新增 `internal/towerparse/link_text.go`：`isJSSpace`/`jsTrimSpace` 使用 JS `String.prototype.trim` 的字符集合（去 U+FEFF、NBSP、U+3000，保留 U+0085）；`removeJSSpace` 对应上游 Base64 的 `/\s/g`，保留非法字节；`decodeUTF8Lossy` 按 WHATWG 最大子段规则替换非法 UTF-8。
 - `link_decode.go`：Base64 的 trim 与去空白、`decodeLinkText` 对非法 UTF-8 做替换、`linkFormComponent` 对截断的多字节序列只给一个 U+FFFD、`linkPort` 内联空白判断改用 `isJSSpace`；删除 `unicode` 导入。`link_simple_proxy.go:172` 同样改用 `decodeUTF8Lossy`。
@@ -149,9 +149,28 @@
 - 超 80 行测试函数（8 个）：`TestAnyTLSLinks`（133）、`TestHysteria2Links`（115）、`TestSnellLinks`（109）、`TestTUICLinks`（86）、`TestSubBoostVLESSLinks`（113）、`TestSubBoostVMessLinks`（109）、`TestSubBoostVMessUtils`（84）、`TestWireGuardLinks`（122）。
 - 均为既有超限，本次未拆。U1 新增或修改的文件（`link_text.go`、`link_text_test.go`、`link_decode.go` 等）没有超限。
 
-## 工作区快照（17:24）
+## 提交记录（17:31）
 
-- HEAD 仍为 `11bb11f`，本轮没有提交。第 3 行的未提交列表已过时，以 `git status --short` 为准。
-- 已修改：`../docs/context/NOW.md`、`README.md`、`internal/flight/normalize.go`、towerparse 的 `detect.go`、`parse.go`、`yaml_scan.go`、`parse_yaml_malformed_test.go` 及 19 个 `link*.go`。
-- 未跟踪：`../LICENSE`、`HANDOFF.md`、`link_text.go`、`link_text_test.go`、`parse_yaml_string_scalar_test.go`、`yaml_load.go`、`yaml_repair.go`、`yaml_scanner.go`。
-- 任务图 `graph.json` 中 U1 仍记为 planned，未同步。
+- `f3081de` 添加 AGPL-3.0-only 许可并重写 native-core README（2 文件）。
+- `553dd89` towerparse：拆分 YAML 加载与修复，数字密码类字段保留字符串，分享链接 trim 与 UTF-8 解码对齐上游 JS（30 文件，+1330/-364）。
+- `6d927d8` 更新交接文档与 NOW.md。
+- 提交前 `gofmt -l internal` 无输出，`go vet` 通过；全量测试最后一次运行在 17:20，之后代码未改。未 push。
+- 第 4 节「未提交」列表及各节里 17:31 以前的「未提交」字样已过时。
+- graph.json 已同步：U1 accepted（553dd89），pending_main 清空；备份 `/var/minis/workspace/towerparse-fix/graph_before_u1_sync.json`。
+- 用户决定：字段级 trim 不合并到 `linkSearchParams`。
+- 下一步：push 前单独请求授权，运行 C3 Actions workflow 验证 AAR 与 XCFramework；去重（sublinkPro 内容哈希）在 Actions 构建期间或之后做，须在切片 D 前完成。
+
+## C2 SQLite 驱动（2026-11-03 03:40，未提交）
+
+- 新增 `internal/sqlite/sqlite.go`：使用纯 Go `modernc.org/sqlite v1.61.1`，提供带 `context.Context` 的 `Open(ctx, dsn)`，打开后执行 `PingContext`，失败时关闭连接并包装错误。
+- 新增 `internal/sqlite/sqlite_test.go`：覆盖内存库、临时文件库、参数化读写、关闭、取消上下文和错误 DSN。
+- `go.mod`/`go.sum` 已整理，`go mod verify` 通过；不包含 cgo 驱动。
+- 主会话低并发复核：`gofmt`、`go test -p 1 -parallel 1 ./internal/sqlite/`、`go vet -p 1 ./internal/sqlite/`、flight/towerparse 全量测试、mobile 测试、`git diff --check` 均通过。
+- `CGO_ENABLED=0 go test ./internal/sqlite/` 在 iSH 编译 `modernc.org/libc` 时因运行环境内存不足失败；Android/iOS 交叉编译留给 C3，不据此判定 C2 代码失败。
+
+## C1 非有限 YAML 值（2026-11-03 02:50，未提交）
+
+- `.nan`、`.inf`、`-.inf` 继续在 `yaml_load.go` 中按 YAML 浮点值解析，不改成字符串；上游 `js-yaml` 也是数值，`JSON.stringify` 会将非有限数输出为 `null`。
+- `flight.Normalize` 保留内部字段类型。`flight.Fingerprint` 生成规范化 JSON 副本时把非有限 `float32/float64` 当作 `nil`，保证哈希稳定并与 JSON 表示一致。
+- `mobile.ParseSubscription` 仅在 JSON 输出副本中把非有限浮点转为 `null`，不会修改 `Flight.Fields`。
+- 新增 mobile 与 flight 回归测试；gofmt、vet、`go test ./mobile/`、`go test ./internal/...` 通过。工作区未提交。

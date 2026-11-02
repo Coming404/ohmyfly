@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
 )
 
@@ -51,6 +52,16 @@ func fingerprintValue(value any) any {
 			out[i] = fingerprintValue(child)
 		}
 		return out
+	case float64:
+		if math.IsNaN(v) || math.IsInf(v, 0) {
+			return nil
+		}
+		return v
+	case float32:
+		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+			return nil
+		}
+		return v
 	}
 
 	rv := reflect.ValueOf(value)
