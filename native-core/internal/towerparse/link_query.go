@@ -1,5 +1,5 @@
-// Query helpers shared by the QUIC-family parsers.
-// Ported from SubBoost packages/core/src/parser/protocols/hysteria2.ts and tuic.ts @4015347 (AGPL-3.0-only).
+// Query and credential helpers shared by the share-link parsers.
+// Ported from SubBoost packages/core/src/parser/protocols/{hysteria2,tuic,anytls,snell}.ts @4015347 (AGPL-3.0-only).
 package towerparse
 
 import (
@@ -49,4 +49,16 @@ func linkIntegerPrefix(query url.Values, keys ...string) (int, bool) {
 		}
 	}
 	return 0, false
+}
+
+// linkCredential joins the userinfo that linkURL already decoded once, else returns the first
+// non-empty query alias, trimmed.
+func linkCredential(parsed *linkNeutralURL, query url.Values, keys ...string) string {
+	if parsed.Password != "" {
+		return parsed.Username + ":" + parsed.Password
+	}
+	if parsed.Username != "" {
+		return parsed.Username
+	}
+	return strings.TrimSpace(pickQueryParam(query, keys...))
 }
