@@ -65,7 +65,7 @@ func parseVMessLink(raw string) (map[string]any, bool, error) {
 func parseQuantumultVMessConfig(decoded string) (map[string]any, error) {
 	parts := make([]string, 0)
 	for _, part := range strings.Split(decoded, ",") {
-		if part = strings.TrimSpace(part); part != "" {
+		if part = jsTrimSpace(part); part != "" {
 			parts = append(parts, part)
 		}
 	}
@@ -75,24 +75,24 @@ func parseQuantumultVMessConfig(decoded string) (map[string]any, error) {
 	params := map[string]string{}
 	for _, part := range parts {
 		if key, value, ok := strings.Cut(part, "="); ok {
-			params[strings.TrimSpace(key)] = strings.TrimSpace(value)
+			params[jsTrimSpace(key)] = jsTrimSpace(value)
 		}
 	}
-	name := strings.TrimSpace(strings.SplitN(parts[0], "=", 2)[0])
+	name := jsTrimSpace(strings.SplitN(parts[0], "=", 2)[0])
 	if name == "" {
-		name = linkDefaultName(strings.TrimSpace(parts[1]), parts[2])
+		name = linkDefaultName(jsTrimSpace(parts[1]), parts[2])
 	}
 	obfs := strings.ToLower(params["obfs"])
 	host := parseObfsHeaderHost(params["obfs-header"])
 	if host == "" {
-		host = strings.TrimSpace(params["obfs-host"])
+		host = jsTrimSpace(params["obfs-host"])
 		if host == "" {
-			host = strings.TrimSpace(params["obfs_host"])
+			host = jsTrimSpace(params["obfs_host"])
 		}
 	}
-	path := strings.TrimSpace(params["obfs-path"])
+	path := jsTrimSpace(params["obfs-path"])
 	if path == "" {
-		path = strings.TrimSpace(params["obfs_path"])
+		path = jsTrimSpace(params["obfs_path"])
 	}
 	path = stripOuterQuotes(path)
 	if decodedPath, decodeErr := url.QueryUnescape(path); decodeErr == nil {
@@ -113,9 +113,9 @@ func parseQuantumultVMessConfig(decoded string) (map[string]any, error) {
 	}
 	config := map[string]any{
 		"ps":            name,
-		"add":           strings.TrimSpace(parts[1]),
-		"port":          strings.TrimSpace(parts[2]),
-		"scy":           strings.TrimSpace(parts[3]),
+		"add":           jsTrimSpace(parts[1]),
+		"port":          jsTrimSpace(parts[2]),
+		"scy":           jsTrimSpace(parts[3]),
 		"id":            stripOuterQuotes(parts[4]),
 		"aid":           firstNonEmptyString(params["aid"], params["alterId"], params["alter_id"], "0"),
 		"net":           network,
@@ -129,8 +129,8 @@ func parseQuantumultVMessConfig(decoded string) (map[string]any, error) {
 
 func firstNonEmptyString(values ...string) string {
 	for _, value := range values {
-		if strings.TrimSpace(value) != "" {
-			return strings.TrimSpace(value)
+		if jsTrimSpace(value) != "" {
+			return jsTrimSpace(value)
 		}
 	}
 	return ""
@@ -341,7 +341,7 @@ func buildVMessNode(config map[string]any, fragment string) (map[string]any, err
 	} else if values, ok := config["alpn"].([]any); ok {
 		var alpn []string
 		for _, item := range values {
-			if value := strings.TrimSpace(fmt.Sprint(item)); value != "" {
+			if value := jsTrimSpace(fmt.Sprint(item)); value != "" {
 				alpn = append(alpn, value)
 			}
 		}
@@ -452,7 +452,7 @@ type vmessTransportOptions struct {
 }
 
 func applyVMessTransport(node map[string]any, options vmessTransportOptions) error {
-	network := strings.ToLower(strings.TrimSpace(options.network))
+	network := strings.ToLower(jsTrimSpace(options.network))
 	path := options.path
 	host := options.host
 	method := options.method
@@ -515,7 +515,7 @@ func applyVMessTransport(node map[string]any, options vmessTransportOptions) err
 		if len(paths) == 0 {
 			paths = []string{"/"}
 		}
-		opts := map[string]any{"method": strings.ToUpper(strings.TrimSpace(method)), "path": paths}
+		opts := map[string]any{"method": strings.ToUpper(jsTrimSpace(method)), "path": paths}
 		if opts["method"] == "" {
 			opts["method"] = "GET"
 		}
@@ -554,7 +554,7 @@ func vmessTLS(config map[string]any) bool {
 
 func intQuery(query url.Values, keys ...string) int {
 	value := linkString(query, keys...)
-	parsed, err := strconv.Atoi(strings.TrimSpace(value))
+	parsed, err := strconv.Atoi(jsTrimSpace(value))
 	if err != nil {
 		return 0
 	}

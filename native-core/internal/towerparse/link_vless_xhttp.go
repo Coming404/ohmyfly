@@ -438,7 +438,7 @@ func normalizeXHTTPRange(value any, field string, source bool) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("XHTTP %s needs non-negative integer or range", field)
 	}
-	text = strings.TrimSpace(text)
+	text = jsTrimSpace(text)
 	if text == "" {
 		if source {
 			return "0", nil
@@ -451,7 +451,7 @@ func normalizeXHTTPRange(value any, field string, source bool) (string, error) {
 	}
 	values := make([]int, len(parts))
 	for index, part := range parts {
-		part = strings.TrimPrefix(strings.TrimSpace(part), "+")
+		part = strings.TrimPrefix(jsTrimSpace(part), "+")
 		parsed, err := strconv.ParseUint(part, 10, 31)
 		if err != nil {
 			return "", fmt.Errorf("XHTTP %s range invalid", field)
@@ -648,7 +648,7 @@ func applyXHTTPSourceDefaults(options map[string]any) (map[string]any, error) {
 }
 
 func xhttpRangeMin(value any) int {
-	text := strings.TrimSpace(fmt.Sprint(value))
+	text := jsTrimSpace(fmt.Sprint(value))
 	if text == "" {
 		return 0
 	}
@@ -658,7 +658,7 @@ func xhttpRangeMin(value any) int {
 }
 
 func xhttpRangeMax(value any) int {
-	text := strings.TrimSpace(fmt.Sprint(value))
+	text := jsTrimSpace(fmt.Sprint(value))
 	if text == "" {
 		return 0
 	}
@@ -695,7 +695,7 @@ func mapXHTTPDownload(value any, main map[string]any) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	server = strings.TrimSpace(server)
+	server = jsTrimSpace(server)
 	portValue, hasPort := source["port"]
 	port, validPort := xhttpIntegerValue(portValue)
 	if text, ok := portValue.(string); ok {
@@ -843,7 +843,7 @@ func mapXHTTPDownload(value any, main map[string]any) (map[string]any, error) {
 			rawKey = securitySettings["publicKey"]
 		}
 		publicKey, _ := rawKey.(string)
-		publicKey = strings.TrimSpace(publicKey)
+		publicKey = jsTrimSpace(publicKey)
 		if !isRealityPublicKey(publicKey) {
 			return nil, fmt.Errorf("XHTTP download Reality publicKey invalid")
 		}

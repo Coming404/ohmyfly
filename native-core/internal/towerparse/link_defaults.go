@@ -9,7 +9,7 @@ import (
 // linkDefaultName names a node whose link carries no name, so unnamed
 // nodes stay distinguishable (IPv6 servers get brackets).
 func linkDefaultName(server string, port any) string {
-	return net.JoinHostPort(server, strings.TrimSpace(fmt.Sprint(port)))
+	return net.JoinHostPort(server, jsTrimSpace(fmt.Sprint(port)))
 }
 
 // linkCertificateFingerprint returns the first value that is a SHA-256
@@ -18,7 +18,7 @@ func linkDefaultName(server string, port any) string {
 func linkCertificateFingerprint(values ...string) string {
 	for _, value := range values {
 		for _, part := range strings.Split(value, ",") {
-			cleaned := strings.NewReplacer(":", "", "-", "").Replace(strings.TrimSpace(part))
+			cleaned := strings.NewReplacer(":", "", "-", "").Replace(jsTrimSpace(part))
 			if len(cleaned) == 64 && isHexString(cleaned) {
 				return strings.ToLower(cleaned)
 			}

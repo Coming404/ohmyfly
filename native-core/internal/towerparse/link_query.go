@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
-	"strings"
 )
 
 // linkQueryAlias maps an output field to the query keys that may carry it, in priority order.
@@ -40,7 +39,7 @@ func linkStrictTrue(query url.Values, keys ...string) bool {
 // linkIntegerPrefix parses the leading integer of the first key that has one, like JavaScript parseInt.
 func linkIntegerPrefix(query url.Values, keys ...string) (int, bool) {
 	for _, key := range keys {
-		prefix := linkIntegerPrefixPattern.FindString(strings.TrimSpace(query.Get(key)))
+		prefix := linkIntegerPrefixPattern.FindString(jsTrimSpace(query.Get(key)))
 		if prefix == "" {
 			continue
 		}
@@ -60,5 +59,5 @@ func linkCredential(parsed *linkNeutralURL, query url.Values, keys ...string) st
 	if parsed.Username != "" {
 		return parsed.Username
 	}
-	return strings.TrimSpace(pickQueryParam(query, keys...))
+	return jsTrimSpace(pickQueryParam(query, keys...))
 }

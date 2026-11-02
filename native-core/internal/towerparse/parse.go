@@ -2,14 +2,15 @@ package towerparse
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"regexp"
 	"strings"
 
 	"github.com/Coming404/ohmyfly/native-core/internal/flight"
-	"go.yaml.in/yaml/v3"
 )
 
 const (
@@ -77,7 +78,7 @@ func parseLinks(source io.Reader, emit func(flight.Flight) error, stats Stats) (
 	line := 0
 	for scanner.Scan() {
 		line++
-		text := strings.TrimSpace(scanner.Text())
+		text := jsTrimSpace(scanner.Text())
 		if text == "" || strings.HasPrefix(text, "#") {
 			continue
 		}
@@ -121,8 +122,122 @@ type yamlItem struct {
 	lines []string
 }
 
+// parseYAML loads the whole document like upstream parseClashYaml. Only when
+// the document cannot be loaded at all, or exceeds maxYAMLDocumentBytes, does
+// it fall back to the item scanner, which skips just the broken items.
 func parseYAML(source io.Reader, emit func(flight.Flight) error, stats Stats) (Stats, error) {
-	return scanYAML(source, emit, stats)
+	data, err := io.ReadAll(io.LimitReader(source, maxYAMLDocumentBytes+1))
+	if err != nil {
+		stats.skip(scanErrReason(err))
+		return stats, err
+	}
+	if len(data) > maxYAMLDocumentBytes {
+		return scanYAML(io.MultiReader(bytes.NewReader(data), source), emit, stats)
+	}
+	value, err := loadClashYAML(string(data))
+	if err != nil {
+		return scanYAML(bytes.NewReader(data), emit, stats)
+	}
+	return emitYAMLDocument(value, emit, stats)
+}
+
+// emitYAMLDocument mirrors the three root shapes upstream accepts: a map with a
+// proxies array, a map that is itself one node, and a top-level node list.
+func emitYAMLDocument(value any, emit func(flight.Flight) error, stats Stats) (Stats, error) {
+	if items, ok := value.([]any); ok {
+		for _, item := range items {
+			if !isYAMLCollection(item) {
+				continue
+			}
+			if err := emitYAMLValue(item, emit, &stats); err != nil {
+				return stats, err
+			}
+		}
+		return stats, nil
+	}
+	root, ok := yamlMapping(value)
+	if !ok {
+		if isFalsyYAML(value) {
+			stats.skip("empty YAML")
+		} else {
+			stats.skip("unrecognized YAML")
+		}
+		return stats, nil
+	}
+	if proxies, ok := root["proxies"].([]any); ok {
+		for _, item := range proxies {
+			if err := emitYAMLValue(item, emit, &stats); err != nil {
+				return stats, err
+			}
+		}
+	} else if err := emitYAMLValue(root, emit, &stats); err != nil {
+		return stats, err
+	}
+	if providers, ok := yamlMapping(root["proxy-providers"]); ok {
+		collectProviders(providers, &stats)
+	}
+	return stats, nil
+}
+
+func emitYAMLValue(value any, emit func(flight.Flight) error, stats *Stats) error {
+	stats.Candidates++
+	record, ok := yamlMapping(value)
+	if !ok {
+		stats.skip("malformed YAML item")
+		return nil
+	}
+	return emitYAMLRecord(record, emit, stats)
+}
+
+func emitYAMLRecord(record map[string]any, emit func(flight.Flight) error, stats *Stats) error {
+	flightValue, err := flight.Normalize(record)
+	if err != nil {
+		stats.skip("invalid YAML item")
+		return nil
+	}
+	flightValue.SourceFormat = string(FormatYAML)
+	if err := emit(flightValue); err != nil {
+		return err
+	}
+	stats.Parsed++
+	return nil
+}
+
+func isYAMLCollection(value any) bool {
+	switch value.(type) {
+	case map[string]any, map[any]any, []any:
+		return true
+	}
+	return false
+}
+
+// isFalsyYAML matches the JS falsy roots upstream reports as an empty config.
+func isFalsyYAML(value any) bool {
+	switch v := value.(type) {
+	case nil:
+		return true
+	case bool:
+		return !v
+	case int:
+		return v == 0
+	case int64:
+		return v == 0
+	case uint64:
+		return v == 0
+	case float64:
+		return v == 0 || math.IsNaN(v)
+	case string:
+		return v == ""
+	}
+	return false
+}
+
+func yamlMapping(value any) (map[string]any, bool) {
+	switch value.(type) {
+	case map[string]any, map[any]any:
+		return asMap(value)
+	}
+	return nil, false
 }
 
 func leadingSpaces(line string) int {
@@ -139,10 +254,12 @@ func rootKey(line string) (string, string, bool) {
 	return key, value, ok && (key == "proxies" || key == "proxy-providers")
 }
 
+// emitYAMLItem handles one item from the fallback scanner with the same
+// scalar rules as the whole-document path.
 func emitYAMLItem(item yamlItem, emit func(flight.Flight) error, stats *Stats) error {
 	stats.Candidates++
-	var value any
-	if err := yaml.Unmarshal([]byte(strings.Join(item.lines, "\n")), &value); err != nil {
+	value, err := decodeSingleYAML(strings.Join(item.lines, "\n"))
+	if err != nil {
 		stats.skip("malformed YAML item")
 		return nil
 	}
@@ -151,17 +268,7 @@ func emitYAMLItem(item yamlItem, emit func(flight.Flight) error, stats *Stats) e
 		stats.skip("malformed YAML item")
 		return nil
 	}
-	flightValue, err := flight.Normalize(record)
-	if err != nil {
-		stats.skip("invalid YAML item")
-		return nil
-	}
-	flightValue.SourceFormat = string(FormatYAML)
-	if err := emit(flightValue); err != nil {
-		return err
-	}
-	stats.Parsed++
-	return nil
+	return emitYAMLRecord(record, emit, stats)
 }
 
 func scanErrReason(err error) string {
@@ -196,12 +303,20 @@ func asMap(value any) (map[string]any, bool) {
 }
 
 func extractProvider(item yamlItem, stats *Stats) {
-	value := map[string]any{}
-	if err := yaml.Unmarshal([]byte(strings.Join(item.lines, "\n")), &value); err != nil {
+	value, err := decodeSingleYAML(strings.Join(item.lines, "\n"))
+	if err == nil && value == nil {
+		return
+	}
+	providers, ok := yamlMapping(value)
+	if err != nil || !ok {
 		stats.skip("malformed proxy-provider")
 		return
 	}
-	for name, raw := range value {
+	collectProviders(providers, stats)
+}
+
+func collectProviders(providers map[string]any, stats *Stats) {
+	for name, raw := range providers {
 		fields, ok := asMap(raw)
 		if !ok {
 			stats.skip("malformed proxy-provider")

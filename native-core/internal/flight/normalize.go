@@ -2,6 +2,7 @@ package flight
 
 import (
 	"fmt"
+	"math"
 	"net"
 	"regexp"
 	"strconv"
@@ -22,6 +23,9 @@ func Normalize(input map[string]any) (Flight, error) {
 	}
 	typ = strings.ToLower(typ)
 	node["type"] = typ
+	if err := normalizeStringScalars(node); err != nil {
+		return Flight{}, err
+	}
 
 	name, _ := stringValue(node["name"])
 	delete(node, "name")
@@ -276,6 +280,58 @@ func normalizeStringFields(node map[string]any) {
 			}
 		}
 	}
+}
+
+// Upstream keeps YAML numbers as JS Numbers, so these fields accept a string
+// or an integer a Number holds exactly; anything else rejects the node.
+var mihomoStringScalarFields = []string{
+	"password", "username", "psk", "auth-str", "token", "private-key-passphrase", "obfs-password",
+}
+
+const maxSafeInteger = 1<<53 - 1
+
+func normalizeStringScalars(node map[string]any) error {
+	for _, key := range mihomoStringScalarFields {
+		value, ok := node[key]
+		if !ok || value == nil {
+			continue
+		}
+		text, ok := mihomoStringScalar(value)
+		if !ok {
+			return fmt.Errorf("%s must be a string or a safe integer", key)
+		}
+		node[key] = text
+	}
+	return nil
+}
+
+func mihomoStringScalar(value any) (string, bool) {
+	switch v := value.(type) {
+	case string:
+		return v, true
+	case int:
+		return safeIntegerText(int64(v))
+	case int64:
+		return safeIntegerText(v)
+	case uint64:
+		if v > maxSafeInteger {
+			return "", false
+		}
+		return safeIntegerText(int64(v))
+	case float64:
+		if v != math.Trunc(v) || math.Abs(v) > maxSafeInteger {
+			return "", false
+		}
+		return safeIntegerText(int64(v))
+	}
+	return "", false
+}
+
+func safeIntegerText(v int64) (string, bool) {
+	if v > maxSafeInteger || v < -maxSafeInteger {
+		return "", false
+	}
+	return strconv.FormatInt(v, 10), true
 }
 
 func normalizeScalarFields(node map[string]any) {

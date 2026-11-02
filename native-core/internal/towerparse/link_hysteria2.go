@@ -26,10 +26,10 @@ func parseHysteria2Link(raw string) (map[string]any, error) {
 	authority, queryString, _ := strings.Cut(body, "?")
 	query := linkSearchParams(queryString)
 	userInfo, server, portSpec := splitHysteria2Authority(authority)
-	server = strings.TrimSpace(server)
+	server = jsTrimSpace(server)
 	password := linkDecodeComponent(userInfo)
 	if password == "" {
-		password = strings.TrimSpace(pickQueryParam(
+		password = jsTrimSpace(pickQueryParam(
 			query,
 			"password",
 			"auth",
@@ -68,7 +68,7 @@ func parseHysteria2Link(raw string) (map[string]any, error) {
 }
 
 func splitHysteria2Authority(value string) (string, string, string) {
-	raw := strings.TrimRight(strings.TrimSpace(value), "/")
+	raw := strings.TrimRight(jsTrimSpace(value), "/")
 	userInfo, hostPort, hasUser := strings.CutLast(raw, "@")
 	if !hasUser {
 		userInfo, hostPort = "", raw
@@ -93,7 +93,7 @@ func splitHysteria2Authority(value string) (string, string, string) {
 func applyHysteria2Options(node map[string]any, query url.Values) error {
 	// Upstream: (fp || fingerprint || pinSHA256).trim(), value kept as-is.
 	fingerprint := pickQueryParam(query, "fp", "fingerprint", "pinSHA256")
-	if fingerprint = strings.TrimSpace(fingerprint); fingerprint != "" {
+	if fingerprint = jsTrimSpace(fingerprint); fingerprint != "" {
 		node["fingerprint"] = fingerprint
 	}
 	for _, field := range []string{"obfs-min-packet-size", "obfs-max-packet-size"} {
@@ -130,7 +130,7 @@ func applyHysteria2Options(node map[string]any, query url.Values) error {
 
 func hysteriaHopInterval(query url.Values) (any, bool) {
 	for _, key := range []string{"hop-interval", "hop_interval", "hopInterval"} {
-		raw := strings.TrimSpace(query.Get(key))
+		raw := jsTrimSpace(query.Get(key))
 		from, to, ranged := strings.Cut(raw, "-")
 		if !hysteriaDigits.MatchString(from) {
 			continue

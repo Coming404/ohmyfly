@@ -14,10 +14,21 @@ import (
 
 const yamlTestNode = "{name: a, type: ss, server: a.example, port: 443}"
 
+// scanYAMLTest exercises the fallback scanner on its own; parseYAML only reaches it when whole-document loading fails.
 func scanYAMLTest(t *testing.T, input string) ([]flight.Flight, Stats) {
 	t.Helper()
+	return collectYAMLTest(t, scanYAML, input)
+}
+
+func parseYAMLTest(t *testing.T, input string) ([]flight.Flight, Stats) {
+	t.Helper()
+	return collectYAMLTest(t, parseYAML, input)
+}
+
+func collectYAMLTest(t *testing.T, parse func(io.Reader, func(flight.Flight) error, Stats) (Stats, error), input string) ([]flight.Flight, Stats) {
+	t.Helper()
 	var nodes []flight.Flight
-	stats, err := parseYAML(strings.NewReader(input), func(node flight.Flight) error {
+	stats, err := parse(strings.NewReader(input), func(node flight.Flight) error {
 		nodes = append(nodes, node)
 		return nil
 	}, Stats{})
@@ -33,9 +44,17 @@ func assertYAMLMatchesDocument(t *testing.T, input string) {
 		Proxies   []map[string]any          `yaml:"proxies"`
 		Providers map[string]map[string]any `yaml:"proxy-providers"`
 	}
-	if err := yaml.Unmarshal([]byte(input), &document); err != nil {
+	// Upstream turns every tab into two spaces before loading, block scalars included.
+	normalized := []byte(strings.ReplaceAll(input, "\t", "  "))
+	var root map[string]any
+	if err := yaml.Unmarshal(normalized, &document); err != nil {
 		t.Fatalf("invalid legal fixture: %v", err)
 	}
+	if err := yaml.Unmarshal(normalized, &root); err != nil {
+		t.Fatalf("invalid legal fixture root: %v", err)
+	}
+	// Without a proxies list upstream treats the whole root as one node, which fails validation.
+	_, hasList := root["proxies"].([]any)
 	var want []flight.Flight
 	for _, record := range document.Proxies {
 		node, err := flight.Normalize(record)
@@ -45,8 +64,12 @@ func assertYAMLMatchesDocument(t *testing.T, input string) {
 		node.SourceFormat = string(FormatYAML)
 		want = append(want, node)
 	}
-	got, stats := scanYAMLTest(t, input)
-	if !reflect.DeepEqual(got, want) || stats.Parsed != len(want) || stats.Skipped != 0 || stats.Candidates != len(want) {
+	candidates, skipped := len(want), 0
+	if !hasList {
+		candidates, skipped = 1, 1
+	}
+	got, stats := parseYAMLTest(t, input)
+	if !reflect.DeepEqual(got, want) || stats.Parsed != len(want) || stats.Skipped != skipped || stats.Candidates != candidates {
 		t.Errorf("nodes=%+v want=%+v stats=%+v", got, want, stats)
 	}
 	var providers []ProxyProvider

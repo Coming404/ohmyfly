@@ -13,9 +13,9 @@ func parseVLESSLink(raw string) (map[string]any, error) {
 	// Mirrors upstream normalizeShadowrocketUri: only a non-standard
 	// authority followed by a query is decoded as a Shadowrocket payload.
 	isShadowrocket := false
-	if trimmed := strings.TrimSpace(body); !hasStandardVLESSAuthority(trimmed) {
+	if trimmed := jsTrimSpace(body); !hasStandardVLESSAuthority(trimmed) {
 		if queryIndex := strings.IndexByte(trimmed, '?'); queryIndex >= 0 {
-			decoded, decodeErr := decodeLinkText(strings.TrimSpace(trimmed[:queryIndex]))
+			decoded, decodeErr := decodeLinkText(jsTrimSpace(trimmed[:queryIndex]))
 			if decodeErr != nil {
 				return nil, fmt.Errorf("invalid vless payload")
 			}
@@ -188,7 +188,7 @@ func parseVLESSLink(raw string) (map[string]any, error) {
 			xhttpFallbackHeaders = headers
 			for key, value := range headers {
 				if strings.EqualFold(key, "host") {
-					host = strings.TrimSpace(fmt.Sprint(value))
+					host = jsTrimSpace(fmt.Sprint(value))
 					delete(xhttpFallbackHeaders, key)
 				}
 			}
@@ -261,7 +261,7 @@ func isRealityPublicKey(value string) bool {
 }
 
 func normalizeRealityShortID(value string) string {
-	value = strings.TrimSpace(value)
+	value = jsTrimSpace(value)
 	if value == "" {
 		return ""
 	}
@@ -328,7 +328,7 @@ func applyVLESSTransport(node map[string]any, options vlessTransportOptions) err
 	authority := options.authority
 	query := options.query
 	httpUpgrade := options.httpUpgrade
-	network = strings.ToLower(strings.TrimSpace(network))
+	network = strings.ToLower(jsTrimSpace(network))
 	switch network {
 	case "", "none", "tcp":
 		node["network"] = "tcp"

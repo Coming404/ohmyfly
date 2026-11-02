@@ -37,11 +37,11 @@ func parseTelegramProxyLink(raw string) (map[string]any, error) {
 		return nil, fmt.Errorf("无效的 Telegram 代理链接")
 	}
 	query := linkSearchParams(parsed.RawQuery)
-	server := strings.TrimSpace(query.Get("server"))
+	server := jsTrimSpace(query.Get("server"))
 	if server == "" {
 		return nil, fmt.Errorf("缺少服务器地址")
 	}
-	port, err := linkPort(strings.TrimSpace(query.Get("port")), 0)
+	port, err := linkPort(jsTrimSpace(query.Get("port")), 0)
 	if err != nil || port == 0 {
 		return nil, fmt.Errorf("无效的端口号")
 	}

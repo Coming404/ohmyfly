@@ -9,23 +9,15 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 )
 
 func decodeLinkBase64(value string) ([]byte, error) {
-	value, err := url.PathUnescape(strings.TrimSpace(value))
+	value, err := url.PathUnescape(jsTrimSpace(value))
 	if err != nil {
 		return nil, err
 	}
-	value = strings.Map(func(char rune) rune {
-		switch char {
-		case ' ', '\t', '\r', '\n':
-			return -1
-		default:
-			return char
-		}
-	}, value)
+	value = removeJSSpace(value)
 	encodings := []*base64.Encoding{
 		base64.RawURLEncoding,
 		base64.URLEncoding,
@@ -46,12 +38,12 @@ func decodeLinkText(value string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(decoded), nil
+	return decodeUTF8Lossy(decoded), nil
 }
 
 func linkString(query url.Values, keys ...string) string {
 	for _, key := range keys {
-		if value := strings.TrimSpace(query.Get(key)); value != "" {
+		if value := jsTrimSpace(query.Get(key)); value != "" {
 			return value
 		}
 	}
@@ -59,7 +51,7 @@ func linkString(query url.Values, keys ...string) string {
 }
 
 func linkBool(value string) (bool, bool) {
-	switch strings.ToLower(strings.TrimSpace(value)) {
+	switch strings.ToLower(jsTrimSpace(value)) {
 	case "1", "true", "yes", "on":
 		return true, true
 	case "0", "false", "no", "off":
@@ -72,7 +64,7 @@ func linkBool(value string) (bool, bool) {
 func linkBoolValue(query url.Values, keys ...string) (bool, bool) {
 	for _, key := range keys {
 		if value, exists := query[key]; exists {
-			if len(value) == 0 || strings.TrimSpace(value[0]) == "" {
+			if len(value) == 0 || jsTrimSpace(value[0]) == "" {
 				return true, true
 			}
 			return linkBool(value[0])
@@ -84,7 +76,7 @@ func linkBoolValue(query url.Values, keys ...string) (bool, bool) {
 func linkList(value string) []string {
 	var result []string
 	for _, item := range strings.Split(value, ",") {
-		if item = strings.TrimSpace(item); item != "" {
+		if item = jsTrimSpace(item); item != "" {
 			result = append(result, item)
 		}
 	}
@@ -98,9 +90,7 @@ func linkPort(value string, fallback int) (int, error) {
 	if value == "" {
 		return fallback, nil
 	}
-	value = strings.TrimLeftFunc(value, func(char rune) bool {
-		return char == '\uFEFF' || (char != '\u0085' && unicode.IsSpace(char))
-	})
+	value = strings.TrimLeftFunc(value, isJSSpace)
 	negative := false
 	if value != "" && (value[0] == '+' || value[0] == '-') {
 		negative = value[0] == '-'
@@ -170,16 +160,7 @@ func linkSearchParams(raw string) url.Values {
 
 func linkFormComponent(value string) string {
 	decoded, _ := linkUnescape(strings.ReplaceAll(value, "+", " "), false)
-	if utf8.Valid(decoded) {
-		return string(decoded)
-	}
-	var builder strings.Builder
-	for len(decoded) > 0 {
-		char, size := utf8.DecodeRune(decoded)
-		builder.WriteRune(char)
-		decoded = decoded[size:]
-	}
-	return builder.String()
+	return decodeUTF8Lossy(decoded)
 }
 
 // linkUnescape decodes %XX escapes. In strict mode a malformed escape fails;
@@ -302,7 +283,7 @@ func parseLinkJSON(value string) (map[string]any, error) {
 }
 
 func linkHeaderMap(value string) map[string]any {
-	value = strings.TrimSpace(value)
+	value = jsTrimSpace(value)
 	if value == "" {
 		return nil
 	}
@@ -324,10 +305,10 @@ func linkHeaderMap(value string) map[string]any {
 	result := map[string]any{}
 	for _, part := range strings.Split(value, "|") {
 		key, item, ok := strings.Cut(part, ":")
-		if !ok || strings.TrimSpace(key) == "" || strings.TrimSpace(item) == "" {
+		if !ok || jsTrimSpace(key) == "" || jsTrimSpace(item) == "" {
 			continue
 		}
-		result[strings.TrimSpace(key)] = strings.TrimSpace(item)
+		result[jsTrimSpace(key)] = jsTrimSpace(item)
 	}
 	if len(result) == 0 {
 		return nil

@@ -11,7 +11,7 @@ import (
 func parseSSRLink(raw string) (map[string]any, error) {
 	raw = normalizeLinkScheme(raw, "ssr")
 	content := strings.TrimPrefix(raw, "ssr://")
-	if strings.TrimSpace(content) == "" {
+	if jsTrimSpace(content) == "" {
 		return nil, fmt.Errorf("empty ssr link")
 	}
 	decoded, err := decodeLinkText(content)
@@ -30,11 +30,11 @@ func parseSSRLink(raw string) (map[string]any, error) {
 		return nil, fmt.Errorf("invalid ssr format")
 	}
 	passwordEncoded := parts[len(parts)-1]
-	obfs := strings.TrimSpace(parts[len(parts)-2])
-	cipher := strings.TrimSpace(parts[len(parts)-3])
-	protocol := strings.TrimSpace(parts[len(parts)-4])
-	portText := strings.TrimSpace(parts[len(parts)-5])
-	server := strings.TrimSpace(strings.Join(parts[:len(parts)-5], ":"))
+	obfs := jsTrimSpace(parts[len(parts)-2])
+	cipher := jsTrimSpace(parts[len(parts)-3])
+	protocol := jsTrimSpace(parts[len(parts)-4])
+	portText := jsTrimSpace(parts[len(parts)-5])
+	server := jsTrimSpace(strings.Join(parts[:len(parts)-5], ":"))
 	if strings.HasPrefix(server, "[") && strings.HasSuffix(server, "]") {
 		server = server[1 : len(server)-1]
 	}
@@ -92,7 +92,7 @@ func parseSSRLink(raw string) (map[string]any, error) {
 }
 
 func decodeSSRValue(value string) (string, error) {
-	if strings.TrimSpace(value) == "" {
+	if jsTrimSpace(value) == "" {
 		return "", nil
 	}
 	if decoded, err := decodeLinkText(value); err == nil {
@@ -112,10 +112,10 @@ func parseSSRQuery(value string) map[string]string {
 			continue
 		}
 		key, item, found := strings.Cut(part, "=")
-		if !found || strings.TrimSpace(key) == "" {
+		if !found || jsTrimSpace(key) == "" {
 			continue
 		}
-		result[strings.TrimSpace(key)] = item
+		result[jsTrimSpace(key)] = item
 	}
 	return result
 }

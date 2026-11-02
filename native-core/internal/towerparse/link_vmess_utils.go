@@ -31,7 +31,7 @@ func stringField(node map[string]any, keys ...string) string {
 		if !ok {
 			continue
 		}
-		text := strings.TrimSpace(fmt.Sprint(value))
+		text := jsTrimSpace(fmt.Sprint(value))
 		if text != "" {
 			return text
 		}
@@ -54,7 +54,7 @@ func intField(node map[string]any, fallback int, keys ...string) int {
 				return parsed
 			}
 		case string:
-			parsed, err := strconv.Atoi(strings.TrimSpace(value))
+			parsed, err := strconv.Atoi(jsTrimSpace(value))
 			if err == nil {
 				return parsed
 			}
@@ -90,7 +90,7 @@ var (
 
 func hasDingTalkHost(hosts []string) bool {
 	for _, host := range hosts {
-		host = strings.TrimSpace(host)
+		host = jsTrimSpace(host)
 		if len(host) >= len("dingtalk.com") && strings.EqualFold(host[len(host)-len("dingtalk.com"):], "dingtalk.com") &&
 			(len(host) == len("dingtalk.com") || host[len(host)-len("dingtalk.com")-1] == '.') {
 			return true
@@ -104,7 +104,7 @@ func normalizeHTTPMethod(input any) string {
 	if !ok {
 		return "GET"
 	}
-	value = strings.ToUpper(strings.TrimSpace(value))
+	value = strings.ToUpper(jsTrimSpace(value))
 	if value == "" || !vmessHTTPMethodPattern.MatchString(value) {
 		return "GET"
 	}
@@ -112,7 +112,7 @@ func normalizeHTTPMethod(input any) string {
 }
 
 func normalizeHeaderKey(key string) string {
-	key = strings.TrimSpace(key)
+	key = jsTrimSpace(key)
 	switch strings.ToLower(key) {
 	case "host":
 		return "Host"
@@ -140,19 +140,19 @@ func parseHeaderRecord(input any) map[string]any {
 		switch value := rawValue.(type) {
 		case []any:
 			for _, item := range value {
-				if text, ok := item.(string); ok && strings.TrimSpace(text) != "" {
-					values = append(values, strings.TrimSpace(text))
+				if text, ok := item.(string); ok && jsTrimSpace(text) != "" {
+					values = append(values, jsTrimSpace(text))
 				}
 			}
 		case []string:
 			for _, item := range value {
-				if strings.TrimSpace(item) != "" {
-					values = append(values, strings.TrimSpace(item))
+				if jsTrimSpace(item) != "" {
+					values = append(values, jsTrimSpace(item))
 				}
 			}
 		case string:
-			if strings.TrimSpace(value) != "" {
-				values = []string{strings.TrimSpace(value)}
+			if jsTrimSpace(value) != "" {
+				values = []string{jsTrimSpace(value)}
 			}
 		case bool, float64, int, int64, json.Number:
 			values = []string{fmt.Sprint(value)}
@@ -173,7 +173,7 @@ func splitList(value string) []string {
 
 func pickString(value any) string {
 	if text, ok := value.(string); ok {
-		return strings.TrimSpace(text)
+		return jsTrimSpace(text)
 	}
 	return ""
 }
@@ -229,7 +229,7 @@ func looksLikeShadowrocketStyleVMess(content string) bool {
 }
 
 func stripOuterQuotes(value string) string {
-	value = strings.TrimSpace(value)
+	value = jsTrimSpace(value)
 	if strings.HasPrefix(value, "\"") || strings.HasPrefix(value, "'") {
 		value = value[1:]
 	}
@@ -257,7 +257,7 @@ func parseObfsHeaderHost(raw string) string {
 		decoded = stripOuterQuotes(raw)
 	}
 	if match := vmessHostHeaderPattern.FindStringSubmatch(decoded); len(match) > 1 {
-		return strings.TrimSpace(match[1])
+		return jsTrimSpace(match[1])
 	}
 	if decoded == "" {
 		return ""
@@ -266,7 +266,7 @@ func parseObfsHeaderHost(raw string) string {
 }
 
 func normalizeSSPlugin(plugin string, options map[string]any) (string, map[string]any) {
-	plugin = strings.TrimSpace(plugin)
+	plugin = jsTrimSpace(plugin)
 	if strings.EqualFold(plugin, "obfs-local") || strings.EqualFold(plugin, "simple-obfs") || strings.EqualFold(plugin, "obfs") {
 		result := map[string]any{}
 		if value := stringField(options, "obfs"); value != "" {

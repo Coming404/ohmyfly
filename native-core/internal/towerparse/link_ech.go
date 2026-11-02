@@ -15,7 +15,7 @@ var (
 )
 
 func isStandardECHBase64(value string) bool {
-	value = strings.TrimSpace(value)
+	value = jsTrimSpace(value)
 	if value == "" || len(value)%4 != 0 || !standardECHBase64Pattern.MatchString(value) {
 		return false
 	}
@@ -24,7 +24,7 @@ func isStandardECHBase64(value string) bool {
 }
 
 func isMihomoECHQueryServerName(value string) bool {
-	value = strings.TrimSpace(value)
+	value = jsTrimSpace(value)
 	value = strings.TrimSuffix(value, ".")
 	if value == "" || len(value) > 253 || !strings.Contains(value, ".") {
 		return false
@@ -63,7 +63,7 @@ func hasAbsoluteECHResolverURI(value string) bool {
 }
 
 func buildMihomoECHOpts(value string) map[string]any {
-	normalized := strings.TrimSpace(value)
+	normalized := jsTrimSpace(value)
 	result := map[string]any{"enable": true}
 	if normalized == "" {
 		return result
@@ -77,8 +77,8 @@ func buildMihomoECHOpts(value string) map[string]any {
 		return result
 	}
 	if separator := strings.IndexByte(normalized, '+'); separator > 0 {
-		queryServerName := strings.TrimSpace(normalized[:separator])
-		resolverURI := strings.TrimSpace(normalized[separator+1:])
+		queryServerName := jsTrimSpace(normalized[:separator])
+		resolverURI := jsTrimSpace(normalized[separator+1:])
 		if isMihomoECHQueryServerName(queryServerName) && hasAbsoluteECHResolverURI(resolverURI) {
 			result["query-server-name"] = queryServerName
 		}

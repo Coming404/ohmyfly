@@ -123,25 +123,25 @@ func splitSSServerPort(value string) (string, int, error) {
 
 func addSSPlugin(node map[string]any, raw string) {
 	parts := splitEscapedPlugin(raw)
-	if len(parts) == 0 || strings.TrimSpace(parts[0]) == "" {
+	if len(parts) == 0 || jsTrimSpace(parts[0]) == "" {
 		return
 	}
-	plugin := strings.TrimSpace(parts[0])
+	plugin := jsTrimSpace(parts[0])
 	opts := map[string]any{}
 	for _, part := range parts[1:] {
-		part = strings.TrimSpace(part)
+		part = jsTrimSpace(part)
 		if part == "" {
 			continue
 		}
 		key, value, found := strings.Cut(part, "=")
-		key = strings.TrimSpace(key)
+		key = jsTrimSpace(key)
 		if key == "" {
 			continue
 		}
-		if !found || strings.TrimSpace(value) == "" {
+		if !found || jsTrimSpace(value) == "" {
 			opts[key] = true
 		} else {
-			opts[key] = strings.TrimSpace(value)
+			opts[key] = jsTrimSpace(value)
 		}
 	}
 	plugin, normalized := normalizeSSPlugin(plugin, opts)

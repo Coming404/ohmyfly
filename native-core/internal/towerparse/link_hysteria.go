@@ -37,7 +37,7 @@ func parseHysteriaLink(raw string) (map[string]any, error) {
 		"auth-str",
 		"password",
 	)
-	if auth = strings.TrimSpace(auth); auth != "" {
+	if auth = jsTrimSpace(auth); auth != "" {
 		node["auth-str"] = auth
 	}
 	if err := applyHysteriaOptions(node, query); err != nil {
@@ -111,7 +111,7 @@ func applyHysteriaObfs(node map[string]any, query url.Values) error {
 		}
 		return nil
 	}
-	obfs := strings.ToLower(strings.TrimSpace(query.Get("obfs")))
+	obfs := strings.ToLower(jsTrimSpace(query.Get("obfs")))
 	switch obfs {
 	case "", "none":
 		return nil
@@ -137,7 +137,7 @@ func hysteriaPorts(query url.Values, authority string, version2 bool) string {
 	if !version2 {
 		return pickQueryParam(query, "mport", "ports")
 	}
-	ports := strings.TrimSpace(pickQueryParam(query, "ports", "mport"))
+	ports := jsTrimSpace(pickQueryParam(query, "ports", "mport"))
 	if ports == "" && !hysteriaDigits.MatchString(authority) {
 		ports = authority
 	}

@@ -39,7 +39,7 @@ func parseSnellLink(raw string) (map[string]any, error) {
 	if version, ok := linkIntegerPrefix(query, "version"); ok {
 		node["version"] = version
 	}
-	obfs := strings.ToLower(strings.TrimSpace(query.Get("obfs")))
+	obfs := strings.ToLower(jsTrimSpace(query.Get("obfs")))
 	if obfs == "http" || obfs == "tls" {
 		options := map[string]any{"mode": obfs}
 		if host := query.Get("obfs-host"); host != "" {

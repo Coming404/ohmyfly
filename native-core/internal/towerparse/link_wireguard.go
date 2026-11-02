@@ -43,7 +43,7 @@ func parseWireGuardLink(raw string) (map[string]any, error) {
 	// Alias overrides depend on URLSearchParams entry order, which url.Values loses.
 	for pair := range strings.SplitSeq(strings.TrimPrefix(parsed.RawQuery, "?"), "&") {
 		rawKey, rawValue, _ := strings.Cut(pair, "=")
-		key := strings.TrimSpace(strings.ReplaceAll(linkFormComponent(rawKey), "_", "-"))
+		key := jsTrimSpace(strings.ReplaceAll(linkFormComponent(rawKey), "_", "-"))
 		value := linkDecodeComponent(linkFormComponent(rawValue))
 		if key == "" || value == "" {
 			continue
@@ -90,7 +90,7 @@ func parseWireGuardLink(raw string) (map[string]any, error) {
 
 func assignWireGuardAddress(node map[string]any, raw string) {
 	for item := range strings.SplitSeq(raw, ",") {
-		address := strings.TrimSpace(item)
+		address := jsTrimSpace(item)
 		if host, prefix, found := strings.CutLast(address, "/"); found && isLinkDigitString(prefix) {
 			address = host
 		}
@@ -107,8 +107,8 @@ func assignWireGuardAddress(node map[string]any, raw string) {
 }
 
 func normalizeWireGuardLinkReserved(raw string) ([]int, bool) {
-	if wireGuardReservedBase64Pattern.MatchString(strings.TrimSpace(raw)) {
-		decoded, _ := decodeLinkBase64(strings.TrimSpace(raw))
+	if wireGuardReservedBase64Pattern.MatchString(jsTrimSpace(raw)) {
+		decoded, _ := decodeLinkBase64(jsTrimSpace(raw))
 		return []int{int(decoded[0]), int(decoded[1]), int(decoded[2])}, true
 	}
 	parts := strings.Split(raw, ",")
@@ -117,7 +117,7 @@ func normalizeWireGuardLinkReserved(raw string) ([]int, bool) {
 	}
 	reserved := make([]int, 0, 3)
 	for _, part := range parts {
-		part = strings.TrimSpace(part)
+		part = jsTrimSpace(part)
 		number, err := strconv.Atoi(part)
 		validByte := isLinkDigitString(part) && err == nil && number <= 255
 		if !validByte {
@@ -134,7 +134,7 @@ func normalizeWireGuardLinkKeepalive(node map[string]any) error {
 		if !exists {
 			continue
 		}
-		raw := strings.TrimSpace(value.(string))
+		raw := jsTrimSpace(value.(string))
 		number, err := strconv.Atoi(raw)
 		validKeepalive := isLinkDigitString(raw) && err == nil && number <= 65535
 		if !validKeepalive {

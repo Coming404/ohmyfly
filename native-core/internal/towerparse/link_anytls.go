@@ -50,7 +50,7 @@ func parseAnyTLSLink(raw string) (map[string]any, error) {
 	}
 
 	udp := true
-	switch strings.ToLower(strings.TrimSpace(query.Get("udp"))) {
+	switch strings.ToLower(jsTrimSpace(query.Get("udp"))) {
 	case "0", "false":
 		udp = false
 	}
@@ -80,7 +80,7 @@ func parseAnyTLSLink(raw string) (map[string]any, error) {
 	) {
 		node["skip-cert-verify"] = true
 	}
-	if fp := strings.TrimSpace(pickQueryParam(
+	if fp := jsTrimSpace(pickQueryParam(
 		query,
 		"fp",
 		"fingerprint",
@@ -111,21 +111,21 @@ func parseAnyTLSLink(raw string) (map[string]any, error) {
 		"paddingScheme",
 		"padding_scheme",
 	)
-	if padding = strings.TrimSpace(padding); padding != "" {
+	if padding = jsTrimSpace(padding); padding != "" {
 		node["padding-scheme"] = padding
 	}
 	return node, nil
 }
 
 func normalizeAnyTLSUserInfo(raw string) (string, bool, error) {
-	body := strings.TrimSpace(strings.TrimPrefix(raw, "anytls://"))
+	body := jsTrimSpace(strings.TrimPrefix(raw, "anytls://"))
 	authority, _, _ := strings.Cut(body, "#")
 	authority, _, _ = strings.Cut(authority, "?")
 	if strings.Contains(strings.TrimSuffix(authority, "/"), "@") {
 		return raw, false, nil
 	}
 	token, suffix, hasQuery := strings.Cut(body, "?")
-	token = strings.TrimSpace(token)
+	token = jsTrimSpace(token)
 	if !hasQuery || !anyTLSBase64TokenPattern.MatchString(token) {
 		return raw, false, nil
 	}
@@ -144,20 +144,20 @@ func normalizeAnyTLSUserInfo(raw string) (string, bool, error) {
 
 func validateAnyTLSOptions(query url.Values) error {
 	security := query.Get("security")
-	switch strings.ToLower(strings.TrimSpace(security)) {
+	switch strings.ToLower(jsTrimSpace(security)) {
 	case "", "tls", "none":
 	case "reality":
 		return fmt.Errorf("AnyTLS 不支持 security=reality / reality-opts（Mihomo 不支持）")
 	default:
 		return fmt.Errorf("AnyTLS 不支持 security=%s", security)
 	}
-	transport := strings.TrimSpace(pickQueryParam(query, "type", "network", "transport"))
+	transport := jsTrimSpace(pickQueryParam(query, "type", "network", "transport"))
 	switch strings.ToLower(transport) {
 	case "", "tcp", "none":
 	default:
 		return fmt.Errorf("AnyTLS 不支持 type=%s（Mihomo 仅支持纯 TCP）", transport)
 	}
-	header := strings.ToLower(strings.TrimSpace(pickQueryParam(query, "headerType", "header_type", "header-type")))
+	header := strings.ToLower(jsTrimSpace(pickQueryParam(query, "headerType", "header_type", "header-type")))
 	if header != "" && header != "none" {
 		return fmt.Errorf("AnyTLS 不支持 headerType=%s（仅支持纯 TCP）", header)
 	}

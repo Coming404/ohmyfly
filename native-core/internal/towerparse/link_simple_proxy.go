@@ -12,7 +12,7 @@ import (
 var simpleProxyIPv6SuffixPattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*://(?:[^/?#@]+@)?\[[^\]]+\]$`)
 
 func parseSocksLink(raw string) (map[string]any, error) {
-	raw = strings.TrimSpace(raw)
+	raw = jsTrimSpace(raw)
 	match := linkSchemePattern.FindStringSubmatch(raw)
 	if match == nil {
 		return nil, fmt.Errorf("无效的 SOCKS 链接")
@@ -34,7 +34,7 @@ func parseSSHLink(raw string) (map[string]any, error) {
 }
 
 func parseSimpleProxyLink(raw string) (map[string]any, error) {
-	raw = strings.TrimSpace(raw)
+	raw = jsTrimSpace(raw)
 	match := linkSchemePattern.FindStringSubmatch(raw)
 	if match == nil {
 		return nil, fmt.Errorf("无效的代理格式")
@@ -74,13 +74,13 @@ func parseSimpleProxyLink(raw string) (map[string]any, error) {
 			if before, after, found := strings.CutLast(decoded, "@"); found {
 				auth, serverPart = before, after
 			}
-			server, port, hasPort := simpleProxyServerPort(strings.TrimSpace(serverPart))
+			server, port, hasPort := simpleProxyServerPort(jsTrimSpace(serverPart))
 			if server != "" && hasPort {
 				query := simpleProxyQuery(raw)
 				name := linkName(suffixName, linkName(fragment, linkName(
 					pickQueryParam(query, "remark", "remarks"), linkDefaultName(server, port),
 				)))
-				username, password, _ := strings.Cut(strings.TrimSpace(auth), ":")
+				username, password, _ := strings.Cut(jsTrimSpace(auth), ":")
 				node := buildSimpleProxyNode(kind, name, server, port, username, password, forceTLS)
 				applySimpleProxyQuery(node, query)
 				return node, nil
@@ -120,7 +120,7 @@ func parseSimpleProxyLink(raw string) (map[string]any, error) {
 	username, password := parsed.Username, parsed.Password
 	if username != "" && password == "" && (kind == "socks4" || kind == "socks5") {
 		if decoded, ok := decodeSimpleProxyToken(username); ok && strings.Contains(decoded, ":") && !strings.Contains(decoded, "@") {
-			username, password, _ = strings.Cut(strings.TrimSpace(decoded), ":")
+			username, password, _ = strings.Cut(jsTrimSpace(decoded), ":")
 		}
 	}
 	name := linkName(suffixName, linkName(parsed.Fragment, linkDefaultName(server, port)))
@@ -155,7 +155,7 @@ func simpleProxyEnclosed(raw, open, close string) (string, string, bool) {
 }
 
 func decodeSimpleProxyToken(raw string) (string, bool) {
-	raw = strings.TrimSpace(raw)
+	raw = jsTrimSpace(raw)
 	if !anyTLSBase64TokenPattern.MatchString(raw) {
 		return "", false
 	}
@@ -169,7 +169,7 @@ func decodeSimpleProxyToken(raw string) (string, bool) {
 	if err != nil {
 		return "", false
 	}
-	text := strings.TrimPrefix(string([]rune(string(decoded))), "\uFEFF")
+	text := strings.TrimPrefix(decodeUTF8Lossy(decoded), "\uFEFF")
 	for _, char := range text {
 		if char <= '\x08' || char >= '\x0e' && char <= '\x1f' {
 			return "", false
@@ -232,7 +232,7 @@ func applySimpleProxyQuery(node map[string]any, query url.Values) {
 	}
 	kind := node["type"].(string)
 	if kind != "ssh" {
-		if sni := strings.TrimSpace(pickQueryParam(query, "sni", "peer", "tls-name", "tls_name")); sni != "" {
+		if sni := jsTrimSpace(pickQueryParam(query, "sni", "peer", "tls-name", "tls_name")); sni != "" {
 			node["sni"] = sni
 		}
 		if verified, ok := linkBool(query.Get("tls-verification")); ok {
@@ -253,7 +253,7 @@ func applySimpleProxyQuery(node map[string]any, query url.Values) {
 			{target: "private-key", keys: []string{"private-key", "private_key", "privateKey"}},
 			{target: "server-fingerprint", keys: []string{"server-fingerprint", "server_fingerprint"}},
 		} {
-			if value := strings.TrimSpace(pickQueryParam(query, field.keys...)); value != "" {
+			if value := jsTrimSpace(pickQueryParam(query, field.keys...)); value != "" {
 				node[field.target] = value
 			}
 		}
@@ -261,14 +261,14 @@ func applySimpleProxyQuery(node map[string]any, query url.Values) {
 			{target: "host-key", keys: []string{"host-key", "host_key", "hostKey"}},
 			{target: "host-key-algorithms", keys: []string{"host-key-algorithms", "host_key_algorithms"}},
 		} {
-			if value := strings.TrimSpace(pickQueryParam(query, field.keys...)); value != "" {
+			if value := jsTrimSpace(pickQueryParam(query, field.keys...)); value != "" {
 				values := append([]string{}, linkList(strings.NewReplacer("|", ",", ";", ",").Replace(value))...)
 				if len(values) > 0 || field.target == "host-key-algorithms" {
 					node[field.target] = values
 				}
 			}
 		}
-		idle := strings.TrimSpace(pickQueryParam(query, "idle-timeout", "idle_timeout"))
+		idle := jsTrimSpace(pickQueryParam(query, "idle-timeout", "idle_timeout"))
 		if isLinkDigitString(idle) {
 			if value, ok := linkIntegerPrefix(url.Values{"idle": {idle}}, "idle"); ok {
 				node["idle-timeout"] = value
@@ -278,14 +278,14 @@ func applySimpleProxyQuery(node map[string]any, query url.Values) {
 }
 
 func simpleProxyHeaders(raw string) map[string]any {
-	raw = strings.TrimSpace(raw)
+	raw = jsTrimSpace(raw)
 	if raw == "" {
 		return nil
 	}
 	result := map[string]any{}
 	if object, err := parseLinkJSON(raw); err == nil {
 		for key, value := range object {
-			if key = strings.TrimSpace(key); key == "" {
+			if key = jsTrimSpace(key); key == "" {
 				continue
 			}
 			switch value := value.(type) {
@@ -303,10 +303,10 @@ func simpleProxyHeaders(raw string) map[string]any {
 		}
 	} else {
 		for part := range strings.SplitSeq(raw, "|") {
-			key, value, found := strings.Cut(strings.TrimSpace(part), ":")
-			key = strings.TrimSpace(key)
+			key, value, found := strings.Cut(jsTrimSpace(part), ":")
+			key = jsTrimSpace(key)
 			if found && key != "" {
-				result[key] = strings.TrimSpace(value)
+				result[key] = jsTrimSpace(value)
 			}
 		}
 	}

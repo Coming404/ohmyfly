@@ -32,7 +32,7 @@ func parseTUICLink(raw string) (map[string]any, error) {
 		"user",
 		"username",
 	)
-	if userPassword != "" || tuicUUIDPattern.MatchString(strings.TrimSpace(username)) {
+	if userPassword != "" || tuicUUIDPattern.MatchString(jsTrimSpace(username)) {
 		uuid = username
 	}
 	password := cmp.Or(userPassword, linkString(query, "password", "passwd"))

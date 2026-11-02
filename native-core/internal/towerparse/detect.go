@@ -37,9 +37,9 @@ func DetectFormat(prefix []byte) Format {
 
 // yamlRootKeys are the target root keys, bare or quoted, that mark a YAML document.
 var yamlRootKeys = [][]byte{
-	[]byte("proxies:"), []byte("proxy-providers:"),
-	[]byte(`"proxies":`), []byte(`"proxy-providers":`),
-	[]byte("'proxies':"), []byte("'proxy-providers':"),
+	[]byte("proxies:"), []byte("proxy-providers:"), []byte("proxy-groups:"),
+	[]byte(`"proxies":`), []byte(`"proxy-providers":`), []byte(`"proxy-groups":`),
+	[]byte("'proxies':"), []byte("'proxy-providers':"), []byte("'proxy-groups':"),
 }
 
 func hasYAMLRootKey(line []byte) bool {

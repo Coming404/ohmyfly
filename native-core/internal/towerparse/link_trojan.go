@@ -89,7 +89,7 @@ type trojanTransportOptions struct {
 }
 
 func applyTrojanTransport(node map[string]any, options trojanTransportOptions) error {
-	network := strings.ToLower(strings.TrimSpace(options.network))
+	network := strings.ToLower(jsTrimSpace(options.network))
 	path := options.path
 	host := options.host
 	serviceName := options.serviceName
