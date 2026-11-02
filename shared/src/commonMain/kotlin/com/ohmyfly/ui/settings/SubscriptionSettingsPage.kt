@@ -23,7 +23,7 @@ internal fun SubscriptionSettingsPage(padding: PaddingValues) {
                     current, n -> current.withSubscription { it.copy(maxMiB = n) }
                 }
                 TextSetting("User-Agent", { it.subscription.userAgent }, SettingsIcons.Haptic,
-                    hint = "留空使用核心默认值。", validate = ::validateUserAgent) {
+                    hint = "留空使用内置 4 个；填写后只用这里的值，多个用 | 分隔并按顺序选优。", validate = ::validateUserAgent) {
                     current, value -> current.withSubscription { it.copy(userAgent = value) }
                 }
             }
@@ -31,12 +31,12 @@ internal fun SubscriptionSettingsPage(padding: PaddingValues) {
         item { SettingsSectionTitle("名称与协议过滤", SettingsIcons.Filter) }
         item {
             SettingsCard {
-                TextSetting("名称包含正则", { it.subscription.includePattern }, SettingsIcons.Search,
-                    hint = "留空不限制；规则将在导入核心再次验证。", validate = ::validatePattern) {
+                TextSetting("名称包含", { it.subscription.includePattern }, SettingsIcons.Search,
+                    hint = "留空不限制；多个词用 | 分隔，如 香港|日本；不区分大小写。", validate = ::validatePattern) {
                     current, value -> current.withSubscription { it.copy(includePattern = value) }
                 }
-                TextSetting("名称排除正则", { it.subscription.excludePattern }, SettingsIcons.Filter,
-                    hint = "留空不排除；只影响测试范围，不删除原始塔台链接。", validate = ::validatePattern) {
+                TextSetting("名称排除", { it.subscription.excludePattern }, SettingsIcons.Filter,
+                    hint = "留空不排除；多个词用 | 分隔；不区分大小写。", validate = ::validatePattern) {
                     current, value -> current.withSubscription { it.copy(excludePattern = value) }
                 }
                 TextSetting("协议范围", { it.subscription.protocols.sorted().joinToString(",") }, MirrorIcons.Link,
