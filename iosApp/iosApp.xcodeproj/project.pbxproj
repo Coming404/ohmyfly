@@ -325,6 +325,14 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
+					"$(SRCROOT)/../native-core/build/ios/NativeCore.xcframework/$(NATIVE_CORE_SLICE)",
+				);
+				"NATIVE_CORE_SLICE[sdk=iphoneos*]" = "ios-arm64";
+				"NATIVE_CORE_SLICE[sdk=iphonesimulator*]" = "ios-arm64_x86_64-simulator";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					NativeCore,
 				);
 				INFOPLIST_FILE = iosApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -352,6 +360,14 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
+					"$(SRCROOT)/../native-core/build/ios/NativeCore.xcframework/$(NATIVE_CORE_SLICE)",
+				);
+				"NATIVE_CORE_SLICE[sdk=iphoneos*]" = "ios-arm64";
+				"NATIVE_CORE_SLICE[sdk=iphonesimulator*]" = "ios-arm64_x86_64-simulator";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					NativeCore,
 				);
 				INFOPLIST_FILE = iosApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;

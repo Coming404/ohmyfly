@@ -25,10 +25,18 @@ kotlin {
 
     // Apple toolchains require macOS; do not create unbuildable native tasks on Linux CI.
     if (providers.systemProperty("os.name").get().startsWith("Mac")) {
-        listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
+        val nativeCore = rootDir.resolve("native-core/build/ios/NativeCore.xcframework")
+        listOf(
+            iosArm64() to "ios-arm64",
+            iosSimulatorArm64() to "ios-arm64_x86_64-simulator",
+        ).forEach { (target, slice) ->
             target.binaries.framework {
                 baseName = "Shared"
                 isStatic = true
+            }
+            // Shared 是静态框架，NativeCore 由 iosApp 链接；cinterop 只读取头文件。
+            target.compilations.getByName("main").cinterops.create("nativeCore") {
+                compilerOpts("-F${nativeCore.resolve(slice)}")
             }
         }
     }

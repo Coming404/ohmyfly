@@ -120,6 +120,22 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6.4.0
         with:
           cache-read-only: false
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: native-core/go.mod
+          cache-dependency-path: native-core/go.sum
+      # iosApp 链接 NativeCore，shared 的 cinterop 读取它的头文件；版本与 native-core.yml 保持一致。
+      - name: Build NativeCore XCFramework
+        env:
+          GOMOBILE_VERSION: v0.0.0-20261011034528-197770444867
+        run: |
+          go install "golang.org/x/mobile/cmd/gomobile@${GOMOBILE_VERSION}"
+          gomobile init
+          go install "golang.org/x/mobile/cmd/gobind@${GOMOBILE_VERSION}"
+          cp -R native-core "$RUNNER_TEMP/native-core"
+          cd "$RUNNER_TEMP/native-core"
+          go get -tool "golang.org/x/mobile/cmd/gobind@${GOMOBILE_VERSION}"
+          gomobile bind -target=ios -iosversion=16.0 -o "$GITHUB_WORKSPACE/native-core/build/ios/NativeCore.xcframework" ./mobile
       - run: xcodebuild -version
       - name: Archive unsigned arm64 iPhoneOS Release app
         run: >-
