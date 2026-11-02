@@ -122,144 +122,12 @@ type yamlItem struct {
 }
 
 func parseYAML(source io.Reader, emit func(flight.Flight) error, stats Stats) (Stats, error) {
-	scanner := bufio.NewScanner(source)
-	scanner.Buffer(make([]byte, 64*1024), maxLineLength)
-	proxiesActive := false
-	providersActive := false
-	proxyIndent := -1
-	proxyItemIndent := -1
-	providerIndent := -1
-	providerItemIndent := -1
-	var proxy *yamlItem
-	var provider *yamlItem
-	line := 0
-
-	flushProxy := func() error {
-		if proxy == nil {
-			return nil
-		}
-		item := *proxy
-		proxy = nil
-		return emitYAMLItem(item, emit, &stats)
-	}
-	flushProvider := func() {
-		if provider == nil {
-			return
-		}
-		item := *provider
-		provider = nil
-		extractProvider(item, &stats)
-	}
-	stopProxy := func() error {
-		if err := flushProxy(); err != nil {
-			return err
-		}
-		proxiesActive = false
-		proxyIndent = -1
-		proxyItemIndent = -1
-		return nil
-	}
-	stopProviders := func() {
-		flushProvider()
-		providersActive = false
-		providerIndent = -1
-		providerItemIndent = -1
-	}
-
-	for scanner.Scan() {
-		line++
-		raw := strings.TrimSuffix(scanner.Text(), "\r")
-		trimmed := strings.TrimSpace(raw)
-		indent := leadingSpaces(raw)
-		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
-			if proxy != nil {
-				proxy.lines = append(proxy.lines, raw)
-			}
-			if provider != nil {
-				provider.lines = append(provider.lines, raw)
-			}
-			continue
-		}
-
-		if indent == 0 && !(proxiesActive && strings.HasPrefix(trimmed, "-")) {
-			key, value, ok := rootKey(trimmed)
-			if proxiesActive && key != "proxies" {
-				if err := stopProxy(); err != nil {
-					return stats, err
-				}
-			}
-			if providersActive && key != "proxy-providers" {
-				stopProviders()
-			}
-			if ok && key == "proxies" {
-				proxiesActive = true
-				proxyIndent = indent
-				if strings.TrimSpace(value) != "" && !strings.HasPrefix(strings.TrimSpace(value), "#") {
-					stats.skip("yaml inline proxies unsupported")
-					proxiesActive = false
-				}
-				continue
-			}
-			if ok && key == "proxy-providers" {
-				providersActive = true
-				providerIndent = indent
-				if strings.TrimSpace(value) != "" && !strings.HasPrefix(strings.TrimSpace(value), "#") {
-					providersActive = false
-					stats.skip("yaml inline proxy-providers unsupported")
-				}
-				continue
-			}
-		}
-
-		if proxiesActive {
-			if indent <= proxyIndent && !strings.HasPrefix(trimmed, "-") {
-				if err := stopProxy(); err != nil {
-					return stats, err
-				}
-			} else if strings.HasPrefix(trimmed, "-") {
-				if proxyItemIndent < 0 {
-					proxyItemIndent = indent
-				}
-				if indent == proxyItemIndent {
-					if err := flushProxy(); err != nil {
-						return stats, err
-					}
-					proxy = &yamlItem{start: line, lines: []string{raw}}
-					continue
-				}
-			}
-			if proxy != nil {
-				proxy.lines = append(proxy.lines, raw)
-			}
-		}
-		if providersActive {
-			if indent <= providerIndent {
-				stopProviders()
-			} else if providerItemIndent < 0 {
-				providerItemIndent = indent
-				provider = &yamlItem{start: line, lines: []string{raw}}
-			} else if indent == providerItemIndent && !strings.HasPrefix(trimmed, "-") {
-				flushProvider()
-				provider = &yamlItem{start: line, lines: []string{raw}}
-			} else if provider != nil {
-				provider.lines = append(provider.lines, raw)
-			}
-		}
-	}
-	if err := flushProxy(); err != nil {
-		return stats, err
-	}
-	flushProvider()
-	if err := scanner.Err(); err != nil {
-		stats.skip(scanErrReason(err))
-		return stats, fmt.Errorf("line %d: YAML input error", line+1)
-	}
-	return stats, nil
+	return scanYAML(source, emit, stats)
 }
 
 func leadingSpaces(line string) int {
 	for index := 0; index < len(line); index++ {
-		if line[index] != ' ' {
+		if line[index] != ' ' && line[index] != '\t' {
 			return index
 		}
 	}
@@ -267,15 +135,8 @@ func leadingSpaces(line string) int {
 }
 
 func rootKey(line string) (string, string, bool) {
-	colon := strings.IndexByte(line, ':')
-	if colon <= 0 {
-		return "", "", false
-	}
-	key := strings.TrimSpace(line[:colon])
-	if key != "proxies" && key != "proxy-providers" {
-		return key, line[colon+1:], false
-	}
-	return key, line[colon+1:], true
+	key, value, ok := yamlMappingKey(line)
+	return key, value, ok && (key == "proxies" || key == "proxy-providers")
 }
 
 func emitYAMLItem(item yamlItem, emit func(flight.Flight) error, stats *Stats) error {

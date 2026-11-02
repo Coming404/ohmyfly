@@ -19,7 +19,7 @@ func DetectFormat(prefix []byte) Format {
 		if len(line) == 0 || line[0] == '#' {
 			continue
 		}
-		if bytes.HasPrefix(line, []byte("---")) || bytes.HasPrefix(line, []byte("proxies:")) || bytes.HasPrefix(line, []byte("proxy-providers:")) {
+		if bytes.HasPrefix(line, []byte("---")) || hasYAMLRootKey(line) {
 			return FormatYAML
 		}
 		if schemeLine.Match(line) {
@@ -33,6 +33,22 @@ func DetectFormat(prefix []byte) Format {
 		return FormatBase64
 	}
 	return FormatUnknown
+}
+
+// yamlRootKeys are the target root keys, bare or quoted, that mark a YAML document.
+var yamlRootKeys = [][]byte{
+	[]byte("proxies:"), []byte("proxy-providers:"),
+	[]byte(`"proxies":`), []byte(`"proxy-providers":`),
+	[]byte("'proxies':"), []byte("'proxy-providers':"),
+}
+
+func hasYAMLRootKey(line []byte) bool {
+	for _, key := range yamlRootKeys {
+		if bytes.HasPrefix(line, key) {
+			return true
+		}
+	}
+	return false
 }
 
 func isBase64Prefix(value []byte) bool {
