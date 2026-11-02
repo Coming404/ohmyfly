@@ -1,6 +1,6 @@
 # 交接文档：OhMyFly native-core（Go 核心）
 
-> 生成时间: 2026-11-02 15:12 +08:00（17:31 同步提交状态） | 工作树: `/var/minis/workspace/ohmydrift-core` | 分支: `feat/native-core`（无上游，未 push） | HEAD: `6d927d8` | 未提交改动: 以 `git status --short` 为准
+> 生成时间: 2026-11-02 15:12 +08:00（17:31 同步提交状态；2026-11-03 05:47 同步 iOS 接入） | 工作树: `/var/minis/workspace/ohmydrift-core` | 分支: `feat/native-core`（跟踪 `origin/feat/native-core`，已 push） | HEAD: `321e262` | 未提交改动: 以 `git status --short` 为准
 >
 > 状态来源：任务图 `/var/minis/workspace/multi-agent/runs/20261101-2311-native-core/graph.json`。本文件只是快照。仓库根目录 `HANDOFF.md` 是 App 侧 U10/U11 的旧交接（已跟踪），与本任务无关，未改动。
 
@@ -174,3 +174,15 @@
 - `flight.Normalize` 保留内部字段类型。`flight.Fingerprint` 生成规范化 JSON 副本时把非有限 `float32/float64` 当作 `nil`，保证哈希稳定并与 JSON 表示一致。
 - `mobile.ParseSubscription` 仅在 JSON 输出副本中把非有限浮点转为 `null`，不会修改 `Flight.Fields`。
 - 新增 mobile 与 flight 回归测试；gofmt、vet、`go test ./mobile/`、`go test ./internal/...` 通过。工作区未提交。
+
+## iOS 接入与 Release 构建（2026-11-03 05:47）
+
+- 提交（均已 push 到 `origin/feat/native-core`）：`a13e2e8` 新增 native-core 桥接、SQLite 与移动构建流程；`ac2ed5d` 接入 iOS 桥接与构建流程；`cde6b5b` nativeCore.def 加 `-fmodules`；`0c01a8f` ParseSubscription 改为返回 string；`321e262` 补 NativeSubscription 的 JSON 扩展导入。
+- 第 4 节与「C1」「C2」两节里的「未提交」已过时：C1、C2、C3 均随 `a13e2e8` 提交。
+- 双端产物：Actions `41516958153`（Native core mobile libraries）与 `41516957945`（Project checks）在 `a13e2e8` 上 success；AAR 与 XCFramework 摘要与 GitHub artifact digest 一致。
+- iOS 接入：`shared` 的 iosArm64/iosSimulatorArm64 各自 cinterop nativeCore（`nativeInterop/cinterop/nativeCore.def`，`-F` 指向 `native-core/build/ios/NativeCore.xcframework/<slice>`）；commonMain `NativeSubscription.kt` 解码固定字段 name/type/server/port，协议参数放在 `fields: JsonObject`；iosMain `NativeCore.kt` 调用 Go；pbxproj 两套配置加 FRAMEWORK_SEARCH_PATHS 与 `-framework NativeCore`；`build.yml` iOS job 在 xcodebuild 前执行 gomobile bind。
+- Go 导出：`ParseSubscription(string) string`，失败时返回 `{"error":"..."}`，Kotlin 侧抛 `NativeCoreException`。原因是 gomobile 把 error 返回值导出为 `NSError**`，Kotlin/Native 无法导入。
+- Release device builds（platform=ios）：`41523405651` cinterop 报 clang modules → 加 `-fmodules`；`41525269755` NSError** 无法导入 → 改返回 string；`41527880446` `compileKotlinIosArm64` 缺 `jsonObject`/`jsonPrimitive` 导入；`41529126671`（`321e262`）success，ios job 全部通过，android job skipped。
+- 耗时（`41529126671`）：Build NativeCore XCFramework 26 s，Archive 10 min 54 s，整次约 13 min 08 s；Archive 与接入前约 11 分钟相当。
+- 未验证：真机调用 ParseSubscription；Android 未接入 AAR；App iOS 最低版本是否保持 16.0（与 XCFramework 一致）待确认。
+- 下一步：真机验证；Android 接入 AAR（shared androidMain）；之后做去重与切片 D。

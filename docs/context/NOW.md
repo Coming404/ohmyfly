@@ -18,7 +18,7 @@
 | 测试 | 删除启动记录后 Kotlin commonTest 225 项（未运行）；本地结构检查、92 项 Python 检查和 diff 检查通过 |
 | 工作区 | `AGENTS.md`、`CLAUDE.md`、`README.md`、`HANDOFF.md` 为用户改动，不提交 |
 | 合并 / PR | PR #1 以合并提交并入 main，保留全部提交 |
-| Go 核心 | `feat/native-core` 工作树，C1 桥接 API、C2 SQLite 驱动和 C3 gomobile workflow 已完成本地验收，未 push；真实 AAR/XCFramework 仍待 Actions 运行；快照见 `native-core/HANDOFF.md` |
+| Go 核心 | `feat/native-core` 已 push（HEAD `321e262`）；C1 桥接 API、C2 SQLite 驱动、C3 gomobile workflow 完成，双端 AAR/XCFramework 构建 41516958153 成功；iOS 已接入 shared 与 iosApp，Release device build 41529126671 成功；真机调用未验证，Android 未接入；快照见 `native-core/HANDOFF.md` |
 
 ## 真机反馈阶段
 
