@@ -18,6 +18,7 @@
 | 测试 | 删除启动记录后 Kotlin commonTest 225 项（未运行）；本地结构检查、92 项 Python 检查和 diff 检查通过 |
 | 工作区 | `AGENTS.md`、`CLAUDE.md`、`README.md`、`HANDOFF.md` 为用户改动，不提交 |
 | 合并 / PR | PR #1 以合并提交并入 main，保留全部提交 |
+| Go 核心 | `feat/native-core` 工作树，本地提交至 `11bb11f`，未 push；分享链接与 YAML 解析已完成，gomobile/SQLite 未开始；快照见 `native-core/HANDOFF.md` |
 
 ## 真机反馈阶段
 
