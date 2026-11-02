@@ -1,3 +1,4 @@
 language = Objective-C
 modules = NativeCore
 package = com.ohmyfly.nativecore.bridge
+compilerOpts = -fmodules
