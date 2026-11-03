@@ -101,7 +101,8 @@ private fun filterNodes(parsed: NativeSubscription, settings: SubscriptionSettin
     }
     // shortcut: 不移植 SubBoost safeRegex，仅限制为 512 字符；接入可用的跨平台安全正则后再检查复杂度。
     val nodes = parsed.nodes.filter { node ->
-        (included == null || included.containsMatchIn(node.name)) &&
+        !isLocalServer(node.server) &&
+            (included == null || included.containsMatchIn(node.name)) &&
             (excluded == null || !excluded.containsMatchIn(node.name)) &&
             (settings.protocols.isEmpty() || node.type in settings.protocols)
     }.map { SubscriptionNode(it.name, it.type, it.server, it.port) }

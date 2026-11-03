@@ -22,6 +22,14 @@ internal fun looksLikeClientUpdatePlaceholderNodes(nodes: List<NativeSubscriptio
         node.port <= 1 && updateHint.containsMatchIn(node.name.trim())
 }
 
+// 本机地址在手机上连不到远端代理，这类节点多是机场塞进来的广告或说明，比 SubBoost 的占位判断更宽。
+internal fun isLocalServer(server: String): Boolean {
+    val host = server.trim().lowercase().removeSuffix(".").removePrefix("[").removeSuffix("]").removePrefix("::ffff:")
+    if (host in setOf("localhost", "0.0.0.0", "::", "::1") || host.endsWith(".localhost")) return true
+    val parts = host.split('.')
+    return parts.size == 4 && parts[0] == "127" && parts.all { part -> part.toIntOrNull()?.let { it in 0..255 } == true }
+}
+
 internal fun hasUsableSubscriptionSnapshot(parsed: NativeSubscription): Boolean =
     !looksLikeClientUpdatePlaceholderNodes(parsed.nodes) && parsed.nodes.any { !infoName.containsMatchIn(it.name.trim()) }
 

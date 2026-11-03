@@ -8,6 +8,23 @@ import kotlin.test.assertNull
 
 class SubscriptionFiltersTest {
     @Test
+    fun localServerNodesAreDroppedBeforeNameFilters() = runTest {
+        val result = importSnapshots(
+            testSnapshot(
+                testNode("罗马尼亚", type = "vless", server = "193.176.84.32", port = 9002),
+                testNode("广告", type = "http", server = "127.0.0.1", port = 2333),
+                testNode("local", server = " LOCALHOST. "),
+                testNode("v6", server = "[::1]"),
+                testNode("any", server = "0.0.0.0"),
+                testNode("loop", server = "127.1.2.3"),
+                testNode("domain", server = "127.example.com"),
+            ),
+        )
+        assertNull(result.failure)
+        assertEquals(listOf("罗马尼亚", "domain"), result.nodes.map { it.name })
+    }
+
+    @Test
     fun includeRegexIsTrimmedCaseInsensitiveAndMatchesPartOfName() = runTest {
         val result = importSnapshots(
             testSnapshot(testNode("prefix-HK-01", server = "hk.example"), testNode("US", server = "us.example")),
