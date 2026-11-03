@@ -21,7 +21,7 @@ class SubscriptionUserAgentsTest {
         try {
             val importer = SubscriptionImporter(SubscriptionFetcher(client), { parsed++; testSnapshot(testNode()) })
             assertNull(importer.importSubscription("https://sub.example/p", SubscriptionSettings()).failure)
-            assertEquals(listOf(
+            assertEquals(listOf<String?>(
                 "v2rayN/7.20.4", "mihomo/1.19.24", "clash-verge/v2.5.2",
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             ), agents)
@@ -37,7 +37,7 @@ class SubscriptionUserAgentsTest {
         try {
             val importer = SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) })
             importer.importSubscription("https://sub.example/p", SubscriptionSettings(userAgent = " $agent "))
-            assertEquals(listOf(agent), agents)
+            assertEquals(listOf<String?>(agent), agents)
         } finally { client.close() }
     }
 
@@ -48,7 +48,7 @@ class SubscriptionUserAgentsTest {
         try {
             val importer = SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) })
             importer.importSubscription("https://sub.example/p", SubscriptionSettings(userAgent = " | a | b || a | c | d | e |"))
-            assertEquals(listOf("a", "b", "c", "d"), agents)
+            assertEquals(listOf<String?>("a", "b", "c", "d"), agents)
         } finally { client.close() }
     }
 
@@ -78,7 +78,7 @@ class SubscriptionUserAgentsTest {
         try {
             val importer = SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) })
             importer.importSubscription("https://raw.githubusercontent.com/p", SubscriptionSettings(userAgent = " a | b "))
-            assertEquals(listOf("a", "b"), agents)
+            assertEquals(listOf<String?>("a", "b"), agents)
         } finally { client.close() }
     }
 

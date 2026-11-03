@@ -31,7 +31,7 @@ class SubscriptionBudgetTest {
             val importer = SubscriptionImporter(SubscriptionFetcher(client), { error("must not parse") }, Clock { testScheduler.currentTime })
             val result = importer.importSubscription("https://sub.example/p", SubscriptionSettings(timeoutSeconds = 3, retries = 1))
             assertEquals("请求超时", result.failure)
-            assertEquals(listOf("v2rayN/7.20.4", "v2rayN/7.20.4", "mihomo/1.19.24", "mihomo/1.19.24"), agents)
+            assertEquals(listOf<String?>("v2rayN/7.20.4", "v2rayN/7.20.4", "mihomo/1.19.24", "mihomo/1.19.24"), agents)
             assertEquals(12000L, testScheduler.currentTime)
         } finally { client.close() }
     }

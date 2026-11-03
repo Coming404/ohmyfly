@@ -128,7 +128,7 @@ class SubscriptionFailuresTest {
                 val importer = SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) })
                 val result = importer.importSubscription("https://sub.example/p", SubscriptionSettings(userAgent = "a|b", retries = 1))
                 assertNull(result.failure)
-                assertEquals(listOf("a", "a", "b"), agents)
+                assertEquals(listOf<String?>("a", "a", "b"), agents)
             } finally { client.close() }
         }
     }
@@ -144,7 +144,7 @@ class SubscriptionFailuresTest {
             val importer = SubscriptionImporter(SubscriptionFetcher(client), { error("must not parse") })
             val result = importer.importSubscription("https://sub.example/p", SubscriptionSettings(userAgent = "a|b", retries = 2))
             assertEquals("HTTP 503", result.failure)
-            assertEquals(listOf("a", "a", "a", "b", "b", "b"), agents)
+            assertEquals(listOf<String?>("a", "a", "a", "b", "b", "b"), agents)
         } finally { client.close() }
     }
 
