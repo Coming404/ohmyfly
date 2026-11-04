@@ -172,7 +172,6 @@ func (link *vlessLink) applyTLS(node map[string]any) error {
 		"flow":            flow,
 		"encryption":      link.encryption,
 		"packet-encoding": jsTrimSpace(pickQueryParam(query, "packet-encoding", "packet_encoding", "packetEncoding")),
-		"pcs":             query.Get("pcs"),
 		"pqv":             query.Get("pqv"),
 	} {
 		if value != "" {
@@ -180,6 +179,7 @@ func (link *vlessLink) applyTLS(node map[string]any) error {
 		}
 	}
 	addLinkAlpn(node, query.Get("alpn"))
+	addLinkPinnedCertificate(node, query)
 	if link.clientFP != "" {
 		node["client-fingerprint"] = link.clientFP
 	} else if link.implicitSRTLS {

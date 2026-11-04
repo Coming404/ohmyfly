@@ -54,9 +54,10 @@ func parseAnyTLSLink(raw string) (map[string]any, error) {
 	case "0", "false":
 		udp = false
 	}
+	// 上游 anytls.ts:164 的默认名是 AnyTLS-host:port，IPv6 不加方括号。
 	name := linkName(
 		parsed.Fragment,
-		linkName(pickQueryParam(query, "remarks", "remark"), linkDefaultName(server, port)),
+		linkName(pickQueryParam(query, "remarks", "remark"), fmt.Sprintf("AnyTLS-%s:%d", server, port)),
 	)
 	sni := cmp.Or(pickQueryParam(
 		query,
@@ -90,9 +91,7 @@ func parseAnyTLSLink(raw string) (map[string]any, error) {
 		node["client-fingerprint"] = fp
 	}
 	addLinkAlpn(node, query.Get("alpn"))
-	if fingerprint := linkCertificateFingerprint(linkString(query, "pcs"), linkString(query, "hpkp")); fingerprint != "" {
-		node["fingerprint"] = fingerprint
-	}
+	addLinkPinnedCertificate(node, query)
 	if pqv := query.Get("pqv"); pqv != "" {
 		node["pqv"] = pqv
 	}

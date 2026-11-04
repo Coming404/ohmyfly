@@ -32,27 +32,40 @@ func TestLinkCertificateFingerprint(t *testing.T) {
 	}
 }
 
-// 上游 vless.ts:348 原样保留 pcs，不校验格式，也不读 hpkp、不写 fingerprint。
-func TestVLESSPinnedCertificate(t *testing.T) {
+// fingerprint 写第一个有效 SHA-256，供 mihomo 校验证书；pcs 原样保留，供导出分享链接。
+// 上游 VLESS、AnyTLS 只保留 pcs，Trojan 两者都不写，mihomo 适配器只读 fingerprint。
+func TestLinkPinnedCertificate(t *testing.T) {
+	hex := strings.Repeat("ab", 32)
 	colon := strings.TrimSuffix(strings.Repeat("AB:", 32), ":")
-	cases := []struct {
-		name  string
-		query string
-		want  any
-	}{
-		{"pcs kept", "&pcs=" + colon, colon},
-		{"invalid pcs kept", "&pcs=nothex", "nothex"},
-		{"hpkp ignored", "&hpkp=" + strings.Repeat("ab", 32), nil},
+	parsers := map[string]func(string) (map[string]any, error){
+		"vless://" + testUUID + "@example.com:443?security=tls&type=tcp": parseVLESSLink,
+		"trojan://secret@example.com:443?type=tcp":                       parseTrojanLink,
+		"anytls://secret@example.com:443?sni=example.com":                parseAnyTLSLink,
 	}
-	for _, tc := range cases {
-		node, err := parseVLESSLink("vless://" + testUUID + "@example.com:443?security=tls&type=tcp" + tc.query + "#n")
-		if err != nil {
-			t.Fatalf("%s: %v", tc.name, err)
+	cases := []struct {
+		name             string
+		query            string
+		fingerprint, pcs any
+	}{
+		{"pcs", "&pcs=" + colon, hex, colon},
+		{"multiple pcs", "&pcs=bad," + hex + "," + strings.Repeat("cd", 32), hex, "bad," + hex + "," + strings.Repeat("cd", 32)},
+		{"hpkp", "&hpkp=" + hex, hex, nil},
+		{"pcs wins", "&pcs=" + hex + "&hpkp=" + strings.Repeat("cd", 32), hex, hex},
+		{"invalid", "&pcs=nothex", nil, "nothex"},
+	}
+	for base, parse := range parsers {
+		for _, tc := range cases {
+			node, err := parse(base + tc.query + "#n")
+			if err != nil {
+				t.Fatalf("%s %s: %v", base, tc.name, err)
+			}
+			if got := node["fingerprint"]; got != tc.fingerprint {
+				t.Errorf("%s %s: fingerprint %v want %v", base, tc.name, got, tc.fingerprint)
+			}
+			if got := node["pcs"]; got != tc.pcs {
+				t.Errorf("%s %s: pcs %v want %v", base, tc.name, got, tc.pcs)
+			}
 		}
-		if got := node["pcs"]; got != tc.want {
-			t.Errorf("%s: pcs %v want %v", tc.name, got, tc.want)
-		}
-		assertMapAbsent(t, node, "fingerprint")
 	}
 }
 
@@ -76,7 +89,9 @@ func TestLinkDefaultNames(t *testing.T) {
 		{"vless", "vless://" + testUUID + "@example.com:443?security=tls&type=tcp", "VLESS 节点"},
 		{"vless", "vless://" + testUUID + "@[2001:db8::1]:443?security=tls&type=tcp", "VLESS 节点"},
 		{"vless", "vless://" + testUUID + "@example.com:443?security=tls&type=tcp&remarks=R", "R"},
-		{"trojan", "trojan://pass@example.com:8443", "example.com:8443"},
+		// 上游 trojan.ts:33：只看 fragment，默认 "Trojan 节点"，不读 remarks。
+		{"trojan", "trojan://pass@example.com:8443", "Trojan 节点"},
+		{"trojan", "trojan://pass@example.com:8443?remarks=R", "Trojan 节点"},
 		{"trojan", "trojan://pass@example.com:8443#Named", "Named"},
 		{"ss", "ss://" + ssUser + "@example.com:8388", "SS 节点"},
 		{"ss", "ss://" + ssUser + "@example.com:8388#My%20Node", "My Node"},

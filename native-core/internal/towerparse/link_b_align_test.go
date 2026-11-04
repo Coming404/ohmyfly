@@ -35,7 +35,7 @@ func TestLinkUpstreamAlignmentEdgeCases(t *testing.T) {
 		{"trojan multi colon host", parseTrojanLink, "trojan://pw@a:b:443", map[string]any{"server": "a:b:443", "port": 443}, false, ""},
 		{"trojan last at splits userinfo", parseTrojanLink, "trojan://u@x@h.example.com:443", map[string]any{"password": "u@x", "server": "h.example.com"}, false, ""},
 		{"trojan name decoded once", parseTrojanLink, "trojan://pw@h.example.com:443#%2520a", map[string]any{"name": "%20a"}, false, ""},
-		{"trojan invalid escape kept", parseTrojanLink, "trojan://pw@h.example.com:443?sni=%zz&type=ws&path=%zz", map[string]any{"servername": "%zz", "network": "ws"}, false, `"path":"%zz"`},
+		{"trojan invalid escape kept", parseTrojanLink, "trojan://pw@h.example.com:443?sni=%zz&type=ws&path=%zz", map[string]any{"sni": "%zz", "network": "ws"}, false, `"path":"%zz"`},
 		{"trojan empty host", parseTrojanLink, "trojan://pw@:443", nil, true, ""},
 		{"trojan fp chrome", parseTrojanLink, "trojan://pw@h.example.com:443?fp=chrome", map[string]any{"client-fingerprint": "chrome"}, false, ""},
 		{"vless trailing garbage port", parseVLESSLink, "vless://" + uuid + "@h.example.com:443abc", map[string]any{"port": 443}, false, ""},

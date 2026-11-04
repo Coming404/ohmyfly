@@ -27,9 +27,9 @@ func TestAnyTLSLinks(t *testing.T) {
 				"alpn": []string{"h2", "http/1.1"}, "client-fingerprint": "chrome",
 				"ech-opts":                    map[string]any{"enable": true, "config": "ZWNo"},
 				"idle-session-check-interval": 10, "idle-session-timeout": 20, "min-idle-session": 2,
-				"padding-scheme": "pad", "pqv": "pqv",
+				"padding-scheme": "pad", "pqv": "pqv", "pcs": "pcs",
 			},
-			absent: []string{"pcs", "fingerprint"},
+			absent: []string{"fingerprint"},
 		},
 		{
 			name: "upstream direct credentials",
@@ -47,7 +47,7 @@ func TestAnyTLSLinks(t *testing.T) {
 				"&clientFingerprint=safari&alpn=h2,,http/1.1&idleSessionCheckInterval=bad" +
 				"&idleSessionTimeout=30&minIdleSession=4&paddingScheme=pad",
 			want: map[string]any{
-				"name": "query.example.com:8443", "password": "secret", "sni": "sni.example.com",
+				"name": "AnyTLS-query.example.com:8443", "password": "secret", "sni": "sni.example.com",
 				"alpn": []string{"h2", "http/1.1"}, "client-fingerprint": "safari",
 				"idle-session-timeout": 30, "min-idle-session": 4, "padding-scheme": "pad",
 			},
@@ -58,7 +58,7 @@ func TestAnyTLSLinks(t *testing.T) {
 			input: "anytls://host-token.example.com?auth=secret&udp=1&alpn=,," +
 				"&idle-session-check-interval=&idleSessionCheckInterval=15",
 			want: map[string]any{
-				"name": "host-token.example.com:443", "password": "secret", "udp": true,
+				"name": "AnyTLS-host-token.example.com:443", "password": "secret", "udp": true,
 				"sni": "host-token.example.com", "idle-session-check-interval": 15,
 			},
 			absent: []string{"alpn"},
@@ -85,7 +85,7 @@ func TestAnyTLSLinks(t *testing.T) {
 		{
 			name:  "IPv6 default name and numeric port prefix",
 			input: "anytls://secret@[2001:db8::1]:443abc",
-			want:  map[string]any{"name": "[2001:db8::1]:443", "port": 443},
+			want:  map[string]any{"name": "AnyTLS-2001:db8::1:443", "port": 443},
 		},
 		{
 			name:  "last at and malformed percent are preserved",
@@ -127,7 +127,7 @@ func TestAnyTLSLinks(t *testing.T) {
 		{
 			name:  "empty username and nonempty password",
 			input: "anytls://:secret@anytls.example.com?password=ignored&network=TCP&header_type=none",
-			want:  map[string]any{"password": ":secret", "name": "anytls.example.com:443"},
+			want:  map[string]any{"password": ":secret", "name": "AnyTLS-anytls.example.com:443"},
 		},
 	}
 	for _, tc := range cases {
@@ -199,7 +199,14 @@ func TestAnyTLSCertificateFingerprint(t *testing.T) {
 				t.Fatal(err)
 			}
 			assertMapSubset(t, node, map[string]any{"client-fingerprint": "chrome"})
-			assertMapAbsent(t, node, "pcs", "hpkp")
+			// pcs 原样保留供导出，hpkp 只参与 fingerprint。
+			assertMapAbsent(t, node, "hpkp")
+			query, _ := url.ParseQuery(tc.query)
+			if pcs := query.Get("pcs"); pcs != "" {
+				assertMapSubset(t, node, map[string]any{"pcs": pcs})
+			} else {
+				assertMapAbsent(t, node, "pcs")
+			}
 			if tc.want == "" {
 				assertMapAbsent(t, node, "fingerprint")
 			} else {

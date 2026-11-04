@@ -43,7 +43,13 @@ const flight.FingerprintVersion = 1
 
 分享链接解析按 SubBoost `401534742802e2b1542783197ce66451bad82739` 逐函数移植，上游许可为 AGPL-3.0-only。每个移植文件的第一行写明上游文件路径和提交。subs-check-pro 只参考了思路，没有复制代码。
 
+输出的字段名和含义以 mihomo v1.19.33 的适配器（`adapter/outbound/*.go`）为准，上游只决定接受哪些链接格式。两者冲突时按 mihomo 处理。
+
 与上游有意不同的地方：
+
+- VLESS、Trojan、AnyTLS 的 `pcs`（Xray 的证书 SHA-256 固定）同时写两个字段。`fingerprint` 取 `pcs` 或 `hpkp` 中第一个 64 位十六进制值，供 mihomo 校验证书，与 mihomo 自带的链接转换（`common/convert/v.go:39`、`converter.go:216`、`converter.go:620`）一致。`pcs` 原样保留，导出分享链接时写回，不丢失逗号分隔的多个指纹和原始写法。上游 VLESS、AnyTLS 只保留 `pcs`，Trojan 两者都不写；mihomo 适配器没有 `pcs` 字段，只靠它时，服务器用自签证书的节点会因证书校验失败而无法连接。`fingerprint` 只能放一个值是 mihomo 的限制，多个指纹时只按第一个有效值校验。
+- 大写协议名（如 `TROJAN://`）在分发前统一转成小写，与上游 `normalizeNodeLinkScheme` 一致；直接调用上游 `parseTrojan`、`parseAnyTLS` 时会被拒绝。
+- AnyTLS 的整数参数超出 Go `int` 范围时丢弃，上游 `parseInt` 会得到 `1e20` 这类 mihomo 无法读取的值。
 
 - Base64 解码遇到非法字符时报错，与浏览器 `atob` 一致。上游在 Node 下用 `Buffer` 解码，会跳过非法字符继续解码。因此 SSR 参数含非法 `%`（如 `remarks=100%`）时保留原文，上游在 Node 下得到乱码；SS 的 `v2ray-plugin` 直接写 JSON 时能识别插件，上游在 Node 下会丢掉插件。VMess JSON 的 Base64 中间夹非法字符时整条拒绝，上游在 Node 下仍能解析。
 - VMess JSON 字段类型不对时按字段需要的类型处理。`id`、`add`、`sni` 为数字时转成字符串，为对象时视为缺失；`alpn` 为数组时忽略。上游会把数字或对象原样写进 `uuid`、`server`、`servername`，`alpn` 为数组时调用 `split` 报错。
@@ -63,4 +69,4 @@ go test -count=1 -p 1 ./...
 go test -run '^$' -bench . -benchtime=1x ./internal/towerparse
 ```
 
-共 121 个测试函数，覆盖格式识别、YAML 容错、各协议链接与 SubBoost 行为对照、指纹等价规则。3 个 benchmark 分别用 1 万条 YAML、链接和 Base64 链接。
+共 123 个测试函数，覆盖格式识别、YAML 容错、各协议链接与 SubBoost 行为对照、指纹等价规则。3 个 benchmark 分别用 1 万条 YAML、链接和 Base64 链接。
