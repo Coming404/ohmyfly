@@ -56,7 +56,7 @@ func TestTUICLinks(t *testing.T) {
 		{
 			name:   "UUID without password is an upstream token",
 			input:  "tuic://" + uuid + "@tuic.example.com",
-			want:   map[string]any{"token": uuid, "name": "tuic.example.com:443"},
+			want:   map[string]any{"token": uuid, "name": "TUIC-tuic.example.com:443"},
 			absent: []string{"uuid", "password"},
 		},
 		{
@@ -79,7 +79,7 @@ func TestTUICLinks(t *testing.T) {
 		{
 			name:   "IPv6 default name invalid optional number and empty bool",
 			input:  "tuic://token@[2001:db8::1]:8443?requestTimeout=bad&fast-open=&tfo=&alpn=,,",
-			want:   map[string]any{"name": "[2001:db8::1]:8443", "port": 8443},
+			want:   map[string]any{"name": "TUIC-2001:db8::1:8443", "port": 8443},
 			absent: []string{"request-timeout", "fast-open", "tfo", "alpn"},
 		},
 	}
@@ -127,7 +127,7 @@ func TestQUICLinkNormalization(t *testing.T) {
 			name: "tuic", parse: parseTUICLink,
 			input: "tuic://uuid:001@[2001:db8::1]?congestion_control=bbr",
 			want:  map[string]any{"uuid": "uuid", "password": "001", "congestion-controller": "bbr"},
-			node:  "[2001:db8::1]:443",
+			node:  "TUIC-2001:db8::1:443",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

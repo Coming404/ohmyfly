@@ -31,7 +31,7 @@ func TestWireGuardLinks(t *testing.T) {
 			input: "wireguard://wg-query.example.com?private_key=private&publickey=public&ip=10.0.0.2/32" +
 				"&reserved=1,2&mtu=bad&udp=maybe&extra=value",
 			want: map[string]any{
-				"name": "wg-query.example.com:51820", "private-key": "private", "public-key": "public",
+				"name": "WireGuard wg-query.example.com:51820", "private-key": "private", "public-key": "public",
 				"ip": "10.0.0.2", "udp": true, "extra": "value",
 			},
 			absent: []string{"reserved", "mtu"},
@@ -49,7 +49,7 @@ func TestWireGuardLinks(t *testing.T) {
 			name:  "IPv6 default name and credential decoded once",
 			input: "wireguard://p%3A%2B%2520:ignored@[2001:db8::1]",
 			want: map[string]any{
-				"name": "[2001:db8::1]:51820", "server": "2001:db8::1", "port": 51820, "private-key": "p:+%20",
+				"name": "WireGuard 2001:db8::1:51820", "server": "2001:db8::1", "port": 51820, "private-key": "p:+%20",
 			},
 		},
 		{
@@ -76,7 +76,7 @@ func TestWireGuardLinks(t *testing.T) {
 				"&public-key=first&publicKey=middle&public-key=ignored&peer_public_key=last" +
 				"&extra=first&extra=second&name=ignored&server=ignored&port=0&udp=on&udp=off",
 			want: map[string]any{
-				"private-key": "final", "public-key": "last", "extra": "first", "name": "h:51820",
+				"private-key": "final", "public-key": "last", "extra": "first", "name": "WireGuard h:51820",
 				"server": "h", "port": 51820, "udp": false,
 			},
 			absent: []string{"peer-public-key", "privateKey", "publicKey"},

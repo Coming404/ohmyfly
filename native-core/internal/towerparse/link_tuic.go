@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -51,7 +52,7 @@ func parseTUICLink(raw string) (map[string]any, error) {
 		return nil, fmt.Errorf("missing token or uuid/password")
 	}
 	node := map[string]any{
-		"name":   linkName(parsed.Fragment, linkDefaultName(server, port)),
+		"name":   linkName(parsed.Fragment, "TUIC-"+server+":"+strconv.Itoa(port)),
 		"type":   "tuic",
 		"server": server,
 		"port":   port,

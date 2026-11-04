@@ -36,7 +36,7 @@ func parseWireGuardLink(raw string) (map[string]any, error) {
 		return nil, fmt.Errorf("无效的端口号")
 	}
 	node := map[string]any{
-		"name": linkName(parsed.Fragment, linkDefaultName(server, port)),
+		"name": linkName(parsed.Fragment, "WireGuard "+server+":"+strconv.Itoa(port)),
 		"type": "wireguard", "server": server, "port": port,
 		"private-key": privateKey, "udp": true,
 	}
@@ -78,7 +78,9 @@ func parseWireGuardLink(raw string) (map[string]any, error) {
 				continue
 			}
 			if _, exists := node[key]; !exists {
-				node[key] = value
+				if typed, ok := wireGuardTypedValue(key, value); ok {
+					node[key] = typed
+				}
 			}
 		}
 	}
@@ -86,6 +88,20 @@ func parseWireGuardLink(raw string) (map[string]any, error) {
 		return nil, err
 	}
 	return node, nil
+}
+
+// wireGuardTypedValue 把透传参数转成 mihomo WireGuardOption 的字段类型。有意偏离上游：上游原样写字符串，
+// mihomo 解码 bool、[]string 字段时遇到字符串直接报错，节点无法加载（common/structure/structure.go）。
+// 无法转换的值丢弃；其余参数仍原样透传。
+func wireGuardTypedValue(key, value string) (any, bool) {
+	switch key {
+	case "tfo", "mptcp", "remote-dns-resolve":
+		return linkBool(value)
+	case "dns", "allowed-ips":
+		values := linkList(value)
+		return values, len(values) > 0
+	}
+	return value, true
 }
 
 func assignWireGuardAddress(node map[string]any, raw string) {
