@@ -1,6 +1,8 @@
 package towerparse
 
 import (
+	"math"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -12,6 +14,19 @@ import (
 // U+0085 and with U+FEFF added.
 func isJSSpace(char rune) bool {
 	return char == '\uFEFF' || (char != '\u0085' && unicode.IsSpace(char))
+}
+
+// jsNumberString 对应 JavaScript String(number)：绝对值在 [1e-6, 1e21) 内用定点写法，
+// 其余用指数写法且指数不补零（1e-7、1e+21）。
+func jsNumberString(value float64) string {
+	if value == 0 {
+		return "0"
+	}
+	if abs := math.Abs(value); abs >= 1e-6 && abs < 1e21 {
+		return strconv.FormatFloat(value, 'f', -1, 64)
+	}
+	mantissa, exponent, _ := strings.Cut(strconv.FormatFloat(value, 'e', -1, 64), "e")
+	return mantissa + "e" + exponent[:1] + strings.TrimLeft(exponent[1:], "0")
 }
 
 // jsTrimSpace mirrors upstream `value.trim()`.

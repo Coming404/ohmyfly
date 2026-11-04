@@ -32,31 +32,27 @@ func TestLinkCertificateFingerprint(t *testing.T) {
 	}
 }
 
+// 上游 vless.ts:348 原样保留 pcs，不校验格式，也不读 hpkp、不写 fingerprint。
 func TestVLESSPinnedCertificate(t *testing.T) {
-	hex := strings.Repeat("ab", 32)
 	colon := strings.TrimSuffix(strings.Repeat("AB:", 32), ":")
 	cases := []struct {
 		name  string
 		query string
-		want  string
+		want  any
 	}{
-		{"pcs", "&pcs=" + colon, hex},
-		{"hpkp", "&hpkp=" + hex, hex},
-		{"pcs wins", "&pcs=" + hex + "&hpkp=" + strings.Repeat("cd", 32), hex},
-		{"invalid", "&pcs=nothex", ""},
+		{"pcs kept", "&pcs=" + colon, colon},
+		{"invalid pcs kept", "&pcs=nothex", "nothex"},
+		{"hpkp ignored", "&hpkp=" + strings.Repeat("ab", 32), nil},
 	}
 	for _, tc := range cases {
 		node, err := parseVLESSLink("vless://" + testUUID + "@example.com:443?security=tls&type=tcp" + tc.query + "#n")
 		if err != nil {
 			t.Fatalf("%s: %v", tc.name, err)
 		}
-		got, _ := node["fingerprint"].(string)
-		if got != tc.want {
-			t.Errorf("%s: fingerprint %q want %q", tc.name, got, tc.want)
+		if got := node["pcs"]; got != tc.want {
+			t.Errorf("%s: pcs %v want %v", tc.name, got, tc.want)
 		}
-		if _, ok := node["pcs"]; ok {
-			t.Errorf("%s: raw pcs kept", tc.name)
-		}
+		assertMapAbsent(t, node, "fingerprint")
 	}
 }
 
@@ -76,15 +72,19 @@ func TestLinkDefaultNames(t *testing.T) {
 	cases := []struct {
 		kind, raw, want string
 	}{
-		{"vless", "vless://" + testUUID + "@example.com:443?security=tls&type=tcp", "example.com:443"},
-		{"vless", "vless://" + testUUID + "@[2001:db8::1]:443?security=tls&type=tcp", "[2001:db8::1]:443"},
+		// 上游 vless.ts:246：没有 fragment 和 remarks 时默认 "VLESS 节点"。
+		{"vless", "vless://" + testUUID + "@example.com:443?security=tls&type=tcp", "VLESS 节点"},
+		{"vless", "vless://" + testUUID + "@[2001:db8::1]:443?security=tls&type=tcp", "VLESS 节点"},
 		{"vless", "vless://" + testUUID + "@example.com:443?security=tls&type=tcp&remarks=R", "R"},
 		{"trojan", "trojan://pass@example.com:8443", "example.com:8443"},
 		{"trojan", "trojan://pass@example.com:8443#Named", "Named"},
 		{"ss", "ss://" + ssUser + "@example.com:8388", "SS 节点"},
 		{"ss", "ss://" + ssUser + "@example.com:8388#My%20Node", "My Node"},
 		{"ss", "ss://" + ssUser + "@example.com:8388#", ""},
-		{"vmess", "vmess://" + vmessJSON, "example.com:443"},
+		// 上游 vmess.ts：JSON 与 URI 格式默认 "VMess 节点"，std vmess 格式默认 host:port。
+		{"vmess", "vmess://" + vmessJSON, "VMess 节点"},
+		{"vmess", "vmess://" + testUUID + "@example.com:443?security=tls", "VMess 节点"},
+		{"vmess", "vmess://tcp:" + testUUID + "-0@example.com:443/?", "example.com:443"},
 	}
 	for _, tc := range cases {
 		node, err := parse[tc.kind](tc.raw)

@@ -1,76 +1,267 @@
-// Ported from SubBoost packages/core/src/parser/protocols/vmess.ts @4015347 (AGPL-3.0-only).
+// 移植自 SubBoost packages/core/src/parser/protocols/vmess.ts @4015347（AGPL-3.0-only）。
+// 把 VMess 的各种分享格式（JSON、URI、Quantumult、Shadowrocket、std vmess、Kitsunebi）
+// 解析成与上游 VMessConfig 相同键名的配置，再交给 buildVMessNode 生成节点。
 package towerparse
 
 import (
+	"cmp"
+	"encoding/json"
 	"fmt"
 	"net/url"
-	"strconv"
+	"regexp"
 	"strings"
 )
 
+var vmessQuantumultPattern = regexp.MustCompile(`(?i)=[` + jsSpaceClass + `]*vmess`)
+
+// parseVMessLink 对应上游 parseVMess；第二个返回值标记内容是否经过 Base64 解码。
 func parseVMessLink(raw string) (map[string]any, bool, error) {
 	scheme := "vmess"
 	if strings.HasPrefix(strings.ToLower(raw), "vmess1://") {
 		scheme = "vmess1"
 	}
 	raw = normalizeLinkScheme(raw, scheme)
-	content := strings.TrimPrefix(raw, scheme+"://")
-	hashIndex := strings.IndexByte(content, '#')
-	fragment := ""
-	if hashIndex >= 0 {
-		fragment = content[hashIndex+1:]
-		content = content[:hashIndex]
-	}
 	if scheme == "vmess1" {
-		return parseVMessURIConfig(content, fragment, true)
+		config, err := parseKitsunebiVMessConfig(raw)
+		return buildVMessResult(config, false, err)
+	}
+	if !strings.HasPrefix(raw, "vmess://") {
+		return nil, false, fmt.Errorf("无效的 VMess 链接")
 	}
 
-	if strings.Contains(content, "@") || strings.Contains(content, "?") {
-		if node, _, err := parseVMessURIConfig(content, fragment, false); err == nil {
-			return node, false, nil
-		}
+	content := jsTrimSpace(raw[len("vmess://"):])
+	switch {
+	case looksLikeStandardVMessStyle(content):
+		config, err := parseStandardVMessConfig(raw)
+		return buildVMessResult(config, false, err)
+	case looksLikeShadowrocketStyleVMess(content):
+		config, err := parseShadowrocketVMessConfig(raw)
+		return buildVMessResult(config, true, err)
+	case looksLikeURIStyleVMess(content):
+		config, err := parseURIVMessConfig(raw)
+		return buildVMessResult(config, false, err)
 	}
-	encodedContent := content
-	querySuffix := ""
-	if index := strings.IndexByte(content, '?'); index >= 0 {
-		encodedContent = content[:index]
-		querySuffix = content[index:]
-	}
-	if !strings.Contains(encodedContent, "@") {
-		if decodedAuthority, decodeErr := decodeLinkText(encodedContent); decodeErr == nil && strings.Contains(decodedAuthority, "@") {
-			if node, _, parseErr := parseVMessURIConfig(decodedAuthority+querySuffix, fragment, false); parseErr == nil {
-				return node, true, nil
-			}
-		}
-	}
-	decoded, err := decodeLinkText(encodedContent)
+	config, err := parseEncodedVMessConfig(content)
+	return buildVMessResult(config, true, err)
+}
+
+func buildVMessResult(config map[string]any, fromBase64 bool, err error) (map[string]any, bool, error) {
 	if err != nil {
-		return nil, false, err
+		return nil, fromBase64, err
 	}
-	config, err := parseLinkJSON(decoded)
+	node, err := buildVMessNode(config)
+	return node, fromBase64, err
+}
+
+// parseEncodedVMessConfig 处理 vmess://base64(JSON) 和 vmess://base64(Quantumult 配置)。
+func parseEncodedVMessConfig(content string) (map[string]any, error) {
+	encoded, fragment, _ := strings.Cut(content, "#")
+	remarks := linkDecodeForm(fragment)
+	decoded, err := decodeLinkText(encoded)
 	if err != nil {
-		if strings.Contains(strings.ToLower(decoded), "= vmess") {
-			config, err = parseQuantumultVMessConfig(decoded)
-			if err != nil {
-				return nil, false, err
-			}
-		} else {
-			return nil, false, fmt.Errorf("invalid vmess json")
-		}
+		return nil, fmt.Errorf("无法解码 VMess 链接")
 	}
-	node, err := buildVMessNode(config, fragment)
-	return node, true, err
+
+	var config map[string]any
+	var value any
+	if json.Unmarshal([]byte(decoded), &value) == nil {
+		// 上游 JSON.parse 成功后不再尝试其他格式；非对象在构建节点时因缺字段失败。
+		object, ok := value.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("VMess 配置缺少必要字段")
+		}
+		config = object
+	} else if vmessQuantumultPattern.MatchString(decoded) {
+		if config, err = parseQuantumultVMessConfig(decoded); err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, fmt.Errorf("无效的 VMess JSON 格式")
+	}
+	if remarks != "" {
+		config["ps"] = remarks
+	}
+	return config, nil
+}
+
+func parseShadowrocketVMessConfig(uri string) (map[string]any, error) {
+	withoutHash, fragment, _ := strings.Cut(jsTrimSpace(uri[len("vmess://"):]), "#")
+	base, rawQuery, found := strings.Cut(withoutHash, "?")
+	if !found {
+		return nil, fmt.Errorf("无效的 Shadowrocket VMess 链接")
+	}
+	decoded, err := decodeLinkText(strings.TrimSuffix(base, "/"))
+	if err != nil {
+		return nil, fmt.Errorf("无效的 Base64 编码")
+	}
+	match := vmessShadowrocketPattern.FindStringSubmatch(decoded)
+	if match == nil {
+		return nil, fmt.Errorf("无效的 Shadowrocket VMess 基础信息")
+	}
+
+	cipher, uuid, server, port := match[1], match[2], match[3], match[4]
+	query := linkSearchParams(rawQuery)
+	obfs := strings.ToLower(pickQueryParam(query, "obfs"))
+	network := cmp.Or(pickQueryParam(query, "network", "type", "net"), "tcp")
+	if obfs == "websocket" {
+		network = "ws"
+	}
+	tlsValue, _ := parseBooleanish(pickQueryParam(query, "tls"))
+	path := pickQueryParam(query, "path", "wspath")
+	if path == "" && network == "ws" {
+		path = "/"
+	}
+	config := map[string]any{
+		"ps": cmp.Or(linkDecodeForm(fragment), linkDecodeForm(pickQueryParam(query, "remarks", "remark")),
+			"VMess "+server+":"+port),
+		"add":           server,
+		"port":          port,
+		"id":            uuid,
+		"aid":           cmp.Or(pickQueryParam(query, "aid", "alterId", "alter_id"), "0"),
+		"scy":           cipher,
+		"net":           network,
+		"host":          pickQueryParam(query, "host", "obfsParam"),
+		"path":          path,
+		"sni":           pickQueryParam(query, "sni", "peer"),
+		"alpn":          pickQueryParam(query, "alpn"),
+		"fp":            pickVMessFingerprint(query),
+		"allowInsecure": pickVMessInsecure(query),
+	}
+	if obfs == "wss" || tlsValue || pickQueryParam(query, "security") == "tls" {
+		config["tls"] = "tls"
+	}
+	setVMessECH(config, query)
+	return config, nil
+}
+
+// parseStandardVMessConfig 处理 vmess://net(+tls):uuid-aid@server:port/?query#remarks。
+func parseStandardVMessConfig(uri string) (map[string]any, error) {
+	withoutHash, fragment, _ := strings.Cut(jsTrimSpace(uri[len("vmess://"):]), "#")
+	parts, ok := parseStandardVMessParts(withoutHash)
+	if !ok {
+		return nil, fmt.Errorf("无效的标准 VMess 链接")
+	}
+
+	query := linkSearchParams(parts.query)
+	network := strings.ToLower(parts.network)
+	tlsValue, _ := parseBooleanish(pickQueryParam(query, "tls"))
+	host := cmp.Or(pickQueryParam(query, "host", "wsHost", "ws.host"), parseObfsHeaderHost(pickQueryParam(query, "obfsParam")))
+	path := pickQueryParam(query, "path", "wspath", "ws-path", "serviceName", "service_name")
+	headerType := ""
+	switch network {
+	case "tcp", "kcp":
+		headerType = pickQueryParam(query, "type")
+	case "quic":
+		headerType = pickQueryParam(query, "security")
+		host = pickQueryParam(query, "type")
+		path = pickQueryParam(query, "key")
+	}
+	config := map[string]any{
+		"ps":            cmp.Or(linkDecodeForm(fragment), parts.server+":"+parts.port),
+		"add":           parts.server,
+		"port":          parts.port,
+		"id":            parts.uuid,
+		"aid":           parts.aid,
+		"scy":           cmp.Or(pickQueryParam(query, "scy", "cipher", "encryption"), "auto"),
+		"net":           network,
+		"type":          headerType,
+		"host":          host,
+		"path":          path,
+		"sni":           pickQueryParam(query, "sni", "peer"),
+		"alpn":          pickQueryParam(query, "alpn"),
+		"fp":            pickVMessFingerprint(query),
+		"allowInsecure": pickVMessInsecure(query),
+		"mode":          pickQueryParam(query, "mode"),
+		"authority":     pickQueryParam(query, "authority"),
+	}
+	if jsTrimSpace(parts.tlsTag) != "" || tlsValue {
+		config["tls"] = "tls"
+	}
+	setVMessECH(config, query)
+	return config, nil
+}
+
+type vmessStandardParts struct {
+	network, tlsTag, uuid, aid, server, port, query string
+}
+
+func parseStandardVMessParts(value string) (vmessStandardParts, bool) {
+	var parts vmessStandardParts
+	base, query, _ := strings.Cut(value, "?")
+	parts.query = query
+	base = strings.TrimSuffix(base, "/")
+	schemeIndex := strings.IndexByte(base, ':')
+	if schemeIndex <= 0 {
+		return parts, false
+	}
+	parts.network, parts.tlsTag, _ = strings.Cut(base[:schemeIndex], "+")
+	if !isAlphaString(parts.network) || (parts.tlsTag != "" && !isAlphaString(parts.tlsTag)) {
+		return parts, false
+	}
+
+	rest := base[schemeIndex+1:]
+	atIndex := strings.IndexByte(rest, '@')
+	if atIndex <= 0 {
+		return parts, false
+	}
+	identity, hostPort := rest[:atIndex], rest[atIndex+1:]
+	dashIndex := strings.LastIndexByte(identity, '-')
+	if dashIndex <= 0 {
+		return parts, false
+	}
+	parts.uuid, parts.aid = identity[:dashIndex], identity[dashIndex+1:]
+	if strings.ContainsFunc(parts.uuid, isJSSpace) || !isDigitString(parts.aid) {
+		return parts, false
+	}
+	colonIndex := strings.LastIndexByte(hostPort, ':')
+	if colonIndex <= 0 {
+		return parts, false
+	}
+	parts.server, parts.port = hostPort[:colonIndex], hostPort[colonIndex+1:]
+	return parts, isDigitString(parts.port)
+}
+
+// parseKitsunebiVMessConfig 处理 vmess1://uuid@server:port/path?network=...#remarks。
+func parseKitsunebiVMessConfig(uri string) (map[string]any, error) {
+	withoutHash, fragment, _ := strings.Cut(jsTrimSpace(uri[len("vmess1://"):]), "#")
+	base, addition, _ := strings.Cut(withoutHash, "?")
+	uuid, hostPort, found := strings.Cut(base, "@")
+	if !found || uuid == "" {
+		return nil, fmt.Errorf("无效的 Kitsunebi VMess 链接")
+	}
+	server, port, found := strings.Cut(hostPort, ":")
+	if !found || server == "" {
+		return nil, fmt.Errorf("无效的 Kitsunebi VMess 链接")
+	}
+	path := ""
+	if slashIndex := strings.IndexByte(port, '/'); slashIndex != -1 {
+		port, path = port[:slashIndex], port[slashIndex:]
+	}
+
+	query := linkSearchParams(addition)
+	config := map[string]any{
+		"ps":   cmp.Or(linkDecodeForm(fragment), server+":"+port),
+		"add":  server,
+		"port": port,
+		"id":   uuid,
+		"aid":  "0",
+		"scy":  "auto",
+		"net":  cmp.Or(pickQueryParam(query, "network", "type", "net"), "tcp"),
+		"host": pickQueryParam(query, "ws.host", "host"),
+		"path": cmp.Or(path, pickQueryParam(query, "path", "wspath")),
+		"sni":  pickQueryParam(query, "sni", "peer"),
+	}
+	if enabled, _ := parseBooleanish(pickQueryParam(query, "tls")); enabled {
+		config["tls"] = "tls"
+	}
+	setVMessECH(config, query)
+	return config, nil
 }
 
 func parseQuantumultVMessConfig(decoded string) (map[string]any, error) {
-	parts := make([]string, 0)
-	for _, part := range strings.Split(decoded, ",") {
-		if part = jsTrimSpace(part); part != "" {
-			parts = append(parts, part)
-		}
-	}
+	parts := linkList(decoded)
 	if len(parts) < 5 {
-		return nil, fmt.Errorf("invalid quantumult vmess config")
+		return nil, fmt.Errorf("无效的 Quantumult VMess 配置")
 	}
 	params := map[string]string{}
 	for _, part := range parts {
@@ -78,485 +269,109 @@ func parseQuantumultVMessConfig(decoded string) (map[string]any, error) {
 			params[jsTrimSpace(key)] = jsTrimSpace(value)
 		}
 	}
-	name := jsTrimSpace(strings.SplitN(parts[0], "=", 2)[0])
-	if name == "" {
-		name = linkDefaultName(jsTrimSpace(parts[1]), parts[2])
-	}
+
 	obfs := strings.ToLower(params["obfs"])
-	host := parseObfsHeaderHost(params["obfs-header"])
-	if host == "" {
-		host = jsTrimSpace(params["obfs-host"])
-		if host == "" {
-			host = jsTrimSpace(params["obfs_host"])
-		}
+	obfsHeader := cmp.Or(params["obfs-header"], params["obfs_header"])
+	path := cmp.Or(params["obfs-path"], params["obfs_path"])
+	if path != "" {
+		path = linkDecodeForm(stripOuterQuotes(path))
 	}
-	path := jsTrimSpace(params["obfs-path"])
-	if path == "" {
-		path = jsTrimSpace(params["obfs_path"])
-	}
-	path = stripOuterQuotes(path)
-	if decodedPath, decodeErr := url.QueryUnescape(path); decodeErr == nil {
-		path = decodedPath
-	}
-	allowInsecure := params["allowInsecure"]
-	if allowInsecure == "" {
-		allowInsecure = params["allow_insecure"]
-	}
-	if strings.EqualFold(params["tls-verification"], "false") {
+	allowInsecure := cmp.Or(params["allowInsecure"], params["allow_insecure"])
+	if allowInsecure == "" && params["tls-verification"] == "false" {
 		allowInsecure = "true"
 	}
 	network := "tcp"
-	if obfs == "ws" || obfs == "wss" {
+	switch obfs {
+	case "ws", "wss":
 		network = "ws"
-	} else if obfs == "http" {
+	case "http":
 		network = "http"
 	}
 	config := map[string]any{
-		"ps":            name,
-		"add":           jsTrimSpace(parts[1]),
-		"port":          jsTrimSpace(parts[2]),
-		"scy":           jsTrimSpace(parts[3]),
+		"ps":            cmp.Or(jsTrimSpace(strings.Split(parts[0], "=")[0]), "VMess 节点"),
+		"add":           parts[1],
+		"port":          parts[2],
+		"scy":           parts[3],
 		"id":            stripOuterQuotes(parts[4]),
-		"aid":           firstNonEmptyString(params["aid"], params["alterId"], params["alter_id"], "0"),
+		"aid":           cmp.Or(params["aid"], params["alterId"], params["alter_id"], "0"),
 		"net":           network,
-		"host":          host,
+		"host":          cmp.Or(parseObfsHeaderHost(obfsHeader), params["obfs-host"], params["obfs_host"]),
 		"path":          path,
-		"tls":           obfs == "wss",
 		"allowInsecure": allowInsecure,
+	}
+	if obfs == "wss" {
+		config["tls"] = "tls"
 	}
 	return config, nil
 }
 
-func firstNonEmptyString(values ...string) string {
-	for _, value := range values {
-		if jsTrimSpace(value) != "" {
-			return jsTrimSpace(value)
-		}
-	}
-	return ""
-}
-
-func parseVMessURIConfig(content, fragment string, kitsunebi bool) (map[string]any, bool, error) {
-	uri := "vmess://" + content
+// parseURIVMessConfig 处理 vmess://uuid@server:port?type=...#name。
+func parseURIVMessConfig(uri string) (map[string]any, error) {
 	parsed, query, err := linkURL(uri)
 	if err != nil {
-		return nil, false, err
-	}
-	defaultPort := 80
-	if kitsunebi || strings.EqualFold(linkString(query, "security"), "tls") || strings.EqualFold(linkString(query, "tls"), "true") || linkString(query, "tls") == "1" {
-		defaultPort = 443
-	}
-	server, port, err := linkAuthority(parsed, defaultPort)
-	if err != nil {
-		return nil, false, err
-	}
-	rawIdentity := parsed.Username
-	hasPassword := parsed.HasPassword
-	if hasPassword {
-		rawIdentity = parsed.Password
-	}
-	identity := rawIdentity
-	network := linkString(query, "network", "net", "type")
-	tls := strings.EqualFold(linkString(query, "security"), "tls") || strings.EqualFold(linkString(query, "tls"), "true") || linkString(query, "tls") == "1"
-	if hasPassword {
-		parts := strings.SplitN(parsed.Username, "+", 2)
-		if network == "" || network == "tcp" {
-			network = parts[0]
-		}
-		if len(parts) == 2 && parts[1] != "" {
-			tls = true
-		}
-	}
-	if network == "" {
-		network = "tcp"
-	}
-	if hasPassword {
-		if dash := strings.LastIndexByte(identity, '-'); dash > 0 {
-			if _, parseErr := strconv.Atoi(identity[dash+1:]); parseErr == nil {
-				identity = identity[:dash]
-			}
-		}
-	}
-	if identity == "" {
-		identity = linkString(query, "id", "uuid")
-	}
-	if !kitsunebi && hasPassword {
-		obfs := strings.ToLower(linkString(query, "obfs"))
-		switch obfs {
-		case "websocket", "wss", "ws":
-			network = "ws"
-			if obfs == "wss" {
-				tls = true
-			}
-		case "http":
-			network = "http"
-		}
-	}
-	if strings.EqualFold(linkString(query, "headerType", "header_type", "header-type"), "http") {
-		network = "http"
-	}
-	path := linkDecodeComponent(parsed.Path)
-	if path == "/" {
-		path = ""
-	}
-	if value := linkString(query, "path", "wspath"); value != "" {
-		path = value
-	}
-	if kitsunebi && path == "" {
-		path = "/"
-	}
-	name := linkName(fragment, "")
-	if name == "" {
-		name = linkName(linkString(query, "remark", "remarks"), linkDefaultName(server, port))
-	}
-	config := map[string]any{
-		"name":    name,
-		"type":    "vmess",
-		"server":  server,
-		"port":    port,
-		"uuid":    identity,
-		"alterId": intQuery(query, "aid", "alterId", "alter_id"),
-		"cipher":  linkString(query, "scy", "cipher", "encryption"),
-		"network": network,
-	}
-	if config["cipher"] == "" {
-		config["cipher"] = "auto"
-	}
-	security := strings.ToLower(linkString(query, "security"))
-	if security == "reality" {
-		tls = true
-	}
-	if value, ok := linkBoolValue(query, "tls"); ok {
-		tls = value
-	}
-	config["tls"] = tls
-	if value := linkString(query, "sni", "peer"); value != "" {
-		config["servername"] = value
-	}
-	if value := linkString(query, "host"); value != "" {
-		config["host"] = value
-	}
-	config["path"] = path
-	if value := linkString(query, "fp", "fingerprint", "client-fingerprint", "clientFingerprint"); value != "" {
-		config["client-fingerprint"] = value
-	}
-	if value := linkString(query, "alpn"); value != "" {
-		config["alpn"] = value
-	}
-	if value := linkString(query, "packet-encoding", "packet_encoding", "packetEncoding"); value != "" {
-		config["packet-encoding"] = value
-	}
-	if value, ok := linkBoolValue(query, "authenticated-length", "authenticated_length", "authenticatedLength"); ok {
-		config["authenticated-length"] = value
-	}
-	if value, ok := linkBoolValue(query, "global-padding", "global_padding", "globalPadding"); ok {
-		config["global-padding"] = value
-	}
-	if value := linkString(query, "method"); value != "" {
-		config["method"] = value
-	}
-	addLinkBool(config, query, "skip-cert-verify", "allowInsecure", "allow_insecure", "allow-insecure", "insecure")
-	if value, ok := linkBoolValue(query, "tls-verification"); ok && !value {
-		config["skip-cert-verify"] = true
-	}
-	if strings.EqualFold(linkString(query, "headerType", "header_type", "header-type"), "http") {
-		config["obfs-type"] = "http"
-	}
-	if value := linkString(query, "serviceName", "service_name", "service-name"); value != "" {
-		config["serviceName"] = value
-	}
-	if value := linkString(query, "mode"); value != "" {
-		config["mode"] = value
-	}
-	if value := linkString(query, "authority"); value != "" {
-		config["authority"] = value
-	}
-	if values, exists := query["ech"]; exists {
-		value := ""
-		if len(values) > 0 {
-			value = values[0]
-		}
-		config["ech"] = value
-	}
-	node, err := buildVMessNode(config, "")
-	return node, false, err
-}
-
-func buildVMessNode(config map[string]any, fragment string) (map[string]any, error) {
-	server := stringField(config, "server", "add", "address")
-	port := intField(config, 0, "port")
-	uuid := stringField(config, "uuid", "id")
-	if server == "" || uuid == "" {
-		return nil, fmt.Errorf("missing vmess fields")
-	}
-	if port < 1 || port > 65535 {
-		return nil, fmt.Errorf("invalid vmess port")
-	}
-	name := linkName(fragment, stringField(config, "ps"))
-	if name == "" {
-		name = stringField(config, "name")
-	}
-	if name == "" {
-		name = linkDefaultName(server, port)
-	}
-	node := map[string]any{
-		"name":    name,
-		"type":    "vmess",
-		"server":  server,
-		"port":    port,
-		"uuid":    uuid,
-		"alterId": intField(config, 0, "alterId", "aid", "alter_id"),
-		"cipher":  stringField(config, "cipher", "scy", "encryption"),
-		"udp":     true,
-		"tls":     vmessTLS(config),
-	}
-	if node["cipher"] == "" {
-		node["cipher"] = "auto"
-	}
-	if value := stringField(config, "servername", "sni", "peer"); value != "" {
-		node["servername"] = value
-	} else if value := stringField(config, "host"); vmessTLS(config) && value != "" {
-		node["servername"] = strings.Split(value, ",")[0]
-	}
-	if value := stringField(config, "client-fingerprint", "fp", "fingerprint"); value != "" {
-		node["client-fingerprint"] = value
-	}
-	if value, ok := boolField(config, "skip-cert-verify"); ok && value {
-		node["skip-cert-verify"] = true
-	} else if value, ok := boolField(config, "allowInsecure", "allow_insecure", "allow-insecure", "insecure"); ok && value {
-		node["skip-cert-verify"] = true
-	}
-	if value, exists := config["ech"]; exists {
-		if !vmessTLS(config) {
-			return nil, fmt.Errorf("ech requires tls")
-		}
-		node["ech-opts"] = linkECHOpts(fmt.Sprint(value))
-	}
-	if values, ok := config["alpn"].([]string); ok {
-		if len(values) > 0 {
-			node["alpn"] = values
-		}
-	} else if value := stringField(config, "alpn"); value != "" {
-		addLinkAlpn(node, value)
-	} else if values, ok := config["alpn"].([]any); ok {
-		var alpn []string
-		for _, item := range values {
-			if value := jsTrimSpace(fmt.Sprint(item)); value != "" {
-				alpn = append(alpn, value)
-			}
-		}
-		if len(alpn) > 0 {
-			node["alpn"] = alpn
-		}
-	}
-	for source, target := range map[string]string{
-		"packet-encoding":      "packet-encoding",
-		"packetEncoding":       "packet-encoding",
-		"authenticated-length": "authenticated-length",
-		"authenticatedLength":  "authenticated-length",
-		"global-padding":       "global-padding",
-		"globalPadding":        "global-padding",
-	} {
-		if value, ok := boolField(config, source); ok {
-			node[target] = value
-		} else if value := stringField(config, source); value != "" && target == "packet-encoding" {
-			node[target] = value
-		}
-	}
-
-	network := stringField(config, "network", "net")
-	if network == "" {
-		network = "tcp"
-	}
-	if strings.EqualFold(stringField(config, "type"), "http") && strings.EqualFold(network, "tcp") {
-		network = "http"
-	}
-	if stringField(config, "obfs-type") == "http" && strings.EqualFold(network, "tcp") {
-		network = "http"
-	}
-	path := stringField(config, "path")
-	host := stringField(config, "host")
-	httpHosts := splitList(host)
-	ua := ""
-	if hasDingTalkHost(httpHosts) {
-		ua = dingtalkUserAgent
-	}
-	if strings.EqualFold(network, "http") {
-		httpHeaders := parseHeaderRecord(config["headers"])
-		if httpHeaders == nil {
-			httpHeaders = map[string]any{}
-		}
-		if len(httpHosts) > 0 {
-			if _, exists := httpHeaders["Host"]; !exists {
-				httpHeaders["Host"] = httpHosts
-			}
-		}
-		if edge := stringField(config, "edge"); edge != "" {
-			if _, exists := httpHeaders["Edge"]; !exists {
-				httpHeaders["Edge"] = []string{edge}
-			}
-		}
-		if ua != "" {
-			if _, exists := httpHeaders["User-Agent"]; !exists {
-				httpHeaders["User-Agent"] = []string{ua}
-			}
-		}
-		if len(httpHeaders) > 0 {
-			node["_http-headers"] = httpHeaders
-		}
-	}
-	if err := applyVMessTransport(node, vmessTransportOptions{
-		network:     network,
-		path:        path,
-		host:        host,
-		method:      normalizeHTTPMethod(config["method"]),
-		serviceName: stringField(config, "serviceName"),
-		mode:        stringField(config, "mode"),
-		authority:   stringField(config, "authority"),
-		query:       url.Values{},
-		httpUpgrade: strings.EqualFold(network, "httpupgrade"),
-	}); err != nil {
 		return nil, err
 	}
-	if ua != "" && strings.EqualFold(network, "ws") {
-		if opts, ok := node["ws-opts"].(map[string]any); ok {
-			headers, _ := opts["headers"].(map[string]any)
-			if headers == nil {
-				headers = map[string]any{}
-			}
-			if _, exists := headers["User-Agent"]; !exists {
-				headers["User-Agent"] = ua
-			}
-			opts["headers"] = headers
-		}
+	network := cmp.Or(strings.ToLower(pickString(cmp.Or(query.Get("type"), query.Get("net")))), "tcp")
+	if network == "none" {
+		network = "tcp"
 	}
-	if headers, ok := node["_http-headers"]; ok {
-		if opts, ok := node["http-opts"].(map[string]any); ok {
-			opts["headers"] = headers
-		}
-		delete(node, "_http-headers")
+	headerType := strings.ToLower(pickString(pickQueryParam(query, "headerType", "header_type", "header-type")))
+	security := strings.ToLower(pickString(query.Get("security")))
+	tlsValue, _ := parseBooleanish(query.Get("tls"))
+	tls := security == "tls" || security == "reality" || tlsValue
+	serviceName := pickQueryParam(query, "serviceName", "service_name", "service-name")
+	path := cmp.Or(query.Get("path"), "/")
+	if network == "grpc" {
+		path = cmp.Or(serviceName, strings.TrimPrefix(path, "/"))
 	}
-	return node, nil
+	defaultPort := "80"
+	if tls {
+		defaultPort = "443"
+	}
+
+	config := map[string]any{
+		"ps": cmp.Or(linkDecodeForm(parsed.Fragment), linkDecodeForm(pickQueryParam(query, "remark", "remarks")),
+			"VMess 节点"),
+		"add":                 parsed.Hostname,
+		"port":                cmp.Or(parsed.Port, defaultPort),
+		"id":                  cmp.Or(parsed.Username, pickString(query.Get("id"))),
+		"aid":                 cmp.Or(pickQueryParam(query, "aid", "alterId", "alter_id"), "0"),
+		"scy":                 cmp.Or(pickQueryParam(query, "encryption", "scy", "cipher"), "auto"),
+		"net":                 network,
+		"host":                query.Get("host"),
+		"edge":                query.Get("edge"),
+		"path":                path,
+		"method":              query.Get("method"),
+		"sni":                 pickQueryParam(query, "sni", "peer"),
+		"alpn":                query.Get("alpn"),
+		"fp":                  pickVMessFingerprint(query),
+		"allowInsecure":       pickVMessInsecure(query),
+		"serviceName":         serviceName,
+		"packetEncoding":      pickQueryParam(query, "packet-encoding", "packet_encoding", "packetEncoding"),
+		"authenticatedLength": pickQueryParam(query, "authenticated-length", "authenticated_length", "authenticatedLength"),
+		"globalPadding":       pickQueryParam(query, "global-padding", "global_padding", "globalPadding"),
+	}
+	if headerType == "http" {
+		config["net"], config["type"] = "tcp", "http"
+	}
+	if tls {
+		config["tls"] = "tls"
+	}
+	setVMessECH(config, query)
+	return config, nil
 }
 
-type vmessTransportOptions struct {
-	network     string
-	path        string
-	host        string
-	method      string
-	serviceName string
-	mode        string
-	authority   string
-	query       url.Values
-	httpUpgrade bool
+func pickVMessFingerprint(query url.Values) string {
+	return pickQueryParam(query, "fp", "fingerprint", "client-fingerprint", "clientFingerprint")
 }
 
-func applyVMessTransport(node map[string]any, options vmessTransportOptions) error {
-	network := strings.ToLower(jsTrimSpace(options.network))
-	path := options.path
-	host := options.host
-	method := options.method
-	serviceName := options.serviceName
-	mode := options.mode
-	authority := options.authority
-	query := options.query
-	httpUpgrade := options.httpUpgrade
-	switch network {
-	case "", "none", "tcp":
-		node["network"] = "tcp"
-	case "websocket", "ws":
-		node["network"] = "ws"
-		path, earlyData := splitLinkEarlyData(path, "/")
-		opts := map[string]any{"path": path}
-		if host != "" {
-			if headers := linkHeaderMap(host); headers != nil {
-				opts["headers"] = headers
-			} else {
-				opts["headers"] = map[string]any{"Host": host}
-			}
-		}
-		if earlyData > 0 {
-			opts["early-data-header-name"] = "Sec-WebSocket-Protocol"
-			opts["max-early-data"] = earlyData
-		}
-		if httpUpgrade {
-			opts["v2ray-http-upgrade"] = true
-			opts["v2ray-http-upgrade-fast-open"] = true
-		}
-		node["ws-opts"] = opts
-	case "httpupgrade":
-		return applyVMessTransport(node, vmessTransportOptions{
-			network:     "ws",
-			path:        path,
-			host:        host,
-			method:      method,
-			serviceName: serviceName,
-			mode:        mode,
-			authority:   authority,
-			query:       query,
-			httpUpgrade: true,
-		})
-	case "grpc":
-		node["network"] = "grpc"
-		if serviceName == "" {
-			serviceName = strings.TrimPrefix(path, "/")
-		}
-		opts := map[string]any{"grpc-service-name": serviceName}
-		if mode != "" {
-			opts["_grpcType"] = mode
-		}
-		if authority != "" {
-			opts["_grpcAuthority"] = authority
-		}
-		node["grpc-opts"] = opts
-	case "http":
-		node["network"] = "http"
-		paths := linkList(path)
-		if len(paths) == 0 {
-			paths = []string{"/"}
-		}
-		opts := map[string]any{"method": strings.ToUpper(jsTrimSpace(method)), "path": paths}
-		if opts["method"] == "" {
-			opts["method"] = "GET"
-		}
-		if hosts := linkList(host); len(hosts) > 0 {
-			opts["headers"] = map[string]any{"Host": hosts}
-		}
-		node["http-opts"] = opts
-	case "h2":
-		node["network"] = "h2"
-		opts := map[string]any{"path": path}
-		if opts["path"] == "" {
-			opts["path"] = "/"
-		}
-		if hosts := linkList(host); len(hosts) > 0 {
-			opts["host"] = hosts
-		}
-		node["h2-opts"] = opts
-	case "xhttp":
-		return applyXHTTPTransport(node, path, host, query)
-	default:
-		return fmt.Errorf("unsupported transport: %s", network)
-	}
-	return nil
+func pickVMessInsecure(query url.Values) string {
+	return pickQueryParam(query, "allowInsecure", "allow_insecure", "allow-insecure", "insecure")
 }
 
-func vmessTLS(config map[string]any) bool {
-	value := stringField(config, "tls")
-	if strings.EqualFold(value, "tls") || strings.EqualFold(value, "true") || value == "1" {
-		return true
+// setVMessECH 只要查询里出现 ech 键（值可为空）就写入，上游据此要求 TLS 并生成 ech-opts。
+func setVMessECH(config map[string]any, query url.Values) {
+	if values, ok := query["ech"]; ok {
+		config["ech"] = values[0]
 	}
-	if result, ok := boolField(config, "tls"); ok {
-		return result
-	}
-	return strings.EqualFold(stringField(config, "security"), "tls")
-}
-
-func intQuery(query url.Values, keys ...string) int {
-	value := linkString(query, keys...)
-	parsed, err := strconv.Atoi(jsTrimSpace(value))
-	if err != nil {
-		return 0
-	}
-	return parsed
 }

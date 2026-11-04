@@ -2,6 +2,7 @@
 package towerparse
 
 import (
+	"cmp"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -275,24 +276,54 @@ func parseLinkJSON(value string) (map[string]any, error) {
 	return object, nil
 }
 
+// parseJSONObject 对应上游 safeParseJsonObject：只接受 JSON 对象。
+func parseJSONObject(value string) (map[string]any, bool) {
+	var object map[string]any
+	if json.Unmarshal([]byte(value), &object) != nil || object == nil {
+		return nil, false
+	}
+	return object, true
+}
+
+// parseJSONStringMap 对应上游 parser/json-utils.ts 的 parseJsonStringMap：
+// 键去空白，字符串原样保留，数字和布尔按 JS String() 转换，其余类型丢弃。
+func parseJSONStringMap(value string) map[string]any {
+	object, ok := parseJSONObject(value)
+	if !ok {
+		return nil
+	}
+	result := map[string]any{}
+	for key, item := range object {
+		key = jsTrimSpace(key)
+		if key == "" {
+			continue
+		}
+		switch item := item.(type) {
+		case string:
+			result[key] = item
+		case float64:
+			result[key] = jsNumberString(item)
+		case bool:
+			result[key] = strconv.FormatBool(item)
+		}
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+// linkHeaderMap 对应上游 vless.ts 的 parseHeaderMap：先按 JSON 对象解析，
+// 是 JSON 对象但没有可用值时返回 nil，否则按 "Key:Value|Key:Value" 解析。
 func linkHeaderMap(value string) map[string]any {
 	value = jsTrimSpace(value)
 	if value == "" {
 		return nil
 	}
-	var decoded map[string]any
-	if json.Unmarshal([]byte(value), &decoded) == nil {
-		for key, item := range decoded {
-			if _, ok := item.(string); !ok {
-				delete(decoded, key)
-			}
-		}
-		if len(decoded) > 0 {
-			return decoded
-		}
-		return nil
+	if headers := parseJSONStringMap(value); headers != nil {
+		return headers
 	}
-	if strings.HasPrefix(value, "{") || strings.HasPrefix(value, "[") {
+	if _, isObject := parseJSONObject(value); isObject {
 		return nil
 	}
 	result := map[string]any{}
@@ -309,28 +340,38 @@ func linkHeaderMap(value string) map[string]any {
 	return result
 }
 
+// splitLinkEarlyData 移植自上游 parser/ws-early-data.ts 的 splitWsPathEarlyData：
+// 取出第一个纯数字且为正的 ed 参数作为 max-early-data，其余查询段原样保留在路径里。
 func splitLinkEarlyData(path, fallback string) (string, int) {
-	if path == "" {
-		path = fallback
+	value := cmp.Or(jsTrimSpace(cmp.Or(path, fallback)), fallback)
+	base, query, found := strings.Cut(value, "?")
+	if !found {
+		return value, 0
 	}
-	question := strings.IndexByte(path, '?')
-	if question < 0 {
-		return path, 0
-	}
-	base := path[:question]
-	if base == "" {
-		base = fallback
-	}
-	for _, part := range strings.Split(path[question+1:], "&") {
-		key, value, ok := strings.Cut(part, "=")
-		if ok && key == "ed" {
-			earlyData, err := strconv.Atoi(value)
-			if err == nil && earlyData > 0 {
-				return base, earlyData
+	kept := []string{}
+	earlyData := 0
+	for segment := range strings.SplitSeq(query, "&") {
+		if segment == "" {
+			continue
+		}
+		key, raw, _ := strings.Cut(segment, "=")
+		if key == "ed" && earlyData == 0 && isDigitString(raw) {
+			// 上游要求 Number.isSafeInteger，超出 2^53-1 的值不当作早期数据。
+			if parsed, err := strconv.ParseInt(raw, 10, 64); err == nil && parsed > 0 && parsed <= maxXHTTPSafeInteger {
+				earlyData = int(parsed)
+				continue
 			}
 		}
+		kept = append(kept, segment)
 	}
-	return path, 0
+	if earlyData == 0 {
+		return value, 0
+	}
+	base = cmp.Or(base, fallback)
+	if len(kept) > 0 {
+		base += "?" + strings.Join(kept, "&")
+	}
+	return base, earlyData
 }
 
 func linkECHOpts(value string) map[string]any {

@@ -2,8 +2,10 @@
 package towerparse
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"math"
 	"net/url"
 	"strconv"
@@ -21,6 +23,54 @@ func applyXHTTPTransport(node map[string]any, path, host string, query url.Value
 	return nil
 }
 
+// parseShadowrocketXHTTPObfsParam 对应上游同名函数：不是 JSON 对象时整串当作 host；
+// 是 JSON 对象时取第一个非空 Host 作为 host，其余字符串值作为请求头。
+func parseShadowrocketXHTTPObfsParam(raw string) (string, map[string]any) {
+	value := jsTrimSpace(raw)
+	if value == "" {
+		return "", nil
+	}
+	object, ok := parseJSONObject(value)
+	if !ok {
+		return value, nil
+	}
+	host := ""
+	headers := map[string]any{}
+	for _, rawKey := range jsonObjectKeys(value) {
+		item, isString := object[rawKey].(string)
+		key := jsTrimSpace(rawKey)
+		if key == "" || !isString {
+			continue
+		}
+		if strings.EqualFold(key, "host") {
+			if host == "" {
+				host = jsTrimSpace(item)
+			}
+			continue
+		}
+		headers[key] = item
+	}
+	if len(headers) == 0 {
+		headers = nil
+	}
+	return host, headers
+}
+
+// jsonObjectKeys 按 JSON 文本中的出现顺序返回顶层键，用于复现上游 Object.entries 的遍历顺序。
+// 调用前已确认 value 是合法 JSON 对象。
+func jsonObjectKeys(value string) []string {
+	decoder := json.NewDecoder(strings.NewReader(value))
+	decoder.Token() // 跳过开头的 {
+	keys := []string{}
+	for decoder.More() {
+		token, _ := decoder.Token()
+		keys = append(keys, token.(string))
+		var skip json.RawMessage
+		decoder.Decode(&skip)
+	}
+	return keys
+}
+
 func buildXHTTPLegacyOptions(path, host string, query url.Values) map[string]any {
 	result := map[string]any{}
 	if value := linkString(query, "xhttp-path", "xhttp_path", "xhttpPath", "path"); value != "" {
@@ -30,18 +80,20 @@ func buildXHTTPLegacyOptions(path, host string, query url.Values) map[string]any
 	} else {
 		result["path"] = "/"
 	}
-	if value := linkString(query, "xhttp-host", "xhttp_host", "xhttpHost", "host"); value != "" {
+	obfsHost, obfsHeaders := parseShadowrocketXHTTPObfsParam(query.Get("obfsParam"))
+	if value := cmp.Or(linkString(query, "xhttp-host", "xhttp_host", "xhttpHost", "host"), obfsHost, host); value != "" {
 		result["host"] = value
-	} else if host != "" {
-		result["host"] = host
 	}
 	if value := linkString(query, "xhttp-mode", "xhttp_mode", "xhttpMode", "mode"); value != "" {
 		result["mode"] = value
 	}
-	if value := linkString(query, "xhttp-headers", "xhttp_headers", "xhttpHeaders", "headers"); value != "" {
-		if headers := linkHeaderMap(value); headers != nil {
-			result["headers"] = headers
-		}
+	// 显式请求头覆盖 obfsParam 里的同名请求头。
+	explicitHeaders := linkHeaderMap(linkString(query, "xhttp-headers", "xhttp_headers", "xhttpHeaders", "headers"))
+	if obfsHeaders != nil || explicitHeaders != nil {
+		headers := map[string]any{}
+		maps.Copy(headers, obfsHeaders)
+		maps.Copy(headers, explicitHeaders)
+		result["headers"] = headers
 	}
 	if value, ok := linkBoolValue(query, "no-grpc-header", "no_grpc_header", "noGrpcHeader"); ok {
 		result["no-grpc-header"] = value

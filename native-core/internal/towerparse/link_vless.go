@@ -1,448 +1,320 @@
-// Ported from SubBoost packages/core/src/parser/protocols/vless.ts @4015347 (AGPL-3.0-only).
+// 移植自 SubBoost packages/core/src/parser/protocols/vless.ts @4015347（AGPL-3.0-only）。
+// 支持 vless://uuid@server:port?params#name 与 Shadowrocket 的 vless://BASE64(userinfo@server:port)?params#name。
 package towerparse
 
 import (
+	"cmp"
 	"fmt"
 	"net/url"
 	"strings"
 )
 
+// vlessLink 是解析过程中共享的上下文，对应上游 parseVLESS 里的局部变量。
+type vlessLink struct {
+	query          url.Values
+	shadowrocket   bool
+	server         string
+	security       string
+	sni            string
+	implicitSRTLS  bool
+	clientFP       string
+	publicKey      string
+	encryption     string
+	transport      string
+	transportInput string
+}
+
 func parseVLESSLink(raw string) (map[string]any, error) {
 	raw = normalizeLinkScheme(raw, "vless")
-	body := strings.TrimPrefix(raw, "vless://")
-	// Mirrors upstream normalizeShadowrocketUri: only a non-standard
-	// authority followed by a query is decoded as a Shadowrocket payload.
-	isShadowrocket := false
-	if trimmed := jsTrimSpace(body); !hasStandardVLESSAuthority(trimmed) {
-		if queryIndex := strings.IndexByte(trimmed, '?'); queryIndex >= 0 {
-			decoded, decodeErr := decodeLinkText(jsTrimSpace(trimmed[:queryIndex]))
-			if decodeErr != nil {
-				return nil, fmt.Errorf("invalid vless payload")
-			}
-			body = decoded + trimmed[queryIndex:]
-			isShadowrocket = true
-		}
+	body, shadowrocket, err := normalizeShadowrocketVLESS(raw)
+	if err != nil {
+		return nil, err
 	}
 	parsed, query, err := linkURL("vless://" + body)
 	if err != nil {
 		return nil, err
 	}
 
-	server, port, err := linkAuthority(parsed, 443)
-	if err != nil {
-		return nil, err
-	}
 	uuid := parsed.Username
-	if parsed.Password != "" {
-		combined := uuid + ":" + parsed.Password
-		uuid = combined[strings.LastIndexByte(combined, ':')+1:]
+	if shadowrocket {
+		if parsed.Password != "" {
+			uuid += ":" + parsed.Password
+		}
+		uuid = uuid[strings.LastIndexByte(uuid, ':')+1:]
 	}
-	if uuid == "" {
-		return nil, fmt.Errorf("missing uuid")
+	server := parsed.Hostname
+	if uuid == "" || server == "" {
+		return nil, fmt.Errorf("VLESS 配置缺少必要字段")
+	}
+	port, err := linkPort(parsed.Port, 443)
+	if err != nil {
+		return nil, fmt.Errorf("无效的端口号")
 	}
 
-	name := linkName(parsed.Fragment, "")
-	if name == "" {
-		name = linkName(linkString(query, "remarks", "remark"), linkDefaultName(server, port))
+	link := &vlessLink{query: query, shadowrocket: shadowrocket, server: server}
+	if err := link.resolveTransport(); err != nil {
+		return nil, err
 	}
-	security := strings.ToLower(linkString(query, "security"))
-	publicKey := linkString(query, "pbk", "public-key", "public_key", "publicKey")
-	if security == "" && publicKey != "" {
-		security = "reality"
-	}
-	tls := security == "tls" || security == "reality"
-	implicitShadowrocketTLS := false
-	if value, ok := linkBoolValue(query, "tls"); ok {
-		tls = value || tls
-		implicitShadowrocketTLS = isShadowrocket && security == "" && publicKey == "" && value
-		if implicitShadowrocketTLS {
-			security = "tls"
-		}
-	}
+	link.resolveSecurity()
 	node := map[string]any{
-		"name":   name,
+		"name": cmp.Or(linkDecodeForm(parsed.Fragment), linkDecodeForm(pickQueryParam(query, "remarks", "remark")),
+			"VLESS 节点"),
 		"type":   "vless",
 		"server": server,
 		"port":   port,
 		"uuid":   uuid,
 		"udp":    true,
-		"tls":    tls,
+		"tls":    link.security == "tls" || link.security == "reality",
 	}
-	if values, exists := query["ech"]; exists {
-		if security != "tls" {
-			return nil, fmt.Errorf("ech requires tls")
-		}
-		value := ""
-		if len(values) > 0 {
-			value = values[0]
-		}
-		node["ech-opts"] = linkECHOpts(value)
-	}
-	if value := linkString(query, "sni", "peer", "servername", "serverName"); value != "" {
-		node["servername"] = value
-	}
-	flow := linkString(query, "flow")
-	if flow == "" && isShadowrocket {
-		switch linkString(query, "xtls") {
-		case "1":
-			flow = "xtls-rprx-direct"
-		case "2":
-			flow = "xtls-rprx-vision"
-		}
-	}
-	if flow != "" {
-		node["flow"] = flow
-	}
-	if value := linkString(query, "encryption", "flow-encryption"); value != "" {
-		node["encryption"] = value
-	}
-	if value := linkString(query, "packet-encoding", "packet_encoding", "packetEncoding"); value != "" {
-		node["packet-encoding"] = value
-	}
-	addLinkAlpn(node, linkString(query, "alpn"))
-	if value := linkString(query, "fp", "fingerprint", "client-fingerprint", "clientFingerprint"); value != "" {
-		node["client-fingerprint"] = value
-	} else if implicitShadowrocketTLS {
-		node["client-fingerprint"] = "chrome"
-	}
-	if value, ok := linkBoolValue(query, "allowInsecure", "allow_insecure", "allow-insecure", "insecure"); ok && value {
-		node["skip-cert-verify"] = true
-	}
-	if value, ok := linkBoolValue(query, "tls-verification"); ok && !value {
-		node["skip-cert-verify"] = true
-	}
-	if value, ok := linkBoolValue(query, "tfo", "fast-open", "fast_open", "fastOpen"); ok {
-		node["tfo"] = value
-	}
-
-	if security == "reality" {
-		reality := map[string]any{}
-		if publicKey != "" {
-			reality["public-key"] = publicKey
-		}
-		if value := linkString(query, "sid", "short-id", "short_id", "shortId"); value != "" {
-			if normalized := normalizeRealityShortID(value); normalized != "" {
-				reality["short-id"] = normalized
-			}
-		}
-		if value := linkString(query, "spx", "spider-x"); value != "" {
-			reality["_spider-x"] = value
-		}
-		supportKeys := []string{"support-x25519mlkem768", "support_x25519mlkem768", "supportX25519MLKEM768"}
-		var support bool
-		var supportOK bool
-		for _, key := range supportKeys {
-			if _, exists := query[key]; exists {
-				if parsed, valid := linkBoolValue(query, key); valid {
-					support, supportOK = parsed, true
-				}
-				break
-			}
-		}
-		if !supportOK && isRealityPublicKey(publicKey) && isVLESSMLKEMEncryption(linkString(query, "encryption", "flow-encryption")) {
-			support, supportOK = true, true
-		}
-		if publicKey != "" && supportOK {
-			reality["support-x25519mlkem768"] = support
-		}
-		if len(reality) > 0 {
-			node["reality-opts"] = reality
-		}
-		if _, exists := node["client-fingerprint"]; !exists {
-			node["client-fingerprint"] = "chrome"
-		}
-	}
-	// pcs/hpkp pin the server certificate; mihomo reads it as fingerprint.
-	if fingerprint := linkCertificateFingerprint(linkString(query, "pcs"), linkString(query, "hpkp")); fingerprint != "" {
-		node["fingerprint"] = fingerprint
-	}
-	if value := linkString(query, "pqv"); value != "" {
-		node["pqv"] = value
-	}
-
-	network := linkString(query, "type")
-	if network == "" {
-		network = linkString(query, "obfs")
-	}
-	if network == "" {
-		if value, ok := linkBoolValue(query, "h2"); ok && value {
-			network = "h2"
-		}
-	}
-	if network == "" {
-		network = "tcp"
-	}
-	if strings.EqualFold(network, "none") {
-		network = "tcp"
-	}
-	if strings.EqualFold(network, "tcp") && strings.EqualFold(linkString(query, "headerType", "header_type", "header-type"), "http") {
-		network = "http"
-	}
-	if strings.EqualFold(network, "httpupgrade") {
-		network = "ws"
-	}
-	host := linkString(query, "host", "obfs-host", "obfsParam")
-	var xhttpFallbackHeaders map[string]any
-	if strings.EqualFold(network, "xhttp") && isShadowrocket {
-		if headers := linkHeaderMap(linkString(query, "obfsParam")); headers != nil {
-			xhttpFallbackHeaders = headers
-			for key, value := range headers {
-				if strings.EqualFold(key, "host") {
-					host = jsTrimSpace(fmt.Sprint(value))
-					delete(xhttpFallbackHeaders, key)
-				}
-			}
-			if host == linkString(query, "obfsParam") {
-				host = ""
-			}
-		}
-	}
-	path := linkString(query, "path")
-	serviceName := linkString(query, "serviceName", "service_name", "service-name")
-	if host == "" && (strings.EqualFold(network, "http") || strings.EqualFold(network, "h2")) {
-		if value, ok := node["servername"].(string); ok && value != "" && value != server {
-			host = value
-		}
-	}
-	if err := applyVLESSTransport(node, vlessTransportOptions{
-		network:     network,
-		path:        path,
-		host:        host,
-		method:      linkString(query, "method"),
-		serviceName: serviceName,
-		mode:        linkString(query, "mode"),
-		authority:   linkString(query, "authority"),
-		query:       query,
-		httpUpgrade: strings.EqualFold(linkString(query, "type"), "httpupgrade"),
-	}); err != nil {
+	if err := link.applyTLS(node); err != nil {
 		return nil, err
 	}
-	if strings.EqualFold(network, "xhttp") {
-		if options, ok := node["xhttp-opts"].(map[string]any); ok {
-			if explicitHost := linkString(query, "xhttp-host", "xhttp_host", "xhttpHost"); explicitHost == "" && isShadowrocket && host != "" {
-				options["host"] = host
-			}
-		}
-	}
-	if len(xhttpFallbackHeaders) > 0 {
-		if options, ok := node["xhttp-opts"].(map[string]any); ok {
-			if explicitHost := linkString(query, "xhttp-host", "xhttp_host", "xhttpHost"); explicitHost == "" && host != "" {
-				options["host"] = host
-			}
-			merged := map[string]any{}
-			for key, value := range xhttpFallbackHeaders {
-				merged[key] = value
-			}
-			if headers, ok := options["headers"].(map[string]any); ok {
-				for key, value := range headers {
-					merged[key] = value
-				}
-			}
-			if len(merged) > 0 {
-				options["headers"] = merged
-			}
-		}
-	}
-	return node, nil
+	link.applyReality(node)
+	return node, link.applyTransport(node)
 }
 
-func isRealityPublicKey(value string) bool {
-	if len(value) != 43 {
-		return false
+// normalizeShadowrocketVLESS 对应上游 normalizeShadowrocketUri：只有非标准 authority 且带查询串时，
+// 才把 ? 之前的部分当作 Base64 载荷解码。
+func normalizeShadowrocketVLESS(raw string) (string, bool, error) {
+	body := jsTrimSpace(strings.TrimPrefix(raw, "vless://"))
+	if hasStandardVLESSAuthority(body) {
+		return strings.TrimPrefix(raw, "vless://"), false, nil
 	}
-	for _, char := range value {
-		if (char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z') ||
-			(char >= '0' && char <= '9') || char == '_' || char == '-' {
-			continue
-		}
-		return false
+	token, suffix, found := strings.Cut(body, "?")
+	if !found {
+		return strings.TrimPrefix(raw, "vless://"), false, nil
 	}
-	return true
+	decoded, err := decodeLinkText(jsTrimSpace(token))
+	if err != nil {
+		return "", false, fmt.Errorf("无效的 Base64 编码")
+	}
+	return decoded + "?" + suffix, true, nil
 }
 
-func normalizeRealityShortID(value string) string {
-	value = jsTrimSpace(value)
-	if value == "" {
-		return ""
+func (link *vlessLink) resolveTransport() error {
+	query := link.query
+	headerType := strings.ToLower(jsTrimSpace(pickQueryParam(query, "headerType", "header_type", "header-type")))
+	h2, _ := linkBool(query.Get("h2"))
+	input := query.Get("type")
+	if input == "" && h2 {
+		input = "h2"
 	}
-	value = strings.TrimPrefix(strings.TrimPrefix(value, "0x"), "0X")
-	value = strings.NewReplacer(" ", "", "\t", "", "\r", "", "\n", "", ":", "", "_", "", "-", "").Replace(value)
-	if value == "" || len(value) > 16 {
-		return ""
+	if input == "" && link.shadowrocket {
+		input = strings.ToLower(jsTrimSpace(query.Get("obfs")))
 	}
-	for _, char := range value {
-		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f') || (char >= 'A' && char <= 'F')) {
-			return ""
+	link.transportInput = jsTrimSpace(cmp.Or(input, "tcp"))
+	switch transport := strings.ToLower(link.transportInput); transport {
+	case "none":
+		link.transport = "tcp"
+	case "websocket", "httpupgrade":
+		link.transport = "ws"
+	case "tcp", "ws", "grpc", "h2", "http", "xhttp":
+		link.transport = transport
+		if transport == "tcp" && headerType == "http" {
+			link.transport = "http"
 		}
+	default:
+		return fmt.Errorf("不支持的 VLESS 传输层: type=%s（仅支持 tcp/ws/http/h2/grpc/xhttp）", cmp.Or(link.transportInput, "(empty)"))
 	}
-	value = strings.ToLower(value)
-	if len(value)%2 == 1 {
-		value = "0" + value
-	}
-	return value
+	return nil
 }
 
-func isVLESSMLKEMEncryption(value string) bool {
-	if !strings.HasPrefix(value, "mlkem768x25519plus.") {
-		return false
+func (link *vlessLink) resolveSecurity() {
+	query := link.query
+	link.publicKey = linkString(query, "pbk", "public-key", "public_key", "publicKey")
+	link.clientFP = linkString(query, "fp", "fingerprint", "client-fingerprint", "clientFingerprint")
+	link.encryption = jsTrimSpace(pickQueryParam(query, "encryption", "flow-encryption"))
+	link.sni = pickQueryParam(query, "sni", "peer")
+	explicit := strings.ToLower(jsTrimSpace(query.Get("security")))
+	tls, _ := linkBool(query.Get("tls"))
+	link.implicitSRTLS = explicit == "" && link.publicKey == "" && link.shadowrocket && tls
+	switch {
+	case explicit != "":
+		link.security = explicit
+	case link.publicKey != "":
+		link.security = "reality"
+	case link.implicitSRTLS:
+		link.security = "tls"
+	default:
+		link.security = "none"
 	}
-	parts := strings.Split(value, ".")
-	if len(parts) < 4 || (parts[1] != "native" && parts[1] != "xorpub" && parts[1] != "random") ||
-		(parts[2] != "1rtt" && parts[2] != "0rtt") {
-		return false
-	}
-	for _, part := range parts[3:] {
-		if part == "" {
-			return false
-		}
-		for _, char := range part {
-			if (char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z') ||
-				(char >= '0' && char <= '9') || strings.ContainsRune("+/=_-", char) {
-				continue
-			}
-			return false
-		}
-	}
-	return true
 }
 
-type vlessTransportOptions struct {
-	network     string
-	path        string
-	host        string
-	method      string
-	serviceName string
-	mode        string
-	authority   string
-	query       url.Values
-	httpUpgrade bool
+// applyTLS 写入 ECH、证书校验、SNI、flow、ALPN、指纹等与传输层无关的字段。
+func (link *vlessLink) applyTLS(node map[string]any) error {
+	query := link.query
+	if values, ok := query["ech"]; ok {
+		if link.security != "tls" {
+			return fmt.Errorf("VLESS 启用 ECH 需要 security=tls（不支持 Reality）")
+		}
+		node["ech-opts"] = linkECHOpts(jsTrimSpace(values[0]))
+	}
+	insecure := false
+	for _, key := range []string{"allowInsecure", "allow_insecure", "allow-insecure", "insecure"} {
+		if value, _ := linkBool(query.Get(key)); value {
+			insecure = true
+		}
+	}
+	if value, ok := linkBool(query.Get("tls-verification")); insecure || (ok && !value) {
+		node["skip-cert-verify"] = true
+	}
+	if value, ok := linkBool(linkString(query, "tfo", "fast-open", "fast_open", "fastOpen")); ok {
+		node["tfo"] = value
+	}
+	if link.sni != "" {
+		node["servername"] = link.sni
+	}
+	flow := jsTrimSpace(query.Get("flow"))
+	if flow == "" && link.shadowrocket {
+		flow = map[string]string{"1": "xtls-rprx-direct", "2": "xtls-rprx-vision"}[query.Get("xtls")]
+	}
+	for key, value := range map[string]string{
+		"flow":            flow,
+		"encryption":      link.encryption,
+		"packet-encoding": jsTrimSpace(pickQueryParam(query, "packet-encoding", "packet_encoding", "packetEncoding")),
+		"pcs":             query.Get("pcs"),
+		"pqv":             query.Get("pqv"),
+	} {
+		if value != "" {
+			node[key] = value
+		}
+	}
+	addLinkAlpn(node, query.Get("alpn"))
+	if link.clientFP != "" {
+		node["client-fingerprint"] = link.clientFP
+	} else if link.implicitSRTLS {
+		node["client-fingerprint"] = "chrome"
+	}
+	return nil
 }
 
-func applyVLESSTransport(node map[string]any, options vlessTransportOptions) error {
-	network := options.network
-	path := options.path
-	host := options.host
-	method := options.method
-	serviceName := options.serviceName
-	mode := options.mode
-	authority := options.authority
-	query := options.query
-	httpUpgrade := options.httpUpgrade
-	network = strings.ToLower(jsTrimSpace(network))
-	switch network {
-	case "", "none", "tcp":
-		node["network"] = "tcp"
-	case "websocket", "ws":
+func (link *vlessLink) applyReality(node map[string]any) {
+	if link.security != "reality" {
+		return
+	}
+	query := link.query
+	reality := map[string]any{}
+	if link.publicKey != "" {
+		reality["public-key"] = link.publicKey
+	}
+	if shortID := normalizeRealityShortID(linkString(query, "sid", "short-id", "short_id", "shortId")); shortID != "" {
+		reality["short-id"] = shortID
+	}
+	// 显式给了支持键时只看它的值，空值或非法值都不输出；没给时由公钥和 MLKEM 加密推断。
+	supportKeys := []string{"support-x25519mlkem768", "support_x25519mlkem768", "supportX25519MLKEM768"}
+	explicit := false
+	for _, key := range supportKeys {
+		_, exists := query[key]
+		explicit = explicit || exists
+	}
+	support, supportOK := linkBool(linkString(query, supportKeys...))
+	if !explicit {
+		support = isRealityPublicKey(link.publicKey) && isVLESSMLKEMEncryption(link.encryption)
+		supportOK = support
+	}
+	if link.publicKey != "" && supportOK {
+		reality["support-x25519mlkem768"] = support
+	}
+	if spiderX := query.Get("spx"); spiderX != "" {
+		reality["_spider-x"] = spiderX
+	}
+	if len(reality) > 0 {
+		node["reality-opts"] = reality
+	}
+	node["client-fingerprint"] = cmp.Or(link.clientFP, "chrome")
+}
+
+func (link *vlessLink) applyTransport(node map[string]any) error {
+	query := link.query
+	path := cmp.Or(query.Get("path"), "/")
+	host := cmp.Or(query.Get("host"), query.Get("obfsParam"), query.Get("obfs-host"))
+	var frontingSNI []string
+	if node["tls"] == true && link.sni != "" && link.sni != link.server {
+		frontingSNI = []string{link.sni}
+	}
+
+	switch link.transport {
+	case "ws":
 		node["network"] = "ws"
-		path, earlyData := splitLinkEarlyData(path, "/")
-		opts := map[string]any{"path": path}
-		if host != "" {
-			if headers := linkHeaderMap(host); headers != nil {
-				opts["headers"] = headers
-			} else {
-				opts["headers"] = map[string]any{"Host": host}
-			}
+		wsPath, earlyData := splitLinkEarlyData(path, "/")
+		opts := map[string]any{"path": wsPath}
+		if headers := link.wsHeaders(host); headers != nil {
+			opts["headers"] = headers
 		}
 		if earlyData > 0 {
 			opts["early-data-header-name"] = "Sec-WebSocket-Protocol"
 			opts["max-early-data"] = earlyData
 		}
-		if httpUpgrade {
+		if strings.EqualFold(jsTrimSpace(query.Get("type")), "httpupgrade") {
 			opts["v2ray-http-upgrade"] = true
 			opts["v2ray-http-upgrade-fast-open"] = true
 		}
 		node["ws-opts"] = opts
-	case "httpupgrade":
-		return applyVLESSTransport(node, vlessTransportOptions{
-			network:     "ws",
-			path:        path,
-			host:        host,
-			method:      method,
-			serviceName: serviceName,
-			mode:        mode,
-			authority:   authority,
-			query:       query,
-			httpUpgrade: true,
-		})
 	case "grpc":
 		node["network"] = "grpc"
-		if serviceName == "" {
-			serviceName = strings.TrimPrefix(path, "/")
-		}
-		opts := map[string]any{"grpc-service-name": serviceName}
-		if mode != "" {
+		opts := map[string]any{"grpc-service-name": cmp.Or(pickQueryParam(query, "serviceName", "service_name", "service-name"), strings.TrimPrefix(path, "/"))}
+		if mode := query.Get("mode"); mode != "" {
 			opts["_grpcType"] = mode
 		}
-		if authority != "" {
+		if authority := query.Get("authority"); authority != "" {
 			opts["_grpcAuthority"] = authority
 		}
 		node["grpc-opts"] = opts
 	case "http":
 		node["network"] = "http"
-		paths := linkList(path)
-		if len(paths) == 0 {
-			paths = []string{"/"}
-		}
-		opts := map[string]any{"method": normalizeHTTPMethod(method), "path": paths}
-		if hosts := linkList(host); len(hosts) > 0 {
+		method := strings.ToUpper(cmp.Or(jsTrimSpace(cmp.Or(query.Get("method"), "GET")), "GET"))
+		opts := map[string]any{"method": method, "path": hostsOr(path, []string{"/"})}
+		if hosts := hostsOr(host, frontingSNI); hosts != nil {
 			opts["headers"] = map[string]any{"Host": hosts}
 		}
 		node["http-opts"] = opts
 	case "h2":
 		node["network"] = "h2"
 		opts := map[string]any{"path": path}
-		if opts["path"] == "" {
-			opts["path"] = "/"
-		}
-		if hosts := linkList(host); len(hosts) > 0 {
+		if hosts := hostsOr(host, frontingSNI); hosts != nil {
 			opts["host"] = hosts
 		}
 		node["h2-opts"] = opts
 	case "xhttp":
-		return applyXHTTPTransport(node, path, host, query)
+		return applyXHTTPTransport(node, path, query.Get("obfs-host"), query)
 	default:
-		return fmt.Errorf("unsupported transport: %s", network)
+		node["network"] = "tcp"
 	}
 	return nil
 }
 
-// hasStandardVLESSAuthority mirrors upstream hasStandardVlessAuthority.
-func hasStandardVLESSAuthority(raw string) bool {
-	if index := strings.IndexByte(raw, '#'); index >= 0 {
-		raw = raw[:index]
-	}
-	if index := strings.IndexByte(raw, '?'); index >= 0 {
-		raw = raw[:index]
-	}
-	authority := strings.TrimSuffix(raw, "/")
-	atIndex := strings.LastIndexByte(authority, '@')
-	if atIndex <= 0 {
-		return false
-	}
-	hostPort := authority[atIndex+1:]
-	if hostPort == "" {
-		return false
-	}
-	if strings.HasPrefix(hostPort, "[") {
-		bracketEnd := strings.IndexByte(hostPort, ']')
-		if bracketEnd < 0 {
-			return false
+// wsHeaders：Shadowrocket 的 obfsParam 能解析出请求头时优先使用，否则只取 host 的第一项。
+func (link *vlessLink) wsHeaders(host string) map[string]any {
+	if obfsParam := link.query.Get("obfsParam"); link.shadowrocket && obfsParam != "" {
+		if headers := parseShadowrocketHeaderValue(obfsParam); headers != nil {
+			return headers
 		}
-		after := hostPort[bracketEnd+1:]
-		return strings.HasPrefix(after, ":") && isLinkDigitString(after[1:])
 	}
-	colonIndex := strings.LastIndexByte(hostPort, ':')
-	return colonIndex > 0 && isLinkDigitString(hostPort[colonIndex+1:])
+	if hosts := splitList(host); hosts != nil {
+		return map[string]any{"Host": hosts[0]}
+	}
+	return nil
 }
 
-func isLinkDigitString(value string) bool {
+// parseShadowrocketHeaderValue：JSON 对象按请求头解析；不是 JSON 对象时整串当作 Host。
+func parseShadowrocketHeaderValue(raw string) map[string]any {
+	value := jsTrimSpace(raw)
 	if value == "" {
-		return false
+		return nil
 	}
-	for i := 0; i < len(value); i++ {
-		if value[i] < '0' || value[i] > '9' {
-			return false
-		}
+	if headers := parseJSONStringMap(value); headers != nil {
+		return headers
 	}
-	return true
+	if _, isObject := parseJSONObject(value); isObject {
+		return nil
+	}
+	return map[string]any{"Host": value}
+}
+
+// hostsOr 对应上游 `splitList(host) ?? fallback`。
+func hostsOr(host string, fallback []string) []string {
+	if hosts := splitList(host); hosts != nil {
+		return hosts
+	}
+	return fallback
 }

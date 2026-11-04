@@ -1,4 +1,4 @@
-// Ported from SubBoost packages/core/src/parser/protocols/vmess-utils.ts @4015347 (AGPL-3.0-only).
+// 移植自 SubBoost packages/core/src/parser/protocols/vmess-utils.ts @4015347（AGPL-3.0-only）。
 package towerparse
 
 import (
@@ -6,93 +6,25 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
-func linkHeaderValues(value any) []string {
-	switch value := value.(type) {
-	case []any:
-		result := make([]string, 0, len(value))
-		for _, item := range value {
-			result = append(result, fmt.Sprint(item))
-		}
-		return result
-	case []string:
-		return value
-	default:
-		return []string{fmt.Sprint(value)}
-	}
-}
-
-func stringField(node map[string]any, keys ...string) string {
-	for _, key := range keys {
-		value, ok := node[key]
-		if !ok {
-			continue
-		}
-		text := jsTrimSpace(fmt.Sprint(value))
-		if text != "" {
-			return text
-		}
-	}
-	return ""
-}
-
-func intField(node map[string]any, fallback int, keys ...string) int {
-	for _, key := range keys {
-		value, ok := node[key]
-		if !ok {
-			continue
-		}
-		switch value := value.(type) {
-		case float64:
-			return int(value)
-		case json.Number:
-			parsed, err := strconv.Atoi(string(value))
-			if err == nil {
-				return parsed
-			}
-		case string:
-			parsed, err := strconv.Atoi(jsTrimSpace(value))
-			if err == nil {
-				return parsed
-			}
-		default:
-			parsed, err := strconv.Atoi(fmt.Sprint(value))
-			if err == nil {
-				return parsed
-			}
-		}
-	}
-	return fallback
-}
-func boolField(node map[string]any, keys ...string) (bool, bool) {
-	for _, key := range keys {
-		value, ok := node[key]
-		if !ok {
-			continue
-		}
-		if parsed, valid := parseBooleanish(value); valid {
-			return parsed, true
-		}
-	}
-	return false, false
-}
-
 const dingtalkUserAgent = "DingTalk/50636215 CFNetwork/3826.600.41 Darwin/24.6.0"
 
+// jsSpaceClass 是 JavaScript 正则 \s 匹配的字符集；Go 的 \s 只含 ASCII 空白。
+const jsSpaceClass = `\t\n\v\f\r \x{a0}\x{1680}\x{2000}-\x{200a}\x{2028}\x{2029}\x{202f}\x{205f}\x{3000}\x{feff}`
+
 var (
-	vmessHTTPMethodPattern = regexp.MustCompile(`^[A-Z][A-Z0-9-]*$`)
-	vmessHostHeaderPattern = regexp.MustCompile(`(?i)Host:\s*([^,;\s]+)`)
-	vmessStandardPattern   = regexp.MustCompile(`^[a-z]+(?:\+[a-z]+)?:[^@\s]+-\d+@[^\s]+:\d+`)
+	vmessHTTPMethodPattern   = regexp.MustCompile(`^[A-Z][A-Z0-9-]*$`)
+	vmessHostHeaderPattern   = regexp.MustCompile(`(?i)Host:[` + jsSpaceClass + `]*([^,;` + jsSpaceClass + `]+)`)
+	vmessStandardPattern     = regexp.MustCompile(`(?i)^[a-z]+(?:\+[a-z]+)?:[^@` + jsSpaceClass + `]+-\d+@[^` + jsSpaceClass + `]+:\d+`)
+	vmessShadowrocketPattern = regexp.MustCompile(`(^[^:]+?):([^:]+?)@(.+):(\d+)$`)
 )
 
 func hasDingTalkHost(hosts []string) bool {
 	for _, host := range hosts {
-		host = jsTrimSpace(host)
-		if len(host) >= len("dingtalk.com") && strings.EqualFold(host[len(host)-len("dingtalk.com"):], "dingtalk.com") &&
-			(len(host) == len("dingtalk.com") || host[len(host)-len("dingtalk.com")-1] == '.') {
+		host = strings.ToLower(jsTrimSpace(host))
+		if host == "dingtalk.com" || strings.HasSuffix(host, ".dingtalk.com") {
 			return true
 		}
 	}
@@ -154,7 +86,9 @@ func parseHeaderRecord(input any) map[string]any {
 			if jsTrimSpace(value) != "" {
 				values = []string{jsTrimSpace(value)}
 			}
-		case bool, float64, int, int64, json.Number:
+		case float64:
+			values = []string{jsNumberString(value)}
+		case bool, int, int64, json.Number:
 			values = []string{fmt.Sprint(value)}
 		}
 		if len(values) > 0 {
@@ -222,10 +156,25 @@ func looksLikeShadowrocketStyleVMess(content string) bool {
 		return false
 	}
 	decoded, err := decodeLinkText(base)
-	if err != nil {
-		return false
+	return err == nil && vmessShadowrocketPattern.MatchString(decoded)
+}
+
+func isAlphaString(value string) bool {
+	for _, char := range value {
+		if (char < 'a' || char > 'z') && (char < 'A' || char > 'Z') {
+			return false
+		}
 	}
-	return regexp.MustCompile(`^[^:]+?:[^:]+?@.+:\d+$`).MatchString(decoded)
+	return value != ""
+}
+
+func isDigitString(value string) bool {
+	for _, char := range value {
+		if char < '0' || char > '9' {
+			return false
+		}
+	}
+	return value != ""
 }
 
 func stripOuterQuotes(value string) string {
@@ -248,19 +197,16 @@ func pickQueryParam(query url.Values, keys ...string) string {
 	return ""
 }
 
+// parseObfsHeaderHost 从 "Host: a.example.com, ..." 中取出主机名；没有 Host 字段时返回解码后的整串。
 func parseObfsHeaderHost(raw string) string {
 	if raw == "" {
 		return ""
 	}
-	decoded, err := url.QueryUnescape(stripOuterQuotes(raw))
-	if err != nil {
-		decoded = stripOuterQuotes(raw)
-	}
-	if match := vmessHostHeaderPattern.FindStringSubmatch(decoded); len(match) > 1 {
-		return jsTrimSpace(match[1])
-	}
-	if decoded == "" {
-		return ""
+	decoded := linkDecodeForm(stripOuterQuotes(raw))
+	if match := vmessHostHeaderPattern.FindStringSubmatch(decoded); match != nil {
+		if host := jsTrimSpace(match[1]); host != "" {
+			return host
+		}
 	}
 	return decoded
 }
