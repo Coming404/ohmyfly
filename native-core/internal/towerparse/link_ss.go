@@ -2,17 +2,20 @@
 package towerparse
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
+	"maps"
+	"net/url"
 	"strings"
 )
 
 func parseSSLink(raw string) (map[string]any, error) {
-	raw = normalizeLinkScheme(raw, "ss")
 	content := strings.TrimPrefix(raw, "ss://")
-	fragment := ""
+	// 与上游一致：没有 # 时叫 "SS 节点"；有 # 时直接取解码结果，可以为空。
+	name := "SS 节点"
 	if index := strings.IndexByte(content, '#'); index >= 0 {
-		fragment = content[index+1:]
+		name = linkDecodeForm(content[index+1:])
 		content = content[:index]
 	}
 	queryString := ""
@@ -22,7 +25,6 @@ func parseSSLink(raw string) (map[string]any, error) {
 	}
 	query := linkSearchParams(queryString)
 	var err error
-	name := linkName(fragment, "")
 	var cipher, password, server string
 	var port int
 	atIndex := strings.LastIndexByte(content, '@')
@@ -62,9 +64,6 @@ func parseSSLink(raw string) (map[string]any, error) {
 			return nil, err
 		}
 	}
-	if name == "" {
-		name = linkDefaultName(server, port)
-	}
 	node := map[string]any{
 		"name":     name,
 		"type":     "ss",
@@ -74,17 +73,7 @@ func parseSSLink(raw string) (map[string]any, error) {
 		"password": password,
 		"udp":      true,
 	}
-	if plugin := query.Get("plugin"); plugin != "" {
-		addSSPlugin(node, plugin)
-	} else if encoded := query.Get("v2ray-plugin"); encoded != "" {
-		if decoded, decodeErr := decodeLinkText(encoded); decodeErr == nil {
-			var options map[string]any
-			if json.Unmarshal([]byte(decoded), &options) == nil {
-				node["plugin"] = "v2ray-plugin"
-				node["plugin-opts"] = normalizeSSPluginOptions(options)
-			}
-		}
-	}
+	addSSQueryPlugin(node, query)
 	if value, ok := linkBoolValue(query, "uot"); ok && value {
 		node["udp-over-tcp"] = true
 	}
@@ -119,6 +108,31 @@ func splitSSServerPort(value string) (string, int, error) {
 		server = server[1 : len(server)-1]
 	}
 	return server, port, nil
+}
+
+// addSSQueryPlugin mirrors upstream parseSS: v2ray-plugin JSON (Base64 or raw)
+// is used only when the plugin parameter yields no plugin name.
+func addSSQueryPlugin(node map[string]any, query url.Values) {
+	if plugin := query.Get("plugin"); plugin != "" {
+		addSSPlugin(node, plugin)
+	}
+	if _, ok := node["plugin"]; ok {
+		return
+	}
+	encoded := jsTrimSpace(query.Get("v2ray-plugin"))
+	if encoded == "" {
+		return
+	}
+	decoded, err := decodeLinkText(encoded)
+	if err != nil {
+		decoded = encoded
+	}
+	var options map[string]any
+	if json.Unmarshal([]byte(decoded), &options) != nil || options == nil {
+		return
+	}
+	node["plugin"] = "v2ray-plugin"
+	node["plugin-opts"] = normalizeSSPluginOptions(options)
 }
 
 func addSSPlugin(node map[string]any, raw string) {
@@ -186,16 +200,40 @@ func splitEscapedPlugin(value string) []string {
 	return append(result, builder.String())
 }
 
-func normalizeSSPluginOptions(options map[string]any) map[string]any {
-	result := map[string]any{}
-	for key, value := range options {
-		if key == "mux" || key == "tls" {
-			if boolValue, ok := boolField(map[string]any{"value": value}, "value"); ok {
-				result[key] = boolValue
-				continue
-			}
+// normalizeSSPlugin mirrors upstream normalizeSsPlugin: only obfs, v2ray, xray
+// and gost plugins are renamed to lowercase; other names keep their original case.
+func normalizeSSPlugin(plugin string, options map[string]any) (string, map[string]any) {
+	rawPlugin := jsTrimSpace(plugin)
+	switch plugin = strings.ToLower(rawPlugin); plugin {
+	case "":
+		return "", nil
+	case "obfs", "obfs-local", "simple-obfs":
+		result := map[string]any{}
+		if mode := cmp.Or(pickString(options["mode"]), pickString(options["obfs"])); mode != "" {
+			result["mode"] = mode
 		}
-		result[key] = value
+		if host := cmp.Or(pickString(options["host"]), pickString(options["obfs-host"]), pickString(options["obfs_host"])); host != "" {
+			result["host"] = host
+		}
+		if len(result) == 0 {
+			return "obfs", nil
+		}
+		return "obfs", result
+	case "v2ray-plugin", "xray-plugin", "gost-plugin":
+		if options == nil {
+			return plugin, nil
+		}
+		return plugin, normalizeSSPluginOptions(options)
+	}
+	return rawPlugin, options
+}
+
+func normalizeSSPluginOptions(options map[string]any) map[string]any {
+	result := maps.Clone(options)
+	for _, key := range []string{"mux", "tls"} {
+		if value, ok := parseBooleanish(result[key]); ok {
+			result[key] = value
+		}
 	}
 	return result
 }

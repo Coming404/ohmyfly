@@ -3,13 +3,10 @@ package towerparse
 
 import (
 	"fmt"
-	"net/url"
-	"strconv"
 	"strings"
 )
 
 func parseSSRLink(raw string) (map[string]any, error) {
-	raw = normalizeLinkScheme(raw, "ssr")
 	content := strings.TrimPrefix(raw, "ssr://")
 	if jsTrimSpace(content) == "" {
 		return nil, fmt.Errorf("empty ssr link")
@@ -38,25 +35,19 @@ func parseSSRLink(raw string) (map[string]any, error) {
 	if strings.HasPrefix(server, "[") && strings.HasSuffix(server, "]") {
 		server = server[1 : len(server)-1]
 	}
-	port, err := strconv.Atoi(portText)
-	if err != nil || port < 1 || port > 65535 {
+	port, err := linkPort(portText, 0)
+	if err != nil || port == 0 {
 		return nil, fmt.Errorf("invalid port")
 	}
 	if server == "" {
 		return nil, fmt.Errorf("missing server")
 	}
-	password, err := decodeSSRValue(passwordEncoded)
-	if err != nil {
-		return nil, err
-	}
+	password := decodeSSRValue(passwordEncoded)
 	params := parseSSRQuery(queryText)
-	remarks, err := decodeSSRValue(firstSSRParam(params, "remarks", "remark"))
-	if err != nil {
-		return nil, err
-	}
-	name := remarks
+	name := decodeSSRValue(firstSSRParam(params, "remarks", "remark"))
 	if name == "" {
-		name = linkDefaultName(server, port)
+		// 与上游一致：IPv6 地址不加方括号。
+		name = fmt.Sprintf("SSR-%s:%d", server, port)
 	}
 	node := map[string]any{
 		"name":     name,
@@ -78,31 +69,26 @@ func parseSSRLink(raw string) (map[string]any, error) {
 	if node["obfs"] == "" {
 		node["obfs"] = "plain"
 	}
-	if value, err := decodeSSRValue(firstSSRParam(params, "protoparam", "protocol-param")); err != nil {
-		return nil, err
-	} else if value != "" {
+	if value := decodeSSRValue(firstSSRParam(params, "protoparam", "protocol-param")); value != "" {
 		node["protocol-param"] = value
 	}
-	if value, err := decodeSSRValue(firstSSRParam(params, "obfsparam", "obfs-param")); err != nil {
-		return nil, err
-	} else if value != "" {
+	if value := decodeSSRValue(firstSSRParam(params, "obfsparam", "obfs-param")); value != "" {
 		node["obfs-param"] = value
 	}
 	return node, nil
 }
 
-func decodeSSRValue(value string) (string, error) {
-	if jsTrimSpace(value) == "" {
-		return "", nil
+// decodeSSRValue mirrors upstream safeDecodeSsrBase64: non-Base64 values fall
+// back to lenient URL decoding so a malformed escape never drops the node.
+func decodeSSRValue(value string) string {
+	value = jsTrimSpace(value)
+	if value == "" {
+		return ""
 	}
 	if decoded, err := decodeLinkText(value); err == nil {
-		return decoded, nil
+		return decoded
 	}
-	decoded, err := url.QueryUnescape(value)
-	if err != nil {
-		return "", err
-	}
-	return decoded, nil
+	return linkDecodeForm(linkDecodeComponent(value))
 }
 
 func parseSSRQuery(value string) map[string]string {

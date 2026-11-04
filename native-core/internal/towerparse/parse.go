@@ -190,6 +190,7 @@ func emitYAMLValue(value any, emit func(flight.Flight) error, stats *Stats) erro
 }
 
 func emitYAMLRecord(record map[string]any, emit func(flight.Flight) error, stats *Stats) error {
+	normalizeYAMLShadowsocks(record)
 	flightValue, err := flight.Normalize(record)
 	if err != nil {
 		stats.skip("invalid YAML item")

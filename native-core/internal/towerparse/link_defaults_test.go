@@ -60,6 +60,7 @@ func TestVLESSPinnedCertificate(t *testing.T) {
 	}
 }
 
+// SS 与上游一致：没有 # 时叫 "SS 节点"，# 后为空时给空名。
 func TestLinkDefaultNames(t *testing.T) {
 	ssUser := base64.RawURLEncoding.EncodeToString([]byte("aes-256-gcm:pass"))
 	vmessJSON := base64.StdEncoding.EncodeToString([]byte(`{"v":"2","add":"example.com","port":443,"id":"` + testUUID + `","aid":0,"net":"tcp"}`))
@@ -80,8 +81,9 @@ func TestLinkDefaultNames(t *testing.T) {
 		{"vless", "vless://" + testUUID + "@example.com:443?security=tls&type=tcp&remarks=R", "R"},
 		{"trojan", "trojan://pass@example.com:8443", "example.com:8443"},
 		{"trojan", "trojan://pass@example.com:8443#Named", "Named"},
-		{"ss", "ss://" + ssUser + "@example.com:8388", "example.com:8388"},
+		{"ss", "ss://" + ssUser + "@example.com:8388", "SS 节点"},
 		{"ss", "ss://" + ssUser + "@example.com:8388#My%20Node", "My Node"},
+		{"ss", "ss://" + ssUser + "@example.com:8388#", ""},
 		{"vmess", "vmess://" + vmessJSON, "example.com:443"},
 	}
 	for _, tc := range cases {
@@ -101,8 +103,8 @@ func TestSSRDefaultName(t *testing.T) {
 	cases := []struct {
 		body, want string
 	}{
-		{"example.com:8388:origin:aes-256-cfb:plain:" + pass, "example.com:8388"},
-		{"[2001:db8::1]:8388:origin:aes-256-cfb:plain:" + pass, "[2001:db8::1]:8388"},
+		{"example.com:8388:origin:aes-256-cfb:plain:" + pass, "SSR-example.com:8388"},
+		{"[2001:db8::1]:8388:origin:aes-256-cfb:plain:" + pass, "SSR-2001:db8::1:8388"},
 		{"example.com:8388:origin:aes-256-cfb:plain:" + pass + "/?remarks=" + b64("R"), "R"},
 	}
 	for _, tc := range cases {

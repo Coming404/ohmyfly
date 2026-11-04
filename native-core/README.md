@@ -43,6 +43,10 @@ const flight.FingerprintVersion = 1
 
 分享链接解析按 SubBoost `401534742802e2b1542783197ce66451bad82739` 逐函数移植，上游许可为 AGPL-3.0-only。每个移植文件的第一行写明上游文件路径和提交。subs-check-pro 只参考了思路，没有复制代码。
 
+与上游有意不同的地方：
+
+- Base64 解码遇到非法字符时报错，与浏览器 `atob` 一致。上游在 Node 下用 `Buffer` 解码，会跳过非法字符继续解码。因此 SSR 参数含非法 `%`（如 `remarks=100%`）时保留原文，上游在 Node 下得到乱码；SS 的 `v2ray-plugin` 直接写 JSON 时能识别插件，上游在 Node 下会丢掉插件。
+
 native-core 随仓库整体按 GNU Affero General Public License v3.0 only（`AGPL-3.0-only`）发布，全文见仓库根目录 [LICENSE](../LICENSE)。依赖 `go.yaml.in/yaml/v3` 保留其 MIT/Apache-2.0 许可。
 
 ## 测试
@@ -58,4 +62,4 @@ go test -count=1 -p 1 ./...
 go test -run '^$' -bench . -benchtime=1x ./internal/towerparse
 ```
 
-共 102 个测试函数，覆盖格式识别、YAML 容错、各协议链接与 SubBoost 行为对照、指纹等价规则。3 个 benchmark 分别用 1 万条 YAML、链接和 Base64 链接。
+共 118 个测试函数，覆盖格式识别、YAML 容错、各协议链接与 SubBoost 行为对照、指纹等价规则。3 个 benchmark 分别用 1 万条 YAML、链接和 Base64 链接。

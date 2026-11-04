@@ -17,20 +17,13 @@ func decodeLinkBase64(value string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	value = removeJSSpace(value)
-	encodings := []*base64.Encoding{
-		base64.RawURLEncoding,
-		base64.URLEncoding,
-		base64.RawStdEncoding,
-		base64.StdEncoding,
+	// 与上游 normalizeBase64 一致：先把 URL 安全字符集换成标准字符集，允许同一串混用两种字符集，填充可有可无。
+	value = strings.NewReplacer("-", "+", "_", "/").Replace(removeJSSpace(value))
+	decoded, err := base64.RawStdEncoding.DecodeString(strings.TrimRight(value, "="))
+	if err != nil {
+		return nil, fmt.Errorf("invalid base64 payload")
 	}
-	for _, encoding := range encodings {
-		decoded, err := encoding.DecodeString(value)
-		if err == nil {
-			return decoded, nil
-		}
-	}
-	return nil, fmt.Errorf("invalid base64 payload")
+	return decoded, nil
 }
 
 func decodeLinkText(value string) (string, error) {

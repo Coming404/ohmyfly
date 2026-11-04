@@ -58,3 +58,24 @@ func TestDecodeLinkBase64JSWhitespace(t *testing.T) {
 		t.Fatalf("decodeLinkText(invalid UTF-8) = %q, %v", got, err)
 	}
 }
+
+// 上游 normalizeBase64 先把 -_ 换成 +/ 再补齐填充，所以混用两种字符集也能解码。
+func TestDecodeLinkBase64Alphabets(t *testing.T) {
+	const plain = "aes-256-gcm:p>?~w>>>???@h.example.com:8388"
+	std := base64.StdEncoding.EncodeToString([]byte(plain))
+	mixed := "YWVzLTI1Ni1nY206cD4/fnc-Pj4/Pz9AaC5leGFtcGxlLmNvbTo4Mzg4"
+	for _, input := range []string{std, base64.URLEncoding.EncodeToString([]byte(plain)), mixed, "YWI", "YWI=", "YWI%3D"} {
+		want := plain
+		if len(input) < 8 {
+			want = "ab"
+		}
+		if got, err := decodeLinkText(input); err != nil || got != want {
+			t.Errorf("decodeLinkText(%q) = %q, %v, want %q", input, got, err, want)
+		}
+	}
+	for _, input := range []string{"YWJj!", "Y", "YW=I"} {
+		if _, err := decodeLinkText(input); err == nil {
+			t.Errorf("decodeLinkText(%q) should fail", input)
+		}
+	}
+}

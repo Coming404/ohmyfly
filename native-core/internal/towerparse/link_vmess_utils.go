@@ -264,29 +264,3 @@ func parseObfsHeaderHost(raw string) string {
 	}
 	return decoded
 }
-
-func normalizeSSPlugin(plugin string, options map[string]any) (string, map[string]any) {
-	plugin = jsTrimSpace(plugin)
-	if strings.EqualFold(plugin, "obfs-local") || strings.EqualFold(plugin, "simple-obfs") || strings.EqualFold(plugin, "obfs") {
-		result := map[string]any{}
-		if value := stringField(options, "obfs"); value != "" {
-			result["mode"] = value
-		}
-		if value := stringField(options, "obfs-host"); value != "" {
-			result["host"] = value
-		} else if value := stringField(options, "host"); value != "" {
-			result["host"] = value
-		}
-		if len(result) == 0 {
-			return "obfs", nil
-		}
-		return "obfs", result
-	}
-	if plugin == "" {
-		return "", nil
-	}
-	if len(options) == 0 {
-		return strings.ToLower(plugin), nil
-	}
-	return strings.ToLower(plugin), normalizeSSPluginOptions(options)
-}
