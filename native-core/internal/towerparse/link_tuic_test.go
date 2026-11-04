@@ -115,16 +115,19 @@ func TestQUICLinkNormalization(t *testing.T) {
 		input string
 		parse func(string) (map[string]any, error)
 		want  map[string]any
+		node  string
 	}{
 		{
 			name: "hysteria2", parse: parseHysteria2Link,
 			input: "hy2://001@[2001:db8::1]?pinSHA256=" + strings.Repeat("AB", 32),
-			want:  map[string]any{"password": "001", "fingerprint": strings.Repeat("AB", 32), "sni": "2001:db8::1"},
+			want:  map[string]any{"password": "001", "fingerprint": strings.Repeat("ab", 32), "sni": "2001:db8::1"},
+			node:  "Hysteria2 节点",
 		},
 		{
 			name: "tuic", parse: parseTUICLink,
 			input: "tuic://uuid:001@[2001:db8::1]?congestion_control=bbr",
 			want:  map[string]any{"uuid": "uuid", "password": "001", "congestion-controller": "bbr"},
+			node:  "[2001:db8::1]:443",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -137,8 +140,8 @@ func TestQUICLinkNormalization(t *testing.T) {
 				t.Fatal(err)
 			}
 			assertMapSubset(t, normalized.Fields, tc.want)
-			if normalized.Name != "[2001:db8::1]:443" {
-				t.Errorf("normalized name = %q", normalized.Name)
+			if normalized.Name != tc.node {
+				t.Errorf("normalized name = %q, want %q", normalized.Name, tc.node)
 			}
 		})
 	}

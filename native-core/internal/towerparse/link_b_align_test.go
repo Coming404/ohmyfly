@@ -56,7 +56,7 @@ func TestLinkUpstreamAlignmentEdgeCases(t *testing.T) {
 		{"hy2 non numeric authority becomes ports", parseHysteria2Link, "hy2://s@h.example.com:443abc", map[string]any{"port": 443, "ports": "443abc"}, false, ""},
 		{"hy2 plus sign authority becomes ports", parseHysteria2Link, "hy2://s@h.example.com:+12", map[string]any{"port": 443, "ports": "+12"}, false, ""},
 		{"hy2 out of range port", parseHysteria2Link, "hy2://s@h.example.com:99999", nil, true, ""},
-		{"hy2 fp wins over pin", parseHysteria2Link, "hy2://s@h.example.com:443?fp=chrome&pinSHA256=AB", map[string]any{"fingerprint": "chrome"}, false, ""},
+		{"hy2 non certificate fp skipped", parseHysteria2Link, "hy2://s@h.example.com:443?fp=chrome&pinSHA256=" + strings.Repeat("AB", 32), map[string]any{"fingerprint": strings.Repeat("ab", 32)}, false, ""},
 		{"hy2 invalid escape kept", parseHysteria2Link, "hy2://s%zz@h.example.com:443", map[string]any{"password": "s%zz"}, false, ""},
 		{"ss invalid escape and garbage port", parseSSLink, "ss://aes-256-gcm:p%zz@h.example.com:443abc", map[string]any{"password": "p%zz", "port": 443}, false, ""},
 		{"ss plus sign port", parseSSLink, "ss://aes-256-gcm:pw@h.example.com:+12", map[string]any{"port": 12}, false, ""},

@@ -49,6 +49,8 @@ const flight.FingerprintVersion = 1
 
 - VLESS、Trojan、AnyTLS 的 `pcs`（Xray 的证书 SHA-256 固定）同时写两个字段。`fingerprint` 取 `pcs` 或 `hpkp` 中第一个 64 位十六进制值，供 mihomo 校验证书，与 mihomo 自带的链接转换（`common/convert/v.go:39`、`converter.go:216`、`converter.go:620`）一致。`pcs` 原样保留，导出分享链接时写回，不丢失逗号分隔的多个指纹和原始写法。上游 VLESS、AnyTLS 只保留 `pcs`，Trojan 两者都不写；mihomo 适配器没有 `pcs` 字段，只靠它时，服务器用自签证书的节点会因证书校验失败而无法连接。`fingerprint` 只能放一个值是 mihomo 的限制，多个指纹时只按第一个有效值校验。
 - 大写协议名（如 `TROJAN://`）在分发前统一转成小写，与上游 `normalizeNodeLinkScheme` 一致；直接调用上游 `parseTrojan`、`parseAnyTLS` 时会被拒绝。
+- Hysteria、Hysteria2 的 `up`、`down` 改写成 mihomo 能读取的形式。mihomo 的 `StringToBps`（`common/utils/mbps.go`）只接受纯数字或 `^\d+\s*[KMGT]?[Bb]ps$`，单位前缀必须大写。上游给 Hysteria2 纯数字补的 ` mbps` 和原样保留的 `1gbps` 都会被读成 0：Hysteria2 节点不限速，Hysteria 节点加载时报错。本地保留 mihomo 已能读取的写法，其余按 Hysteria 官方单位（`b`、`k`、`kb`、`kbps` 等，不区分大小写）改写，如 `1gbps` 改成 `1 Gbps`；Hysteria2 的纯数字补 ` Mbps`，Hysteria 的纯数字保持不变；无法识别的写法原样保留。
+- Hysteria2 的 `fp`、`fingerprint`、`pinSHA256` 只取第一个 SHA-256 写成小写十六进制的 `fingerprint`。上游原样写入，再由 `proxy-sanitizer` 删掉非证书值；本地没有这一步，`fp=chrome` 这类值会让 mihomo 生成 TLS 配置时报错，节点无法加载。
 - AnyTLS 的整数参数超出 Go `int` 范围时丢弃，上游 `parseInt` 会得到 `1e20` 这类 mihomo 无法读取的值。
 
 - Base64 解码遇到非法字符时报错，与浏览器 `atob` 一致。上游在 Node 下用 `Buffer` 解码，会跳过非法字符继续解码。因此 SSR 参数含非法 `%`（如 `remarks=100%`）时保留原文，上游在 Node 下得到乱码；SS 的 `v2ray-plugin` 直接写 JSON 时能识别插件，上游在 Node 下会丢掉插件。VMess JSON 的 Base64 中间夹非法字符时整条拒绝，上游在 Node 下仍能解析。
@@ -69,4 +71,4 @@ go test -count=1 -p 1 ./...
 go test -run '^$' -bench . -benchtime=1x ./internal/towerparse
 ```
 
-共 123 个测试函数，覆盖格式识别、YAML 容错、各协议链接与 SubBoost 行为对照、指纹等价规则。3 个 benchmark 分别用 1 万条 YAML、链接和 Base64 链接。
+共 126 个测试函数，覆盖格式识别、YAML 容错、各协议链接与 SubBoost 行为对照、指纹等价规则。3 个 benchmark 分别用 1 万条 YAML、链接和 Base64 链接。

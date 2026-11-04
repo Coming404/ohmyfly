@@ -29,13 +29,13 @@ func TestHysteriaLinks(t *testing.T) {
 			name:  "upstream v1 password and explicit false",
 			input: "hysteria://hy.example.com:8443?password=secret&insecure=0",
 			want: map[string]any{
-				"name": "hy.example.com:8443", "auth-str": "secret", "skip-cert-verify": false,
+				"name": "Hysteria hy.example.com:8443", "auth-str": "secret", "skip-cert-verify": false,
 			},
 		},
 		{
 			name:   "IPv6 default port and optional auth",
 			input:  "hy://[2001:db8::1]",
-			want:   map[string]any{"name": "[2001:db8::1]:443", "server": "2001:db8::1", "port": 443, "protocol": "udp"},
+			want:   map[string]any{"name": "Hysteria 2001:db8::1:443", "server": "2001:db8::1", "port": 443, "protocol": "udp"},
 			absent: []string{"auth-str", "sni", "skip-cert-verify"},
 		},
 		{
@@ -76,6 +76,7 @@ func TestHysteria2Links(t *testing.T) {
 		absent []string
 	}{
 		{
+			// 上游原样写 fp=chrome、补 " mbps"；mihomo 读不了，这里丢掉非证书指纹、单位改大写。
 			name: "upstream query password IPv6 and TLS",
 			input: "hy2://[2001:db8::1]:8443?password=secret&sni=sni.example.com" +
 				"&allow_insecure=true&alpn=h3,h2&fp=chrome&up=50&down=100mbps" +
@@ -83,9 +84,10 @@ func TestHysteria2Links(t *testing.T) {
 			want: map[string]any{
 				"name": "IPv6", "type": "hysteria2", "server": "2001:db8::1", "port": 8443,
 				"password": "secret", "sni": "sni.example.com", "skip-cert-verify": true,
-				"alpn": []string{"h3", "h2"}, "fingerprint": "chrome", "up": "50 mbps", "down": "100mbps",
+				"alpn": []string{"h3", "h2"}, "up": "50 Mbps", "down": "100 Mbps",
 				"hop-interval": "15-30", "mldsa65-seed": "seed",
 			},
+			absent: []string{"fingerprint"},
 		},
 		{
 			name: "upstream authority range and salamander",
@@ -94,14 +96,14 @@ func TestHysteria2Links(t *testing.T) {
 			want: map[string]any{
 				"name": "Ports", "server": "hy2.example.com", "port": 1000, "password": "secret",
 				"ports": "1000-1002", "obfs": "salamander", "obfs-password": "mask",
-				"up": "20 mbps", "down": "30 mbps", "hop-interval": 10,
+				"up": "20 Mbps", "down": "30 Mbps", "hop-interval": 10,
 			},
 		},
 		{
 			name:  "upstream query ports and auth",
 			input: "hysteria2://hy2.example.com?auth=secret&mport=2000,2001",
 			want: map[string]any{
-				"name": "hy2.example.com:2000", "server": "hy2.example.com", "port": 2000,
+				"name": "Hysteria2 节点", "server": "hy2.example.com", "port": 2000,
 				"password": "secret", "ports": "2000,2001",
 			},
 		},
@@ -110,8 +112,8 @@ func TestHysteria2Links(t *testing.T) {
 			input: "hysteria2://secret@[2001:db8::2]///?obfs=none&alpn=,," +
 				"&up=10kbps&down=20&hop-interval=0&hop_interval=5",
 			want: map[string]any{
-				"name": "[2001:db8::2]:443", "server": "2001:db8::2", "port": 443, "password": "secret",
-				"sni": "2001:db8::2", "up": "10kbps", "down": "20 mbps", "hop-interval": 5,
+				"name": "Hysteria2 节点", "server": "2001:db8::2", "port": 443, "password": "secret",
+				"sni": "2001:db8::2", "up": "10 Kbps", "down": "20 Mbps", "hop-interval": 5,
 			},
 			absent: []string{"obfs", "alpn"},
 		},
@@ -129,7 +131,7 @@ func TestHysteria2Links(t *testing.T) {
 			input: "hy2://secret@hy2.example.com?ports=9999;440-445/8443" +
 				"&hop-interval=0005-0010&up=1gbps&upmbps=2&down=3&downmbps=4",
 			want: map[string]any{
-				"port": 443, "ports": "9999,440-445,8443", "hop-interval": "5-10", "up": "1gbps", "down": "3 mbps",
+				"port": 443, "ports": "9999,440-445,8443", "hop-interval": "5-10", "up": "1 Gbps", "down": "3 Mbps",
 			},
 		},
 		{
@@ -149,12 +151,12 @@ func TestHysteria2Links(t *testing.T) {
 			absent: []string{"hop-interval"},
 		},
 		{
-			name: "gecko packet sizes ECH and raw certificate pin",
+			name: "gecko packet sizes ECH and normalized certificate pin",
 			input: "hy2://secret@hy2.example.com?obfs=GECKO&obfsPassword=mask" +
 				"&obfs_min_packet_size=0&obfs-max-packet-size=9007199254740991&ech=ech.example.com&pinSHA256=" + pin,
 			want: map[string]any{
 				"obfs": "gecko", "obfs-password": "mask", "obfs-min-packet-size": 0,
-				"obfs-max-packet-size": 9007199254740991, "fingerprint": pin,
+				"obfs-max-packet-size": 9007199254740991, "fingerprint": strings.Repeat("ab", 32),
 				"ech-opts": map[string]any{"enable": true, "query-server-name": "ech.example.com"},
 			},
 		},
@@ -165,10 +167,10 @@ func TestHysteria2Links(t *testing.T) {
 			want: map[string]any{"password": "a:b+%20", "name": "%20+ 中", "skip-cert-verify": true},
 		},
 		{
-			name:   "empty ECH raw non-hex pin and strict insecure flag",
+			name:   "empty ECH non-hex pin dropped and strict insecure flag",
 			input:  "hy2://secret@hy2.example.com?ech=&pinSHA256=chrome&insecure=yes",
-			want:   map[string]any{"ech-opts": map[string]any{"enable": true}, "fingerprint": "chrome"},
-			absent: []string{"skip-cert-verify"},
+			want:   map[string]any{"ech-opts": map[string]any{"enable": true}},
+			absent: []string{"skip-cert-verify", "fingerprint"},
 		},
 	}
 	for _, tc := range cases {

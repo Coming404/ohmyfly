@@ -6,10 +6,47 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
-var hysteriaBandwidthUnit = regexp.MustCompile(`(?i)[kmg]?bps$`)
+// mihomoBandwidthPattern 是 mihomo v1.19.33 common/utils/mbps.go 的 rateStringRegexp，单位前缀只认大写。
+var mihomoBandwidthPattern = regexp.MustCompile(`^(\d+)\s*([KMGT]?)([Bb])ps$`)
+
+// hysteriaBandwidthPattern 按 Hysteria 官方 StringToBps（app/internal/utils/bpsconv.go）识别带宽，单位不区分大小写。
+var hysteriaBandwidthPattern = regexp.MustCompile(`^(\d+)\s*([A-Za-z]+)$`)
+
+var hysteriaBandwidthUnits = map[string]string{
+	"b": "bps", "bps": "bps",
+	"k": "Kbps", "kb": "Kbps", "kbps": "Kbps",
+	"m": "Mbps", "mb": "Mbps", "mbps": "Mbps",
+	"g": "Gbps", "gb": "Gbps", "gbps": "Gbps",
+	"t": "Tbps", "tb": "Tbps", "tbps": "Tbps",
+}
+
+// hysteriaBandwidth 让带宽能被 mihomo 读取。有意偏离上游：上游给 Hysteria2 纯数字补的 " mbps"
+// 和原样保留的 "1gbps"，mihomo 都读成 0（v1 因此报错，v2 不限速）。mihomo 已能读的写法原样保留，
+// 其余按 Hysteria 官方单位改写；纯数字在 v1 保留（mihomo 按 Mbps 读），在 v2 按上游补单位。
+func hysteriaBandwidth(value string, version2 bool) string {
+	if mihomoBandwidthPattern.MatchString(value) {
+		return value
+	}
+	trimmed := jsTrimSpace(value)
+	if hysteriaDigits.MatchString(trimmed) {
+		if version2 {
+			return trimmed + " Mbps"
+		}
+		return trimmed
+	}
+	match := hysteriaBandwidthPattern.FindStringSubmatch(trimmed)
+	if match == nil {
+		return value
+	}
+	if unit, ok := hysteriaBandwidthUnits[strings.ToLower(match[2])]; ok {
+		return match[1] + " " + unit
+	}
+	return value
+}
 
 func parseHysteriaLink(raw string) (map[string]any, error) {
 	if !strings.HasPrefix(raw, "hysteria://") && !strings.HasPrefix(raw, "hy://") {
@@ -24,7 +61,7 @@ func parseHysteriaLink(raw string) (map[string]any, error) {
 		return nil, err
 	}
 	node := map[string]any{
-		"name":     linkName(parsed.Fragment, linkDefaultName(server, port)),
+		"name":     linkName(parsed.Fragment, "Hysteria "+server+":"+strconv.Itoa(port)),
 		"type":     "hysteria",
 		"server":   server,
 		"port":     port,
@@ -84,14 +121,9 @@ func applyHysteriaOptions(node map[string]any, query url.Values) error {
 		if version2 {
 			primary, secondary = secondary, primary
 		}
-		value := pickQueryParam(query, primary, secondary)
-		if value == "" {
-			continue
+		if value := pickQueryParam(query, primary, secondary); value != "" {
+			node[field] = hysteriaBandwidth(value, version2)
 		}
-		if version2 && !hysteriaBandwidthUnit.MatchString(value) {
-			value += " mbps"
-		}
-		node[field] = value
 	}
 	if !version2 {
 		if ports := hysteriaPorts(query, "", false); ports != "" {

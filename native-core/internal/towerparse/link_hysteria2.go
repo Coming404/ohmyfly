@@ -49,7 +49,7 @@ func parseHysteria2Link(raw string) (map[string]any, error) {
 		}
 	}
 	node := map[string]any{
-		"name":     linkName(hash, linkDefaultName(server, port)),
+		"name":     linkName(hash, "Hysteria2 节点"),
 		"type":     "hysteria2",
 		"server":   server,
 		"port":     port,
@@ -91,9 +91,9 @@ func splitHysteria2Authority(value string) (string, string, string) {
 }
 
 func applyHysteria2Options(node map[string]any, query url.Values) error {
-	// Upstream: (fp || fingerprint || pinSHA256).trim(), value kept as-is.
-	fingerprint := pickQueryParam(query, "fp", "fingerprint", "pinSHA256")
-	if fingerprint = jsTrimSpace(fingerprint); fingerprint != "" {
+	// 有意偏离：上游原样写入 fp，再由 proxy-sanitizer 删掉 chrome 等非证书值；本地没有这一步，
+	// 非 SHA-256 值会让 mihomo 生成 TLS 配置时报错（component/ca/fingerprint.go），这里只取第一个有效值。
+	if fingerprint := linkCertificateFingerprint(query.Get("fp"), query.Get("fingerprint"), query.Get("pinSHA256")); fingerprint != "" {
 		node["fingerprint"] = fingerprint
 	}
 	for _, field := range []string{"obfs-min-packet-size", "obfs-max-packet-size"} {
