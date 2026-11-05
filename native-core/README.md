@@ -53,6 +53,8 @@ const flight.FingerprintVersion = 1
 - Hysteria2 的 `fp`、`fingerprint`、`pinSHA256` 只取第一个 SHA-256 写成小写十六进制的 `fingerprint`。上游原样写入，再由 `proxy-sanitizer` 删掉非证书值；本地没有这一步，`fp=chrome` 这类值会让 mihomo 生成 TLS 配置时报错，节点无法加载。
 - WireGuard 链接中未单独处理的参数按 mihomo `WireGuardOption` 的字段类型写入：`dns`、`allowed-ips` 按逗号拆成列表，`tfo`、`mptcp`、`remote-dns-resolve` 转成布尔值，无法转换时丢弃。上游原样写字符串，mihomo 解码这些字段时报错，节点无法加载。
 - AnyTLS、TUIC 的整数参数超出 Go `int` 范围时丢弃，上游 `parseInt` 会得到 `1e20` 这类 mihomo 无法读取的值。
+- SOCKS 链接的默认名统一用 `SOCKS-host:port`，只在生成默认名时决定前缀。上游 `parseSocks` 在解析后把等于 `SOCKS5-host:port` 的名称一律改成 `SOCKS-`，用户在 `#` 里显式写的这个名称也会被改；本地保留用户写的名称。
+- SSH 节点（链接和 YAML）缺 `username`，或 `password` 和 `private-key` 都没有时计入跳过（`flight/validate_ssh.go`）。mihomo 的 `username` 是必填字段，缺少时加载报错；上游的有效性检查不查 `username`，只在生成配置时要求至少有一种认证。接入 mihomo 后改用 `adapter.ParseProxy` 检查，届时删除这段手写检查。
 
 - Base64 解码遇到非法字符时报错，与浏览器 `atob` 一致。上游在 Node 下用 `Buffer` 解码，会跳过非法字符继续解码。因此 SSR 参数含非法 `%`（如 `remarks=100%`）时保留原文，上游在 Node 下得到乱码；SS 的 `v2ray-plugin` 直接写 JSON 时能识别插件，上游在 Node 下会丢掉插件。VMess JSON 的 Base64 中间夹非法字符时整条拒绝，上游在 Node 下仍能解析。
 - VMess JSON 字段类型不对时按字段需要的类型处理。`id`、`add`、`sni` 为数字时转成字符串，为对象时视为缺失；`alpn` 为数组时忽略。上游会把数字或对象原样写进 `uuid`、`server`、`servername`，`alpn` 为数组时调用 `split` 报错。
@@ -72,4 +74,4 @@ go test -count=1 -p 1 ./...
 go test -run '^$' -bench . -benchtime=1x ./internal/towerparse
 ```
 
-共 128 个测试函数，覆盖格式识别、YAML 容错、各协议链接与 SubBoost 行为对照、指纹等价规则。3 个 benchmark 分别用 1 万条 YAML、链接和 Base64 链接。
+共 131 个测试函数，覆盖格式识别、YAML 容错、各协议链接与 SubBoost 行为对照、指纹等价规则。3 个 benchmark 分别用 1 万条 YAML、链接和 Base64 链接。

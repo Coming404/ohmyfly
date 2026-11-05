@@ -46,6 +46,11 @@ func Normalize(input map[string]any) (Flight, error) {
 	canonicalizeAliases(node, typ)
 	normalizeScalarFields(node)
 	normalizeWsPath(node)
+	if typ == "ssh" {
+		if err := validateSSH(node); err != nil {
+			return Flight{}, err
+		}
+	}
 
 	return Flight{
 		Name:   name,

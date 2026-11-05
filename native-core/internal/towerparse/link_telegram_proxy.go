@@ -45,7 +45,7 @@ func parseTelegramProxyLink(raw string) (map[string]any, error) {
 	if err != nil || port == 0 {
 		return nil, fmt.Errorf("无效的端口号")
 	}
-	name := linkName(pickQueryParam(query, "remark", "remarks"), linkDefaultName(server, port))
+	name := linkName(pickQueryParam(query, "remark", "remarks"), simpleProxyDefaultName(kind, server, port))
 	if kind == "socks" {
 		kind = "socks5"
 	}

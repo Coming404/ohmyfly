@@ -4,6 +4,7 @@ package towerparse
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -33,7 +34,7 @@ func parseSnellLink(raw string) (map[string]any, error) {
 		return nil, fmt.Errorf("无效的端口号")
 	}
 	node := map[string]any{
-		"name": linkName(parsed.Fragment, linkDefaultName(server, port)),
+		"name": linkName(parsed.Fragment, "Snell "+server+":"+strconv.Itoa(port)),
 		"type": "snell", "server": server, "port": port, "psk": psk,
 	}
 	if version, ok := linkIntegerPrefix(query, "version"); ok {

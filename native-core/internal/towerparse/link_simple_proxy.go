@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -78,7 +79,7 @@ func parseSimpleProxyLink(raw string) (map[string]any, error) {
 			if server != "" && hasPort {
 				query := simpleProxyQuery(raw)
 				name := linkName(suffixName, linkName(fragment, linkName(
-					pickQueryParam(query, "remark", "remarks"), linkDefaultName(server, port),
+					pickQueryParam(query, "remark", "remarks"), simpleProxyDefaultName(kind, server, port),
 				)))
 				username, password, _ := strings.Cut(jsTrimSpace(auth), ":")
 				node := buildSimpleProxyNode(kind, name, server, port, username, password, forceTLS)
@@ -99,7 +100,7 @@ func parseSimpleProxyLink(raw string) (map[string]any, error) {
 			if err != nil || port == 0 {
 				return nil, fmt.Errorf("无效的端口号")
 			}
-			name := linkName(suffixName, linkName(fragment, linkDefaultName(server, port)))
+			name := linkName(suffixName, linkName(fragment, simpleProxyDefaultName(kind, server, port)))
 			return buildSimpleProxyNode(kind, name, server, port,
 				linkDecodeComponent(parts[2]), linkDecodeComponent(strings.Join(parts[3:], ":")), forceTLS), nil
 		}
@@ -123,10 +124,20 @@ func parseSimpleProxyLink(raw string) (map[string]any, error) {
 			username, password, _ = strings.Cut(jsTrimSpace(decoded), ":")
 		}
 	}
-	name := linkName(suffixName, linkName(parsed.Fragment, linkDefaultName(server, port)))
+	name := linkName(suffixName, linkName(parsed.Fragment, simpleProxyDefaultName(kind, server, port)))
 	node := buildSimpleProxyNode(kind, name, server, port, username, password, forceTLS)
 	applySimpleProxyQuery(node, query)
 	return node, nil
+}
+
+// simpleProxyDefaultName 与上游一致：类型大写加 "-host:port"，IPv6 不加方括号；socks4、socks5 都用 SOCKS-。
+// 有意偏离：上游 parseSocks 在解析后把等于 SOCKS5-host:port 的名称一律改成 SOCKS-，用户在 # 里显式写的也会改；
+// 这里只在生成默认名时用 SOCKS-，保留用户写的名称。
+func simpleProxyDefaultName(kind, server string, port int) string {
+	if kind == "socks4" || kind == "socks5" {
+		kind = "socks"
+	}
+	return strings.ToUpper(kind) + "-" + server + ":" + strconv.Itoa(port)
 }
 
 func stripSimpleProxyMeta(raw string) (string, string) {

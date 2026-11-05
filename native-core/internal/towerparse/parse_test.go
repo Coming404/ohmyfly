@@ -56,6 +56,33 @@ func TestBase64ReaderVariantsAndThreePassLimit(t *testing.T) {
 	}
 }
 
+// 缺 username 的 SSH 节点 mihomo 无法加载，链接和 YAML 两条路径都计入跳过。
+func TestParseSkipsSSHWithoutUsername(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  string
+		reason string
+	}{
+		{name: "link", input: "ssh://ssh.example.com?private-key=KEY\nssh://root:p@ssh.example.com:22#ok\n", reason: "invalid ssh link"},
+		{name: "yaml", input: "proxies:\n  - {name: bad, type: ssh, server: ssh.example.com, port: 22, password: p}\n  - {name: ok, type: ssh, server: ssh.example.com, port: 22, username: root, password: p}\n", reason: "invalid YAML item"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var names []string
+			stats, err := Parse(strings.NewReader(tc.input), func(value flight.Flight) error {
+				names = append(names, value.Name)
+				return nil
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(names) != 1 || names[0] != "ok" || stats.Skipped != 1 || stats.SkippedByReason[tc.reason] != 1 {
+				t.Fatalf("names = %v, stats = %+v", names, stats)
+			}
+		})
+	}
+}
+
 func TestParseLinksOnlyDispatchesAndSkipsProtocols(t *testing.T) {
 	var emitted []flight.Flight
 	stats, err := Parse(strings.NewReader("ss://aes-128-gcm:secret@example.invalid:1#name\nvless://uuid@example.invalid:443\n"), func(value flight.Flight) error {

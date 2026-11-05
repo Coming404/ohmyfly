@@ -30,7 +30,7 @@ func TestSnellLinks(t *testing.T) {
 			name:  "upstream query credentials",
 			input: "snell://snell-query.example.com:443?psk=query-secret",
 			want: map[string]any{
-				"name": "snell-query.example.com:443", "psk": "query-secret", "server": "snell-query.example.com",
+				"name": "Snell snell-query.example.com:443", "psk": "query-secret", "server": "snell-query.example.com",
 			},
 		},
 		{
@@ -45,7 +45,7 @@ func TestSnellLinks(t *testing.T) {
 		{
 			name:  "IPv6 default name and numeric port prefix",
 			input: "snell://psk@[2001:db8::1]:443abc",
-			want:  map[string]any{"name": "[2001:db8::1]:443", "server": "2001:db8::1", "port": 443},
+			want:  map[string]any{"name": "Snell 2001:db8::1:443", "server": "2001:db8::1", "port": 443},
 		},
 		{
 			name:  "signed port last at and one credential decode",

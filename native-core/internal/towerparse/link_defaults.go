@@ -1,17 +1,9 @@
 package towerparse
 
 import (
-	"fmt"
-	"net"
 	"net/url"
 	"strings"
 )
-
-// linkDefaultName names a node whose link carries no name, so unnamed
-// nodes stay distinguishable (IPv6 servers get brackets).
-func linkDefaultName(server string, port any) string {
-	return net.JoinHostPort(server, jsTrimSpace(fmt.Sprint(port)))
-}
 
 // addLinkPinnedCertificate 处理 Xray 的 pcs 与 hpkp：fingerprint 写第一个有效 SHA-256，
 // 供 mihomo 校验证书（它只接受一个值）；pcs 原样保留，供导出分享链接时写回多个指纹和原始写法。
