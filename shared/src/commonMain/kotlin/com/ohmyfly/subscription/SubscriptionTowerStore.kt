@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.update
 
 internal data class SubscriptionTower(
     val address: String, val nodes: List<SubscriptionNode> = emptyList(), val failure: String? = null,
+    val warnings: List<String> = emptyList(),
 )
 
 internal class SubscriptionTowerStore(
@@ -40,6 +41,7 @@ internal class SubscriptionTowerStore(
                     // 失败刷新不丢失此前已导入的节点；删除中的塔台也不会被异步结果重新添加。
                     nodes = if (result.failure == null) result.nodes else tower.nodes,
                     failure = result.failure,
+                    warnings = result.warnings,
                 )
             }
         }

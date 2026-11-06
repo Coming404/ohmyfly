@@ -1,3 +1,4 @@
+// 解码后的字段类型遵循上游 Schema；凭据整数通过 yaml.Node 单独保留原文。
 package towerparse
 
 import (
@@ -65,7 +66,10 @@ func decodeSingleYAML(content string) (any, error) {
 	} else if !errors.Is(err, io.EOF) {
 		return nil, err
 	}
+	integerSources := make(map[*yaml.Node]string)
+	yamlIntegerSources(&doc, integerSources)
 	resolveMihomoScalars(&doc)
+	preserveYAMLCredentials(&doc, integerSources)
 	// Decode errors (duplicate keys, alias limits) fail the load, as js-yaml does.
 	var value any
 	if err := doc.Decode(&value); err != nil {
@@ -77,7 +81,7 @@ func decodeSingleYAML(content string) (any, error) {
 // resolveMihomoScalars retags plain, untagged scalars with upstream's
 // MIHOMO_YAML_SCHEMA rules and turns mapping keys into strings, as JS objects do.
 // Aliases share their anchor's node, so they follow the anchor's result.
-// Timestamps stay strings, unlike upstream's timestamp tag.
+// 时间戳保留对象类型，避免作为字符串凭据被错误接受。
 func resolveMihomoScalars(n *yaml.Node) {
 	switch n.Kind {
 	case yaml.DocumentNode, yaml.SequenceNode:
@@ -94,9 +98,13 @@ func resolveMihomoScalars(n *yaml.Node) {
 			resolveMihomoScalars(n.Content[i+1])
 		}
 	case yaml.ScalarNode:
-		// Quoted, block and explicitly tagged scalars carry a style bit.
+		// 显式整数也使用上游十进制规则；引号中的普通文本保持不变。
 		if n.Style == 0 {
 			resolvePlainScalar(n)
+		} else if n.Tag == "!!int" && n.Style&yaml.TaggedStyle != 0 {
+			if tag, text, ok := mihomoInteger(n.Value); ok {
+				n.Tag, n.Value = tag, text
+			}
 		}
 	}
 }
@@ -112,6 +120,10 @@ func stringifyScalarKey(key *yaml.Node) {
 }
 
 func resolvePlainScalar(n *yaml.Node) {
+	// 上游保留时间戳对象；不能误变成可接受的字符串凭据。
+	if n.Tag == "!!timestamp" {
+		return
+	}
 	switch n.Value {
 	case "", "~", "null", "Null", "NULL":
 		n.Tag = "!!null"

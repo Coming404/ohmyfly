@@ -1,3 +1,4 @@
+// 接收 Go 输出的节点与 provider，指纹只用于本次导入的内存去重。
 package com.ohmyfly.nativecore
 
 import kotlinx.serialization.Serializable
@@ -18,6 +19,14 @@ data class NativeSubscription(
     val base64Layers: Int,
     val formatCounts: Map<String, Int>,
     val skippedByReason: Map<String, Int>,
+    val proxyProviders: List<NativeSubscriptionProvider> = emptyList(),
+)
+
+@Serializable
+data class NativeSubscriptionProvider(
+    val name: String,
+    val url: String,
+    val fields: JsonObject,
 )
 
 @Serializable
@@ -29,6 +38,7 @@ data class NativeSubscriptionNode(
     val fields: JsonObject,
     val sourceFormat: String,
     val fromBase64: Boolean,
+    val fingerprint: String,
 )
 
 class NativeCoreException(message: String) : Exception(message)

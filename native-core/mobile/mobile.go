@@ -1,9 +1,11 @@
+// 为 App 输出节点、内容指纹与 provider 信息，网络请求由 Kotlin 负责。
 package mobile
 
 import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/Coming404/ohmyfly/native-core/internal/flight"
@@ -43,7 +45,8 @@ func encodeError(err error) string {
 
 func parseSubscription(content string) (string, error) {
 	result := subscriptionResult{
-		Nodes: make([]subscriptionNode, 0),
+		Nodes:          make([]subscriptionNode, 0),
+		ProxyProviders: make([]subscriptionProvider, 0),
 	}
 	stats, err := towerparse.Parse(strings.NewReader(content), func(value flight.Flight) error {
 		result.Nodes = append(result.Nodes, subscriptionNode{
@@ -54,6 +57,7 @@ func parseSubscription(content string) (string, error) {
 			Fields:       jsonSafeValue(value.Fields).(map[string]any),
 			SourceFormat: value.SourceFormat,
 			FromBase64:   value.FromBase64,
+			Fingerprint:  fmt.Sprintf("%x", flight.Fingerprint(value)),
 		})
 		return nil
 	})
@@ -70,7 +74,17 @@ func parseSubscription(content string) (string, error) {
 	result.Base64Layers = stats.Base64Layers
 	result.FormatCounts = stats.FormatCounts
 	result.SkippedByReason = stats.SkippedByReason
+	for _, provider := range stats.ProxyProviders {
+		result.ProxyProviders = append(result.ProxyProviders, subscriptionProvider{
+			Name: provider.Name, URL: provider.URL,
+			Fields: jsonSafeValue(provider.Fields).(map[string]any),
+		})
+	}
 
+	// Go map 无序；固定展开顺序，确保达到地址上限时结果可重复。
+	slices.SortFunc(result.ProxyProviders, func(a, b subscriptionProvider) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 	encoded, err := json.Marshal(result)
 	if err != nil {
 		return "", fmt.Errorf("marshal subscription result: %w", err)
@@ -113,20 +127,28 @@ func jsonSafeValue(value any) any {
 	}
 }
 
+type subscriptionProvider struct {
+	Name   string         `json:"name"`
+	URL    string         `json:"url"`
+	Fields map[string]any `json:"fields"`
+}
+
 type subscriptionResult struct {
-	Nodes           []subscriptionNode `json:"nodes"`
-	Candidates      int                `json:"candidates"`
-	Parsed          int                `json:"parsed"`
-	Skipped         int                `json:"skipped"`
-	YAML            int                `json:"yaml"`
-	Links           int                `json:"links"`
-	Base64          int                `json:"base64"`
-	Base64Layers    int                `json:"base64Layers"`
-	FormatCounts    map[string]int     `json:"formatCounts"`
-	SkippedByReason map[string]int     `json:"skippedByReason"`
+	ProxyProviders  []subscriptionProvider `json:"proxyProviders"`
+	Nodes           []subscriptionNode     `json:"nodes"`
+	Candidates      int                    `json:"candidates"`
+	Parsed          int                    `json:"parsed"`
+	Skipped         int                    `json:"skipped"`
+	YAML            int                    `json:"yaml"`
+	Links           int                    `json:"links"`
+	Base64          int                    `json:"base64"`
+	Base64Layers    int                    `json:"base64Layers"`
+	FormatCounts    map[string]int         `json:"formatCounts"`
+	SkippedByReason map[string]int         `json:"skippedByReason"`
 }
 
 type subscriptionNode struct {
+	Fingerprint  string         `json:"fingerprint"`
 	Name         string         `json:"name"`
 	Type         string         `json:"type"`
 	Server       string         `json:"server"`

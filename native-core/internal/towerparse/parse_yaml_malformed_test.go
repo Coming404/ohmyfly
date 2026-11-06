@@ -57,8 +57,10 @@ func assertYAMLMatchesDocument(t *testing.T, input string) {
 	_, hasList := root["proxies"].([]any)
 	var want []flight.Flight
 	for _, record := range document.Proxies {
-		normalizeYAMLShadowsocks(record)
-		node, err := flight.Normalize(record)
+		if err := normalizeYAMLNode(record); err != nil {
+			t.Fatal(err)
+		}
+		node, err := flight.NormalizeYAML(record)
 		if err != nil {
 			t.Fatal(err)
 		}

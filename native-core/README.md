@@ -1,13 +1,14 @@
 # native-core
 
-OhMyFly 的纯 Go 核心。它读取订阅内容（Clash/Mihomo YAML、逐行分享链接、Base64），把每个节点解析成统一的 `flight.Flight`，再做字段规范化和内容指纹。代码都在 `internal/`。SQLite 存储、网络拉取和 gomobile 桥接尚未开始。
+OhMyFly 的纯 Go 核心。它读取订阅内容（Clash/Mihomo YAML、逐行分享链接、Base64），把每个节点解析成统一的 `flight.Flight`，再做字段规范化和内容指纹。解析实现位于 `internal/`，通过 `mobile.ParseSubscription` 的 JSON 结果交给 App；订阅与 provider 的网络请求由 Kotlin 完成。
 
 ## 模块与依赖
 
 - Go module：`github.com/Coming404/ohmyfly/native-core`
 - Go 指令：`go 1.27.0`，本机验证使用 go1.27.3
 - YAML：`go.yaml.in/yaml/v3 v3.0.6`（MIT/Apache-2.0）
-- 除标准库和上述 YAML 依赖外没有其他依赖
+- SQLite：`modernc.org/sqlite v1.61.1`；完整依赖见 `go.mod`。
+- 正式 YAML 解析只使用 `yaml/v3`，不引入 `js-yaml` 或 JavaScript 运行时。上游 TS/js-yaml 仅用于仓库外的差分对照工具。
 
 ## API
 
@@ -15,6 +16,8 @@ OhMyFly 的纯 Go 核心。它读取订阅内容（Clash/Mihomo YAML、逐行分
 func towerparse.Parse(r io.Reader, emit func(flight.Flight) error) (towerparse.Stats, error)
 func towerparse.DetectFormat(prefix []byte) towerparse.Format
 func flight.Normalize(input map[string]any) (flight.Flight, error)
+// YAML 协议字段整理后调用；不会再次处理 Reality 和 WebSocket 参数。
+func flight.NormalizeYAML(input map[string]any) (flight.Flight, error)
 func flight.Fingerprint(value flight.Flight) [32]byte
 const flight.FingerprintVersion = 1
 ```
@@ -23,8 +26,9 @@ const flight.FingerprintVersion = 1
 
 ## 已实现
 
-- 格式识别：读开头一段判断 YAML、分享链接或 Base64。YAML 根键 `proxies` / `proxy-providers` 的裸键、双引号、单引号写法都能识别。Base64 支持 URL-safe 字符、缺 padding、换行和百分号编码，最多重新识别 3 轮。
-- YAML：流式扫描顶层 `proxies`，单条条目缓冲有上限；支持块式列表项、flow 集合和块标量，只读第一个文档。tab 和缩进错乱的条目会尝试恢复，恢复不了的按原因计入跳过。`proxy-providers` 只提取名称、URL 和其他字段，不拉取。
+- 格式识别：有界前缀按上游根语法分流，支持根级映射、顶层列表、单节点、JSON、带引号或空格的根键。分享链接走独立解析器；Base64 解码后重新识别，最多 3 轮。
+- YAML：先整份加载与缩进修复；加载失败或超过 16 MiB 时保留本地逐项恢复扫描器。两条路径共用协议默认值、别名、端点和插件整理；数字凭据通过 `yaml.Node` 保留前导零和大整数原文。
+- providers：Go 导出名称、URL 与原始选项，mobile 同时导出节点内容指纹。Kotlin 自动请求 HTTP provider、解析内嵌 payload；不读取 `type: file` 的外部本地文件。原始订阅为第 0 层，最多展开 3 层，整次导入共用 32 个不同 URL；循环引用停止，同一 URL 不重复请求。原始订阅、provider、UA 尝试和重试共用 `min(timeout×4, 60s)` 时间预算，各响应沿用下载大小限制。过滤后按内容指纹去重；部分失败保留成功节点，并在塔台显示不含 URL/凭据的原因。
 - 分享链接（按 scheme 分发）：
   - `vless`（含 Reality、XHTTP）、`vmess` / `vmess1`、`ss`、`ssr`、`trojan`
   - `hysteria` / `hy`、`hysteria2` / `hy2`、`tuic`、`anytls`、`wireguard` / `wg`、`snell`
@@ -35,9 +39,9 @@ const flight.FingerprintVersion = 1
 
 ## 尚未实现
 
-- 去重（计划按 sublinkPro 的内容哈希规则，忽略 name、dialer-proxy、udp、tfo、client-fingerprint）。
-- 裸 `IP:端口`、混杂文本提取、proxy-provider 递归拉取、SQLite、网络、gomobile。
-- YAML 已知未覆盖：引号根键的冒号前有空格、根级 flow 映射 `{proxies: ...}`。
+- 裸 `IP:端口`、混杂文本提取。
+- provider 的持久化缓存、定时更新，以及依赖 Clash 本地运行环境的选项执行，不属于本次订阅展开。
+- 本次新增 Kotlin provider 测试尚未在 Actions 编译运行；代码完成不代表双端运行验证通过。
 
 ## 来源与许可
 
@@ -46,6 +50,9 @@ const flight.FingerprintVersion = 1
 输出的字段名和含义以 mihomo v1.19.33 的适配器（`adapter/outbound/*.go`）为准，上游只决定接受哪些链接格式。两者冲突时按 mihomo 处理。
 
 与上游有意不同的地方：
+
+- YAML 保留逐项恢复扫描器及其错误计数方式；上游整份失败时不恢复。App 接收并拉取 provider，因此不追加上游“浏览器无法拉取 provider”的错误。
+- YAML 的域名大小写、尾点、IPv6 写法沿用本地统一规则；`Flight.Name` 与 App 契约为字符串，上游接受的非字符串名称在本地为空。其余已覆盖的 YAML 协议整理按固定上游执行，链接解析不进入 YAML 专用入口。
 
 - VLESS、Trojan、AnyTLS 的 `pcs`（Xray 的证书 SHA-256 固定）同时写两个字段。`fingerprint` 取 `pcs` 或 `hpkp` 中第一个 64 位十六进制值，供 mihomo 校验证书，与 mihomo 自带的链接转换（`common/convert/v.go:39`、`converter.go:216`、`converter.go:620`）一致。`pcs` 原样保留，导出分享链接时写回，不丢失逗号分隔的多个指纹和原始写法。上游 VLESS、AnyTLS 只保留 `pcs`，Trojan 两者都不写；mihomo 适配器没有 `pcs` 字段，只靠它时，服务器用自签证书的节点会因证书校验失败而无法连接。`fingerprint` 只能放一个值是 mihomo 的限制，多个指纹时只按第一个有效值校验。
 - 大写协议名（如 `TROJAN://`）在分发前统一转成小写，与上游 `normalizeNodeLinkScheme` 一致；直接调用上游 `parseTrojan`、`parseAnyTLS` 时会被拒绝。
@@ -74,4 +81,4 @@ go test -count=1 -p 1 ./...
 go test -run '^$' -bench . -benchtime=1x ./internal/towerparse
 ```
 
-共 131 个测试函数，覆盖格式识别、YAML 容错、各协议链接与 SubBoost 行为对照、指纹等价规则。3 个 benchmark 分别用 1 万条 YAML、链接和 Base64 链接。
+共 154 个 Go 测试函数，覆盖格式识别、YAML 整理与容错、各协议链接、内容指纹和 mobile provider 契约。3 个 benchmark 分别用 1 万条 YAML、链接和 Base64 链接。2026-11-06 对固定上游执行 464 项 YAML 差分，452 项一致，剩余 12 项属于上文记录的本地行为或名称契约；公开 Parse 入口与 YAML 入口节点结果一致。VMess 116 项、VLESS 262 项链接差分全部一致。

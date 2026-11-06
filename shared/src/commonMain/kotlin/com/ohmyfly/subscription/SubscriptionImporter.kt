@@ -8,8 +8,11 @@ import kotlinx.coroutines.CancellationException
 import kotlin.time.TimeSource
 
 internal data class SubscriptionNode(val name: String, val type: String, val server: String, val port: Int)
-internal data class SubscriptionImportResult(val nodes: List<SubscriptionNode> = emptyList(), val failure: String? = null)
-private data class ParsedAttempt(
+internal data class SubscriptionImportResult(
+    val nodes: List<SubscriptionNode> = emptyList(), val failure: String? = null,
+    val warnings: List<String> = emptyList(),
+)
+internal data class ParsedAttempt(
     val parsed: NativeSubscription? = null, val failure: String? = null, val retryable: Boolean = false,
 )
 
@@ -21,38 +24,55 @@ internal class SubscriptionImporter(
     suspend fun importSubscription(url: String, settings: SubscriptionSettings): SubscriptionImportResult {
         validateSubscriptionUrl(url)?.let { return SubscriptionImportResult(failure = it) }
         val target = url.trim()
-        val timeoutMillis = (settings.timeoutSeconds * 1000L).coerceAtLeast(1)
-        val budgetMillis = minOf(timeoutMillis * 4, 60_000L)
+        val budgetMillis = minOf(settings.timeoutSeconds * 4000L, 60_000L).coerceAtLeast(1)
         val started = timeSource.markNow()
+        fun remaining() = budgetMillis - started.elapsedNow().inWholeMilliseconds
+        val initial = fetchSnapshot(target, settings, emptyMap(), ::remaining)
+        val parsed = initial.parsed
+            ?: return SubscriptionImportResult(failure = initial.failure ?: "获取 url 失败")
+        val resolved = resolveSubscriptionProviders(target, parsed, parse, ::remaining) { providerUrl, headers ->
+            fetchSnapshot(providerUrl, settings, headers, ::remaining)
+        }
+        val merged = parsed.copy(nodes = resolved.nodes)
+        if (!hasUsableSubscriptionSnapshot(merged)) {
+            val failure = if (looksLikeClientUpdatePlaceholderNodes(merged.nodes)) {
+                "订阅服务返回了客户端更新提示占位内容，未导入该结果"
+            } else "未解析到有效节点"
+            return SubscriptionImportResult(failure = failure, warnings = resolved.warnings)
+        }
+        return filterNodes(merged, settings).copy(warnings = resolved.warnings)
+    }
+
+    private suspend fun fetchSnapshot(
+        url: String, settings: SubscriptionSettings, headers: Map<String, List<String>>,
+        remainingBudget: () -> Long,
+    ): ParsedAttempt {
+        val timeoutMillis = (settings.timeoutSeconds * 1000L).coerceAtLeast(1)
         var best: ParsedAttempt? = null
-        attempts@ for (userAgent in subscriptionUserAgents(target, settings.userAgent)) {
+        val providerAgent = headers.entries.firstOrNull { it.key.equals("User-Agent", ignoreCase = true) }
+        val agents = if (providerAgent != null) listOf(providerAgent.value.first())
+            else subscriptionUserAgents(url, settings.userAgent)
+        attempts@ for (userAgent in agents) {
             var retries = 0
             while (true) {
-                val remaining = minOf(timeoutMillis, budgetMillis - started.elapsedNow().inWholeMilliseconds)
+                val remaining = minOf(timeoutMillis, remainingBudget())
                 if (remaining <= 0) break@attempts
-                val attempt = fetchAndParse(target, settings, userAgent, remaining)
+                val attempt = fetchAndParse(url, settings, userAgent, remaining, headers)
                 best = pickBetterAttempt(best, attempt)
                 // GitHub 默认模式明确只请求一次，连可重试错误也不再发起请求。
                 if (!attempt.retryable || userAgent == null || retries >= settings.retries) break
                 retries++
             }
         }
-        val parsed = best?.parsed
-        if (parsed == null) return SubscriptionImportResult(failure = best?.failure ?: "获取 url 失败")
-        if (!hasUsableSubscriptionSnapshot(parsed)) {
-            val failure = if (looksLikeClientUpdatePlaceholderNodes(parsed.nodes)) {
-                "订阅服务返回了客户端更新提示占位内容，未导入该结果"
-            } else "未解析到有效节点"
-            return SubscriptionImportResult(failure = failure)
-        }
-        return filterNodes(parsed, settings)
+        return best ?: ParsedAttempt(failure = "订阅导入已达到总超时")
     }
 
     private suspend fun fetchAndParse(
         url: String, settings: SubscriptionSettings, userAgent: String?, timeoutMillis: Long,
+        headers: Map<String, List<String>>,
     ): ParsedAttempt {
         val content = try {
-            fetcher.fetch(url, settings, userAgent, timeoutMillis)
+            fetcher.fetch(url, settings, userAgent, timeoutMillis, headers)
         } catch (e: CancellationException) {
             throw e
         } catch (e: SubscriptionFetchException) {
@@ -80,6 +100,9 @@ private fun pickBetterAttempt(current: ParsedAttempt?, next: ParsedAttempt): Par
     if (currentUsable != nextUsable) return if (nextUsable) next else current
     if ((currentParsed != null) != (nextParsed != null)) return if (nextParsed != null) next else current
     if (currentParsed == null || nextParsed == null) return current
+    if (!currentUsable && currentParsed.proxyProviders.isEmpty() != nextParsed.proxyProviders.isEmpty()) {
+        return if (nextParsed.proxyProviders.isNotEmpty()) next else current
+    }
     return if (isBetterSubscriptionSnapshot(currentParsed, nextParsed)) next else current
 }
 
@@ -105,6 +128,6 @@ private fun filterNodes(parsed: NativeSubscription, settings: SubscriptionSettin
             (included == null || included.containsMatchIn(node.name)) &&
             (excluded == null || !excluded.containsMatchIn(node.name)) &&
             (settings.protocols.isEmpty() || node.type in settings.protocols)
-    }.map { SubscriptionNode(it.name, it.type, it.server, it.port) }
+    }.distinctBy { it.fingerprint }.map { SubscriptionNode(it.name, it.type, it.server, it.port) }
     return SubscriptionImportResult(nodes = nodes)
 }

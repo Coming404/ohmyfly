@@ -25,6 +25,7 @@ internal fun testNode(
         extra.forEach { (key, value) -> put(key, value) }
     },
     sourceFormat = "link", fromBase64 = false,
+    fingerprint = "$type|$server|$port|$extra",
 )
 
 internal fun testSnapshot(vararg nodes: NativeSubscriptionNode, skipped: Int = 0): NativeSubscription =

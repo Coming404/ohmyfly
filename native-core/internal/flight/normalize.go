@@ -213,6 +213,11 @@ func alias(node map[string]any, canonical []string, aliases ...[]string) {
 }
 
 func canonicalizeAliases(node map[string]any, typ string) {
+	canonicalizeNodeAliases(node, typ, alias)
+}
+
+// 链接保持既有折叠行为；YAML 无有效候选时需保留原空字段。
+func canonicalizeNodeAliases(node map[string]any, typ string, alias func(map[string]any, []string, ...[]string)) {
 	if typ == "vless" {
 		alias(node, []string{"reality-opts", "public-key"},
 			[]string{"reality-opts", "pbk"}, []string{"reality-opts", "publicKey"},

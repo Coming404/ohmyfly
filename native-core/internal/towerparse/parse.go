@@ -1,3 +1,4 @@
+// 塔台解析公共入口；YAML 文档与逐项恢复共用节点规范化出口。
 package towerparse
 
 import (
@@ -6,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"math"
 	"regexp"
 	"strings"
@@ -180,6 +182,10 @@ func emitYAMLDocument(value any, emit func(flight.Flight) error, stats Stats) (S
 }
 
 func emitYAMLValue(value any, emit func(flight.Flight) error, stats *Stats) error {
+	// 上游忽略列表中的标量；数组仍是对象，进入缺失类型的失败分支。
+	if !isYAMLCollection(value) {
+		return nil
+	}
 	stats.Candidates++
 	record, ok := yamlMapping(value)
 	if !ok {
@@ -190,8 +196,12 @@ func emitYAMLValue(value any, emit func(flight.Flight) error, stats *Stats) erro
 }
 
 func emitYAMLRecord(record map[string]any, emit func(flight.Flight) error, stats *Stats) error {
-	normalizeYAMLShadowsocks(record)
-	flightValue, err := flight.Normalize(record)
+	record = maps.Clone(record)
+	if err := normalizeYAMLNode(record); err != nil {
+		stats.skip("invalid YAML item")
+		return nil
+	}
+	flightValue, err := flight.NormalizeYAML(record)
 	if err != nil {
 		stats.skip("invalid YAML item")
 		return nil

@@ -147,6 +147,7 @@ private fun SubscriptionTowerHeader(
             SettingsName(tower.address)
             SettingsHint(if (loading) "拉取中…" else "${tower.nodes.size} 个节点")
             tower.failure?.let { SettingsHint(it, isError = true) }
+            tower.warnings.forEach { SettingsHint(it, isError = true) }
             if (!loading && tower.failure == null && tower.nodes.isEmpty()) SettingsHint("暂无节点")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 SettingsButton("刷新", SettingsIcons.Retry, Modifier.weight(1f), enabled = !loading, onClick = onRefresh)

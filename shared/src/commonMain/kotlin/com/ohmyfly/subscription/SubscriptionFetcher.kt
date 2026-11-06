@@ -45,12 +45,17 @@ private fun isRetryableStatus(status: Int): Boolean =
 internal class SubscriptionFetcher(private val client: HttpClient) {
     suspend fun fetch(
         url: String, settings: SubscriptionSettings, userAgent: String?, timeoutMillis: Long,
+        requestHeaders: Map<String, List<String>> = emptyMap(),
     ): String {
         val maxBytes = settings.maxMiB.toLong() * 1024 * 1024
         return withTimeoutOrNull(timeoutMillis) {
             client.prepareGet(url) {
                 headers.append(HttpHeaders.CacheControl, "no-cache")
                 if (userAgent != null) headers.append(HttpHeaders.UserAgent, userAgent)
+                requestHeaders.forEach { (name, values) ->
+                    headers.remove(name)
+                    values.forEach { headers.append(name, it) }
+                }
             }.execute { response ->
                 val status = response.status.value
                 if (status !in 200..299) {
