@@ -5,6 +5,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import okio.Buffer
 import okio.FileSystem
+import okio.use
 
 internal class LogReader(
     private val fs: FileSystem,

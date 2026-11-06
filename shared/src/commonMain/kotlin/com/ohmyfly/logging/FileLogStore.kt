@@ -7,6 +7,7 @@ import okio.Buffer
 import okio.FileSystem
 import okio.Path
 import okio.buffer
+import okio.use
 import kotlin.time.Clock
 
 internal data class LogFile(val path: Path, val created: Long, var bytes: Long)
