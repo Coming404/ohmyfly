@@ -1,4 +1,7 @@
+// 探测日志在批次操作和结果变化时输出，不随界面重绘重复记录。
 package com.ohmyfly.ui.settings
+
+import com.ohmyfly.logging.logger
 
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -123,7 +126,9 @@ internal class MirrorProbeRunner(
         val batchId = completedBatchId
         if (batchId == 0L || batchId == autoSelectionHandledBatchId) return null
         autoSelectionHandledBatchId = batchId
-        return fastestMirrorId(autoSelectionTargets, results)
+        return fastestMirrorId(autoSelectionTargets, results).also { selected ->
+            logger.info { "[镜像选择] 按通过校验样本的中位延迟择优，找到可用来源=${selected != null}" }
+        }
     }
 
     /** Keep measurements across screen routes, but invalidate them when a mirror target changes. */
@@ -155,6 +160,7 @@ internal class MirrorProbeRunner(
 
     fun stop() {
         if (!running || stopping) return
+        logger.info { "[镜像批次 $runId] 请求停止，已完成 $completed/$total" }
         val current = job ?: return
         runId += 1L
         val unfinished = phases
@@ -182,6 +188,7 @@ internal class MirrorProbeRunner(
         job?.cancel()
         runId += 1L
         val id = runId
+        logger.info { "[镜像批次 $id] 开始，目标=${targets.size}，并发上限=4，完成后自动择优=$autoSelect" }
         running = true
         stopping = false
         stopped = false
@@ -199,6 +206,7 @@ internal class MirrorProbeRunner(
                 }
             } finally {
                 if (id == runId) {
+                    logger.info { "[镜像批次 $id] 结束，完成=$completed/$total，已停止=$stopped" }
                     running = false
                     if (autoSelect && completed == total && !stopped) completedBatchId = id
                 }

@@ -1,6 +1,9 @@
 // 按广度优先展开 provider；同一次导入共用深度、地址数量和时间预算。
 package com.ohmyfly.subscription
 
+import com.ohmyfly.logging.logger
+import com.ohmyfly.logging.logTarget
+
 import com.ohmyfly.nativecore.NativeSubscription
 import com.ohmyfly.nativecore.NativeSubscriptionNode
 import com.ohmyfly.nativecore.NativeSubscriptionProvider
@@ -24,6 +27,7 @@ private data class PendingProvider(
 internal suspend fun resolveSubscriptionProviders(
     rootUrl: String, root: NativeSubscription, parse: (String) -> NativeSubscription,
     remainingBudget: () -> Long,
+    operation: String = "",
     fetch: suspend (String, Map<String, List<String>>) -> ParsedAttempt,
 ): ResolvedSubscription {
     val rootKey = providerUrlKey(rootUrl)
@@ -35,6 +39,7 @@ internal suspend fun resolveSubscriptionProviders(
     var requested = 0
     while (queue.isNotEmpty()) {
         val pending = queue.removeFirst()
+        logger.debug { "[订阅 $operation] 展开 provider：层级=${pending.depth}/$MaxProviderDepth，目标=${logTarget(pending.provider.url)}，剩余引用=${queue.size}，已请求=$requested/$MaxProviderUrls" }
         if (pending.depth > MaxProviderDepth) {
             warnings += "provider 已达到 $MaxProviderDepth 层展开上限"
             continue
@@ -54,7 +59,10 @@ internal suspend fun resolveSubscriptionProviders(
                 warnings += "已停止 provider 循环引用"
                 continue
             }
-            if (key in visited) continue
+            if (key in visited) {
+                logger.debug { "[订阅 $operation] provider 地址已请求，跳过重复引用" }
+                continue
+            }
             if (requested >= MaxProviderUrls) {
                 warnings += "provider 已达到 $MaxProviderUrls 个地址上限"
                 continue
@@ -79,10 +87,13 @@ internal suspend fun resolveSubscriptionProviders(
         if (parsed.nodes.isEmpty() && parsed.proxyProviders.isEmpty()) {
             warnings += "provider 未解析到节点或下级引用"
         }
+        logger.debug { "[订阅 $operation] provider 完成：新增节点=${parsed.nodes.size}，下级引用=${parsed.proxyProviders.size}，跳过=${parsed.skipped}" }
         nodes += parsed.nodes
         parsed.proxyProviders.forEach { queue.addLast(PendingProvider(it, pending.depth + 1, ancestors)) }
     }
     // 名称过滤完成后再去重，避免先选中信息节点而丢掉同配置的可用名称。
+    warnings.distinct().forEach { reason -> logger.info { "[订阅 $operation] provider 提示：$reason" } }
+    logger.debug { "[订阅 $operation] provider 展开结束：请求=$requested，合并节点=${nodes.size}，提示=${warnings.distinct().size}" }
     return ResolvedSubscription(nodes, warnings.distinct())
 }
 

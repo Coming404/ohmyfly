@@ -7,6 +7,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.ohmyfly.logging.AppLog
+import com.ohmyfly.logging.logger
+import kotlinx.coroutines.CancellationException
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.SettingsSession
 import com.ohmyfly.settings.createSettingsRepository
@@ -42,6 +45,20 @@ internal fun PersistedSettings(
     LaunchedEffect(session) { session.run() }
     val state = session.state
     val current = state.settings
+    val logPolicy = state.confirmedSettings?.logging
+    LaunchedEffect(logPolicy, state.readFailed) {
+        // 只应用已落盘配置；读取失败时显示错误，不提前按默认限额清理历史。
+        if (logPolicy != null) {
+            try {
+                AppLog.configure(logPolicy)
+                logger.info { "[日志] 已应用配置：单文件 ${logPolicy.fileMiB} MiB，总量 ${logPolicy.totalMiB} MiB，保留 ${logPolicy.retentionDays} 天，级别 ${logPolicy.level}" }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                messages.show(com.ohmyfly.ui.AppMessageKind.Error, "日志配置应用失败，请在日志页面重试")
+            }
+        }
+    }
     val retryRead: () -> Unit = if (repository == null) ({ retry += 1 }) else session::retryRead
 
     CompositionLocalProvider(LocalAppMessages provides messages) {

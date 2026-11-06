@@ -56,6 +56,7 @@ internal fun SettingsHome(
         item(key = "app-title") { SettingsSectionTitle("应用", DriftIcons.Settings) }
         item(key = "app") {
             SettingsCard {
+                SettingsActionRow(SettingsPage.Logs.title, SettingsIcons.Backup, onClick = { onPage(SettingsPage.Logs) })
                 SettingsActionRow(SettingsPage.Privacy.title, SettingsIcons.Lock, onClick = { onPage(SettingsPage.Privacy) })
                 SettingsActionRow(SettingsPage.About.title, SettingsIcons.Hint, onClick = { onPage(SettingsPage.About) })
             }

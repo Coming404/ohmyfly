@@ -99,6 +99,7 @@ internal object SettingsCodec {
         target[subInclude] = subscription.includePattern
         target[subExclude] = subscription.excludePattern
         target[subProtocols] = subscription.protocols
+        LogSettingsCodec.write(target, settings.logging)
         MirrorCodec.write(target, settings)
     }
 
@@ -173,6 +174,7 @@ internal object SettingsCodec {
                     SettingsLimits.MAX_PROTOCOLS,
                 ),
             ),
+            logging = LogSettingsCodec.read(preferences),
             mirrors = mirrors.mirrors,
             selectedMirrorId = mirrors.selectedMirrorId,
         )

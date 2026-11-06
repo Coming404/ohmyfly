@@ -1,6 +1,10 @@
 // Ported from SubBoost local/src/lib/{source-import,user-agents}.ts @401534742802e2b1542783197ce66451bad82739 (AGPL-3.0-only).
 package com.ohmyfly.subscription
 
+import com.ohmyfly.logging.logger
+import com.ohmyfly.logging.logTarget
+import kotlin.time.TimeSource
+
 import com.ohmyfly.settings.SubscriptionSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.request.prepareGet
@@ -46,8 +50,11 @@ internal class SubscriptionFetcher(private val client: HttpClient) {
     suspend fun fetch(
         url: String, settings: SubscriptionSettings, userAgent: String?, timeoutMillis: Long,
         requestHeaders: Map<String, List<String>> = emptyMap(),
+        operation: String = "",
     ): String {
+        val started = TimeSource.Monotonic.markNow()
         val maxBytes = settings.maxMiB.toLong() * 1024 * 1024
+        logger.debug { "[订阅 $operation] GET ${logTarget(url)}，超时 ${timeoutMillis}ms，上限 ${maxBytes}B，附加请求头 ${requestHeaders.size} 个，发送UA=${userAgent != null}" }
         return withTimeoutOrNull(timeoutMillis) {
             client.prepareGet(url) {
                 headers.append(HttpHeaders.CacheControl, "no-cache")
@@ -58,6 +65,7 @@ internal class SubscriptionFetcher(private val client: HttpClient) {
                 }
             }.execute { response ->
                 val status = response.status.value
+                logger.debug { "[订阅 $operation] 响应 HTTP $status，最终目标 ${logTarget(response.call.request.url.toString())}，耗时 ${started.elapsedNow().inWholeMilliseconds}ms" }
                 if (status !in 200..299) {
                     throw SubscriptionFetchException("HTTP $status", retryable = isRetryableStatus(status))
                 }
@@ -65,6 +73,7 @@ internal class SubscriptionFetcher(private val client: HttpClient) {
                 if (declared != null && declared > maxBytes) throw SubscriptionFetchException("订阅超过大小上限", false)
                 val bytes = response.bodyAsChannel().readRemaining(maxBytes + 1).readByteArray()
                 if (bytes.size > maxBytes) throw SubscriptionFetchException("订阅超过大小上限", false)
+                logger.debug { "[订阅 $operation] 下载完成：声明 ${declared ?: "未知"}B，实际 ${bytes.size}B，总耗时 ${started.elapsedNow().inWholeMilliseconds}ms" }
                 bytes.decodeToString()
             }
         } ?: throw SubscriptionFetchException("请求超时", retryable = true)

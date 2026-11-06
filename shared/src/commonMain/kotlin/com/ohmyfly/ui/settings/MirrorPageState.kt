@@ -1,4 +1,8 @@
+// 镜像管理日志记录提交及确认结果，不输出地址中的凭据。
 package com.ohmyfly.ui.settings
+
+import com.ohmyfly.logging.logger
+import com.ohmyfly.logging.logTarget
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -74,6 +78,7 @@ internal class MirrorPageState(
         val candidate = draft.candidate
         if (mirrorDraftError(candidate, session.state.settings.mirrors) != null) return
         val entry = candidate.copy(address = canonicalAddress(candidate))
+        logger.debug { "[镜像管理] 提交${if (draft.confirmed == null) "新增" else "修改"}：${logTarget(entry.address)}" }
         if (sameMirrorCandidate(entry, draft.confirmed)) {
             draft.failure = null
             visible = false
@@ -92,6 +97,7 @@ internal class MirrorPageState(
                         current.mirrors.map { if (it.id == entry.id) entry else it }
                     } else current.mirrors + entry)
                 }
+                logger.info { "[镜像管理] 保存结果=${outcome::class.simpleName}，目标=${logTarget(entry.address)}" }
                 when (outcome) {
                     is SettingsWriteResult.Confirmed -> {
                         draft.confirmed = outcome.settings.mirrors.firstOrNull { it.id == entry.id }
@@ -143,6 +149,7 @@ internal class MirrorPageState(
 
     fun delete(id: String) {
         if (deleting) return
+        logger.info { "[镜像管理] 请求删除镜像，删除后重新选择可用来源" }
         deleting = true
         deleteError = null
         scope.launch {

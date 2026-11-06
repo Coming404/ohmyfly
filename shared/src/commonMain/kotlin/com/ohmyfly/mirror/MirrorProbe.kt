@@ -1,4 +1,8 @@
+// 镜像样本日志只记录来源和验证结果，不输出响应正文。
 package com.ohmyfly.mirror
+
+import com.ohmyfly.logging.logger
+import com.ohmyfly.logging.logTarget
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withTimeoutOrNull
@@ -18,18 +22,22 @@ internal class MirrorProbe(private val transport: MirrorTransport) {
             buildMirrorUrl(it, MirrorProbeTarget.url)
         } ?: MirrorProbeTarget.url
 
+        logger.info { "[镜像探测] 开始 ${logTarget(target)}，样本 $SAMPLES 次，超时 ${DEFAULT_TIMEOUT_MILLIS}ms，上限 ${DEFAULT_MAX_BYTES}B" }
         val latencies = mutableListOf<Long>()
         var timeouts = 0
         var badContent = 0
         var failures = 0
         repeat(SAMPLES) {
-            when (val sample = attempt(target)) {
+            val sample = attempt(target)
+            logger.debug { "[镜像探测] ${logTarget(target)} 样本 ${it + 1}/$SAMPLES：$sample" }
+            when (sample) {
                 is Sample.Ok -> latencies += sample.ttfbMs
                 Sample.Timeout -> timeouts += 1
                 Sample.BadContent -> badContent += 1
                 Sample.Failed -> failures += 1
             }
         }
+        logger.info { "[镜像探测] ${logTarget(target)}：通过=${latencies.size}/$SAMPLES，超时=$timeouts，内容不符=$badContent，其他失败=$failures" }
         if (latencies.isNotEmpty()) {
             val sorted = latencies.sorted()
             val median = if (sorted.size == 2) sorted[0] + (sorted[1] - sorted[0]) / 2 else sorted[sorted.size / 2]
@@ -51,6 +59,7 @@ internal class MirrorProbe(private val transport: MirrorTransport) {
         val response = withTimeoutOrNull(DEFAULT_TIMEOUT_MILLIS) {
             fetchWithRedirects(transport, startUrl, DEFAULT_TIMEOUT_MILLIS, DEFAULT_MAX_BYTES)
         }
+        logger.debug { "[镜像探测] ${logTarget(startUrl)}：HTTP=${response?.statusCode ?: "超时"}，字节=${response?.body?.size ?: 0}，TTFB=${response?.ttfbMs ?: -1}ms，SHA256一致=${response?.let { matchesDigest(it.body, MirrorProbeTarget.sha256) } ?: false}" }
         when {
             response == null -> Sample.Timeout
             response.statusCode !in 200..299 -> Sample.Failed
@@ -59,10 +68,13 @@ internal class MirrorProbe(private val transport: MirrorTransport) {
             else -> Sample.Ok(response.ttfbMs.coerceAtLeast(0))
         }
     } catch (cancel: CancellationException) {
+        logger.info { "[镜像探测] ${logTarget(startUrl)} 已取消" }
         throw cancel
     } catch (_: MirrorTimeoutException) {
+        logger.debug { "[镜像探测] ${logTarget(startUrl)} 网络请求超时" }
         Sample.Timeout
-    } catch (_: Exception) {
+    } catch (error: Exception) {
+        logger.debug { "[镜像探测] ${logTarget(startUrl)} 异常类型=${error::class.simpleName}" }
         Sample.Failed
     }
 

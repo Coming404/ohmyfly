@@ -1,4 +1,8 @@
+// 网络日志只记录安全来源、状态、体积和计时。
 package com.ohmyfly.mirror
+
+import com.ohmyfly.logging.logger
+import com.ohmyfly.logging.logTarget
 
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
@@ -15,17 +19,20 @@ internal class MirrorHttpTransport(
     private val verifyHost: suspend (String) -> Unit = ::ensurePublicHost,
 ) : MirrorTransport {
     override suspend fun fetch(url: String, timeoutMillis: Long, maxBytes: Int): ProbeResponse {
+        logger.debug { "[镜像HTTP] GET ${logTarget(url)}，超时 ${timeoutMillis}ms，最多 ${maxBytes}B" }
         val parsed = parseHttpUrl(url) ?: throw MirrorFetchException("请求地址不是公网 HTTP 或 HTTPS 地址")
         require(timeoutMillis in 1..60_000 && maxBytes in 1..1_048_576)
         return withTimeoutOrNull(timeoutMillis) {
             val start = TimeSource.Monotonic.markNow()
             verifyHost(parsed.host)
+            logger.debug { "[镜像HTTP] 公网主机验证通过 ${parsed.host}，耗时 ${start.elapsedNow().inWholeMilliseconds}ms" }
             client.prepareGet(url) {
                 headers.append(HttpHeaders.AcceptEncoding, "identity")
                 headers.append(HttpHeaders.CacheControl, "no-cache")
                 headers.append(HttpHeaders.UserAgent, "ohmyfly-mirror-probe")
             }.execute { response ->
                 val status = response.status.value
+                logger.debug { "[镜像HTTP] ${logTarget(url)} 响应 HTTP $status，响应头耗时 ${start.elapsedNow().inWholeMilliseconds}ms" }
                 if (status !in 200..299) {
                     return@execute ProbeResponse(status, byteArrayOf(), start.elapsedNow().inWholeMilliseconds,
                         response.headers[HttpHeaders.Location])
@@ -46,6 +53,7 @@ internal class MirrorHttpTransport(
                     chunk.copyInto(bytes, count, 0, read)
                     count += read
                 }
+                logger.debug { "[镜像HTTP] ${logTarget(url)} 读取完成：声明=${declared ?: "未知"}B，实际=${count}B，首字节=${firstByte ?: -1}ms，总耗时=${start.elapsedNow().inWholeMilliseconds}ms" }
                 ProbeResponse(status, bytes.copyOf(count), firstByte ?: start.elapsedNow().inWholeMilliseconds)
             }
         } ?: throw MirrorTimeoutException()

@@ -3,12 +3,14 @@ package com.ohmyfly
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.window.ComposeUIViewController
 import com.ohmyfly.network.requestStartupNetworkAccess
+import com.ohmyfly.logging.initializeAppLogging
 import com.ohmyfly.settings.iosSettingsPath
 import platform.Foundation.NSBundle
 
 fun MainViewController(
     onThemeChanged: (dark: Boolean, followsSystem: Boolean) -> Unit,
 ): platform.UIKit.UIViewController {
+    initializeAppLogging()
     val path = iosSettingsPath()
     val bundle = NSBundle.mainBundle
     val name = bundle.objectForInfoDictionaryKey("CFBundleShortVersionString") as? String ?: "未知版本"

@@ -1,4 +1,7 @@
+// 设置日志记录读写结果与变更类别，不序列化完整配置或敏感值。
 package com.ohmyfly.settings
+
+import com.ohmyfly.logging.logger
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -80,6 +83,7 @@ internal class SettingsSession(
         changeConfirmed(name = null, transform = transform)
 
     private fun enqueue(change: PendingChange): Boolean {
+        logger.debug { "[设置] 请求保存：${change.name ?: "设置变更"}，排队=${pending.size}，已加载=${confirmed != null}，读取失败=${state.readFailed}" }
         val activeScope = scope?.takeIf { it.isActive }
         if (activeScope == null || confirmed == null || state.readFailed) {
             if (change.reportErrors && !state.readFailed) {
@@ -90,9 +94,15 @@ internal class SettingsSession(
         val next = change.transform(state.settings)
         val invalid = validateSettings(next)
         if (invalid != null) {
+            logger.info { "[设置] ${change.name ?: "变更"}校验未通过：$invalid" }
             if (change.reportErrors) onMessage(AppMessageKind.Error, "${change.name ?: "设置"}无效：$invalid")
             return false
         }
+        val before = state.settings
+        if (before.mirrorEnabled != next.mirrorEnabled) logger.debug { "[设置] 镜像启用：${before.mirrorEnabled} → ${next.mirrorEnabled}" }
+        if (before.selectedMirrorId != next.selectedMirrorId) logger.debug { "[设置] 镜像选择：列表序号 ${before.mirrors.indexOfFirst { it.id == before.selectedMirrorId } + 1} → ${next.mirrors.indexOfFirst { it.id == next.selectedMirrorId } + 1}" }
+        if (before.themeMode != next.themeMode || before.materialMode != next.materialMode) logger.debug { "[设置] 外观：${before.themeMode}/${before.materialMode} → ${next.themeMode}/${next.materialMode}" }
+        if (before.logging != next.logging) logger.debug { "[设置] 日志策略：${before.logging} → ${next.logging}" }
         // 取消旧订阅；排空后重新订阅读当前磁盘值，不靠相等比较推测 Flow 的版本。
         if (pending.isEmpty()) reader?.cancel()
         pending.addLast(change)
@@ -108,6 +118,7 @@ internal class SettingsSession(
     fun retryRead() {
         val activeScope = scope?.takeIf { it.isActive } ?: return
         if (!state.readFailed || pending.isNotEmpty() || recovery?.isActive == true) return
+        logger.info { "[设置] 开始重试读取，不重放未确认修改" }
         recovery = activeScope.launch {
             reader?.cancel()
             try {
@@ -121,10 +132,12 @@ internal class SettingsSession(
                     readFailed = false,
                     writeUncertain = false,
                 )
+                logger.info { "[设置] 重试读取成功，恢复可写状态" }
                 if (scope?.isActive == true) observe()
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                logger.info { "[设置] 读取失败，异常类型=${error::class.simpleName}，保留原文件" }
                 currentCoroutineContext().ensureActive()
                 state = state.copy(readFailed = true)
             } finally {
@@ -143,6 +156,7 @@ internal class SettingsSession(
                     // cancel(). Never let that stale read overwrite a pending optimistic choice or
                     // the rollback baseline while a save is in flight.
                     if (pending.isEmpty()) {
+                        logger.debug { "[设置] 已读取持久化配置，镜像=${value.mirrors.size}，日志级别=${value.logging.level}，不输出配置原文" }
                         confirmed = value
                         state = state.copy(
                             settings = value,
@@ -155,7 +169,8 @@ internal class SettingsSession(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                logger.info { "[设置] 读取失败，异常类型=${error::class.simpleName}，保留原文件" }
                 currentCoroutineContext().ensureActive()
                 state = state.copy(readFailed = true)
             }
@@ -197,6 +212,7 @@ internal class SettingsSession(
                     return
                 }
                 state = state.copy(confirmedSettings = settled, pendingWrites = pending.size)
+                logger.info { "[设置] ${change.name ?: "变更"}已保存并读回确认，剩余 ${pending.size} 项" }
                 onMessage(AppMessageKind.Success, change.successText ?: "${change.name ?: "设置"}已保存")
                 // 只有事务已提交且读回磁盘值，才把这次操作标记为已确认。
                 change.done?.complete(SettingsWriteResult.Confirmed(settled))
@@ -213,6 +229,7 @@ internal class SettingsSession(
 
     /** 事务失败：失败操作及其后未执行的操作都失败，已确认值不受影响。 */
     private fun rollback(reportFailure: Boolean) {
+        logger.info { "[设置] 保存未完成，回滚 ${pending.size} 项未确认修改，失败通知=$reportFailure" }
         val failed = pending.firstOrNull()
         state = state.copy(settings = confirmed ?: state.settings, confirmedSettings = confirmed, pendingWrites = 0)
         if (reportFailure && failed != null && pending.any { it.reportErrors }) {
@@ -226,6 +243,7 @@ internal class SettingsSession(
 
     /** 写后读取失败：该操作已提交但无法确认；阻断弹窗独占提示，后续操作直接失败。 */
     private fun uncertain() {
+        logger.info { "[设置] 写入后读取失败，保存结果待确认，停止后续 ${pending.size - 1} 项修改" }
         state = state.copy(readFailed = true, writeUncertain = true, pendingWrites = 0)
         pending.removeFirstOrNull()?.done?.complete(SettingsWriteResult.Uncertain)
         failRest()

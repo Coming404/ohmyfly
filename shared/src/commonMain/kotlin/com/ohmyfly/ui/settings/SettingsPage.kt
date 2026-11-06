@@ -12,6 +12,7 @@ internal enum class SettingsPage(val title: String) : NavKey {
     Subscription("塔台与过滤"),
     Mirrors("GitHub 镜像"),
     Privacy("数据与隐私"),
+    Logs("日志"),
     About("关于"),
     Sponsor("赞助"),
 }

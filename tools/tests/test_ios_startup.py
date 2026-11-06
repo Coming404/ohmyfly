@@ -23,7 +23,8 @@ class IosStartupTests(unittest.TestCase):
 
     def test_network_attempt_is_bounded_anonymous_and_cancel_safe(self):
         source = (IOS / 'network/StartupNetworkAccess.kt').read_text()
-        self.assertIn('client.head(SpeedSettings().latencyUrl)', source)
+        self.assertIn('val target = SpeedSettings().latencyUrl', source)
+        self.assertIn('client.head(target)', source)
         self.assertIn('withTimeoutOrNull(10_000L)', source)
         for setting in ('followRedirects = false', 'HTTPShouldSetCookies = false',
                         'HTTPCookieStorage = null', 'URLCredentialStorage = null',

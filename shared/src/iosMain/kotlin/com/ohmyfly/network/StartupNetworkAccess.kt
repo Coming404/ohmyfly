@@ -24,14 +24,15 @@ internal suspend fun requestStartupNetworkAccess() {
         }
     }
     try {
-        withTimeoutOrNull(10_000L) {
-            client.head(SpeedSettings().latencyUrl)
-        }
+        val target = SpeedSettings().latencyUrl
+        com.ohmyfly.logging.logger.debug { "[启动联网] HEAD ${com.ohmyfly.logging.logTarget(target)}，超时 10000ms" }
+        val response = withTimeoutOrNull(10_000L) { client.head(target) }
+        com.ohmyfly.logging.logger.info { "[启动联网] ${response?.let { "HTTP ${it.status.value}" } ?: "请求超时"}" }
     } catch (cancelled: CancellationException) {
         throw cancelled
-    } catch (_: Exception) {
-        // Offline, denied access and endpoint failure must not prevent startup.
-        // A response or failure is not a reliable permission-state API.
+    } catch (error: Exception) {
+        com.ohmyfly.logging.logger.info { "[启动联网] 请求失败，异常类型=${error::class.simpleName}，继续应用启动" }
+        // 请求结果不等于系统权限状态，不因此阻断启动。
     } finally {
         client.close()
     }

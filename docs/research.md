@@ -106,3 +106,12 @@ KMP依赖需先查Klibs，再核对上游许可证与最低系统。所有可查
 - [图标文档](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/docs/zh_CN/guide/icons.md)及对应源码核对完整目录：Basic的7个图标由ui提供；icons提供156个扩展图标及五档权重。不存在独立miuix-icons-basic或Useful分组。导航采用Home/Link/Stopwatch/Layers/Settings；原通用自绘路径已删除，Wave品牌保留。
 - Android库通用min24，blur独立min33，项目API33满足声明要求；库未给独立iOS部署下限，保持产品目标16，不把示例或框架最低版本当作组合真机证据。POM许可证Apache-2.0不决定未来Go组合程序的最终许可。
 - 已知传递预发布：ui的material3-window-size-class:1.12.0-alpha03。不能声称整个图无alpha/rc；不为该提示擅自替换依赖。8模块已在9930858双端Release解析编译通过；本轮材质/清理未编译，未生成全图锁或校验元数据，最低系统真机性能仍待验。
+
+## 7. 文件日志（2026-11-06）
+
+选用 `io.github.oshai:kotlin-logging:8.0.5`，业务直接调用 `logger.info/debug`。启动时统一选择 `DirectLoggerFactory` 和文件 Appender；现有 Okio 3.18.2、coroutines 1.11.0、serialization-json 1.11.0 提供后台文件处理。设置与查看只有“信息”“详细”两档，详细包含信息；默认单文件8 MiB、总128 MiB、7天，三项可持久化自定义，总量不能小于单文件。
+
+- Klibs `searchProjects/getLatestVersion` 查到 oshai/kotlin-logging、AndroidJvm、ios_arm64、ios_simulator_arm64，索引最新稳定8.0.4（Kotlin2.1.21）。随后核实 [8.0.5正式发布](https://github.com/oshai/kotlin-logging/releases/tag/8.0.5) 与 [Maven模块元数据](https://repo.maven.apache.org/maven2/io/github/oshai/kotlin-logging/8.0.5/kotlin-logging-8.0.5.module) 已提供三个目标。库Apache-2.0、Android min21；项目维持API33/iOS16/Kotlin2.4.20。README仍标多平台实验性；本次组合的双端编译待Actions验收。
+- [Direct输出同步调用Appender](https://github.com/oshai/kotlin-logging/blob/8.0.5/src/commonMain/kotlin/io/github/oshai/kotlinlogging/internal/KLoggerDirect.kt)，因此Appender仅限长复制和非阻塞入队，不做磁盘IO。后台批量写JSONL，队列有界，过载计数可见；单条与单页读取均有限额。文件目录：Android `noBackupFilesDir/logs`，iOS Application Support/logs并排除备份。
+- [Kermit 2.2.0文件writer](https://github.com/touchlab/Kermit/blob/2.2.0/kermit-io/src/commonMain/kotlin/co/touchlab/kermit/io/RollingFileLogWriter.kt)队列满时阻塞调用线程、逐条flush，未提供本项目所需分页/清理协调。Napier主要提供日志门面；MVIKotlin的Logging属于Store调试，均不引入。
+- 日志查看采用反向游标，每次最多读取256 KiB、返回200条，页面只保留当前页正文。敏感URL仅显示协议/主机/端口，不保存正文、凭据或原始异常消息。清理由同一文件队列串行处理，不回写清理前已排队记录。

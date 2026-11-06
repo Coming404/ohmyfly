@@ -68,6 +68,7 @@ internal fun SettingsScreen(
                             SettingsPage.Subscription -> SubscriptionSettingsPage(contentPadding)
                             SettingsPage.Mirrors -> MirrorSettingsPage(settings, onChange, contentPadding, onEditorBackChange,
                                 session, runner, onMirrorAddChange)
+                            SettingsPage.Logs -> LogsSettingsPage(settings, onChange, contentPadding)
                             SettingsPage.Privacy -> PrivacySettingsPage(contentPadding)
                             SettingsPage.About -> AboutSettingsPage(version, contentPadding)
                             SettingsPage.Sponsor -> SponsorSettingsPage(contentPadding)

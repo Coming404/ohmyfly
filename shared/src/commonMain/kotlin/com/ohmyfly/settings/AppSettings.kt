@@ -1,4 +1,7 @@
+// 应用设置包含持久化日志策略，恢复全部设置时一并恢复默认策略。
 package com.ohmyfly.settings
+
+import com.ohmyfly.logging.LogPolicy
 
 import com.ohmyfly.mirror.MirrorEntry
 import com.ohmyfly.mirror.defaultMirrors
@@ -14,6 +17,7 @@ internal data class AppSettings(
     val mirrorEnabled: Boolean = true,
     val speed: SpeedSettings = SpeedSettings(),
     val media: MediaSettings = MediaSettings(),
+    val logging: LogPolicy = LogPolicy(),
     val subscription: SubscriptionSettings = SubscriptionSettings(),
     val mirrors: List<MirrorEntry> = defaultMirrors(),
     val selectedMirrorId: String? = null,

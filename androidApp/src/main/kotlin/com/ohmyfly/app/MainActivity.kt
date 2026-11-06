@@ -10,6 +10,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.core.view.WindowCompat
 import com.ohmyfly.App
+import com.ohmyfly.logging.appLogsForeground
+import com.ohmyfly.logging.flushAppLogsInBackground
+import com.ohmyfly.logging.initializeAppLogging
 import com.ohmyfly.settings.androidSettingsPath
 
 class MainActivity : ComponentActivity() {
@@ -17,6 +20,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        initializeAppLogging(applicationContext)
         enableEdgeToEdge()
         val path = androidSettingsPath(applicationContext)
         val info = packageManager.getPackageInfo(packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
@@ -31,8 +35,14 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStop() {
+        flushAppLogsInBackground()
+        super.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
+        appLogsForeground()
         // System palette resources also change when returning from wallpaper/theme settings.
         dynamicColorSeed = Color(getColor(android.R.color.system_accent1_500))
     }

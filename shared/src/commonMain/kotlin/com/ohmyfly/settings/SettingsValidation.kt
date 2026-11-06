@@ -8,6 +8,7 @@ import com.ohmyfly.mirror.normalizedMirrorAddress
  * 数值范围与 [SettingsLimits] 共用，避免校验/解码漂移。
  */
 internal fun validateSettings(settings: AppSettings): String? {
+    validateLogPolicy(settings.logging)?.let { return it }
     val speed = settings.speed
     if (!SettingsLimits.isValidTarget(speed.latencyUrl)) return "延迟测试地址必须是 HTTPS 地址，且不能包含用户信息或凭据参数"
     if (!SettingsLimits.isValidTarget(speed.downloadUrl)) return "下载测试地址必须是 HTTPS 地址，且不能包含用户信息或凭据参数"
@@ -79,6 +80,10 @@ internal fun validateSettings(settings: AppSettings): String? {
     if (subscription.protocols.size > SettingsLimits.MAX_PROTOCOLS) return "协议数量过多"
     if (subscription.protocols.any { it.isBlank() }) return "协议标识不能为空"
 
+    return validateMirrorSettings(settings)
+}
+
+private fun validateMirrorSettings(settings: AppSettings): String? {
     if (settings.mirrors.size > MirrorCodec.MAX_MIRRORS) return "镜像数量不能超过 ${MirrorCodec.MAX_MIRRORS} 个"
     val normalizedIds = settings.mirrors.map { it.id.trim() }
     if (normalizedIds.any { !SettingsLimits.isUsableMirrorId(it) }) return "镜像标识不能为空、不能包含空白或控制字符，且不能使用 direct"

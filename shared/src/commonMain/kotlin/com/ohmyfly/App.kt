@@ -163,7 +163,10 @@ private fun AppContent(
         AppFrame(
             dark, settings, settingsSession, onRetryRead, destination, settingsChild, settingsBack,
             mirrorPage, mirrorAdd, nodes, category, selectedIds, onSelection = { selectedIds = it },
-            onDestination = { destination = it },
+            onDestination = {
+                com.ohmyfly.logging.logger.debug { "[导航] $destination → $it" }
+                destination = it
+            },
         ) { padding ->
             AppPager(
                 pagerState, settings, onChange, version, settingsSession, mirrorRunner, settingsStack,

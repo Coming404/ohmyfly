@@ -47,6 +47,7 @@ kotlin {
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.okio)
+            implementation(libs.kotlinLogging)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.ui)
