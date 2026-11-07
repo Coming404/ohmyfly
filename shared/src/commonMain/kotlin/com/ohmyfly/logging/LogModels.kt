@@ -6,7 +6,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @Serializable
-internal enum class LogLevel { Info, Detail }
+internal enum class LogLevel(val label: String) { Info("信息"), Detail("详细") }
 
 internal data class LogPolicy(
     val fileMiB: Long = 8,
@@ -31,16 +31,19 @@ internal data class LogEntry(
     val schemaVersion: Int = 1,
 )
 
-internal data class LogCursor internal constructor(
+internal data class LogFileInfo(
+    val id: String,
+    val createdMillis: Long,
+    val bytes: Long,
     internal val generation: String,
-    internal val file: String,
-    internal val offset: Long,
-    internal val skipping: Boolean = false,
 )
 
-internal data class LogPage(
+internal data class LogFileCursor(val offset: Long, val forward: Boolean = false, val skipping: Boolean = true)
+
+internal data class LogFilePage(
     val entries: List<LogEntry>,
-    val next: LogCursor?,
+    val older: LogFileCursor? = null,
+    val newer: LogFileCursor? = null,
     val invalidated: Boolean = false,
 )
 
@@ -50,6 +53,7 @@ internal data class LogStorageState(
     val dropped: Long = 0,
     val failure: String? = null,
     val ready: Boolean = false,
+    val generation: String? = null,
 )
 
 internal class LogStorageException(message: String) : Exception(message)

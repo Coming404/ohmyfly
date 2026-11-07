@@ -1,3 +1,4 @@
+// 顶栏控件沿用系统安全区，滚动内容不再被整条状态栏遮罩覆盖。
 package com.ohmyfly.ui
 
 import androidx.compose.foundation.LocalIndication
@@ -25,9 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -49,7 +48,6 @@ import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val LocalHeaderSurface = staticCompositionLocalOf<@Composable () -> Modifier> { { Modifier } }
-private val StatusBarFade = 8.dp
 
 @Composable
 internal fun DriftTopBar(
@@ -61,26 +59,22 @@ internal fun DriftTopBar(
     onBack: (() -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
 ) {
-    val pageColor = LocalAppSurfaceColors.current.page
+    val safeArea = Modifier.windowInsetsPadding(
+        WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+    )
+    // 没有固定内容时只提供安全区，不留下空的顶栏主体。
+    if (title.isEmpty() && onBack == null && actions == null) {
+        Spacer(Modifier.fillMaxWidth().then(safeArea))
+        return
+    }
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-    val statusBarInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
     val surface: @Composable () -> Modifier = {
         Modifier.chromeMaterial(backdrop, glassEnabled, dark, materialMode)
     }
     CompositionLocalProvider(LocalHeaderSurface provides surface) {
         Row(
-            // Only the status bar / cutout strip is opaque; scrolled content stays visible under the title and buttons.
-            modifier = Modifier.fillMaxWidth()
-                .drawBehind {
-                    // The gradient clamps to opaque above startY, so one rect covers the strip and its fade edge.
-                    val solid = statusBarInsets.getTop(this).toFloat()
-                    val end = solid + StatusBarFade.toPx()
-                    drawRect(
-                        Brush.verticalGradient(0f to pageColor, 1f to pageColor.copy(alpha = 0f), startY = solid, endY = end),
-                        size = Size(size.width, minOf(size.height, end)),
-                    )
-                }
-                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+            // 安全区只用于控件定位，顶部左右两侧不绘制额外遮挡。
+            modifier = Modifier.fillMaxWidth().then(safeArea)
                 .padding(horizontal = 16.dp, vertical = 4.dp)
                 .heightIn(min = 44.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -117,8 +111,8 @@ internal fun HeaderAction(
     onClick: () -> Unit,
     enabled: Boolean = true,
     iconModifier: Modifier = Modifier,
+    tint: Color = MiuixTheme.colorScheme.onSurface,
 ) {
-    val tint = MiuixTheme.colorScheme.onSurface
     val surface = LocalHeaderSurface.current
     val interaction = remember { MutableInteractionSource() }
     TooltipBox(text = label) {

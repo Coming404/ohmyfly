@@ -28,7 +28,7 @@ internal class MirrorResourceFetcher(private val transport: MirrorTransport) {
         expectedSha256: String? = null,
         enabled: Boolean = true,
     ): MirrorFetchResult {
-        logger.info { "[资源] 获取 ${logTarget(originalUrl)}，镜像启用=$enabled，候选=${mirrors.size}，超时 ${timeoutMillis}ms，上限 ${maxBytes}B，校验摘要=${expectedSha256 != null}" }
+        logger.info { "[资源] 获取 ${logTarget(originalUrl)}；${if (enabled) "已启用镜像，列表中有 ${mirrors.size} 个候选" else "镜像已停用，仅使用直连"}；最多等待 ${timeoutMillis} 毫秒，最多接收 ${maxBytes} 字节；${if (expectedSha256 != null) "将校验内容摘要" else "未指定内容摘要"}" }
         githubResourceError(originalUrl)?.let { throw MirrorFetchException(it) }
         require(timeoutMillis > 0) { "超时必须为正数" }
         require(maxBytes > 0) { "大小上限必须为正数" }
@@ -114,8 +114,11 @@ internal class MirrorResourceFetcher(private val transport: MirrorTransport) {
         } catch (_: MirrorTimeoutException) {
             logger.debug { "[资源] ${logTarget(url)} 网络请求超时" }
             Outcome.Fail
+        } catch (error: MirrorFetchException) {
+            logger.debug { "[资源] ${logTarget(url)} 请求失败：${error.message}" }
+            Outcome.Fail
         } catch (error: Exception) {
-            logger.debug { "[资源] ${logTarget(url)} 异常类型=${error::class.simpleName}" }
+            logger.debug { "[资源] ${logTarget(url)} 请求失败，异常类型为 ${error::class.simpleName}" }
             Outcome.Fail
         }
     }

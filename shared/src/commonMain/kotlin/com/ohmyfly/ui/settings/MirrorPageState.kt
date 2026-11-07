@@ -97,7 +97,15 @@ internal class MirrorPageState(
                         current.mirrors.map { if (it.id == entry.id) entry else it }
                     } else current.mirrors + entry)
                 }
-                logger.info { "[镜像管理] 保存结果=${outcome::class.simpleName}，目标=${logTarget(entry.address)}" }
+                logger.info {
+                    val result = when (outcome) {
+                        is SettingsWriteResult.Confirmed -> "已保存并读回确认"
+                        SettingsWriteResult.Uncertain -> "已提交，但未能读回确认"
+                        SettingsWriteResult.Failed -> "保存失败，未确认修改已撤回"
+                        SettingsWriteResult.Rejected -> "当前状态无法接受保存"
+                    }
+                    "[镜像管理] ${logTarget(entry.address)}：$result"
+                }
                 when (outcome) {
                     is SettingsWriteResult.Confirmed -> {
                         draft.confirmed = outcome.settings.mirrors.firstOrNull { it.id == entry.id }

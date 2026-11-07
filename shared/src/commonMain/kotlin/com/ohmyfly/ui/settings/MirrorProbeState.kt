@@ -127,7 +127,7 @@ internal class MirrorProbeRunner(
         if (batchId == 0L || batchId == autoSelectionHandledBatchId) return null
         autoSelectionHandledBatchId = batchId
         return fastestMirrorId(autoSelectionTargets, results).also { selected ->
-            logger.info { "[镜像选择] 按通过校验样本的中位延迟择优，找到可用来源=${selected != null}" }
+            logger.info { "[镜像选择] 按通过内容校验样本的中位延迟择优，${if (selected != null) "已找到可用镜像" else "没有可用镜像"}" }
         }
     }
 
@@ -188,7 +188,7 @@ internal class MirrorProbeRunner(
         job?.cancel()
         runId += 1L
         val id = runId
-        logger.info { "[镜像批次 $id] 开始，目标=${targets.size}，并发上限=4，完成后自动择优=$autoSelect" }
+        logger.info { "[镜像批次 $id] 开始探测 ${targets.size} 个目标，同时最多处理 4 个；${if (autoSelect) "完成后自动选择最快可用镜像" else "完成后保留当前镜像选择"}" }
         running = true
         stopping = false
         stopped = false
@@ -206,7 +206,7 @@ internal class MirrorProbeRunner(
                 }
             } finally {
                 if (id == runId) {
-                    logger.info { "[镜像批次 $id] 结束，完成=$completed/$total，已停止=$stopped" }
+                    logger.info { "[镜像批次 $id] 探测结束，共 $total 个目标，已完成 $completed 个；${if (stopped) "批次已停止" else "批次未被停止"}" }
                     running = false
                     if (autoSelect && completed == total && !stopped) completedBatchId = id
                 }

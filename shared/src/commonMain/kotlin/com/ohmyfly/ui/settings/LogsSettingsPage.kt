@@ -1,91 +1,72 @@
-// 日志页按需读取一页正文，详情展开后可复制；文件管理不在组合线程执行。
+// 日志文件共用一张列表卡片，展开单文件有界正文，沿用设置页面外壳与消息。
 package com.ohmyfly.ui.settings
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ohmyfly.logging.AppLog
-import com.ohmyfly.logging.LogEntry
-import com.ohmyfly.logging.copyLogText
 import com.ohmyfly.settings.AppSettings
-import com.ohmyfly.ui.DriftIcons
+import com.ohmyfly.ui.LocalAppMessages
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
-import kotlin.time.Instant
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 internal fun LogsSettingsPage(
     settings: AppSettings,
     onChange: (String, (AppSettings) -> AppSettings) -> Unit,
     padding: PaddingValues,
+    onClearActionChange: ((() -> Unit)?) -> Unit,
 ) {
-    val state = remember { LogPageState() }
+    val messages = LocalAppMessages.current
+    val state = remember { LogPageState(notify = messages::show) }
     val storage by AppLog.state.collectAsState()
     val scope = rememberCoroutineScope()
-    var selected by remember { mutableStateOf<LogEntry?>(null) }
-    LaunchedEffect(storage.ready) { if (storage.ready) state.refresh() }
+    LaunchedEffect(storage.ready, storage.generation) {
+        if (storage.ready && !state.clearing && storage.failure == null) state.refresh(invalidate = true)
+    }
+    LogClearAction(state, storage, onClearActionChange)
     SettingsList(padding) {
         item("title") { SettingsPageIntro("日志") }
         item("policy") { LogPolicyCard(settings, onChange) }
-        item("storage") {
-            SettingsCard {
-                SettingsInfo("文件占用", "", SettingsIcons.Backup,
-                    "${storage.bytes / 1024} KiB · ${storage.files} 个文件")
-                if (storage.dropped > 0) SettingsInfo("未保存记录", "", SettingsIcons.Hint, storage.dropped.toString())
-                storage.failure?.let { SettingsInfo("存储失败", it, SettingsIcons.Hint, isError = true) }
-            }
-        }
-        item("actions") { LogActions(state, storage) { selected = null } }
+        item("actions") { LogActions(state, storage) }
         item("status") {
             when {
-                state.failure != null -> SettingsHint(state.failure!!, isError = true)
-                state.busy -> SettingsName("读取中…")
-                !storage.ready -> SettingsName("等待日志存储配置")
-                state.entries.isEmpty() -> SettingsName(if (state.next == null) "暂无日志" else "本页没有符合级别的记录")
-                else -> SettingsName("${state.entries.size} 条记录")
+                state.clearing -> LogBusyHint("正在清理日志…")
+                state.busy -> LogBusyHint("正在读取…")
+                !storage.ready -> SettingsHint("等待日志存储配置")
+                state.files.isEmpty() && state.failure == null -> SettingsName("暂无日志")
             }
+            state.failure?.let { SettingsHint(it, isError = true) }
+            storage.failure?.let { SettingsHint(it, isError = true) }
+            if (storage.dropped > 0) SettingsHint("未保存记录 ${storage.dropped} 条", isError = true)
         }
-        items(state.entries, key = { it.id }) { entry ->
-            LogRecord(entry, selected?.id == entry.id) { selected = if (selected?.id == entry.id) null else entry }
-        }
-        item("paging") {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SettingsButton("较新", SettingsIcons.Timer, enabled = state.canGoBack && !state.busy) {
-                    scope.launch { selected = null; state.newer() }
+        if (state.files.isNotEmpty()) item("files") {
+            SettingsCard {
+                state.files.forEachIndexed { index, file ->
+                    key(file.id) {
+                        if (index > 0) Box(Modifier.fillMaxWidth().height(0.5.dp)
+                            .background(MiuixTheme.colorScheme.dividerLine))
+                        val expanded = state.selected?.id == file.id
+                        LogFileRow(file, expanded) {
+                            scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                                state.select(if (expanded) null else file)
+                            }
+                        }
+                        if (expanded) LogFileContent(state)
+                    }
                 }
-                SettingsButton("较早", SettingsIcons.Timer, enabled = state.next != null && !state.busy) {
-                    scope.launch { selected = null; state.older() }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LogRecord(entry: LogEntry, expanded: Boolean, onClick: () -> Unit) {
-    SettingsCard {
-        val time = Instant.fromEpochMilliseconds(entry.timestampMillis).toString()
-        SettingsExpandableRow(entry.message.take(100), "${time.substringAfter('T')} · ${entry.level.label}",
-            SettingsIcons.Hint, expanded, onClick)
-        SettingsExpansion(expanded) {
-            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                val text = "${Instant.fromEpochMilliseconds(entry.timestampMillis)} · ${entry.level.label}\n${entry.message}"
-                SelectionContainer { SettingsName(text) }
-                SettingsButton("复制", SettingsIcons.Copy) { copyLogText(text) }
             }
         }
     }

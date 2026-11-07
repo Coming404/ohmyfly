@@ -34,10 +34,15 @@ internal class LogWorker(
         val action: Action,
         val policy: LogPolicy? = null,
         val level: LogLevel = LogLevel.Detail,
-        val cursor: LogCursor? = null,
-        val result: CompletableDeferred<LogPage?> = CompletableDeferred(),
+        val file: LogFileInfo? = null,
+        val fileCursor: LogFileCursor? = null,
+        val result: CompletableDeferred<Reply> = CompletableDeferred(),
     ) : Command
-    private enum class Action { Configure, Page, Clear, Flush }
+    private data class Reply(
+        val files: List<LogFileInfo> = emptyList(),
+        val filePage: LogFilePage? = null,
+    )
+    private enum class Action { Configure, Files, FilePage, Clear, Flush }
     private val commands = Channel<Command>(QUEUE_CAPACITY)
     private val started = AtomicBoolean(false)
     private val mutableState = MutableStateFlow(LogStorageState())
@@ -62,13 +67,14 @@ internal class LogWorker(
         request(Request(Action.Configure, policy = policy))
     }
 
-    suspend fun page(level: LogLevel, cursor: LogCursor?): LogPage =
-        request(Request(Action.Page, level = level, cursor = cursor))!!
+    suspend fun files(): List<LogFileInfo> = request(Request(Action.Files)).files
+    suspend fun filePage(file: LogFileInfo, level: LogLevel, cursor: LogFileCursor?): LogFilePage =
+        request(Request(Action.FilePage, level = level, file = file, fileCursor = cursor)).filePage!!
 
     suspend fun clear() { request(Request(Action.Clear)) }
     suspend fun flush() { request(Request(Action.Flush)) }
 
-    private suspend fun request(command: Request): LogPage? {
+    private suspend fun request(command: Request): Reply {
         commands.send(command)
         return command.result.await()
     }
@@ -100,7 +106,7 @@ internal class LogWorker(
 
     private fun handle(command: Request, directory: () -> Path) {
         try {
-            var page: LogPage? = null
+            var reply = Reply()
             when (command.action) {
                 Action.Configure -> {
                     flushPending()
@@ -110,9 +116,14 @@ internal class LogWorker(
                     publish(failure = null)
                     flushPending()
                 }
-                Action.Page -> {
+                Action.Files -> {
                     flushPending()
-                    page = readyStore().page(command.level, command.cursor)
+                    reply = Reply(files = readyStore().listFiles())
+                    publish()
+                }
+                Action.FilePage -> {
+                    flushPending()
+                    reply = Reply(filePage = readyStore().filePage(command.file!!, command.level, command.fileCursor))
                     publish()
                 }
                 Action.Clear -> {
@@ -122,7 +133,7 @@ internal class LogWorker(
                 }
                 Action.Flush -> flushPending()
             }
-            command.result.complete(page)
+            command.result.complete(reply)
         } catch (error: Exception) {
             if (error is CancellationException) throw error
             val message = if (error is LogStorageException) error.message!! else "日志存储操作失败，请检查可用空间后重试"
@@ -167,7 +178,8 @@ internal class LogWorker(
 
     private fun publish(failure: String? = mutableState.value.failure) {
         mutableState.update {
-            it.copy(bytes = store?.bytes ?: 0, files = store?.fileCount ?: 0, failure = failure, ready = configured)
+            it.copy(bytes = store?.bytes ?: 0, files = store?.fileCount ?: 0, failure = failure,
+                ready = configured, generation = store?.generation)
         }
     }
 }

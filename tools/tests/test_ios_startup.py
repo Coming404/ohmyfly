@@ -21,9 +21,27 @@ class IosStartupTests(unittest.TestCase):
         self.assertNotIn('runBlocking', entry)
         self.assertIn('App(dynamicColorSeed = null', entry)
 
+    def test_network_attempt_is_marked_before_any_request(self):
+        source = (IOS / 'network/StartupNetworkAccess.kt').read_text()
+        guard = source.index('if (defaults.boolForKey(StartupNetworkAttemptedKey)) return')
+        mark = source.index('defaults.setBool(true, forKey = StartupNetworkAttemptedKey)')
+        self.assertLess(guard, mark)
+        self.assertLess(mark, source.index('HttpClient(Darwin)'))
+        self.assertLess(mark, source.index('client.head(target)'))
+        self.assertEqual(1, source.count('setBool('))
+        self.assertNotIn('removeObjectForKey', source)
+
+    def test_background_flush_survives_without_foreground_logging(self):
+        source = (IOS / 'logging/Logging.ios.kt').read_text()
+        self.assertNotIn('UIApplicationDidBecomeActiveNotification', source)
+        self.assertIn('UIApplicationDidEnterBackgroundNotification', source)
+        self.assertIn('UIApplicationWillTerminateNotification', source)
+        self.assertIn('flushAppLogsInBackground()', source)
+
     def test_network_attempt_is_bounded_anonymous_and_cancel_safe(self):
         source = (IOS / 'network/StartupNetworkAccess.kt').read_text()
-        self.assertIn('val target = SpeedSettings().latencyUrl', source)
+        self.assertIn('val target = "https://www.bing.com"', source)
+        self.assertNotIn('SpeedSettings', source)
         self.assertIn('client.head(target)', source)
         self.assertIn('withTimeoutOrNull(10_000L)', source)
         for setting in ('followRedirects = false', 'HTTPShouldSetCookies = false',

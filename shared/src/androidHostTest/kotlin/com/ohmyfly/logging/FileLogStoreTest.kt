@@ -26,7 +26,8 @@ class FileLogStoreTest {
         repeat(20) { batch -> store.append(List(100) { row(batch * 100 + it, "字".repeat(2048)) }) }
         assertTrue(store.bytes <= 2 * MIB)
         assertTrue(fs.list(dir).all { fs.metadata(it).size!! <= MIB })
-        assertTrue(store.page(LogLevel.Detail, null).entries.isNotEmpty())
+        val file = store.listFiles().first()
+        assertTrue(store.filePage(file, LogLevel.Detail, null).entries.isNotEmpty())
     }
 
     @Test fun pagesHaveNoDuplicatesOrGapsAndRestartKeepsFiles() = inDirectory { dir ->
@@ -35,13 +36,14 @@ class FileLogStoreTest {
             repeat(10) { n -> append(List(100) { row(n * 100 + it) }) }
         }
         val reopened = FileLogStore(fs, dir).apply { configure(LogPolicy()) }
-        var cursor: LogCursor? = null
+        val file = reopened.listFiles().single()
+        var cursor: LogFileCursor? = null
         val ids = mutableListOf<Int>()
         do {
-            val page = reopened.page(LogLevel.Detail, cursor)
+            val page = reopened.filePage(file, LogLevel.Detail, cursor)
             assertTrue(page.entries.size <= 200)
             ids += page.entries.map { it.id.toInt() }
-            cursor = page.next
+            cursor = page.older
         } while (cursor != null)
         assertEquals((999 downTo 0).toList(), ids)
     }
@@ -50,18 +52,23 @@ class FileLogStoreTest {
         val store = FileLogStore(fs, dir).apply { configure(LogPolicy()) }
         store.append(listOf(row(1)))
         repeat(12) { n -> store.append(List(100) { row(n * 100 + it + 2, "x".repeat(8192), LogLevel.Detail) }) }
-        val first = store.page(LogLevel.Info, null)
+        val files = store.listFiles()
+        val firstFile = files.first()
+        val first = store.filePage(firstFile, LogLevel.Info, null)
         assertTrue(first.entries.isEmpty())
-        assertTrue(first.next != null)
-        assertEquals(1, store.page(LogLevel.Detail, null).entries.map { it.level }.distinct().size)
-        var cursor = first.next
+        assertTrue(first.older != null)
+        assertEquals(1, store.filePage(firstFile, LogLevel.Detail, null).entries.map { it.level }.distinct().size)
         var steps = 0
         val found = mutableListOf<String>()
-        while (cursor != null && steps++ < 100) {
-            val page = store.page(LogLevel.Info, cursor)
-            found += page.entries.map { it.id }
-            assertTrue(page.next != cursor)
-            cursor = page.next
+        files.forEach { file ->
+            var cursor: LogFileCursor? = null
+            do {
+                val page = store.filePage(file, LogLevel.Info, cursor)
+                found += page.entries.map { it.id }
+                assertTrue(page.older != cursor || page.older == null)
+                cursor = page.older
+                steps++
+            } while (cursor != null && steps < 100)
         }
         assertEquals(listOf("1"), found)
     }
@@ -70,13 +77,15 @@ class FileLogStoreTest {
         fs.write(dir / "keep.txt") { writeUtf8("用户文件") }
         val store = FileLogStore(fs, dir).apply { configure(LogPolicy()) }
         store.append(List(250) { row(it) })
-        val cursor = store.page(LogLevel.Detail, null).next!!
+        val file = store.listFiles().single()
+        val cursor = store.filePage(file, LogLevel.Detail, null).older!!
         store.clear()
-        assertTrue(store.page(LogLevel.Detail, cursor).invalidated)
+        assertTrue(store.filePage(file, LogLevel.Detail, cursor).invalidated)
         assertTrue(fs.exists(dir / "keep.txt"))
         assertEquals(0, store.fileCount)
         store.append(listOf(row(999)))
-        assertEquals(listOf("999"), store.page(LogLevel.Detail, null).entries.map { it.id })
+        assertEquals(listOf("999"),
+            store.filePage(store.listFiles().single(), LogLevel.Detail, null).entries.map { it.id })
     }
 
     @Test fun retentionAndPolicyReductionRemoveOldestWithoutTruncation() = inDirectory { dir ->
@@ -100,7 +109,8 @@ class FileLogStoreTest {
             sink.write(tail, tail.size)
         }
         val reopened = FileLogStore(fs, dir).apply { configure(LogPolicy()) }
-        assertEquals(listOf("2", "1"), reopened.page(LogLevel.Detail, null).entries.map { it.id })
+        assertEquals(listOf("2", "1"),
+            reopened.filePage(reopened.listFiles().single(), LogLevel.Detail, null).entries.map { it.id })
     }
 
     @Test fun gigabyteFileStillReadsOnlyOneBoundedWindow() = inDirectory { dir ->
@@ -111,16 +121,17 @@ class FileLogStoreTest {
         // 稀疏文件验证真实偏移读取，无需在测试中分配或写入1 GiB正文。
         java.io.RandomAccessFile(path.toString(), "rw").use { it.setLength(size) }
         val store = FileLogStore(fs, dir).apply { configure(policy) }
-        val page = store.page(LogLevel.Detail, null)
+        val page = store.filePage(store.listFiles().single(), LogLevel.Detail, null)
         assertTrue(page.entries.isEmpty())
-        assertEquals(size - PAGE_SCAN_BYTES, page.next!!.offset)
-        assertTrue(page.next!!.skipping)
+        assertEquals(size - PAGE_SCAN_BYTES, page.older!!.offset)
+        assertTrue(page.older!!.skipping)
     }
 
     @Test fun informationModeDoesNotPersistDetailedEvents() = inDirectory { dir ->
         val store = FileLogStore(fs, dir).apply { configure(LogPolicy(level = LogLevel.Info)) }
         store.append(listOf(row(1), row(2, level = LogLevel.Detail)))
-        assertEquals(listOf("1"), store.page(LogLevel.Detail, null).entries.map { it.id })
-        assertFalse(store.page(LogLevel.Detail, null).invalidated)
+        val page = store.filePage(store.listFiles().single(), LogLevel.Detail, null)
+        assertEquals(listOf("1"), page.entries.map { it.id })
+        assertFalse(page.invalidated)
     }
 }

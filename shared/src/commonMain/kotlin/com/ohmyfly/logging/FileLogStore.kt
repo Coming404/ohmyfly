@@ -20,7 +20,8 @@ internal class FileLogStore(
     private val files = mutableListOf<LogFile>()
     private var current: LogFile? = null
     private var policy = LogPolicy()
-    private var generation = newLogId()
+    var generation = newLogId()
+        private set
     private var loaded = false
     private var lastMaintenance = 0L
     val bytes: Long get() = files.sumOf { it.bytes }
@@ -31,6 +32,7 @@ internal class FileLogStore(
         if (!loaded) recover()
         if (value.fileMiB != policy.fileMiB) current = null
         policy = value
+        generation = newLogId()
         maintain()
     }
 
@@ -142,12 +144,22 @@ internal class FileLogStore(
         current = null
     }
 
-    fun page(level: LogLevel, cursor: LogCursor?): LogPage {
+    fun listFiles(): List<LogFileInfo> {
         maintainIfDue()
-        if (cursor != null && (cursor.generation != generation || files.none { it.path.name == cursor.file })) {
-            return LogPage(emptyList(), null, invalidated = true)
+        return files.asReversed().map { LogFileInfo(it.path.name, it.created, it.bytes, generation) }
+    }
+
+    fun filePage(info: LogFileInfo, level: LogLevel, cursor: LogFileCursor?): LogFilePage {
+        maintainIfDue()
+        val file = files.firstOrNull { it.path.name == info.id }
+        if (info.generation != generation || file == null || file.bytes < info.bytes) {
+            return LogFilePage(emptyList(), invalidated = true)
         }
-        return LogReader(fs, files, generation).page(level, cursor)
+        if (cursor != null && cursor.offset !in 0..info.bytes) {
+            throw LogStorageException("日志读取位置无效，请刷新")
+        }
+        // 同一展开会话固定文件尾，追加的新内容仅在刷新后进入窗口。
+        return LogFileScan(fs, file.copy(bytes = info.bytes)).page(level, cursor)
     }
 }
 

@@ -1,12 +1,26 @@
+// 设置页标题属于列表内容，随滚动离开屏幕，不覆盖品牌卡片。
 package com.ohmyfly.ui.settings
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.MaterialMode
 import com.ohmyfly.ui.DriftIcons
 import com.ohmyfly.ui.ThemeMode
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 internal fun SettingsHome(
@@ -18,6 +32,19 @@ internal fun SettingsHome(
     padding: PaddingValues,
 ) {
     SettingsList(padding, state) {
+        item(key = "title") {
+            Box(Modifier.fillMaxWidth().heightIn(min = 36.dp), contentAlignment = Alignment.CenterStart) {
+                Text(
+                    SettingsPage.Home.title,
+                    modifier = Modifier.semantics { heading() },
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MiuixTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
         item(key = "identity") { SettingsBoardingPass(version, onSponsor = { onPage(SettingsPage.Sponsor) }) }
         item(key = "appearance-title") { SettingsSectionTitle("外观", SettingsIcons.Appearance) }
         item(key = "appearance") {

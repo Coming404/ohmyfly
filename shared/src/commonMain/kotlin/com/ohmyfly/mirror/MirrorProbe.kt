@@ -29,7 +29,15 @@ internal class MirrorProbe(private val transport: MirrorTransport) {
         var failures = 0
         repeat(SAMPLES) {
             val sample = attempt(target)
-            logger.debug { "[镜像探测] ${logTarget(target)} 样本 ${it + 1}/$SAMPLES：$sample" }
+            logger.debug {
+                val result = when (sample) {
+                    is Sample.Ok -> "内容校验通过，首字节等待 ${sample.ttfbMs} 毫秒"
+                    Sample.Timeout -> "请求超时"
+                    Sample.BadContent -> "返回内容不符合固定样本要求"
+                    Sample.Failed -> "请求失败"
+                }
+                "[镜像探测] ${logTarget(target)} 第 ${it + 1} 次采样（共 $SAMPLES 次）：$result"
+            }
             when (sample) {
                 is Sample.Ok -> latencies += sample.ttfbMs
                 Sample.Timeout -> timeouts += 1
@@ -37,7 +45,7 @@ internal class MirrorProbe(private val transport: MirrorTransport) {
                 Sample.Failed -> failures += 1
             }
         }
-        logger.info { "[镜像探测] ${logTarget(target)}：通过=${latencies.size}/$SAMPLES，超时=$timeouts，内容不符=$badContent，其他失败=$failures" }
+        logger.info { "[镜像探测] ${logTarget(target)} 共采样 $SAMPLES 次，${latencies.size} 次通过内容校验，$timeouts 次超时，$badContent 次内容不符，$failures 次其他失败" }
         if (latencies.isNotEmpty()) {
             val sorted = latencies.sorted()
             val median = if (sorted.size == 2) sorted[0] + (sorted[1] - sorted[0]) / 2 else sorted[sorted.size / 2]
@@ -59,7 +67,10 @@ internal class MirrorProbe(private val transport: MirrorTransport) {
         val response = withTimeoutOrNull(DEFAULT_TIMEOUT_MILLIS) {
             fetchWithRedirects(transport, startUrl, DEFAULT_TIMEOUT_MILLIS, DEFAULT_MAX_BYTES)
         }
-        logger.debug { "[镜像探测] ${logTarget(startUrl)}：HTTP=${response?.statusCode ?: "超时"}，字节=${response?.body?.size ?: 0}，TTFB=${response?.ttfbMs ?: -1}ms，SHA256一致=${response?.let { matchesDigest(it.body, MirrorProbeTarget.sha256) } ?: false}" }
+        logger.debug {
+            if (response == null) "[镜像探测] ${logTarget(startUrl)} 未在规定时间内返回"
+            else "[镜像探测] ${logTarget(startUrl)} 返回 HTTP ${response.statusCode}，收到 ${response.body.size} 字节，首字节等待 ${response.ttfbMs} 毫秒；${if (matchesDigest(response.body, MirrorProbeTarget.sha256)) "SHA-256 内容校验通过" else "SHA-256 内容校验不一致"}"
+        }
         when {
             response == null -> Sample.Timeout
             response.statusCode !in 200..299 -> Sample.Failed
@@ -73,8 +84,11 @@ internal class MirrorProbe(private val transport: MirrorTransport) {
     } catch (_: MirrorTimeoutException) {
         logger.debug { "[镜像探测] ${logTarget(startUrl)} 网络请求超时" }
         Sample.Timeout
+    } catch (error: MirrorFetchException) {
+        logger.debug { "[镜像探测] ${logTarget(startUrl)} 请求失败：${error.message}" }
+        Sample.Failed
     } catch (error: Exception) {
-        logger.debug { "[镜像探测] ${logTarget(startUrl)} 异常类型=${error::class.simpleName}" }
+        logger.debug { "[镜像探测] ${logTarget(startUrl)} 请求失败，异常类型为 ${error::class.simpleName}" }
         Sample.Failed
     }
 

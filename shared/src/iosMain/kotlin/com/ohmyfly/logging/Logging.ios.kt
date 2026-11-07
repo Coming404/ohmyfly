@@ -13,7 +13,6 @@ import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSURL
 import platform.Foundation.NSURLIsExcludedFromBackupKey
 import platform.Foundation.NSUserDomainMask
-import platform.UIKit.UIApplicationDidBecomeActiveNotification
 import platform.UIKit.UIApplicationDidEnterBackgroundNotification
 import platform.UIKit.UIApplicationWillTerminateNotification
 import platform.darwin.NSObjectProtocol
@@ -34,9 +33,6 @@ public fun initializeAppLogging() {
     }
     if (!started) return
     val center = NSNotificationCenter.defaultCenter
-    lifecycleObservers += center.addObserverForName(
-        UIApplicationDidBecomeActiveNotification, null, NSOperationQueue.mainQueue,
-    ) { appLogsForeground() }
     listOf(UIApplicationDidEnterBackgroundNotification, UIApplicationWillTerminateNotification).forEach { name ->
         lifecycleObservers += center.addObserverForName(name, null, NSOperationQueue.mainQueue) {
             flushAppLogsInBackground()

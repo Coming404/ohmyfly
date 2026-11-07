@@ -83,7 +83,7 @@ internal class SettingsSession(
         changeConfirmed(name = null, transform = transform)
 
     private fun enqueue(change: PendingChange): Boolean {
-        logger.debug { "[设置] 请求保存：${change.name ?: "设置变更"}，排队=${pending.size}，已加载=${confirmed != null}，读取失败=${state.readFailed}" }
+        logger.debug { "[设置] 请求保存${change.name ?: "设置变更"}，前面有 ${pending.size} 项等待保存；${if (confirmed != null) "已加载原配置" else "尚未加载原配置"}；${if (state.readFailed) "此前读取失败，当前不可写" else "没有读取错误"}" }
         val activeScope = scope?.takeIf { it.isActive }
         if (activeScope == null || confirmed == null || state.readFailed) {
             if (change.reportErrors && !state.readFailed) {
@@ -99,10 +99,10 @@ internal class SettingsSession(
             return false
         }
         val before = state.settings
-        if (before.mirrorEnabled != next.mirrorEnabled) logger.debug { "[设置] 镜像启用：${before.mirrorEnabled} → ${next.mirrorEnabled}" }
-        if (before.selectedMirrorId != next.selectedMirrorId) logger.debug { "[设置] 镜像选择：列表序号 ${before.mirrors.indexOfFirst { it.id == before.selectedMirrorId } + 1} → ${next.mirrors.indexOfFirst { it.id == next.selectedMirrorId } + 1}" }
-        if (before.themeMode != next.themeMode || before.materialMode != next.materialMode) logger.debug { "[设置] 外观：${before.themeMode}/${before.materialMode} → ${next.themeMode}/${next.materialMode}" }
-        if (before.logging != next.logging) logger.debug { "[设置] 日志策略：${before.logging} → ${next.logging}" }
+        if (before.mirrorEnabled != next.mirrorEnabled) logger.debug { "[设置] ${if (next.mirrorEnabled) "启用" else "停用"}镜像" }
+        if (before.selectedMirrorId != next.selectedMirrorId) logger.debug { "[设置] 镜像选择从列表第 ${before.mirrors.indexOfFirst { it.id == before.selectedMirrorId } + 1} 项改为第 ${next.mirrors.indexOfFirst { it.id == next.selectedMirrorId } + 1} 项，0 表示未选择列表中的镜像" }
+        if (before.themeMode != next.themeMode || before.materialMode != next.materialMode) logger.debug { "[设置] 外观从${before.themeMode.label}主题、${before.materialMode.label}材质改为${next.themeMode.label}主题、${next.materialMode.label}材质" }
+        if (before.logging != next.logging) logger.debug { "[设置] 日志策略从单文件 ${before.logging.fileMiB} MiB、总量 ${before.logging.totalMiB} MiB、保留 ${before.logging.retentionDays} 天、${before.logging.level.label}级别，改为单文件 ${next.logging.fileMiB} MiB、总量 ${next.logging.totalMiB} MiB、保留 ${next.logging.retentionDays} 天、${next.logging.level.label}级别" }
         // 取消旧订阅；排空后重新订阅读当前磁盘值，不靠相等比较推测 Flow 的版本。
         if (pending.isEmpty()) reader?.cancel()
         pending.addLast(change)
@@ -137,7 +137,7 @@ internal class SettingsSession(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                logger.info { "[设置] 读取失败，异常类型=${error::class.simpleName}，保留原文件" }
+                logger.info { "[设置] 读取失败，异常类型为 ${error::class.simpleName}，保留原文件" }
                 currentCoroutineContext().ensureActive()
                 state = state.copy(readFailed = true)
             } finally {
@@ -156,7 +156,7 @@ internal class SettingsSession(
                     // cancel(). Never let that stale read overwrite a pending optimistic choice or
                     // the rollback baseline while a save is in flight.
                     if (pending.isEmpty()) {
-                        logger.debug { "[设置] 已读取持久化配置，镜像=${value.mirrors.size}，日志级别=${value.logging.level}，不输出配置原文" }
+                        logger.debug { "[设置] 已读取持久化配置，包含 ${value.mirrors.size} 个镜像，日志记录级别为${value.logging.level.label}" }
                         confirmed = value
                         state = state.copy(
                             settings = value,
@@ -170,7 +170,7 @@ internal class SettingsSession(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                logger.info { "[设置] 读取失败，异常类型=${error::class.simpleName}，保留原文件" }
+                logger.info { "[设置] 读取失败，异常类型为 ${error::class.simpleName}，保留原文件" }
                 currentCoroutineContext().ensureActive()
                 state = state.copy(readFailed = true)
             }
@@ -229,7 +229,7 @@ internal class SettingsSession(
 
     /** 事务失败：失败操作及其后未执行的操作都失败，已确认值不受影响。 */
     private fun rollback(reportFailure: Boolean) {
-        logger.info { "[设置] 保存未完成，回滚 ${pending.size} 项未确认修改，失败通知=$reportFailure" }
+        logger.info { "[设置] 保存未完成，回滚 ${pending.size} 项未确认修改；${if (reportFailure) "按该修改的通知设置报告失败" else "本次取消不显示失败通知"}" }
         val failed = pending.firstOrNull()
         state = state.copy(settings = confirmed ?: state.settings, confirmedSettings = confirmed, pendingWrites = 0)
         if (reportFailure && failed != null && pending.any { it.reportErrors }) {

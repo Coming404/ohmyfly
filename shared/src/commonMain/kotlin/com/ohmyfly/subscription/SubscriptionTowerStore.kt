@@ -30,7 +30,7 @@ internal class SubscriptionTowerStore(
             return it
         }
         val target = address.trim()
-        logger.info { "[塔台] 添加 ${logTarget(target)}，已存在=${mutableTowers.value.any { it.address == target }}" }
+        logger.info { "[塔台] 添加 ${logTarget(target)}，${if (mutableTowers.value.any { it.address == target }) "地址已存在，将刷新原塔台" else "地址尚未添加，将创建塔台"}" }
         mutableTowers.update { list ->
             if (list.any { it.address == target }) list else list + SubscriptionTower(target)
         }
@@ -42,7 +42,7 @@ internal class SubscriptionTowerStore(
         val target = address.trim()
         if (mutableTowers.value.none { it.address == target }) return
         val result = importer.importSubscription(target, settings)
-        logger.info { "[塔台] 同步 ${logTarget(target)}：${result.failure ?: "成功"}，${if (result.failure == null) "更新节点=${result.nodes.size}" else "保留原有节点"}，目标仍存在=${mutableTowers.value.any { it.address == target }}" }
+        logger.info { "[塔台] 同步 ${logTarget(target)}：${result.failure?.let(::subscriptionFailureDescription) ?: "成功"}；${if (mutableTowers.value.none { it.address == target }) "塔台已删除，不再应用本次结果" else if (result.failure == null) "将更新 ${result.nodes.size} 个节点" else "保留原有节点"}" }
         mutableTowers.update { list ->
             list.map { tower ->
                 if (tower.address != target) tower else tower.copy(

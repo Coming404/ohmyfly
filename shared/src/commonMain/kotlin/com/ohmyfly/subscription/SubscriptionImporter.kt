@@ -29,10 +29,10 @@ internal class SubscriptionImporter(
         val operation = newLogId().take(8)
         val started = timeSource.markNow()
         logger.info { "[订阅 $operation] 开始导入 ${logTarget(url)}" }
-        logger.debug { "[订阅 $operation] 配置：单次超时 ${settings.timeoutSeconds}s，重试 ${settings.retries} 次，上限 ${settings.maxMiB}MiB，总预算 ${minOf(settings.timeoutSeconds * 4000L, 60_000L)}ms" }
+        logger.debug { "[订阅 $operation] 每次请求最多等待 ${settings.timeoutSeconds} 秒，每个 UA 候选最多重试 ${settings.retries} 次，单次下载上限为 ${settings.maxMiB} MiB；整次导入共用 ${minOf(settings.timeoutSeconds * 4000L, 60_000L)} 毫秒时间预算" }
         return try {
             importContent(url, settings, operation).also { result ->
-                logger.info { "[订阅 $operation] 导入${if (result.failure == null) "成功" else "失败"}：节点 ${result.nodes.size}，提示 ${result.warnings.size}，原因 ${result.failure ?: "无"}，耗时 ${started.elapsedNow().inWholeMilliseconds}ms" }
+                logger.info { "[订阅 $operation] 导入${if (result.failure == null) "成功，得到 ${result.nodes.size} 个节点" else "失败：${subscriptionFailureDescription(result.failure)}"}；共有 ${result.warnings.size} 条提示，耗时 ${started.elapsedNow().inWholeMilliseconds} 毫秒" }
             }
         } catch (cancelled: CancellationException) {
             logger.info { "[订阅 $operation] 导入已取消，耗时 ${started.elapsedNow().inWholeMilliseconds}ms" }
@@ -79,14 +79,25 @@ internal class SubscriptionImporter(
                     logger.debug { "[订阅 $operation] 总时间预算耗尽，停止后续候选请求" }
                     break@attempts
                 }
-                logger.debug { "[订阅 $operation] UA候选 ${agentIndex + 1}/${agents.size}，第 ${retries + 1} 次请求，本次超时 ${remaining}ms" }
+                logger.debug { "[订阅 $operation] 尝试第 ${agentIndex + 1} 个 UA 候选（共 ${agents.size} 个）：${subscriptionUserAgentDescription(userAgent)}；这是该候选的第 ${retries + 1} 次请求，最多等待 ${remaining} 毫秒" }
                 val attempt = fetchAndParse(url, settings, userAgent, remaining, headers, operation)
                 val selected = pickBetterAttempt(best, attempt)
-                logger.debug { "[订阅 $operation] 按可用性和节点质量比较候选：采用本次=${selected === attempt}，解析节点=${attempt.parsed?.nodes?.size ?: 0}，原因=${attempt.failure ?: "成功"}" }
+                logger.debug { "[订阅 $operation] 已比较可用性和节点质量，${if (selected === attempt) "暂选本次结果" else "保留此前更合适的结果"}；本次解析 ${attempt.parsed?.nodes?.size ?: 0} 个节点，${attempt.failure?.let { "失败原因：${subscriptionFailureDescription(it)}" } ?: "请求和解析已完成"}" }
                 best = selected
                 // GitHub 默认模式明确只请求一次，连可重试错误也不再发起请求。
-                if (!attempt.retryable || userAgent == null || retries >= settings.retries) break
+                if (!attempt.retryable || userAgent == null || retries >= settings.retries) {
+                    if (attempt.failure != null) logger.debug {
+                        val reason = when {
+                            !attempt.retryable -> "该错误不适合重试"
+                            userAgent == null -> "当前无 UA 模式只请求一次"
+                            else -> "已用完 ${settings.retries} 次重试机会"
+                        }
+                        "[订阅 $operation] 不再重试当前候选：$reason"
+                    }
+                    break
+                }
                 retries++
+                logger.debug { "[订阅 $operation] 因${subscriptionFailureDescription(attempt.failure.orEmpty())}，将以相同 UA 进行第 $retries 次重试" }
             }
         }
         return best ?: ParsedAttempt(failure = "订阅导入已达到总超时")
@@ -101,23 +112,36 @@ internal class SubscriptionImporter(
         } catch (e: CancellationException) {
             throw e
         } catch (e: SubscriptionFetchException) {
-            logger.info { "[订阅 $operation] 请求失败：${e.message}，可重试=${e.retryable}" }
+            logger.info { "[订阅 $operation] 请求失败：${subscriptionFailureDescription(e.message.orEmpty())}；${if (e.retryable) "该错误允许在剩余预算内重试" else "该错误不再重试"}" }
             return ParsedAttempt(failure = e.message, retryable = e.retryable)
         } catch (error: Exception) {
-            logger.info { "[订阅 $operation] 网络请求失败，异常类型=${error::class.simpleName}" }
+            logger.info { "[订阅 $operation] 网络请求失败，异常类型为 ${error::class.simpleName}" }
             return ParsedAttempt(failure = "订阅请求失败")
         }
         return try {
             val started = timeSource.markNow()
             logger.debug { "[订阅 $operation] 开始 Go 解析，输入 ${content.length} 字符" }
             val parsed = parse(content)
-            logger.debug { "[订阅 $operation] Go解析完成：候选=${parsed.candidates}，成功=${parsed.parsed}，跳过=${parsed.skipped}，YAML=${parsed.yaml}，链接=${parsed.links}，Base64=${parsed.base64}，编码层数=${parsed.base64Layers}，provider=${parsed.proxyProviders.size}，耗时=${started.elapsedNow().inWholeMilliseconds}ms" }
-            logger.debug { "[订阅 $operation] 跳过原因统计：${parsed.skippedByReason.entries.groupBy { it.key.substringBefore(':') }.mapValues { (_, values) -> values.sumOf { it.value } }}" }
+            logger.debug { "[订阅 $operation] 解析完成：检查了 ${parsed.candidates} 条候选，成功解析 ${parsed.parsed} 个节点，跳过 ${parsed.skipped} 次，耗时 ${started.elapsedNow().inWholeMilliseconds} 毫秒" }
+            logger.debug {
+                val formats = buildList {
+                    if (parsed.yaml > 0) add("识别到 ${parsed.yaml} 份 YAML 内容")
+                    if (parsed.links > 0) add("识别到 ${parsed.links} 份链接文本")
+                    if (parsed.base64 > 0) add("尝试了 ${parsed.base64} 次 Base64 解码，共 ${parsed.base64Layers} 层")
+                    if (parsed.proxyProviders.isNotEmpty()) add("发现 ${parsed.proxyProviders.size} 个子订阅引用")
+                }
+                "[订阅 $operation] 解析过程：${formats.joinToString("；").ifEmpty { "未识别出可处理的内容" }}"
+            }
+            if (parsed.skippedByReason.isNotEmpty()) logger.info {
+                "[订阅 $operation] 跳过原因：" + parsed.skippedByReason.entries.joinToString("；") { (reason, count) ->
+                    "${subscriptionSkipDescription(reason)}，共 $count 次"
+                }
+            }
             ParsedAttempt(parsed = parsed)
         } catch (e: CancellationException) {
             throw e
         } catch (error: Exception) {
-            logger.info { "[订阅 $operation] Go解析失败，异常类型=${error::class.simpleName}" }
+            logger.info { "[订阅 $operation] Go解析失败，异常类型为 ${error::class.simpleName}" }
             // NativeCore 错误可能含订阅凭据，不把异常原文放进塔台状态。
             ParsedAttempt(failure = "订阅解析失败")
         }
@@ -170,6 +194,6 @@ private fun filterNodes(parsed: NativeSubscription, settings: SubscriptionSettin
         if (reason >= 0) { counts[reason]++; null }
         else SubscriptionNode(node.name, node.type, node.server, node.port)
     }
-    logger.debug { "[订阅 $operation] 过滤去重：输入=${parsed.nodes.size}，本机地址=${counts[0]}，未命中包含规则=${counts[1]}，命中排除规则=${counts[2]}，协议排除=${counts[3]}，配置重复=${counts[4]}，保留=${nodes.size}" }
+    logger.debug { "[订阅 $operation] 对 ${parsed.nodes.size} 个节点进行过滤和去重：排除 ${counts[0]} 个本机地址、${counts[1]} 个未匹配包含规则的节点、${counts[2]} 个匹配排除规则的节点、${counts[3]} 个协议未被选中的节点、${counts[4]} 个配置重复的节点，最终保留 ${nodes.size} 个节点" }
     return SubscriptionImportResult(nodes = nodes)
 }

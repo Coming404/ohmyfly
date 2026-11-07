@@ -53,7 +53,7 @@ internal class MirrorHttpTransport(
                     chunk.copyInto(bytes, count, 0, read)
                     count += read
                 }
-                logger.debug { "[镜像HTTP] ${logTarget(url)} 读取完成：声明=${declared ?: "未知"}B，实际=${count}B，首字节=${firstByte ?: -1}ms，总耗时=${start.elapsedNow().inWholeMilliseconds}ms" }
+                logger.debug { "[镜像HTTP] ${logTarget(url)} 读取完成：服务器${declared?.let { "声明 $it 字节" } ?: "未声明内容长度"}，实际读取 ${count} 字节，${firstByte?.let { "等待首字节 $it 毫秒" } ?: "没有收到正文"}，总耗时 ${start.elapsedNow().inWholeMilliseconds} 毫秒" }
                 ProbeResponse(status, bytes.copyOf(count), firstByte ?: start.elapsedNow().inWholeMilliseconds)
             }
         } ?: throw MirrorTimeoutException()

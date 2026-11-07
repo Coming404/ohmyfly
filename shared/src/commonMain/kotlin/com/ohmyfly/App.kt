@@ -1,3 +1,4 @@
+// 页面外壳统一持有设置子页动作，日志清理保留独立悬浮入口。
 package com.ohmyfly
 
 import androidx.compose.foundation.background
@@ -145,6 +146,8 @@ private fun AppContent(
     val settingsPage = settingsStack.last() as SettingsPage
     var mirrorEditorBack by remember { mutableStateOf<(() -> Unit)?>(null) }
     var mirrorAdd by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var logClear by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val logsPage = destination == AppDestination.Settings && settingsPage == SettingsPage.Logs
     val mirrorPage = destination == AppDestination.Settings && settingsPage == SettingsPage.Mirrors
     val settingsChild = destination == AppDestination.Settings && settingsPage != SettingsPage.Home
     val settingsBack: (() -> Unit)? = if (settingsChild) {
@@ -162,17 +165,15 @@ private fun AppContent(
     AppTheme(dynamicColorSeed, dark) {
         AppFrame(
             dark, settings, settingsSession, onRetryRead, destination, settingsChild, settingsBack,
-            mirrorPage, mirrorAdd, nodes, category, selectedIds, onSelection = { selectedIds = it },
-            onDestination = {
-                com.ohmyfly.logging.logger.debug { "[导航] $destination → $it" }
-                destination = it
-            },
+            mirrorPage, mirrorAdd, logsPage, logClear, nodes, category, selectedIds, onSelection = { selectedIds = it },
+            onDestination = { destination = it },
         ) { padding ->
             AppPager(
                 pagerState, settings, onChange, version, settingsSession, mirrorRunner, settingsStack,
                 nodes, category, selectedIds, onCategory = { category = it }, onSelection = { selectedIds = it },
                 onDestination = { destination = it }, editorBackActive = mirrorEditorBack != null,
                 onEditorBackChange = { mirrorEditorBack = it }, onMirrorAddChange = { mirrorAdd = it },
+                onLogClearChange = { logClear = it },
                 overviewState = overviewState, subscriptionsState = subscriptionsState, speedState = speedState,
                 nodesState = nodesState, settingsState = settingsState, scope = navScope,
                 subscriptionLoading = subscriptionLoading, padding = padding,
@@ -192,6 +193,8 @@ private fun AppFrame(
     settingsBack: (() -> Unit)?,
     mirrorPage: Boolean,
     mirrorAdd: (() -> Unit)?,
+    logsPage: Boolean,
+    logClear: (() -> Unit)?,
     nodes: List<NodeSummary>,
     category: String,
     selectedIds: Set<String>,
@@ -210,7 +213,7 @@ private fun AppFrame(
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            AppTopBar(destination, settingsChild, settingsBack, mirrorPage, mirrorAdd, nodes, category,
+            AppTopBar(destination, settingsChild, settingsBack, mirrorPage, mirrorAdd, logsPage, logClear, nodes, category,
                 selectedIds, onSelection, backdrop, glassEnabled, dark, settings, settingsSession)
         },
         bottomBar = {
@@ -252,6 +255,8 @@ private fun AppTopBar(
     settingsBack: (() -> Unit)?,
     mirrorPage: Boolean,
     mirrorAdd: (() -> Unit)?,
+    logsPage: Boolean,
+    logClear: (() -> Unit)?,
     nodes: List<NodeSummary>,
     category: String,
     selectedIds: Set<String>,
@@ -263,7 +268,7 @@ private fun AppTopBar(
     settingsSession: SettingsSession,
 ) {
     DriftTopBar(
-        title = if (settingsChild) "" else destination.label,
+        title = if (settingsChild || destination == AppDestination.Settings) "" else destination.label,
         backdrop = backdrop,
         glassEnabled = glassEnabled,
         dark = dark,
@@ -274,6 +279,10 @@ private fun AppTopBar(
         } else if (mirrorPage) {
             { HeaderAction("添加镜像", MirrorIcons.Add, onClick = { mirrorAdd?.invoke() },
                 enabled = mirrorAdd != null && settings.mirrorEnabled && !settingsSession.state.readFailed) }
+        } else if (logsPage) {
+            { HeaderAction("清理全部日志", MirrorIcons.Trash, onClick = { logClear?.invoke() },
+                enabled = logClear != null && !settingsSession.state.readFailed,
+                tint = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.error) }
         } else null,
     )
 }
@@ -296,6 +305,7 @@ private fun AppPager(
     editorBackActive: Boolean,
     onEditorBackChange: ((() -> Unit)?) -> Unit,
     onMirrorAddChange: ((() -> Unit)?) -> Unit,
+    onLogClearChange: ((() -> Unit)?) -> Unit,
     overviewState: LazyListState, subscriptionsState: LazyListState, speedState: LazyListState,
     nodesState: LazyListState, settingsState: LazyListState,
     scope: CoroutineScope,
@@ -339,7 +349,7 @@ private fun AppPager(
                 onBack = { settingsStack.popSettingsPage() },
                 editorBackActive = editorBackActive, onEditorBackChange = onEditorBackChange,
                 session = settingsSession, runner = mirrorRunner,
-                onMirrorAddChange = onMirrorAddChange,
+                onMirrorAddChange = onMirrorAddChange, onLogClearChange = onLogClearChange,
                 version = version, contentPadding = padding,
             )
         }

@@ -54,7 +54,9 @@ internal class SubscriptionFetcher(private val client: HttpClient) {
     ): String {
         val started = TimeSource.Monotonic.markNow()
         val maxBytes = settings.maxMiB.toLong() * 1024 * 1024
-        logger.debug { "[订阅 $operation] GET ${logTarget(url)}，超时 ${timeoutMillis}ms，上限 ${maxBytes}B，附加请求头 ${requestHeaders.size} 个，发送UA=${userAgent != null}" }
+        val actualAgents = requestHeaders.entries.firstOrNull { it.key.equals(HttpHeaders.UserAgent, ignoreCase = true) }
+            ?.value ?: listOf(userAgent)
+        logger.debug { "[订阅 $operation] 向 ${logTarget(url)} 发送 GET 请求，最多等待 ${timeoutMillis} 毫秒，最多下载 ${maxBytes} 字节，附加 ${requestHeaders.size} 个请求头；实际使用：${actualAgents.joinToString("、", transform = ::subscriptionUserAgentDescription)}" }
         return withTimeoutOrNull(timeoutMillis) {
             client.prepareGet(url) {
                 headers.append(HttpHeaders.CacheControl, "no-cache")
@@ -73,7 +75,7 @@ internal class SubscriptionFetcher(private val client: HttpClient) {
                 if (declared != null && declared > maxBytes) throw SubscriptionFetchException("订阅超过大小上限", false)
                 val bytes = response.bodyAsChannel().readRemaining(maxBytes + 1).readByteArray()
                 if (bytes.size > maxBytes) throw SubscriptionFetchException("订阅超过大小上限", false)
-                logger.debug { "[订阅 $operation] 下载完成：声明 ${declared ?: "未知"}B，实际 ${bytes.size}B，总耗时 ${started.elapsedNow().inWholeMilliseconds}ms" }
+                logger.debug { "[订阅 $operation] 下载完成：服务器${declared?.let { "声明 $it 字节" } ?: "未声明内容长度"}，实际下载 ${bytes.size} 字节，总耗时 ${started.elapsedNow().inWholeMilliseconds} 毫秒" }
                 bytes.decodeToString()
             }
         } ?: throw SubscriptionFetchException("请求超时", retryable = true)

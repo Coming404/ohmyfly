@@ -1,3 +1,4 @@
+// 设置子页沿用统一导航与编辑会话，页面动作发布给透明顶栏。
 package com.ohmyfly.ui
 
 import androidx.compose.foundation.background
@@ -32,6 +33,7 @@ internal fun SettingsScreen(
     session: SettingsSession,
     runner: MirrorProbeRunner,
     onMirrorAddChange: ((() -> Unit)?) -> Unit,
+    onLogClearChange: ((() -> Unit)?) -> Unit,
     version: String,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
@@ -68,7 +70,7 @@ internal fun SettingsScreen(
                             SettingsPage.Subscription -> SubscriptionSettingsPage(contentPadding)
                             SettingsPage.Mirrors -> MirrorSettingsPage(settings, onChange, contentPadding, onEditorBackChange,
                                 session, runner, onMirrorAddChange)
-                            SettingsPage.Logs -> LogsSettingsPage(settings, onChange, contentPadding)
+                            SettingsPage.Logs -> LogsSettingsPage(settings, onChange, contentPadding, onLogClearChange)
                             SettingsPage.Privacy -> PrivacySettingsPage(contentPadding)
                             SettingsPage.About -> AboutSettingsPage(version, contentPadding)
                             SettingsPage.Sponsor -> SponsorSettingsPage(contentPadding)

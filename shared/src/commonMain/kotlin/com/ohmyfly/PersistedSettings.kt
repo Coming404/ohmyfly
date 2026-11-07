@@ -51,7 +51,7 @@ internal fun PersistedSettings(
         if (logPolicy != null) {
             try {
                 AppLog.configure(logPolicy)
-                logger.info { "[日志] 已应用配置：单文件 ${logPolicy.fileMiB} MiB，总量 ${logPolicy.totalMiB} MiB，保留 ${logPolicy.retentionDays} 天，级别 ${logPolicy.level}" }
+                logger.info { "[日志] 已应用配置：单文件最多 ${logPolicy.fileMiB} MiB，总量最多 ${logPolicy.totalMiB} MiB，保留 ${logPolicy.retentionDays} 天，记录${logPolicy.level.label}级别日志" }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {

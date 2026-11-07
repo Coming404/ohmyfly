@@ -39,7 +39,7 @@ internal suspend fun resolveSubscriptionProviders(
     var requested = 0
     while (queue.isNotEmpty()) {
         val pending = queue.removeFirst()
-        logger.debug { "[订阅 $operation] 展开 provider：层级=${pending.depth}/$MaxProviderDepth，目标=${logTarget(pending.provider.url)}，剩余引用=${queue.size}，已请求=$requested/$MaxProviderUrls" }
+        logger.debug { "[订阅 $operation] 展开子订阅引用 ${logTarget(pending.provider.url)}，当前为第 ${pending.depth} 层，最多展开 $MaxProviderDepth 层；还剩 ${queue.size} 个引用，已请求 $requested 个地址，上限为 $MaxProviderUrls 个" }
         if (pending.depth > MaxProviderDepth) {
             warnings += "provider 已达到 $MaxProviderDepth 层展开上限"
             continue
@@ -60,7 +60,7 @@ internal suspend fun resolveSubscriptionProviders(
                 continue
             }
             if (key in visited) {
-                logger.debug { "[订阅 $operation] provider 地址已请求，跳过重复引用" }
+                logger.debug { "[订阅 $operation] 子订阅地址已经请求过，跳过重复引用" }
                 continue
             }
             if (requested >= MaxProviderUrls) {
@@ -87,13 +87,18 @@ internal suspend fun resolveSubscriptionProviders(
         if (parsed.nodes.isEmpty() && parsed.proxyProviders.isEmpty()) {
             warnings += "provider 未解析到节点或下级引用"
         }
-        logger.debug { "[订阅 $operation] provider 完成：新增节点=${parsed.nodes.size}，下级引用=${parsed.proxyProviders.size}，跳过=${parsed.skipped}" }
+        logger.debug { "[订阅 $operation] 子订阅解析完成，新增 ${parsed.nodes.size} 个节点，发现 ${parsed.proxyProviders.size} 个下级引用，发生 ${parsed.skipped} 次跳过" }
+        if (parsed.skippedByReason.isNotEmpty()) logger.info {
+            "[订阅 $operation] 子订阅跳过原因：" + parsed.skippedByReason.entries.joinToString("；") { (reason, count) ->
+                "${subscriptionSkipDescription(reason)}，共 $count 次"
+            }
+        }
         nodes += parsed.nodes
         parsed.proxyProviders.forEach { queue.addLast(PendingProvider(it, pending.depth + 1, ancestors)) }
     }
     // 名称过滤完成后再去重，避免先选中信息节点而丢掉同配置的可用名称。
-    warnings.distinct().forEach { reason -> logger.info { "[订阅 $operation] provider 提示：$reason" } }
-    logger.debug { "[订阅 $operation] provider 展开结束：请求=$requested，合并节点=${nodes.size}，提示=${warnings.distinct().size}" }
+    warnings.distinct().forEach { reason -> logger.info { "[订阅 $operation] 子订阅提示：${reason.replace("provider", "子订阅")}" } }
+    logger.debug { "[订阅 $operation] 子订阅展开结束，共请求 $requested 个地址，合并后有 ${nodes.size} 个节点，产生 ${warnings.distinct().size} 条提示" }
     return ResolvedSubscription(nodes, warnings.distinct())
 }
 
