@@ -1,7 +1,8 @@
 package com.ohmyfly.mirror
 
-/** Bounded HTTP response, without redirects, cookies, authentication, or body caching. */
+/** HTTP requests without automatic redirects, cookies, authentication, or body caching. */
 internal interface MirrorTransport {
+    suspend fun head(url: String, timeoutMillis: Long): MirrorHeadResponse
     suspend fun fetch(url: String, timeoutMillis: Long, maxBytes: Int): ProbeResponse
 }
 

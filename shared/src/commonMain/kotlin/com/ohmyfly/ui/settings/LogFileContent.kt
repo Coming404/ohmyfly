@@ -38,12 +38,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ohmyfly.logging.LogEntry
+import com.ohmyfly.logging.LogLevel
 import com.ohmyfly.logging.copyLogText
 import com.ohmyfly.ui.AppMessageKind
 import com.ohmyfly.ui.LocalAppMessages
 import com.ohmyfly.ui.LocalAppMotionAllowed
 import com.ohmyfly.ui.hapticClick
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -54,25 +55,37 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
+private data class LogContentSnapshot(
+    val entries: List<LogEntry>, val level: LogLevel, val busy: Boolean, val failure: String?,
+    val hasOlder: Boolean, val hasNewer: Boolean,
+)
+
+private fun LogPageState.contentSnapshot() =
+    LogContentSnapshot(entries, level, busy, failure, older != null, newer != null)
+
 @Composable
-internal fun LogFileContent(state: LogPageState) {
+internal fun LogFileContent(state: LogPageState, fileId: String) {
     val scope = rememberCoroutineScope()
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+    val active = state.selected?.id == fileId
+    // 退出动画保留本文件最后一帧，切换文件时不显示新文件正文，也不继续触发读取。
+    var content by remember(fileId) { mutableStateOf(state.contentSnapshot()) }
+    if (active) content = state.contentSnapshot()
+    Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            LogLevelSegments(state.level, "查看级别") {
+            LogLevelMenu(content.level, enabled = active && !state.clearing) {
                 scope.launch(start = CoroutineStart.UNDISPATCHED) { state.changeLevel(it) }
             }
             androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
-            LogCopyButton(state)
+            LogCopyButton(state, content.entries, active)
         }
-        LogTextWindow(state)
+        LogTextWindow(state, content, active)
     }
 }
 
 @Composable
-private fun LogTextWindow(state: LogPageState) {
+private fun LogTextWindow(state: LogPageState, content: LogContentSnapshot, active: Boolean) {
     val list = rememberLazyListState()
-    val entries = state.entries
+    val entries = content.entries
     val direction = remember(state.revision) { LogReadDirection() }
     val scroll = remember(direction) {
         object : NestedScrollConnection {
@@ -85,8 +98,9 @@ private fun LogTextWindow(state: LogPageState) {
     val viewport = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
     val maxHeight = minOf(viewport * 0.62f, 560.dp).coerceAtLeast(96.dp)
     var restoring by remember { mutableStateOf(false) }
-    LaunchedEffect(state.revision) { list.scrollToItem(0) }
-    LaunchedEffect(state, list, direction) {
+    LaunchedEffect(state.revision, active) { if (active) list.scrollToItem(0) }
+    LaunchedEffect(state, list, direction, active) {
+        if (!active) return@LaunchedEffect
         snapshotFlow {
             val visible = list.layoutInfo.visibleItemsInfo
             if (state.busy || restoring || state.failure != null || visible.isEmpty()) null
@@ -113,7 +127,7 @@ private fun LogTextWindow(state: LogPageState) {
         LazyColumn(state = list, modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp, max = maxHeight)
             .nestedScroll(scroll),
             contentPadding = PaddingValues(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-            item("window-start") { if (state.newer != null) SettingsHint("向上滚动读取") }
+            item("window-start") { if (content.hasNewer) SettingsHint("向上滚动读取") }
             items(entries, key = { it.id }) { entry ->
                 Column {
                     Text("${logTime(entry.timestampMillis)}  ${entry.level.label}", fontSize = 12.sp,
@@ -123,10 +137,10 @@ private fun LogTextWindow(state: LogPageState) {
             }
             item("window-end") {
                 when {
-                    state.busy -> LogBusyHint("正在读取…")
-                    state.failure != null -> SettingsHint(state.failure!!, isError = true)
+                    content.busy -> LogBusyHint("正在读取…")
+                    content.failure != null -> SettingsHint(content.failure, isError = true)
                     entries.isEmpty() -> SettingsHint("此文件没有符合级别的记录")
-                    state.older == null -> SettingsHint("已到文件开头")
+                    !content.hasOlder -> SettingsHint("已到文件开头")
                     else -> SettingsHint("向下滚动读取")
                 }
             }
@@ -135,24 +149,17 @@ private fun LogTextWindow(state: LogPageState) {
 }
 
 @Composable
-private fun LogCopyButton(state: LogPageState) {
-    val scope = rememberCoroutineScope()
+private fun LogCopyButton(state: LogPageState, entries: List<LogEntry>, active: Boolean) {
     val messages = LocalAppMessages.current
-    var copying by remember { mutableStateOf(false) }
-    LogIconButton(if (copying) "正在复制" else "复制已加载文本", SettingsIcons.Copy,
-        enabled = !copying && !state.clearing && state.entries.isNotEmpty(), busy = copying) {
-        val text = logText(state.entries)
-        copying = true
-        scope.launch {
-            try {
-                withFrameNanos { }
-                copyLogText(text)
-                messages.show(AppMessageKind.Success, "已复制当前加载的日志文本")
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                messages.show(AppMessageKind.Failure, "日志复制失败，请重试")
-            } finally { copying = false }
+    LogIconButton("复制已加载文本", SettingsIcons.Copy,
+        enabled = active && !state.clearing && entries.isNotEmpty()) {
+        // 点击时立即写入系统剪贴板；切到其他应用不必等待下一帧或页面协程。
+        try {
+            val text = logText(entries)
+            copyLogText(text)
+            messages.show(AppMessageKind.Success, "已复制当前加载的日志文本")
+        } catch (_: Exception) {
+            messages.show(AppMessageKind.Failure, "日志复制失败，请重试")
         }
     }
 }
@@ -164,9 +171,9 @@ internal fun LogIconButton(
     TooltipBox(text = label) {
         IconButton(onClick = hapticClick(onClick), enabled = enabled, minWidth = 44.dp, minHeight = 44.dp) {
             if (busy && LocalAppMotionAllowed.current) CircularProgressIndicator(
-                size = 20.dp, modifier = Modifier.semantics { contentDescription = label },
+                size = 18.dp, modifier = Modifier.semantics { contentDescription = label },
             )
-            else Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp),
+            else Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp),
                 tint = MiuixTheme.colorScheme.onSurfaceVariantActions)
         }
     }

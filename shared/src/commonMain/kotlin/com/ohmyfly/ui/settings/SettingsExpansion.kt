@@ -62,7 +62,7 @@ internal fun SettingsExpandableRow(
 }
 
 @Composable
-private fun SettingsExpansionArrow(expanded: Boolean) {
+internal fun SettingsExpansionArrow(expanded: Boolean) {
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val target = if (expanded) 90f else if (rtl) 180f else 0f
     val rotation = if (LocalAppMotionAllowed.current) {

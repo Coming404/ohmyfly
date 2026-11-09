@@ -11,15 +11,16 @@ COMMON = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
 
 
 class SettingsBoundaryTests(unittest.TestCase):
-    def test_probe_fixture_matches_pinned_public_digest(self):
-        target = (COMMON / 'mirror/MirrorProbeTarget.kt').read_text()
+    def test_download_fixture_matches_pinned_public_digest(self):
         fixture = (ROOT / 'shared/src/commonTest/kotlin/com/ohmyfly/mirror/MirrorSample.kt').read_text()
         encoded = ''.join(re.findall(r'"([A-Za-z0-9+/=]+)"', fixture.split('private const val BASE64 =', 1)[1]))
         body = base64.b64decode(encoded, validate=True)
         self.assertEqual(425, len(body))
-        expected = re.search(r'const val sha256 = "([a-f0-9]{64})"', target).group(1)
+        expected = re.search(r'const val sha256 = "([a-f0-9]{64})"', fixture).group(1)
         self.assertEqual(expected, hashlib.sha256(body).hexdigest())
+        target = (COMMON / 'mirror/MirrorProbeTarget.kt').read_text()
         self.assertNotIn('BASE64', target)
+        self.assertNotIn('sha256', target)
 
     def test_runtime_kotlin_files_remain_bounded(self):
         sources = subprocess.check_output(['rg', '--files', str(ROOT / 'shared/src'), '-g', '*.kt'], text=True)

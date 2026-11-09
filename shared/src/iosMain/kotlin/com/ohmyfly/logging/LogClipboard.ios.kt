@@ -1,8 +1,11 @@
-// 复制单条已脱敏日志，不自动访问剪贴板内容。
+// 用户点击时同步发布公共纯文本，不读取剪贴板，也不设置过期时间。
 package com.ohmyfly.logging
 
 import platform.UIKit.UIPasteboard
 
 internal actual fun copyLogText(text: String) {
-    UIPasteboard.generalPasteboard.string = text
+    UIPasteboard.generalPasteboard.setItems(
+        listOf(mapOf("public.utf8-plain-text" to text)),
+        options = emptyMap<Any?, Any>(),
+    )
 }

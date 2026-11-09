@@ -32,9 +32,9 @@ internal fun LogActions(state: LogPageState, storage: LogStorageState) {
     val messages = LocalAppMessages.current
     var configuring by remember { mutableStateOf(false) }
     Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.Bottom) {
             Column(Modifier.weight(1f)) {
-                SettingsName("日志文件 ${storage.files} 个 ${logBytes(storage.bytes)}")
+                SettingsSectionTitle("日志文件 ${storage.files} 个 ${logBytes(storage.bytes)}", SettingsIcons.File)
                 if (configuring) LogBusyHint("正在配置日志存储…")
             }
             LogIconButton(if (state.busy || configuring) "正在刷新" else "刷新日志", SettingsIcons.Retry,

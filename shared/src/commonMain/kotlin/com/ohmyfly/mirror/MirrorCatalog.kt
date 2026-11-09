@@ -10,4 +10,7 @@ internal fun defaultMirrors(): List<MirrorEntry> = listOf(
     MirrorEntry("hk-gh-proxy-org", "hk.gh-proxy.org", "https://hk.gh-proxy.org/"),
     MirrorEntry("cdn-gh-proxy-org", "cdn.gh-proxy.org", "https://cdn.gh-proxy.org/"),
     MirrorEntry("gh-wglee-org", "gh.wglee.org", "https://gh.wglee.org/"),
+    MirrorEntry("api-gitproxy-dev", "GitProxy", "https://api.gitproxy.dev/"),
+    MirrorEntry("ghfast-top", "GHFast", "https://ghfast.top/"),
+    MirrorEntry("ghproxy-net", "GHProxy.net", "https://ghproxy.net/"),
 )

@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.KeyboardType
+import com.ohmyfly.logging.LogLevel
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.DayMillis
 import com.ohmyfly.settings.MiB
@@ -15,8 +16,9 @@ import com.ohmyfly.settings.MiB
 internal fun LogPolicyCard(settings: AppSettings, onChange: (String, (AppSettings) -> AppSettings) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     SettingsCard {
-        LogLevelSetting(settings.logging.level) { value ->
-            onChange("日志记录级别") { it.copy(logging = it.logging.copy(level = value)) }
+        ChoiceSetting("记录级别", settings.logging.level.name,
+            LogLevel.entries.map { it.name to it.label }, SettingsIcons.Filter) { value ->
+            onChange("日志记录级别") { it.copy(logging = it.logging.copy(level = LogLevel.valueOf(value))) }
         }
         SettingsExpandableRow("存储设置",
             "${settings.logging.fileMiB} / ${settings.logging.totalMiB} MiB  ${settings.logging.retentionDays} 天",

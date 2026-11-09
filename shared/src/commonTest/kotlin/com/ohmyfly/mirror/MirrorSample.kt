@@ -2,8 +2,10 @@ package com.ohmyfly.mirror
 
 import okio.ByteString.Companion.decodeBase64
 
-/** CC0 github/gitignore fixed sample, only for hermetic tests; production always requests HTTP. */
+/** CC0 github/gitignore resource fixture for bounded download and digest tests. */
 internal object MirrorSample {
+    const val url = "https://raw.githubusercontent.com/github/gitignore/29d931584421f77a7d0bdaa43b0b75be50fae435/Kotlin.gitignore"
+    const val sha256 = "fe29173561286de399f333ad2c753a9009cdfa0a283a939986239258c09aa694"
     val bytes: ByteArray get() = BASE64.decodeBase64()!!.toByteArray()
     private const val BASE64 =
         "IyBDb21waWxlZCBjbGFzcyBmaWxlCiouY2xhc3MKCiMgTG9nIGZpbGUKKi5sb2cKCiMgQmx1ZUog" +

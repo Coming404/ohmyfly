@@ -6,6 +6,7 @@ import com.ohmyfly.logging.logTarget
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withTimeoutOrNull
+import okio.ByteString.Companion.toByteString
 
 /**
  * Real request with ordered fallback: the selected mirror first, then the persisted list order,
@@ -128,3 +129,9 @@ internal class MirrorResourceFetcher(private val transport: MirrorTransport) {
         data object Fail : Outcome
     }
 }
+
+internal fun digest(bytes: ByteArray): String = bytes.toByteString().sha256().hex()
+
+/** Compares the full-body digest, not a length or a byte range. */
+internal fun matchesDigest(bytes: ByteArray, expectedHex: String): Boolean =
+    digest(bytes).equals(expectedHex.trim(), ignoreCase = true)

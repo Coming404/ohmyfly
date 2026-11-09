@@ -53,17 +53,15 @@ internal fun mirrorStatusText(result: MirrorProbeResult?, phase: MirrorTestPhase
 /** Full reason for the accessibility label; never a placeholder and never a zero-millisecond pass. */
 internal fun mirrorStatusDetail(result: MirrorProbeResult?, phase: MirrorTestPhase): String = when (phase) {
     MirrorTestPhase.Queued -> "排队等待测试"
-    MirrorTestPhase.Running -> "正在测试固定样本"
+    MirrorTestPhase.Running -> "正在等待 HTTP 响应头"
     MirrorTestPhase.Stopped -> "已停止，未完成本轮测试"
     MirrorTestPhase.Idle -> when {
         result == null -> "尚未测试"
         result.status == ProbeStatus.Success -> buildString {
-            append(result.latencyMs?.let { "HTTP 首字节 $it ms" } ?: "内容校验通过")
-            if (result.successes > 0) append("，成功 ${result.successes} 次")
+            append(result.latencyMs?.let { "HTTP 响应 $it ms" } ?: "HTTP 响应成功")
             if (result.detail.isNotBlank()) append("，${result.detail}")
         }
         result.status == ProbeStatus.Timeout -> "请求超时"
-        result.status == ProbeStatus.InvalidContent -> result.detail.ifBlank { "返回内容与固定样本不一致" }
         else -> result.detail.ifBlank { "请求失败" }
     }
 }
@@ -79,7 +77,7 @@ internal fun mirrorTone(result: MirrorProbeResult?, phase: MirrorTestPhase): Mir
 }
 
 /**
- * Runs at most four probes at once. Each row commits and returns to Idle as soon as its own
+ * Runs at most five probes at once. Each row commits and returns to Idle as soon as its own
  * probe finishes, so ordering updates during a batch. Starting a batch drops the targets'
  * previous results, so a stopped run never presents stale numbers as this run's output.
  *
@@ -109,7 +107,7 @@ internal class MirrorProbeRunner(
     var completedBatchId by mutableStateOf(0L)
         private set
 
-    private val gate = Semaphore(4)
+    private val gate = Semaphore(5)
     private val tokens = mutableMapOf<String, Long>()
     private val signatures = mutableMapOf<String, String>()
     private var autoSelectionTargets: List<MirrorEntry> = emptyList()
@@ -127,7 +125,7 @@ internal class MirrorProbeRunner(
         if (batchId == 0L || batchId == autoSelectionHandledBatchId) return null
         autoSelectionHandledBatchId = batchId
         return fastestMirrorId(autoSelectionTargets, results).also { selected ->
-            logger.info { "[镜像选择] 按通过内容校验样本的中位延迟择优，${if (selected != null) "已找到可用镜像" else "没有可用镜像"}" }
+            logger.info { "[镜像选择] 按单次 HTTP 响应延迟择优，${if (selected != null) "已找到可用镜像" else "没有可用镜像"}" }
         }
     }
 
@@ -188,7 +186,7 @@ internal class MirrorProbeRunner(
         job?.cancel()
         runId += 1L
         val id = runId
-        logger.info { "[镜像批次 $id] 开始探测 ${targets.size} 个目标，同时最多处理 4 个；${if (autoSelect) "完成后自动选择最快可用镜像" else "完成后保留当前镜像选择"}" }
+        logger.info { "[镜像批次 $id] 开始探测 ${targets.size} 个目标，同时最多处理 5 个；${if (autoSelect) "完成后自动选择最快可用镜像" else "完成后保留当前镜像选择"}" }
         running = true
         stopping = false
         stopped = false
@@ -234,7 +232,6 @@ internal class MirrorProbeRunner(
                 MirrorProbeResult(
                     status = ProbeStatus.Failed,
                     latencyMs = null,
-                    successes = 0,
                     detail = "探测未完成，请重试",
                 )
             }

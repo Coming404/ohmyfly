@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -23,24 +22,21 @@ import com.ohmyfly.logging.LogFileInfo
 import com.ohmyfly.ui.hapticClick
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
-internal fun LogFileRow(file: LogFileInfo, expanded: Boolean, onClick: () -> Unit) {
+internal fun LogFileRow(file: LogFileInfo, name: String, expanded: Boolean, onClick: () -> Unit) {
     val muted = MiuixTheme.colorScheme.onSurfaceVariantSummary
-    Row(Modifier.fillMaxWidth().heightIn(min = 72.dp)
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp)
         .semantics { stateDescription = if (expanded) "已展开" else "已收起" }
         .clickable(role = Role.Button, onClickLabel = if (expanded) "收起日志文件" else "展开日志文件",
-            onClick = hapticClick(onClick)).padding(horizontal = 16.dp, vertical = 18.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Icon(SettingsIcons.File, null, Modifier.size(23.dp), tint = muted)
-        Text(logFileName(file), Modifier.weight(1f), fontSize = 15.sp, lineHeight = 22.sp,
+            onClick = hapticClick(onClick)).padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Icon(SettingsIcons.File, null, Modifier.size(20.dp), tint = muted)
+        Text(name, Modifier.weight(1f), fontSize = 15.sp, lineHeight = 22.sp,
             fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(logBytes(file.bytes), fontSize = 12.sp, fontWeight = FontWeight.Normal,
             maxLines = 1, color = muted)
-        Icon(MiuixIcons.Basic.ArrowRight, null,
-            Modifier.size(16.dp).graphicsLayer { rotationZ = if (expanded) 90f else 0f }, tint = muted)
+        SettingsExpansionArrow(expanded)
     }
 }

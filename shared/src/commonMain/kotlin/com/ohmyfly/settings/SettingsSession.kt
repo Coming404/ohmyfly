@@ -83,9 +83,17 @@ internal class SettingsSession(
         changeConfirmed(name = null, transform = transform)
 
     private fun enqueue(change: PendingChange): Boolean {
-        logger.debug { "[设置] 请求保存${change.name ?: "设置变更"}，前面有 ${pending.size} 项等待保存；${if (confirmed != null) "已加载原配置" else "尚未加载原配置"}；${if (state.readFailed) "此前读取失败，当前不可写" else "没有读取错误"}" }
+        if (pending.isNotEmpty()) logger.debug { "[设置] ${change.name ?: "设置变更"}等待前面 ${pending.size} 项保存完成" }
         val activeScope = scope?.takeIf { it.isActive }
         if (activeScope == null || confirmed == null || state.readFailed) {
+            logger.debug {
+                val reason = when {
+                    activeScope == null -> "设置会话尚未就绪或已经结束"
+                    state.readFailed -> "配置读取失败，当前不可写"
+                    else -> "尚未读取原配置"
+                }
+                "[设置] 无法保存${change.name ?: "设置变更"}：$reason"
+            }
             if (change.reportErrors && !state.readFailed) {
                 onMessage(AppMessageKind.Error, "${change.name ?: "设置"}暂时无法保存，请稍后重试")
             }
@@ -98,11 +106,6 @@ internal class SettingsSession(
             if (change.reportErrors) onMessage(AppMessageKind.Error, "${change.name ?: "设置"}无效：$invalid")
             return false
         }
-        val before = state.settings
-        if (before.mirrorEnabled != next.mirrorEnabled) logger.debug { "[设置] ${if (next.mirrorEnabled) "启用" else "停用"}镜像" }
-        if (before.selectedMirrorId != next.selectedMirrorId) logger.debug { "[设置] 镜像选择从列表第 ${before.mirrors.indexOfFirst { it.id == before.selectedMirrorId } + 1} 项改为第 ${next.mirrors.indexOfFirst { it.id == next.selectedMirrorId } + 1} 项，0 表示未选择列表中的镜像" }
-        if (before.themeMode != next.themeMode || before.materialMode != next.materialMode) logger.debug { "[设置] 外观从${before.themeMode.label}主题、${before.materialMode.label}材质改为${next.themeMode.label}主题、${next.materialMode.label}材质" }
-        if (before.logging != next.logging) logger.debug { "[设置] 日志策略从单文件 ${before.logging.fileMiB} MiB、总量 ${before.logging.totalMiB} MiB、保留 ${before.logging.retentionDays} 天、${before.logging.level.label}级别，改为单文件 ${next.logging.fileMiB} MiB、总量 ${next.logging.totalMiB} MiB、保留 ${next.logging.retentionDays} 天、${next.logging.level.label}级别" }
         // 取消旧订阅；排空后重新订阅读当前磁盘值，不靠相等比较推测 Flow 的版本。
         if (pending.isEmpty()) reader?.cancel()
         pending.addLast(change)
@@ -156,7 +159,8 @@ internal class SettingsSession(
                     // cancel(). Never let that stale read overwrite a pending optimistic choice or
                     // the rollback baseline while a save is in flight.
                     if (pending.isEmpty()) {
-                        logger.debug { "[设置] 已读取持久化配置，包含 ${value.mirrors.size} 个镜像，日志记录级别为${value.logging.level.label}" }
+                        if (confirmed == null) logger.debug { "[设置] 首次读取持久化配置完成" }
+                        else if (confirmed != value) logger.debug { "[设置] 检测到存储更新：${settingsLogChange(confirmed, value, "设置")}" }
                         confirmed = value
                         state = state.copy(
                             settings = value,
@@ -180,6 +184,7 @@ internal class SettingsSession(
     private suspend fun persist() {
         try {
             while (pending.isNotEmpty()) {
+                val before = confirmed
                 try {
                     // 保留变换：由既有 DataStore 事务在最新存储值上合并，绝不整份覆盖。
                     update(pending.first().transform)
@@ -212,7 +217,7 @@ internal class SettingsSession(
                     return
                 }
                 state = state.copy(confirmedSettings = settled, pendingWrites = pending.size)
-                logger.info { "[设置] ${change.name ?: "变更"}已保存并读回确认，剩余 ${pending.size} 项" }
+                logger.info { "[设置] 已保存并读回确认：${settingsLogChange(before, settled, change.name ?: "设置")}" }
                 onMessage(AppMessageKind.Success, change.successText ?: "${change.name ?: "设置"}已保存")
                 // 只有事务已提交且读回磁盘值，才把这次操作标记为已确认。
                 change.done?.complete(SettingsWriteResult.Confirmed(settled))
@@ -229,7 +234,7 @@ internal class SettingsSession(
 
     /** 事务失败：失败操作及其后未执行的操作都失败，已确认值不受影响。 */
     private fun rollback(reportFailure: Boolean) {
-        logger.info { "[设置] 保存未完成，回滚 ${pending.size} 项未确认修改；${if (reportFailure) "按该修改的通知设置报告失败" else "本次取消不显示失败通知"}" }
+        logger.info { "[设置] ${pending.firstOrNull()?.name ?: "设置"}${if (reportFailure) "保存失败" else "保存已取消"}，撤回 ${pending.size} 项未确认修改，已确认配置保持不变" }
         val failed = pending.firstOrNull()
         state = state.copy(settings = confirmed ?: state.settings, confirmedSettings = confirmed, pendingWrites = 0)
         if (reportFailure && failed != null && pending.any { it.reportErrors }) {
@@ -264,6 +269,32 @@ internal class SettingsSession(
             )
         }
     }
+}
+
+private fun settingsLogChange(before: AppSettings?, after: AppSettings, name: String): String {
+    if (before == after) return "配置未发生变化（本次保存：$name）"
+    val changes = buildList {
+        if (before?.mirrorEnabled != after.mirrorEnabled) add("镜像已${if (after.mirrorEnabled) "启用" else "停用"}")
+        if (before?.selectedMirrorId != after.selectedMirrorId) {
+            val index = after.mirrors.indexOfFirst { it.id == after.selectedMirrorId }
+            add(if (index < 0) "未选择列表中的镜像" else "已选择列表第 ${index + 1} 个镜像")
+        }
+        if (before?.logging?.level != after.logging.level) add("日志记录级别改为${after.logging.level.label}")
+        if (before?.logging?.fileMiB != after.logging.fileMiB) add("单个日志文件上限改为 ${after.logging.fileMiB} MiB")
+        if (before?.logging?.totalMiB != after.logging.totalMiB) add("日志总容量上限改为 ${after.logging.totalMiB} MiB")
+        if (before?.logging?.retentionDays != after.logging.retentionDays) add("日志保留时间改为 ${after.logging.retentionDays} 天")
+        if (before?.themeMode != after.themeMode) add("主题改为${after.themeMode.label}")
+        if (before?.materialMode != after.materialMode) add("材质改为${after.materialMode.label}")
+        if (before?.reduceTransparency != after.reduceTransparency) add("减少透明效果已${if (after.reduceTransparency) "开启" else "关闭"}")
+        if (before?.reduceMotion != after.reduceMotion) add("减少动态效果已${if (after.reduceMotion) "开启" else "关闭"}")
+        if (before?.hapticEnabled != after.hapticEnabled) add("震动已${if (after.hapticEnabled) "开启" else "关闭"}")
+        if (before?.hapticLevel != after.hapticLevel) add("震动强度改为${after.hapticLevel.label}")
+        if (before?.mirrors != after.mirrors) add("镜像列表已更新，现有 ${after.mirrors.size} 个镜像")
+        if (before?.speed != after.speed) add("测速设置已更新")
+        if (before?.subscription != after.subscription) add("订阅设置已更新")
+        if (before?.media != after.media) add("流媒体设置已更新")
+    }
+    return changes.joinToString("；").ifEmpty { "${name}已更新" }
 }
 
 /** 一次写入的真实结果；[SettingsUiState.settings] 的乐观值不等于这里的结果。 */

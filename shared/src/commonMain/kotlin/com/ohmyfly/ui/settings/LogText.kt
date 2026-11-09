@@ -1,16 +1,30 @@
-// 日期由真实epoch转换为明确的UTC时间；文件身份仍使用完整磁盘文件名。
+// 显示与复制统一使用北京时间；只转换展示值，不改变磁盘记录的 epoch 和文件身份。
 package com.ohmyfly.ui.settings
 
 import com.ohmyfly.logging.LogEntry
 import com.ohmyfly.logging.LogFileInfo
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
+private fun beijingTime(epochMillis: Long): String =
+    (Instant.fromEpochMilliseconds(epochMillis) + 8.hours).toString().removeSuffix("Z")
+
 internal fun logTime(epochMillis: Long): String =
-    Instant.fromEpochMilliseconds(epochMillis).toString().replace('T', ' ').removeSuffix("Z") + " UTC"
+    beijingTime(epochMillis).replace('T', ' ') + " +08:00"
 
 internal fun logFileName(file: LogFileInfo): String =
-    Instant.fromEpochMilliseconds(file.createdMillis).toString()
-        .removeSuffix("Z").replace('T', '-').replace(':', '-') + ".log"
+    beijingTime(file.createdMillis).substringBefore('.').replace("-", "")
+        .replace(":", "").replace('T', '-') + ".log"
+
+// 只有同秒文件才附加序号，显示排序改变时名称保持一致。
+internal fun logFileNames(files: List<LogFileInfo>): Map<String, String> = buildMap {
+    files.groupBy(::logFileName).forEach { (name, group) ->
+        group.sortedWith(compareBy<LogFileInfo> { it.createdMillis }.thenBy { it.id })
+            .forEachIndexed { index, file ->
+                put(file.id, if (index == 0) name else name.removeSuffix(".log") + "-${index + 1}.log")
+            }
+    }
+}
 
 internal fun logBytes(bytes: Long): String = when {
     bytes < 1024 -> "$bytes B"

@@ -1,6 +1,8 @@
 // 单写者文件存储：只管理专用命名文件，写前预留配额，旧文件永不截断。
 package com.ohmyfly.logging
 
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.Buffer
@@ -29,11 +31,14 @@ internal class FileLogStore(
 
     fun configure(value: LogPolicy) {
         value.validate()
-        if (!loaded) recover()
-        if (value.fileMiB != policy.fileMiB) current = null
+        val recovering = !loaded
+        if (recovering) recover()
         policy = value
         generation = newLogId()
         maintain()
+        if (recovering) {
+            current = files.lastOrNull()?.takeIf(::hasCompleteTail)
+        }
     }
 
     private fun recover() {
@@ -49,6 +54,28 @@ internal class FileLogStore(
         files.sortBy { it.path.name }
         current = null
         loaded = true
+    }
+
+    private fun hasCompleteTail(file: LogFile): Boolean {
+        val count = minOf(file.bytes, MAX_RECORD_BYTES.toLong() + 1)
+        val offset = file.bytes - count
+        val buffer = Buffer()
+        fs.openReadOnly(file.path).use { handle ->
+            if (handle.read(offset, buffer, count) != count) {
+                throw LogStorageException("日志文件尾部读取不完整")
+            }
+        }
+        val tail = buffer.readByteArray()
+        if (tail.last() != 10.toByte()) return false
+        val start = (tail.lastIndex - 1 downTo 0).firstOrNull { tail[it] == 10.toByte() }?.plus(1) ?: 0
+        if (start == 0 && offset > 0) return false
+        // 残缺或损坏尾行保持原样，另建文件；只续写完整的最后一行，不回填更旧文件。
+        return try {
+            logJson.decodeFromString<LogEntry>(tail.decodeToString(start, tail.lastIndex))
+            true
+        } catch (_: SerializationException) {
+            false
+        }
     }
 
     fun append(entries: List<LogEntry>) {

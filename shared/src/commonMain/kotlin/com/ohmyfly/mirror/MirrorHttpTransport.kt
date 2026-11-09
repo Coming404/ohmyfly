@@ -7,6 +7,7 @@ import com.ohmyfly.logging.logTarget
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.request.prepareGet
+import io.ktor.client.request.prepareHead
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.HttpHeaders
 import io.ktor.utils.io.readAvailable
@@ -18,6 +19,23 @@ internal class MirrorHttpTransport(
     private val client: HttpClient,
     private val verifyHost: suspend (String) -> Unit = ::ensurePublicHost,
 ) : MirrorTransport {
+    override suspend fun head(url: String, timeoutMillis: Long): MirrorHeadResponse {
+        logger.debug { "[镜像HTTP] HEAD ${logTarget(url)}，超时 ${timeoutMillis}ms" }
+        val parsed = parseHttpUrl(url) ?: throw MirrorFetchException("请求地址不是公网 HTTP 或 HTTPS 地址")
+        require(timeoutMillis in 1..60_000)
+        return withTimeoutOrNull(timeoutMillis) {
+            val start = TimeSource.Monotonic.markNow()
+            verifyHost(parsed.host)
+            // 只计首个响应头；不跟随 3xx，也不消费正文。
+            client.prepareHead(url) {
+                headers.append(HttpHeaders.CacheControl, "no-cache")
+                headers.append(HttpHeaders.UserAgent, "ohmyfly-mirror-probe")
+            }.execute { response ->
+                MirrorHeadResponse(response.status.value, start.elapsedNow().inWholeMilliseconds)
+            }
+        } ?: throw MirrorTimeoutException()
+    }
+
     override suspend fun fetch(url: String, timeoutMillis: Long, maxBytes: Int): ProbeResponse {
         logger.debug { "[镜像HTTP] GET ${logTarget(url)}，超时 ${timeoutMillis}ms，最多 ${maxBytes}B" }
         val parsed = parseHttpUrl(url) ?: throw MirrorFetchException("请求地址不是公网 HTTP 或 HTTPS 地址")

@@ -8,7 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.ohmyfly.logging.AppLog
-import com.ohmyfly.logging.logger
+import com.ohmyfly.logging.LogPolicy
 import kotlinx.coroutines.CancellationException
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.SettingsSession
@@ -46,12 +46,13 @@ internal fun PersistedSettings(
     val state = session.state
     val current = state.settings
     val logPolicy = state.confirmedSettings?.logging
+    var appliedLogPolicy by remember { mutableStateOf<LogPolicy?>(null) }
     LaunchedEffect(logPolicy, state.readFailed) {
         // 只应用已落盘配置；读取失败时显示错误，不提前按默认限额清理历史。
-        if (logPolicy != null) {
+        if (logPolicy != null && logPolicy != appliedLogPolicy) {
             try {
                 AppLog.configure(logPolicy)
-                logger.info { "[日志] 已应用配置：单文件最多 ${logPolicy.fileMiB} MiB，总量最多 ${logPolicy.totalMiB} MiB，保留 ${logPolicy.retentionDays} 天，记录${logPolicy.level.label}级别日志" }
+                appliedLogPolicy = logPolicy
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {

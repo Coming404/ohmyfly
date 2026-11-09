@@ -91,6 +91,7 @@ class SettingsCodecTest {
         assertEquals(AppSettings().subscription, decoded.subscription)
         assertEquals(ThemeMode.System, decoded.themeMode)
         assertEquals(0.0, decoded.speed.minDownloadMiBps, 0.0)
+        assertEquals(8, decoded.mirrors.size)
         assertEquals(defaultMirrors().map { it.id }, decoded.mirrors.map { it.id })
         assertNull(decoded.selectedMirrorId)
     }

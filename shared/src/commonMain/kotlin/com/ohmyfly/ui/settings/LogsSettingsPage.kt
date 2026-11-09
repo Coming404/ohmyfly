@@ -33,6 +33,7 @@ internal fun LogsSettingsPage(
     val state = remember { LogPageState(notify = messages::show) }
     val storage by AppLog.state.collectAsState()
     val scope = rememberCoroutineScope()
+    val fileNames = remember(state.files) { logFileNames(state.files) }
     LaunchedEffect(storage.ready, storage.generation) {
         if (storage.ready && !state.clearing && storage.failure == null) state.refresh(invalidate = true)
     }
@@ -41,7 +42,8 @@ internal fun LogsSettingsPage(
         item("title") { SettingsPageIntro("日志") }
         item("policy") { LogPolicyCard(settings, onChange) }
         item("actions") { LogActions(state, storage) }
-        item("status") {
+        if (state.clearing || !storage.ready || state.files.isEmpty() ||
+            state.failure != null || storage.failure != null || storage.dropped > 0) item("status") {
             when {
                 state.clearing -> LogBusyHint("正在清理日志…")
                 state.busy -> LogBusyHint("正在读取…")
@@ -59,12 +61,12 @@ internal fun LogsSettingsPage(
                         if (index > 0) Box(Modifier.fillMaxWidth().height(0.5.dp)
                             .background(MiuixTheme.colorScheme.dividerLine))
                         val expanded = state.selected?.id == file.id
-                        LogFileRow(file, expanded) {
+                        LogFileRow(file, fileNames.getValue(file.id), expanded) {
                             scope.launch(start = CoroutineStart.UNDISPATCHED) {
                                 state.select(if (expanded) null else file)
                             }
                         }
-                        if (expanded) LogFileContent(state)
+                        SettingsExpansion(expanded) { LogFileContent(state, file.id) }
                     }
                 }
             }

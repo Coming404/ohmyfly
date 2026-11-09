@@ -4,6 +4,23 @@ import kotlin.test.*
 
 class MirrorPolicyTest {
     @Test
+    fun defaultCatalogKeepsOldIdsAndAppendsUniqueHosts() {
+        val entries = defaultMirrors()
+        assertEquals(listOf(
+            "gh-proxy-com", "githubdog-com", "hk-gh-proxy-org", "cdn-gh-proxy-org", "gh-wglee-org",
+            "api-gitproxy-dev", "ghfast-top", "ghproxy-net",
+        ), entries.map { it.id })
+        assertEquals(8, entries.map { it.id }.toSet().size)
+        assertEquals(8, entries.map { parseHttpsUrl(it.address)!!.host }.toSet().size)
+        assertEquals(listOf(
+            "https://gh-proxy.com/", "https://githubdog.com/", "https://hk.gh-proxy.org/",
+            "https://cdn.gh-proxy.org/", "https://gh.wglee.org/", "https://api.gitproxy.dev/",
+            "https://ghfast.top/", "https://ghproxy.net/",
+        ), entries.map { it.address })
+        assertTrue(entries.all { validateMirror(it) == null })
+    }
+
+    @Test
     fun prefixBuildsOriginalUrlAndRejectsQueriesAndPlaceholders() {
         val original = MirrorProbeTarget.url
         val prefix = MirrorEntry("a", "A", "https://EXAMPLE.com:443/base")
@@ -82,17 +99,17 @@ class MirrorPolicyTest {
     fun successfulLatencyResultsSortAscendingAndErrorsStayLast() {
         val entries = listOf(MirrorEntry("a", "A", "https://a.example.com/"), MirrorEntry("b", "B", "https://b.example.com/"), MirrorEntry("c", "C", "https://c.example.com/"))
         val results = mapOf(
-            "a" to MirrorProbeResult(ProbeStatus.Success, 50, 3, ""),
-            "b" to MirrorProbeResult(ProbeStatus.Success, 10, 3, ""),
-            "c" to MirrorProbeResult(ProbeStatus.Timeout, null, 0, ""),
+            "a" to MirrorProbeResult(ProbeStatus.Success, 50, ""),
+            "b" to MirrorProbeResult(ProbeStatus.Success, 10, ""),
+            "c" to MirrorProbeResult(ProbeStatus.Timeout, null, ""),
         )
         assertEquals(listOf("b", "a", "c"), sortMirrors(entries, results).map { it.id })
         assertEquals("b", fastestMirrorId(entries, results))
         assertEquals(listOf("a", "b", "c"), sortMirrors(entries, emptyMap()).map { it.id })
-        assertNull(fastestMirrorId(entries, mapOf("c" to MirrorProbeResult(ProbeStatus.Timeout, null, 0, ""))))
+        assertNull(fastestMirrorId(entries, mapOf("c" to MirrorProbeResult(ProbeStatus.Timeout, null, ""))))
         assertEquals("a", fastestMirrorId(entries, mapOf(
-            "a" to MirrorProbeResult(ProbeStatus.Success, 10, 3, ""),
-            "b" to MirrorProbeResult(ProbeStatus.Success, 10, 3, ""),
+            "a" to MirrorProbeResult(ProbeStatus.Success, 10, ""),
+            "b" to MirrorProbeResult(ProbeStatus.Success, 10, ""),
         )))
         assertEquals(listOf("a", "b", "c"), entries.map { it.id })
     }
