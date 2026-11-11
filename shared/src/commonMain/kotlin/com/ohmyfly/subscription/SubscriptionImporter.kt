@@ -237,16 +237,14 @@ private fun filterNodes(parsed: NativeSubscription, settings: SubscriptionSettin
         return SubscriptionImportResult(failure = e.message)
     }
     // shortcut: 不移植 SubBoost safeRegex，仅限制为 512 字符；接入可用的跨平台安全正则后再检查复杂度。
-    val counts = IntArray(5)
-    val seen = mutableSetOf<String>()
+    val counts = IntArray(4)
     val records = ArrayList<NativeSubscriptionNode>(parsed.nodes.size)
     val nodes = parsed.nodes.mapNotNull { node ->
-        val filtered = filter.reason(node.name, node.server, node.type)
-        val reason = if (filtered >= 0) filtered else if (!seen.add(node.fingerprint)) 4 else -1
-        records += node.copy(eligible = reason == -1 || reason == 4)
+        val reason = filter.reason(node.name, node.server, node.type)
+        records += node.copy(eligible = reason == -1)
         if (reason >= 0) { counts[reason]++; null }
         else SubscriptionNode(node.name, node.type, node.server, node.port, node.fields)
     }
-    logger.debug { "[订阅 $operation] 对 ${parsed.nodes.size} 个节点进行过滤和去重：排除 ${counts[0]} 个本机地址、${counts[1]} 个未匹配包含规则的节点、${counts[2]} 个匹配排除规则的节点、${counts[3]} 个协议未被选中的节点、${counts[4]} 个配置重复的节点，最终保留 ${nodes.size} 个节点" }
+    logger.debug { "[订阅 $operation] 对 ${parsed.nodes.size} 个节点进行过滤：排除 ${counts[0]} 个本机地址、${counts[1]} 个未匹配包含规则的节点、${counts[2]} 个匹配排除规则的节点、${counts[3]} 个协议未被选中的节点，最终保留 ${nodes.size} 个节点" }
     return SubscriptionImportResult(nodes = nodes, records = records)
 }

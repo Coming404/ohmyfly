@@ -58,7 +58,7 @@ func parseSubscription(content string) (string, error) {
 			RawInput:     value.RawInput,
 			SourceFormat: value.SourceFormat,
 			FromBase64:   value.FromBase64,
-			Fingerprint:  fmt.Sprintf("%x", flight.Fingerprint(value)),
+			ContentHash:  flight.ContentHash(value),
 		})
 		return nil
 	})
@@ -149,7 +149,7 @@ type subscriptionResult struct {
 }
 
 type subscriptionNode struct {
-	Fingerprint  string         `json:"fingerprint"`
+	ContentHash  string         `json:"contentHash"`
 	Name         string         `json:"name"`
 	Type         string         `json:"type"`
 	Server       string         `json:"server"`

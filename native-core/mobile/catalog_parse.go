@@ -2,7 +2,6 @@ package mobile
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"strings"
 
@@ -17,7 +16,7 @@ func parseCatalogSubscription(ctx context.Context, id int64) (any, error) {
 		node := subscriptionNode{Name: value.Name, Type: value.Type, Server: value.Server, Port: value.Port,
 			Fields: jsonSafeValue(value.Fields).(map[string]any), RawInput: value.RawInput,
 			SourceFormat: value.SourceFormat, FromBase64: value.FromBase64,
-			Fingerprint: fmt.Sprintf("%x", flight.Fingerprint(value))}
+			ContentHash: flight.ContentHash(value)}
 		err := catalogStore.SaveParsed(ctx, id, "node", index, node)
 		index++
 		return err

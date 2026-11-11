@@ -30,7 +30,7 @@ func TestFingerprintIgnoresNamesAndInternalFields(t *testing.T) {
 		"_meta":  map[string]any{"source": "second"},
 		"extra":  map[string]any{"_source": "second", "enabled": true},
 	}
-	if Fingerprint(normalizedForTest(t, base)) != Fingerprint(normalizedForTest(t, other)) {
+	if ContentHash(normalizedForTest(t, base)) != ContentHash(normalizedForTest(t, other)) {
 		t.Fatal("names or internal fields changed the content fingerprint")
 	}
 }
@@ -46,7 +46,7 @@ func TestFingerprintAliasesAndPortForms(t *testing.T) {
 		"uuid": "uuid", "fp": "chrome",
 		"reality-opts": map[string]any{"pbk": "public", "sid": "0x725"},
 	}
-	if Fingerprint(normalizedForTest(t, canonical)) != Fingerprint(normalizedForTest(t, aliases)) {
+	if ContentHash(normalizedForTest(t, canonical)) != ContentHash(normalizedForTest(t, aliases)) {
 		t.Fatal("equivalent aliases or port forms produced different fingerprints")
 	}
 }
@@ -67,10 +67,10 @@ func TestFingerprintKeepsCredentialsAndTransportQueries(t *testing.T) {
 		"cipher": "chacha20-ietf-poly1305", "password": "CaseSensitive",
 		"network": "ws", "ws-opts": map[string]any{"path": "/entry?token=two&ed=128"},
 	}
-	if Fingerprint(normalizedForTest(t, base)) == Fingerprint(normalizedForTest(t, password)) {
+	if ContentHash(normalizedForTest(t, base)) == ContentHash(normalizedForTest(t, password)) {
 		t.Fatal("credential case was incorrectly folded")
 	}
-	if Fingerprint(normalizedForTest(t, base)) == Fingerprint(normalizedForTest(t, query)) {
+	if ContentHash(normalizedForTest(t, base)) == ContentHash(normalizedForTest(t, query)) {
 		t.Fatal("non-ed WebSocket query was discarded")
 	}
 }
@@ -79,10 +79,10 @@ func TestFingerprintIncludesCipherAndUnknownFields(t *testing.T) {
 	base := map[string]any{"type": "ss", "server": "n.example", "port": 1, "cipher": "aes", "password": "p", "future": "one"}
 	cipher := map[string]any{"type": "ss", "server": "n.example", "port": 1, "cipher": "chacha", "password": "p", "future": "one"}
 	unknown := map[string]any{"type": "ss", "server": "n.example", "port": 1, "cipher": "aes", "password": "p", "future": "two"}
-	if Fingerprint(normalizedForTest(t, base)) == Fingerprint(normalizedForTest(t, cipher)) {
+	if ContentHash(normalizedForTest(t, base)) == ContentHash(normalizedForTest(t, cipher)) {
 		t.Fatal("cipher was omitted from fingerprint")
 	}
-	if Fingerprint(normalizedForTest(t, base)) == Fingerprint(normalizedForTest(t, unknown)) {
+	if ContentHash(normalizedForTest(t, base)) == ContentHash(normalizedForTest(t, unknown)) {
 		t.Fatal("unknown field was omitted from fingerprint")
 	}
 }
@@ -90,7 +90,7 @@ func TestFingerprintIncludesCipherAndUnknownFields(t *testing.T) {
 func TestFingerprintKeepsNestedName(t *testing.T) {
 	a := map[string]any{"type": "vless", "server": "n.example", "port": 1, "uuid": "u", "plugin-opts": map[string]any{"name": "a"}}
 	b := map[string]any{"type": "vless", "server": "n.example", "port": 1, "uuid": "u", "plugin-opts": map[string]any{"name": "b"}}
-	if Fingerprint(normalizedForTest(t, a)) == Fingerprint(normalizedForTest(t, b)) {
+	if ContentHash(normalizedForTest(t, a)) == ContentHash(normalizedForTest(t, b)) {
 		t.Fatal("nested name must stay in the fingerprint")
 	}
 }

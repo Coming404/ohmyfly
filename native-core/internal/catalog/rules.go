@@ -133,7 +133,7 @@ func (s *Store) CommitFilter(ctx context.Context, ticket FilterTicket) (int64, e
 		return 0, errors.New("incomplete filter results")
 	}
 	var count int64
-	if err = tx.QueryRowContext(ctx, filteredCandidates+"SELECT count(*) FROM candidates").Scan(&count); err != nil {
+	if err = tx.QueryRowContext(ctx, filteredCandidates+"SELECT count(*) FROM matched").Scan(&count); err != nil {
 		return 0, err
 	}
 	if _, err = tx.ExecContext(ctx, "UPDATE filter_work SET ready=1 WHERE id=1"); err != nil {

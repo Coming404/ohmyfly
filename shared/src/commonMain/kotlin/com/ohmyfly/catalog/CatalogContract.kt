@@ -45,7 +45,8 @@ internal data class CatalogPage(
 )
 
 @Serializable
-internal data class RefreshTicket(val id: Long, val generation: Long, val address: String, val name: String)
+internal data class RefreshTicket(val id: Long, val generation: Long, val address: String, val name: String,
+    val dedupRules: DeduplicationRule = DeduplicationRule())
 
 internal data class CatalogState(
     val summary: CatalogSummary = CatalogSummary(), val towers: List<CatalogTower> = emptyList(),

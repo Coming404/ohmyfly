@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/Coming404/ohmyfly/native-core/internal/catalog"
+	"github.com/Coming404/ohmyfly/native-core/internal/flight"
 )
 
 var catalogMu sync.Mutex
@@ -28,25 +29,27 @@ func OpenCatalog(path string) string {
 }
 
 type catalogRequest struct {
-	Action       string                   `json:"action"`
-	ID           int64                    `json:"id"`
-	Generation   int64                    `json:"generation"`
-	Address      string                   `json:"address"`
-	Name         string                   `json:"name"`
-	FilterTicket catalog.FilterTicket     `json:"filterTicket"`
-	FilterToken  int64                    `json:"filterToken"`
-	Decisions    []catalog.FilterDecision `json:"decisions"`
-	Failure      string                   `json:"failure"`
-	Kind         string                   `json:"kind"`
-	Anchor       int64                    `json:"anchor"`
-	Backwards    bool                     `json:"backwards"`
-	Revision     int64                    `json:"revision"`
-	Start        int                      `json:"start"`
-	Offset       int                      `json:"offset"`
-	Payload      string                   `json:"payload"`
-	Final        bool                     `json:"final"`
-	Nodes        []catalog.Node           `json:"nodes"`
-	Refresh      catalog.Refresh          `json:"refresh"`
+	Dedup        catalog.DedupSettings      `json:"dedup"`
+	Rule         flight.DeduplicationConfig `json:"rule"`
+	Action       string                     `json:"action"`
+	ID           int64                      `json:"id"`
+	Generation   int64                      `json:"generation"`
+	Address      string                     `json:"address"`
+	Name         string                     `json:"name"`
+	FilterTicket catalog.FilterTicket       `json:"filterTicket"`
+	FilterToken  int64                      `json:"filterToken"`
+	Decisions    []catalog.FilterDecision   `json:"decisions"`
+	Failure      string                     `json:"failure"`
+	Kind         string                     `json:"kind"`
+	Anchor       int64                      `json:"anchor"`
+	Backwards    bool                       `json:"backwards"`
+	Revision     int64                      `json:"revision"`
+	Start        int                        `json:"start"`
+	Offset       int                        `json:"offset"`
+	Payload      string                     `json:"payload"`
+	Final        bool                       `json:"final"`
+	Nodes        []catalog.Node             `json:"nodes"`
+	Refresh      catalog.Refresh            `json:"refresh"`
 }
 
 // Catalog 仅暴露目录业务操作，不接受 SQL；跨语言批次同时限制条数和字节数。
@@ -80,6 +83,10 @@ func Catalog(request string) string {
 func callCatalog(ctx context.Context, r catalogRequest) (any, error) {
 	s := catalogStore
 	switch r.Action {
+	case "setDedup":
+		return map[string]bool{"ok": true}, s.SetDedup(ctx, r.Dedup)
+	case "setTowerDedup":
+		return map[string]bool{"ok": true}, s.SetTowerDedup(ctx, r.ID, r.Rule)
 	case "parseBegin":
 		id, err := s.BeginParse(ctx)
 		return map[string]int64{"id": id}, err

@@ -2,11 +2,10 @@ package catalog
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/Coming404/ohmyfly/native-core/internal/flight"
 )
 
 type Node struct {
@@ -18,16 +17,17 @@ type Node struct {
 	RawInput     string          `json:"rawInput"`
 	SourceFormat string          `json:"sourceFormat"`
 	FromBase64   bool            `json:"fromBase64"`
-	Fingerprint  string          `json:"fingerprint"`
+	ContentHash  string          `json:"contentHash"`
 	Source       json.RawMessage `json:"source"`
 	Eligible     bool            `json:"eligible"`
 }
 
 type Ticket struct {
-	ID         int64  `json:"id"`
-	Generation int64  `json:"generation"`
-	Address    string `json:"address"`
-	Name       string `json:"name"`
+	DedupRules flight.DeduplicationConfig `json:"dedupRules"`
+	ID         int64                      `json:"id"`
+	Generation int64                      `json:"generation"`
+	Address    string                     `json:"address"`
+	Name       string                     `json:"name"`
 }
 
 type Refresh struct {
@@ -66,9 +66,13 @@ func (s *Store) Begin(ctx context.Context, id int64) (Ticket, error) {
 	}
 	defer tx.Rollback()
 	var t Ticket
+	var rule string
 	err = tx.QueryRowContext(ctx, `UPDATE towers SET generation=generation+1 WHERE id=?
- RETURNING id,generation,address,name`, id).Scan(&t.ID, &t.Generation, &t.Address, &t.Name)
+ RETURNING id,generation,address,name,dedup_rules`, id).Scan(&t.ID, &t.Generation, &t.Address, &t.Name, &rule)
 	if err != nil {
+		return t, err
+	}
+	if err = json.Unmarshal([]byte(rule), &t.DedupRules); err != nil {
 		return t, err
 	}
 	if _, err = tx.ExecContext(ctx, "DELETE FROM refresh_nodes WHERE tower_id=?", id); err != nil {
@@ -131,23 +135,18 @@ func (s *Store) Commit(ctx context.Context, r Refresh) error {
 	if count != r.Count {
 		return errors.New("incomplete catalog refresh")
 	}
+	towerRule, outputRule, err := loadDedupRules(ctx, tx, r.ID)
+	if err != nil {
+		return err
+	}
+	if err = prepareRefresh(ctx, tx, r, towerRule); err != nil {
+		return err
+	}
 	if _, err = tx.ExecContext(ctx, "DELETE FROM tower_nodes WHERE tower_id=?", r.ID); err != nil {
 		return err
 	}
-	// 资格取自刷新开始时的 Kotlin 设置快照，之后的设置变化不影响本次刷新。
-	// 每次只解码一个完整节点，暂存批次不破坏最终替换的事务原子性。
-	for ordinal := 0; ordinal < count; ordinal++ {
-		var payload string
-		if err = tx.QueryRowContext(ctx, "SELECT payload FROM refresh_nodes WHERE tower_id=? AND generation=? AND ordinal=?", r.ID, r.Generation, ordinal).Scan(&payload); err != nil {
-			return err
-		}
-		var node Node
-		if err = json.Unmarshal([]byte(payload), &node); err != nil {
-			return err
-		}
-		if err = insertNode(ctx, tx, r.ID, ordinal, node); err != nil {
-			return err
-		}
+	if err = commitRefreshNodes(ctx, tx, r, outputRule); err != nil {
+		return err
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE towers SET name=CASE WHEN name='' THEN ? ELSE name END,
  usage=?,warnings=?,failure='',committed_generation=? WHERE id=?`, r.Name, string(r.Usage), string(r.Warnings), r.Generation, r.ID)
@@ -164,44 +163,6 @@ func (s *Store) Commit(ctx context.Context, r Refresh) error {
 		return err
 	}
 	return tx.Commit()
-}
-
-func insertNode(ctx context.Context, tx *sql.Tx, towerID int64, ordinal int, node Node) error {
-	if !node.Eligible {
-		return nil
-	}
-	// 变体键包括原始名称与完整配置；旧指纹仅用于第一阶段展示分组，不是 ContentHash。
-	config, err := json.Marshal(struct {
-		Name     string          `json:"name"`
-		Type     string          `json:"type"`
-		Server   string          `json:"server"`
-		Port     int             `json:"port"`
-		Fields   json.RawMessage `json:"fields"`
-		RawInput string          `json:"rawInput"`
-	}{
-		Name: node.Name, Type: node.Type, Server: node.Server, Port: node.Port, Fields: node.Fields, RawInput: node.RawInput})
-	if err != nil {
-		return err
-	}
-	key := sha256.Sum256(config)
-	var id int64
-	err = tx.QueryRowContext(ctx, `INSERT INTO nodes(variant_key,legacy_fingerprint,config,name,type,server,port)
- VALUES(?,?,?,?,?,?,?) ON CONFLICT(variant_key) DO UPDATE SET variant_key=excluded.variant_key RETURNING id`,
-		hex.EncodeToString(key[:]), node.Fingerprint, string(config), node.Name, node.Type, node.Server, node.Port).Scan(&id)
-	if err != nil {
-		return err
-	}
-	source, err := json.Marshal(struct {
-		Source json.RawMessage `json:"source"`
-		Format string          `json:"format"`
-		Base64 bool            `json:"base64"`
-	}{
-		Source: node.Source, Format: node.SourceFormat, Base64: node.FromBase64})
-	if err != nil {
-		return err
-	}
-	_, err = tx.ExecContext(ctx, "INSERT INTO tower_nodes VALUES(?,?,?,?,?)", towerID, ordinal, id, string(source), node.Eligible)
-	return err
 }
 
 func (s *Store) Fail(ctx context.Context, id, generation int64, failure, name string) error {

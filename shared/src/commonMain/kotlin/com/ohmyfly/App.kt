@@ -143,6 +143,7 @@ private fun AppContent(
     var selectedIds by remember { mutableStateOf(emptySet<String>()) }
     val catalog by subscriptionTowerStore.state.collectAsState()
     LaunchedEffect(Unit) { subscriptionTowerStore.start() }
+    ApplyOutputDeduplication(catalog.ready, settingsSession)
     val nodes = remember(catalog.flights) { catalog.flights.map {
         NodeSummary(id = it.id.toString(), name = it.name, region = "", protocol = it.type)
     } }
@@ -286,6 +287,16 @@ private fun AppTopBar(
                 tint = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.error) }
         } else null,
     )
+}
+
+@Composable
+private fun ApplyOutputDeduplication(ready: Boolean, session: SettingsSession) {
+    val rule = session.state.confirmedSettings?.subscription?.outputDeduplication
+    LaunchedEffect(ready, rule, session.state.readFailed) {
+        if (ready && rule != null && !session.state.readFailed) {
+            subscriptionTowerStore.updateOutputDeduplication(rule)
+        }
+    }
 }
 
 @Composable

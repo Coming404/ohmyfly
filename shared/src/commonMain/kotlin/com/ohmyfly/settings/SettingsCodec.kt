@@ -53,6 +53,7 @@ internal object SettingsCodec {
     private val subUserAgent = stringPreferencesKey("subscription.userAgent")
     private val subInclude = stringPreferencesKey("subscription.includePattern")
     private val subExclude = stringPreferencesKey("subscription.excludePattern")
+    private val subOutputDedup = stringPreferencesKey("subscription.outputDeduplication")
     private val subProtocols = stringSetPreferencesKey("subscription.protocols")
 
     fun encode(settings: AppSettings): MutablePreferences = mutablePreferencesOf().also { write(it, settings) }
@@ -98,6 +99,8 @@ internal object SettingsCodec {
         target[subUserAgent] = subscription.userAgent
         target[subInclude] = subscription.includePattern
         target[subExclude] = subscription.excludePattern
+        target[subOutputDedup] = com.ohmyfly.catalog.catalogJson.encodeToString(
+            com.ohmyfly.catalog.DeduplicationRule.serializer(), subscription.outputDeduplication)
         target[subProtocols] = subscription.protocols
         LogSettingsCodec.write(target, settings.logging)
         MirrorCodec.write(target, settings)
@@ -168,6 +171,7 @@ internal object SettingsCodec {
                 userAgent = SettingsLimits.userAgentOr(preferences.readOrNull(subUserAgent) ?: subscription.userAgent),
                 includePattern = SettingsLimits.patternOr(preferences.readOrNull(subInclude) ?: subscription.includePattern),
                 excludePattern = SettingsLimits.patternOr(preferences.readOrNull(subExclude) ?: subscription.excludePattern),
+                outputDeduplication = outputDeduplicationOr(preferences.readOrNull(subOutputDedup), subscription.outputDeduplication),
                 // 空集合代表“全部支持协议”，只清洗已有条目，不整集合覆盖。
                 protocols = SettingsLimits.sanitizeSet(
                     preferences.readOrNull(subProtocols) ?: subscription.protocols,

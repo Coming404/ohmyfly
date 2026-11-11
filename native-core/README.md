@@ -18,24 +18,33 @@ func towerparse.DetectFormat(prefix []byte) towerparse.Format
 func flight.Normalize(input map[string]any) (flight.Flight, error)
 // YAML 协议字段整理后调用；不会再次处理 Reality 和 WebSocket 参数。
 func flight.NormalizeYAML(input map[string]any) (flight.Flight, error)
-func flight.Fingerprint(value flight.Flight) [32]byte
-const flight.FingerprintVersion = 1
+func flight.ContentHash(value flight.Flight) string
 ```
 
 `Parse` 流式读取并逐条回调，不保存全量指纹集合。`Stats` 记录格式计数、候选/成功/跳过数量、按原因统计的跳过数量和 `proxy-providers` 条目。错误和统计原因只包含行号或协议/原因，不输出原始链接、凭据或指纹。
+
+## 三层去重与正式入库
+
+1. 塔台导入高级规则：`DeduplicationConfig` 的 `mode` 支持 `none`（默认）和 `protocol`，按 `protocolRules` 指定字段稳定保留首个。共享业务方法 `CatalogStore.updateTowerDeduplication` 经 `Catalog(setTowerDedup)` 保存专属规则；下次刷新执行，`none` 不跳过基础内容哈希。
+2. 基础 ContentHash：所有解析记录先进入普通／分块暂存表。刷新提交事务逐条计算哈希，完成本批分组，再对每组代表匹配全库。正式 `nodes` 以 `(content_hash, name_key)` 复用，普通节点的 name_key 为空；同一塔台当前旧快照或本次刷新中，同哈希具有多个不同 trim 后名称时按名称区分；每次提交重新判定，例外消失后恢复普通内容复用并迁移全部来源。全部有效来源独立关联，不因重复跳过来源。原生单节点输入也经过同一提交入口；App 当前添加入口接收 HTTP(S) 订阅地址。
+3. 汇总航班输出：共享业务方法 `CatalogStore.updateOutputDeduplication` 经 `Catalog(setDedup)` 支持 `none`（默认）、`common`、`protocol`；在基础入库去重后追加字段分组，全局代表先于计数与 100 条键集分页形成。`detail` 返回合并代表的完整配置及全部来源。规则编辑 UI 尚未确定，未新增设置页或塔台 JSON 编辑控件。
+
+规则字段可使用归一化 Mihomo 路径（如 `server`、`password`、`reality-opts.public-key`），并适配上游常用导出字段和嵌套路径（如 `Server`、`Port`、`Param.Password`、`Query.Sni`、`Query.Pbk`）。`commonFields` 另支持 `Name`/`LinkName`、`Protocol`、`LinkHost`、`LinkPort`、`LinkAddress`。协议模式自动带协议前缀；未配置协议／空字段列表不追加去重，全部字段缺失时保留节点，集合字段用规范 JSON 比较。显式 common 规则可以跨协议比较，默认不会按名称删节点。
+
+适配差异：未知属性按语义树参与哈希，不复制上游 YAML AST 行列及注释；字符串数组也识别 JSON 解码的 `[]any`，整数数组保序；规则键使用 JSON 元组，避免 `:`/`|` 拼接冲突。保留内部下划线元数据不参与哈希的本地约定。不复制原始凭据日志、不引入 GORM、测速、DNS 或 GeoIP，也不移植 GetSub 的 EffectiveName 无条件去重。
 
 ## 已实现
 
 - 格式识别：有界前缀按上游根语法分流，支持根级映射、顶层列表、单节点、JSON、带引号或空格的根键。分享链接走独立解析器；Base64 解码后重新识别，最多 3 轮。
 - YAML：先整份加载与缩进修复；加载失败或超过 16 MiB 时保留本地逐项恢复扫描器。两条路径共用协议默认值、别名、端点和插件整理；数字凭据通过 `yaml.Node` 保留前导零和大整数原文。
-- providers：Go 导出名称、URL 与原始选项，mobile 同时导出节点内容指纹。Kotlin 自动请求 HTTP provider、解析内嵌 payload；不读取 `type: file` 的外部本地文件。原始订阅为第 0 层，最多展开 3 层，整次导入共用 32 个不同 URL；循环引用停止，同一 URL 不重复请求。原始订阅、provider、UA 尝试和重试共用 `min(timeout×4, 60s)` 时间预算，各响应沿用下载大小限制。过滤后按内容指纹去重；部分失败保留成功节点，并在塔台显示不含 URL/凭据的原因。
+- providers：Go 导出名称、URL 与原始选项，mobile 同时导出节点 ContentHash。Kotlin 自动请求 HTTP provider、解析内嵌 payload；不读取 `type: file` 的外部本地文件。原始订阅为第 0 层，最多展开 3 层，整次导入共用 32 个不同 URL；循环引用停止，同一 URL 不重复请求。原始订阅、provider、UA 尝试和重试共用 `min(timeout×4, 60s)` 时间预算，各响应沿用下载大小限制。Kotlin 只执行导入过滤，基础去重由 SQLite 提交事务完成批内分组与全库匹配；部分失败保留成功节点，并在塔台显示不含 URL/凭据的原因。
 - 分享链接（按 scheme 分发）：
   - `vless`（含 Reality、XHTTP）、`vmess` / `vmess1`、`ss`、`ssr`、`trojan`
   - `hysteria` / `hy`、`hysteria2` / `hy2`、`tuic`、`anytls`、`wireguard` / `wg`、`snell`
   - `socks5`、`socks4`、`socks`、`socks5+tls`、`ssh`
   - `tg` 和 t.me 上的 socks/http/https 代理链接；普通 `http(s)` 行跳过，避免把订阅地址当成代理
 - 字段规范化：端口数字/字符串统一，域名大小写与尾点归一，IPv4/IPv6 归一，公开字段别名折叠，Reality `short-id` 规范化，WS `ed=<n>` 转为 `max-early-data` 并保留其他 query，未知字段透传。
-- SHA-256 内容指纹：忽略 `name`、`_meta` 和任意层级下划线开头的字段；名称、端口表示、别名写法不同的等价内容指纹相同。
+- SHA-256 内容哈希：`ContentHash` 返回 hex64；按 sublinkPro `Proxy` Go 字段模型投影，忽略 `Name`、`Dialer_proxy`、`Udp`、`Tfo`、`Client_fingerprint`。移除空值、零值和空容器，map 键排序、字符串数组排序、整数数组保序；保留证书 `fingerprint`、`pcs`、`hpkp` 及未知连接字段。下划线内部元数据不参与身份。
 
 ## 尚未实现
 
@@ -81,4 +90,4 @@ go test -count=1 -p 1 ./...
 go test -run '^$' -bench . -benchtime=1x ./internal/towerparse
 ```
 
-共 154 个 Go 测试函数，覆盖格式识别、YAML 整理与容错、各协议链接、内容指纹和 mobile provider 契约。3 个 benchmark 分别用 1 万条 YAML、链接和 Base64 链接。2026-11-06 对固定上游执行 464 项 YAML 差分，452 项一致，剩余 12 项属于上文记录的本地行为或名称契约；公开 Parse 入口与 YAML 入口节点结果一致。VMess 116 项、VLESS 262 项链接差分全部一致。
+包含集成测试标签时共 163 个 Go 测试函数，覆盖格式识别、YAML 整理与容错、各协议链接、内容哈希、入库去重及 mobile 桥接契约。真实订阅用例从外部 `REVIEW_DATA_DIR` 读取 `source1.yaml` 和 `source2.yaml`，数据不加入仓库；运行 `go test -tags integration ./...`。目录未设置时仅跳过外部数据用例，合成协议、事务和分页用例照常执行。3 个 benchmark 分别用 1 万条 YAML、链接和 Base64 链接。2026-11-06 对固定上游执行 464 项 YAML 差分，452 项一致，剩余 12 项属于上文记录的本地行为或名称契约；公开 Parse 入口与 YAML 入口节点结果一致。VMess 116 项、VLESS 262 项链接差分全部一致。

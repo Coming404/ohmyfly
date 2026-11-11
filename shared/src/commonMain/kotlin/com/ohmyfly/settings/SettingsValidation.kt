@@ -77,6 +77,7 @@ internal fun validateSettings(settings: AppSettings): String? {
     ) {
         return "塔台过滤规则过长"
     }
+    outputDeduplicationError(subscription.outputDeduplication)?.let { return it }
     if (subscription.protocols.size > SettingsLimits.MAX_PROTOCOLS) return "协议数量过多"
     if (subscription.protocols.any { it.isBlank() }) return "协议标识不能为空"
 

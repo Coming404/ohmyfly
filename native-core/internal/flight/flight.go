@@ -1,10 +1,6 @@
 package flight
 
-// FingerprintVersion identifies the canonical content representation used for deduplication.
-const FingerprintVersion = 1
-
-// Flight is one normalized Mihomo proxy entry. Name and source metadata are kept
-// outside Fields so neither is part of the content fingerprint.
+// Flight 保存归一化配置与来源；ContentHash 不包含显示名称和来源元数据。
 type Flight struct {
 	Name         string
 	Type         string

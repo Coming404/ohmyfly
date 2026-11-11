@@ -25,7 +25,7 @@ internal fun testNode(
         extra.forEach { (key, value) -> put(key, value) }
     },
     sourceFormat = "link", fromBase64 = false,
-    fingerprint = "$type|$server|$port|$extra",
+    contentHash = "$type|$server|$port|$extra",
 )
 
 internal fun testSnapshot(vararg nodes: NativeSubscriptionNode, skipped: Int = 0): NativeSubscription =
@@ -134,7 +134,7 @@ internal class TestCatalogStore(importer: SubscriptionImporter) {
         val row = rows.getValue(id)
         val records = staged.getValue(id)
         check(records.size == value.getValue("count").jsonPrimitive.int)
-        val nodes = records.filter { it.eligible }.distinctBy { it.fingerprint }.map {
+        val nodes = records.filter { it.eligible }.distinctBy { it.contentHash }.map {
             SubscriptionNode(it.name, it.type, it.server, it.port, it.fields)
         }
         row.value = row.value.copy(nodes = nodes, failure = null,

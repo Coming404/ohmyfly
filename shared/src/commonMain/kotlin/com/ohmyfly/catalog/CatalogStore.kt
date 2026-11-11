@@ -48,6 +48,17 @@ internal class CatalogStore {
         }
     }
 
+    // 规则编辑界面尚未确定；调用方通过目录业务接口应用规则，不混入名称/协议过滤。
+    fun updateTowerDeduplication(id: Long, rule: DeduplicationRule) = runOperation {
+        val encoded = catalogJson.encodeToJsonElement(DeduplicationRule.serializer(), rule)
+        catalogCall("setTowerDedup") { put("id", id); put("rule", encoded) }
+    }
+
+    fun updateOutputDeduplication(rule: DeduplicationRule) = runOperation {
+        val encoded = catalogJson.encodeToJsonElement(DeduplicationRule.serializer(), rule)
+        catalogCall("setDedup") { put("dedup", buildJsonObject { put("output", encoded) }) }
+    }
+
     fun updateFlightFilter(value: FlightFilter, debounce: Boolean = false) {
         mutableState.update { it.copy(flightFilter = value) }
         try { FlightPredicate(value) } catch (_: IllegalArgumentException) {

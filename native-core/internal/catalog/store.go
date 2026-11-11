@@ -64,32 +64,39 @@ func (s *Store) migrate(ctx context.Context) error {
 
 const schema = `
 CREATE TABLE catalog_meta (id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL,
- filter_generation INTEGER NOT NULL DEFAULT 0);
+ filter_generation INTEGER NOT NULL DEFAULT 0,
+ output_rules TEXT NOT NULL DEFAULT '{"mode":"none"}');
 INSERT INTO catalog_meta(id,revision) VALUES(1,1);
 CREATE TABLE towers (
  id INTEGER PRIMARY KEY AUTOINCREMENT, address TEXT NOT NULL UNIQUE, name TEXT NOT NULL DEFAULT '',
  generation INTEGER NOT NULL DEFAULT 0, committed_generation INTEGER NOT NULL DEFAULT 0,
- dedup_rules TEXT NOT NULL DEFAULT '{}',
+ dedup_rules TEXT NOT NULL DEFAULT '{"mode":"none"}',
  usage TEXT NOT NULL DEFAULT 'null', failure TEXT NOT NULL DEFAULT '', warnings TEXT NOT NULL DEFAULT '[]'
 );
 CREATE TABLE nodes (
- id INTEGER PRIMARY KEY AUTOINCREMENT, variant_key TEXT NOT NULL UNIQUE,
- content_hash TEXT, content_hash_version INTEGER NOT NULL DEFAULT 0,
- legacy_fingerprint TEXT NOT NULL, config TEXT NOT NULL,
- name TEXT NOT NULL, type TEXT NOT NULL, server TEXT NOT NULL, port INTEGER NOT NULL
+ id INTEGER PRIMARY KEY AUTOINCREMENT, content_hash TEXT NOT NULL,
+ name_key TEXT NOT NULL DEFAULT '', output_key TEXT NOT NULL DEFAULT '', config TEXT NOT NULL,
+ name TEXT NOT NULL, type TEXT NOT NULL, server TEXT NOT NULL, port INTEGER NOT NULL,
+ UNIQUE(content_hash,name_key)
 );
-CREATE INDEX nodes_legacy ON nodes(legacy_fingerprint,id);
-CREATE INDEX nodes_content_hash ON nodes(content_hash_version,content_hash);
+CREATE INDEX nodes_content_hash ON nodes(content_hash,id);
 CREATE TABLE tower_nodes (
  tower_id INTEGER NOT NULL REFERENCES towers(id) ON DELETE CASCADE,
  ordinal INTEGER NOT NULL, node_id INTEGER NOT NULL REFERENCES nodes(id),
  source TEXT NOT NULL, eligible INTEGER NOT NULL, PRIMARY KEY(tower_id,ordinal)
+);
+CREATE TABLE tower_info_hashes (
+ tower_id INTEGER NOT NULL REFERENCES towers(id) ON DELETE CASCADE,
+ content_hash TEXT NOT NULL, PRIMARY KEY(tower_id,content_hash)
 );
 CREATE INDEX tower_nodes_node ON tower_nodes(node_id,eligible);
 CREATE INDEX tower_nodes_eligible ON tower_nodes(eligible,node_id);
 CREATE TABLE refresh_nodes (
  tower_id INTEGER NOT NULL REFERENCES towers(id) ON DELETE CASCADE, generation INTEGER NOT NULL,
  ordinal INTEGER NOT NULL, payload TEXT NOT NULL, complete INTEGER NOT NULL DEFAULT 1,
+ content_hash TEXT NOT NULL DEFAULT '', name TEXT NOT NULL DEFAULT '', advanced_key TEXT NOT NULL DEFAULT '',
+ eligible INTEGER NOT NULL DEFAULT 1, name_key TEXT NOT NULL DEFAULT '', representative INTEGER NOT NULL DEFAULT -1,
+ final_node INTEGER,
  PRIMARY KEY(tower_id,generation,ordinal)
 );
 CREATE TABLE parse_sessions (id INTEGER PRIMARY KEY AUTOINCREMENT);

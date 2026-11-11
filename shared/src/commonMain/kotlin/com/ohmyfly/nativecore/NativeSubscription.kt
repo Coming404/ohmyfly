@@ -1,4 +1,4 @@
-// 接收 Go 输出的节点与 provider，指纹只用于本次导入的内存去重。
+// 接收 Go 输出的完整节点与 provider；内容哈希由 SQLite 目录统一用于去重。
 package com.ohmyfly.nativecore
 
 import kotlinx.serialization.Serializable
@@ -38,7 +38,7 @@ data class NativeSubscriptionNode(
     val fields: JsonObject,
     val sourceFormat: String,
     val fromBase64: Boolean,
-    val fingerprint: String,
+    val contentHash: String,
     val source: JsonObject = JsonObject(emptyMap()),
     val eligible: Boolean = true,
     val rawInput: String = "",

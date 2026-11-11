@@ -42,13 +42,13 @@ func TestParseSubscriptionFingerprintContract(t *testing.T) {
 		if err := json.Unmarshal([]byte(ParseSubscription(input)), &result); err != nil {
 			t.Fatal(err)
 		}
-		if len(result.Nodes) != 1 || len(result.Nodes[0].Fingerprint) != 64 {
+		if len(result.Nodes) != 1 || len(result.Nodes[0].ContentHash) != 64 {
 			t.Fatal("missing node identity")
 		}
 		if result.ProxyProviders == nil {
 			t.Fatal("provider list must be [] rather than null")
 		}
-		fingerprints = append(fingerprints, result.Nodes[0].Fingerprint)
+		fingerprints = append(fingerprints, result.Nodes[0].ContentHash)
 	}
 	if fingerprints[0] != fingerprints[1] {
 		t.Fatal("name changed configuration identity")

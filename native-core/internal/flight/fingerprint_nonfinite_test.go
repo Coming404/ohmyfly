@@ -20,7 +20,7 @@ func TestFingerprintNonFiniteValuesUseJSONNull(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Normalize() non-finite value: %v", err)
 	}
-	if Fingerprint(nullValue) != Fingerprint(nonFiniteValue) {
+	if ContentHash(nullValue) != ContentHash(nonFiniteValue) {
 		t.Fatal("non-finite fingerprint does not match its JSON null representation")
 	}
 }

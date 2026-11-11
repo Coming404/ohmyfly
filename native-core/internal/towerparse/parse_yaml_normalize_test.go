@@ -113,7 +113,7 @@ func TestYAMLNormalizeFilteringAndIdentity(t *testing.T) {
 	if len(nodes) != 2 || stats.Skipped != 1 || stats.Candidates != 3 {
 		t.Fatalf("nodes=%v stats=%+v", nodes, stats)
 	}
-	if flight.Fingerprint(nodes[0]) != flight.Fingerprint(nodes[1]) {
+	if flight.ContentHash(nodes[0]) != flight.ContentHash(nodes[1]) {
 		t.Fatal("协议别名、默认密码和跳跃端口应产生相同内容身份")
 	}
 	assertMapSubset(t, nodes[0].Fields, map[string]any{"extra": map[string]any{"name": "keep"}})

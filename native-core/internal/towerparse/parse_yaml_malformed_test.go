@@ -57,6 +57,11 @@ func assertYAMLMatchesDocument(t *testing.T, input string) {
 	_, hasList := root["proxies"].([]any)
 	var want []flight.Flight
 	for _, record := range document.Proxies {
+		// 原始配置在规范化前保存；同时验证新字段，保留完整结构对照。
+		raw, err := yaml.Marshal(record)
+		if err != nil {
+			t.Fatal(err)
+		}
 		if err := normalizeYAMLNode(record); err != nil {
 			t.Fatal(err)
 		}
@@ -65,6 +70,7 @@ func assertYAMLMatchesDocument(t *testing.T, input string) {
 			t.Fatal(err)
 		}
 		node.SourceFormat = string(FormatYAML)
+		node.RawInput = string(raw)
 		want = append(want, node)
 	}
 	candidates, skipped := len(want), 0
