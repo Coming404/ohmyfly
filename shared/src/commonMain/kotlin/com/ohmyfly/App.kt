@@ -329,7 +329,7 @@ private fun AppPager(
                 contentPadding = padding,
             )
             AppDestination.Subscriptions -> SubscriptionsScreen(
-                listState = subscriptionsState, store = subscriptionTowerStore, settings = settings.subscription,
+                listState = subscriptionsState, store = subscriptionTowerStore, settings = settings,
                 scope = scope, loading = subscriptionLoading, contentPadding = padding,
             )
             AppDestination.Speed -> SpeedScreen(

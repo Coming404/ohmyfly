@@ -33,7 +33,7 @@ class SubscriptionTowerStoreTest {
         try {
             val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
             assertNull(store.add("  https://sub.example/p  ", settings))
-            assertEquals(SubscriptionTower("https://sub.example/p", listOf(SubscriptionNode("HK", "ss", "node.example", 443))), store.towers.value.single())
+            assertEquals(SubscriptionTower("https://sub.example/p", listOf(SubscriptionNode("HK", "ss", "node.example", 443)), name = "sub.example"), store.towers.value.single())
         } finally { client.close() }
     }
 
@@ -66,7 +66,7 @@ class SubscriptionTowerStoreTest {
         try {
             val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { error("must not parse") }))
             assertNull(store.add("https://sub.example/p", settings))
-            assertEquals(SubscriptionTower("https://sub.example/p", failure = "HTTP 404"), store.towers.value.single())
+            assertEquals(SubscriptionTower("https://sub.example/p", failure = "HTTP 404", name = "sub.example"), store.towers.value.single())
         } finally { client.close() }
     }
 

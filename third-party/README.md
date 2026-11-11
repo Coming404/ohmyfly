@@ -10,6 +10,12 @@ The copied license covers the template contribution, not all future project code
 
 The iOS app icon currently comes from the template and is a development placeholder, not a final product asset.
 
+## sublinkPro subscription usage
+
+`shared/src/commonMain/kotlin/com/ohmyfly/subscription/SubscriptionUsage.kt` adapts `ParseSubscriptionUserInfo` from `sub.go` in [ZeroDeng01/sublinkPro](https://github.com/ZeroDeng01/sublinkPro/tree/34e93e695e73ea34f3a1e14a742e41ff10891a66), commit `34e93e695e73ea34f3a1e14a742e41ff10891a66` (2026-11-04), under MIT, Copyright (c) 2025 ZeroDeng. The full license is retained in [licenses/sublinkPro-MIT.txt](licenses/sublinkPro-MIT.txt).
+
+The Kotlin port preserves valid zero values and uses nullable non-negative `Long` fields instead of zero defaults or a negative failure sentinel. Usage comes from the existing subscription GET response, follows the selected root snapshot, and stays in memory. The standalone HEAD/GET query from `usage.go` is not included. Integration behavior and differences are documented in [subscription references](../docs/references.md#订阅用量与到期信息).
+
 ## Melox liquid-glass reference
 
 `shared/src/commonMain/kotlin/dev/ohmydrift/ui/glass/` adapts the glass navigation from [Inefy-03/Melox](https://github.com/Inefy-03/Melox), commit `49ee06aa1f01a67eb5ea1d5cc7307ddfd571a534`. Files carrying a per-file `Copyright 2026, compose-miuix-ui contributors / SPDX-License-Identifier: Apache-2.0` header and a Kyant0/AndroidLiquidGlass attribution are used under Apache-2.0; their notice is in [licenses/glass-Apache-2.0.txt](licenses/glass-Apache-2.0.txt). Files derived from Melox code without such a header (the container blur/preset policy) are treated conservatively as GPL-3.0; the Melox tree license is in [licenses/Melox-GPL-3.0.txt](licenses/Melox-GPL-3.0.txt), and the per-file mapping is in [Melox-NOTICE.md](Melox-NOTICE.md).

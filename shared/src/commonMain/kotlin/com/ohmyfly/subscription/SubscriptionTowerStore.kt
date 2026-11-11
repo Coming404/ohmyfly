@@ -5,6 +5,7 @@ import com.ohmyfly.logging.logTarget
 
 import com.ohmyfly.nativecore.parseSubscriptionContent
 import com.ohmyfly.settings.SubscriptionSettings
+import io.ktor.http.parseUrl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,7 +13,7 @@ import kotlinx.coroutines.flow.update
 
 internal data class SubscriptionTower(
     val address: String, val nodes: List<SubscriptionNode> = emptyList(), val failure: String? = null,
-    val warnings: List<String> = emptyList(),
+    val warnings: List<String> = emptyList(), val usage: SubscriptionUsage? = null, val name: String = "",
 )
 
 internal class SubscriptionTowerStore(
@@ -24,7 +25,10 @@ internal class SubscriptionTowerStore(
     val towers: StateFlow<List<SubscriptionTower>> = mutableTowers.asStateFlow()
 
     /** 返回地址校验错误；导入失败信息通过 towers 提供。 */
-    suspend fun add(address: String, settings: SubscriptionSettings): String? {
+    suspend fun add(
+        address: String, settings: SubscriptionSettings, name: String = "",
+        mirrors: SubscriptionMirrorSettings = SubscriptionMirrorSettings(),
+    ): String? {
         validateSubscriptionUrl(address)?.let {
             logger.info { "[塔台] 添加被拒绝：$it" }
             return it
@@ -32,16 +36,24 @@ internal class SubscriptionTowerStore(
         val target = address.trim()
         logger.info { "[塔台] 添加 ${logTarget(target)}，${if (mutableTowers.value.any { it.address == target }) "地址已存在，将刷新原塔台" else "地址尚未添加，将创建塔台"}" }
         mutableTowers.update { list ->
-            if (list.any { it.address == target }) list else list + SubscriptionTower(target)
+            if (list.any { it.address == target }) {
+                list.map { tower ->
+                    if (tower.address == target && tower.name.isBlank()) tower.copy(name = name) else tower
+                }
+            } else list + SubscriptionTower(target, name = name)
         }
-        refresh(target, settings)
+        refresh(target, settings, mirrors)
         return null
     }
 
-    suspend fun refresh(address: String, settings: SubscriptionSettings) {
+    suspend fun refresh(
+        address: String, settings: SubscriptionSettings,
+        mirrors: SubscriptionMirrorSettings = SubscriptionMirrorSettings(),
+    ) {
         val target = address.trim()
-        if (mutableTowers.value.none { it.address == target }) return
-        val result = importer.importSubscription(target, settings)
+        val current = mutableTowers.value.firstOrNull { it.address == target } ?: return
+        // 已有名称时连远端名称头也不解析；节点和用量照常刷新。
+        val result = importer.importSubscription(target, settings, resolveName = current.name.isBlank(), mirrors = mirrors)
         logger.info { "[塔台] 同步 ${logTarget(target)}：${result.failure?.let(::subscriptionFailureDescription) ?: "成功"}；${if (mutableTowers.value.none { it.address == target }) "塔台已删除，不再应用本次结果" else if (result.failure == null) "将更新 ${result.nodes.size} 个节点" else "保留原有节点"}" }
         mutableTowers.update { list ->
             list.map { tower ->
@@ -50,6 +62,9 @@ internal class SubscriptionTowerStore(
                     nodes = if (result.failure == null) result.nodes else tower.nodes,
                     failure = result.failure,
                     warnings = result.warnings,
+                    usage = if (result.failure == null) result.usage else tower.usage,
+                    name = if (tower.name.isNotBlank()) tower.name
+                        else result.name?.takeIf { result.failure == null } ?: parseUrl(target)!!.host,
                 )
             }
         }

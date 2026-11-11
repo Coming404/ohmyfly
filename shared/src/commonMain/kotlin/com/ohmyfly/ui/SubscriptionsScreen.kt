@@ -28,7 +28,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ohmyfly.settings.SubscriptionSettings
+import com.ohmyfly.settings.AppSettings
+import com.ohmyfly.subscription.SubscriptionMirrorSettings
 import com.ohmyfly.subscription.SubscriptionTower
 import com.ohmyfly.subscription.SubscriptionTowerStore
 import com.ohmyfly.subscription.validateSubscriptionUrl
@@ -50,16 +51,17 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 internal fun SubscriptionsScreen(
     listState: LazyListState,
     store: SubscriptionTowerStore,
-    settings: SubscriptionSettings,
+    settings: AppSettings,
     scope: CoroutineScope,
     loading: SnapshotStateList<String>,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val towers by store.towers.collectAsState()
+    val mirrors = SubscriptionMirrorSettings(settings.mirrorEnabled, settings.mirrors, settings.selectedMirrorId)
     SettingsList(contentPadding, listState) {
         item {
             SubscriptionAddressInput(loading) { address ->
-                launchSubscriptionRequest(address, loading, scope) { store.add(address, settings) }
+                launchSubscriptionRequest(address, loading, scope) { store.add(address, settings.subscription, mirrors = mirrors) }
             }
         }
         if (towers.isEmpty()) {
@@ -72,7 +74,7 @@ internal fun SubscriptionsScreen(
                     loading = tower.address in loading,
                     onRefresh = {
                         launchSubscriptionRequest(tower.address, loading, scope) {
-                            store.refresh(tower.address, settings)
+                            store.refresh(tower.address, settings.subscription, mirrors)
                         }
                     },
                     onRemove = { store.remove(tower.address) },

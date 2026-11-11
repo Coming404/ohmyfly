@@ -8,6 +8,9 @@ internal interface MirrorTransport {
 
 internal expect fun createMirrorTransport(): MirrorTransport
 
+/** 与测速共用现有安全客户端，订阅自行保留响应头和自己的字节上限。 */
+internal expect fun createMirrorClient(): io.ktor.client.HttpClient
+
 internal const val DIRECT_MIRROR_ID = "direct"
 internal const val DEFAULT_TIMEOUT_MILLIS = 5_000L
 internal const val DEFAULT_MAX_BYTES = 65_536

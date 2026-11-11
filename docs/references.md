@@ -27,6 +27,24 @@ MCP版本/目标信息不足以证明许可证或持续维护；缺失字段查�
 - [DataStore多平台文档](https://developer.android.com/kotlin/multiplatform/datastore)；[1.2.1发布](https://developer.android.com/jetpack/androidx/releases/datastore#1.2.1)。
 - [Miuix 0.9.4 TextField](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/basic/TextField.kt)：新表单优先state重载，不套用旧教程输入签名。
 
+## 订阅用量与到期信息
+
+- [ZeroDeng01/sublinkPro 固定源码](https://github.com/ZeroDeng01/sublinkPro/tree/34e93e695e73ea34f3a1e14a742e41ff10891a66)：移植 `sub.go` 的 `ParseSubscriptionUserInfo` 响应头解析，固定于 2026-11-04 的提交 `34e93e695e73ea34f3a1e14a742e41ff10891a66`。MIT，Copyright (c) 2025 ZeroDeng；完整许可见 [sublinkPro-MIT.txt](../third-party/licenses/sublinkPro-MIT.txt)。
+- `SubscriptionUsage.kt` 独立承载四字段模型和解析入口。现有订阅 GET 复用同次响应的 `subscription-userinfo`，随最终选中的 UA 快照传入根塔台；provider 用量不替代根用量。现有添加、刷新自动更新，不增加网络请求或 UI 入口。
+- 与上游的差异：缺失、负数、超出 Long 范围和格式错误的字段为 `null`，合法 `0` 保留，不使用 `total=-1` 哨兵；字段名区分大小写，后面的合法重复值覆盖前值。`expireEpochSeconds` 原样保留 Unix 秒，`0` 可表达未设置到期。全部字段无效时返回 `null`，不派生已用量、剩余量或时间显示。
+- GitHub 域名统一按 URL 的 host 匹配 `github.com`、`githubusercontent.com` 及各自任意子域，规范化大小写和末尾点，拒绝后缀伪装。上述订阅使用单个固定 Mozilla/Chrome 120 UA，不轮换设置中的 UA 候选；普通订阅继续使用自定义或内置候选。UA 始终按原地址选择，provider 显式请求头保持优先。
+- 真实 `mirrorEnabled`、镜像列表和选中 ID 由 App 经塔台页、Store 传入 Importer。关闭时直连；开启时仅公开 GitHub 资源按选中镜像、其余列表、原站排列。每条线路先按既有 retryable 判定及设置次数重试，再进入下一线路；成功解析即停止后续线路，取消立即传播。所有线路、UA 与 provider 共用 `min(timeoutSeconds * 4, 60秒)` 导入预算，每次请求上限仍为设置超时与剩余预算的较小值。
+- GitHub 域名分类不等同于资源路径或跳转授权：公开转发仍要求 HTTPS、默认端口、无凭据/query/fragment 以及受支持路径；新增 Gist `/用户/id/raw` 及其后续文件路径，普通 Gist HTML 页不转换为 raw。Authorization、Cookie 和未知自定义头只送原站；仅 UA、Accept、Accept-Encoding、Cache-Control 可随公开请求转发。镜像线路复用平台既有安全客户端、DNS 与逐跳白名单，订阅保留自身大小上限和同次 GET 的名称/用量头。
+- 请求的 UA 候选选择、重试、超时、字节上限和 HTTP 错误处理沿用 OhMyFly 现有实现，不移植 `usage.go` 的独立 HEAD/GET 查询。刷新失败保留上次成功的节点与用量；刷新成功但响应无有效用量头时清空旧用量。用量仅保存在现有塔台内存状态。
+
+## 订阅名称补全
+
+- `SubscriptionName.kt` 解析同次 GET 的名称元数据，按 `profile-title`（普通文本或 `base64:` UTF-8）→ `Content-Disposition` 的 UTF-8 `filename*` → `filename` 排序。`filename*` 支持语言字段与百分号编码，优先于普通 `filename`；普通参数由 Ktor 解析引号和转义，适用于 `inline` 与 `attachment`。保留扩展名，只清理外部标题首尾空白；坏编码、控制字符、空值及损坏引号不会使节点导入失败，未知字符集回退普通文件名。
+- 名称与用量一样归属于最终选中的根响应，不从其他 UA 候选或 provider 拼接。`SubscriptionTowerStore.add(address, settings, name = "")` 接收调用方已有名称；非空名称原样保留，并通过 `resolveName=false` 跳过名称响应头解析，节点与用量照常读取；provider 请求同样跳过名称解析。空白名称在刷新结束后补入远端名称，获取失败则取原始订阅 URL 的 `host`，不使用重定向目标、路径、凭据或节点名。域名回退一旦成为非空名称，后续刷新也不覆盖。
+- 当前只接数据层与现有添加、刷新链，名称保存在塔台内存状态；尚无 UI 名称编辑入口，不增加网络请求或持久化格式。
+- 行为参考：[Clash Verge Rev 官方 URL scheme 指南](https://www.clashverge.dev/guide/url_schemes.html)、[Hiddify 官方 profile parser](https://github.com/hiddify/hiddify-app/blob/956177a3/lib/features/profile/data/profile_parser.dart)、[RFC 6266](https://www.rfc-editor.org/rfc/rfc6266.html) 与 [RFC 8187](https://www.rfc-editor.org/rfc/rfc8187.html)。`profile-title` 与 `Content-Disposition` 之间的优先级是本项目约定；`filename*` 优先于 `filename` 来自 RFC 6266。未复制 Hiddify 实现。
+- API 依据：[Ktor 3.6.0 ContentDisposition](https://github.com/ktorio/ktor/blob/3.6.0/ktor-http/common/src/io/ktor/http/ContentDisposition.kt)、[Ktor 3.6.0 参数解析](https://github.com/ktorio/ktor/blob/3.6.0/ktor-http/common/src/io/ktor/http/HttpHeaderValueParser.kt)、[Kotlin 2.4.20 Base64](https://github.com/JetBrains/kotlin/blob/v2.4.20/libraries/stdlib/src/kotlin/io/encoding/Base64.kt)。
+
 ## Miuix
 
 - [官方文档](https://compose-miuix-ui.github.io/miuix/)；[中文文档](https://compose-miuix-ui.github.io/miuix/zh_CN/)。

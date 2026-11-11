@@ -11,8 +11,8 @@ import okhttp3.Authenticator
 import okhttp3.CookieJar
 import okhttp3.Dns
 
-private val transport: MirrorTransport by lazy {
-    MirrorHttpTransport(HttpClient(OkHttp) {
+private val client: HttpClient by lazy {
+    HttpClient(OkHttp) {
         mirrorHttpPolicy()
         engine {
             config {
@@ -30,9 +30,11 @@ private val transport: MirrorTransport by lazy {
                 })
             }
         }
-    })
+    }
 }
 
+private val transport: MirrorTransport by lazy { MirrorHttpTransport(client) }
+internal actual fun createMirrorClient(): HttpClient = client
 internal actual fun createMirrorTransport(): MirrorTransport = transport
 
 internal actual suspend fun ensurePublicHost(host: String) {

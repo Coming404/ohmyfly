@@ -9,8 +9,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.cinterop.*
 import platform.posix.*
 
-private val transport: MirrorTransport by lazy {
-    MirrorHttpTransport(HttpClient(Darwin) {
+private val client: HttpClient by lazy {
+    HttpClient(Darwin) {
         mirrorHttpPolicy()
         engine {
             configureSession {
@@ -21,9 +21,11 @@ private val transport: MirrorTransport by lazy {
                 connectionProxyDictionary = emptyMap<Any?, Any?>()
             }
         }
-    })
+    }
 }
 
+private val transport: MirrorTransport by lazy { MirrorHttpTransport(client) }
+internal actual fun createMirrorClient(): HttpClient = client
 internal actual fun createMirrorTransport(): MirrorTransport = transport
 
 /**

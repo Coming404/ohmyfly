@@ -32,7 +32,7 @@ internal fun parseHttpUrl(raw: String): PublicHttpUrl? {
             else -> return null
         }
     } else {
-        host = authority.substringBefore(':').lowercase()
+        host = authority.substringBefore(':').lowercase().trimEnd('.')
         val rawPort = authority.substringAfter(':', "")
         port = if (':' in authority) rawPort.toIntOrNull() ?: return null else defaultPort
     }
@@ -48,11 +48,9 @@ internal fun validatePublicHttps(raw: String): String? = when {
     else -> null
 }
 
-/** Public origin hosts a mirror request may start from; redirects are narrower. */
-private val GITHUB_ORIGINS = setOf("github.com", "raw.githubusercontent.com", "codeload.github.com")
-
-/** GitHub download/CDN hosts, including the object storage release assets redirect to. */
-private val GITHUB_CDN = GITHUB_ORIGINS + setOf(
+// 域名分类不放宽跨源跳转；这里只允许已有 GitHub 下载 CDN。
+private val GITHUB_CDN = setOf(
+    "github.com", "raw.githubusercontent.com", "codeload.github.com",
     "objects.githubusercontent.com",
     "release-assets.githubusercontent.com",
     "github-releases.githubusercontent.com",
@@ -73,10 +71,12 @@ internal fun githubResourceError(raw: String): String? {
     if ('?' in raw) return "带查询参数的地址不会默认转发到镜像"
     val parsed = parseHttpsUrl(raw) ?: return "地址必须是公开可解析的 HTTPS 地址"
     if (parsed.port != 443) return "只支持 GitHub 的默认 HTTPS 端口"
-    if (parsed.host !in GITHUB_ORIGINS) return "只支持 GitHub 公开文件地址"
+    if (!isGitHubHost(parsed.host)) return "只支持 GitHub 公开文件地址"
     val segments = parsed.path.split('/').filter { it.isNotEmpty() }
     if (segments.any { it == "." || it == ".." }) return "地址不能包含路径跳转"
     val concrete = when (parsed.host) {
+        "gist.github.com" -> segments.size >= 3 && segments[2] == "raw"
+        "gist.githubusercontent.com" -> segments.size >= 4 && segments[2] == "raw"
         "raw.githubusercontent.com", "codeload.github.com" -> segments.size >= 4
         else -> segments.size >= 4 && when (segments[2]) {
             "raw", "archive" -> true

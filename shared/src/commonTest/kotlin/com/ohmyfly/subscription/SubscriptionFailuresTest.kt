@@ -149,20 +149,24 @@ class SubscriptionFailuresTest {
     }
 
     @Test
-    fun githubDefaultModeDoesNotRetryEvenRetryableStatus() = runTest {
-        var requests = 0
-        val client = subscriptionClient { request ->
-            requests++
-            assertNull(request.headers[HttpHeaders.UserAgent])
-            respond("", HttpStatusCode.ServiceUnavailable)
+    fun githubAndGistRetryAccordingToSettings() = runTest {
+        for (host in listOf("raw.githubusercontent.com", "gist.github.com")) {
+            for (retries in listOf(0, 2, 5)) {
+                var requests = 0
+                val client = subscriptionClient { request ->
+                    requests++
+                    assertEquals(MozillaSubscriptionUserAgent, request.headers[HttpHeaders.UserAgent])
+                    respond("", HttpStatusCode.ServiceUnavailable)
+                }
+                try {
+                    val importer = SubscriptionImporter(SubscriptionFetcher(client), { error("must not parse") })
+                    assertEquals("HTTP 503", importer.importSubscription(
+                        "https://$host/p", SubscriptionSettings(retries = retries),
+                    ).failure)
+                    assertEquals(1 + retries, requests)
+                } finally { client.close() }
+            }
         }
-        try {
-            val importer = SubscriptionImporter(SubscriptionFetcher(client), { error("must not parse") })
-            assertEquals("HTTP 503", importer.importSubscription(
-                "https://raw.githubusercontent.com/p", SubscriptionSettings(retries = 5),
-            ).failure)
-            assertEquals(1, requests)
-        } finally { client.close() }
     }
 
     @Test

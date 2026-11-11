@@ -14,10 +14,11 @@ import kotlin.time.TimeSource
 internal data class SubscriptionNode(val name: String, val type: String, val server: String, val port: Int)
 internal data class SubscriptionImportResult(
     val nodes: List<SubscriptionNode> = emptyList(), val failure: String? = null,
-    val warnings: List<String> = emptyList(),
+    val warnings: List<String> = emptyList(), val usage: SubscriptionUsage? = null, val name: String? = null,
 )
 internal data class ParsedAttempt(
     val parsed: NativeSubscription? = null, val failure: String? = null, val retryable: Boolean = false,
+    val usage: SubscriptionUsage? = null, val name: String? = null,
 )
 
 internal class SubscriptionImporter(
@@ -25,13 +26,16 @@ internal class SubscriptionImporter(
     private val parse: (String) -> NativeSubscription,
     private val timeSource: TimeSource = TimeSource.Monotonic,
 ) {
-    suspend fun importSubscription(url: String, settings: SubscriptionSettings): SubscriptionImportResult {
+    suspend fun importSubscription(
+        url: String, settings: SubscriptionSettings, resolveName: Boolean = true,
+        mirrors: SubscriptionMirrorSettings = SubscriptionMirrorSettings(),
+    ): SubscriptionImportResult {
         val operation = newLogId().take(8)
         val started = timeSource.markNow()
         logger.info { "[订阅 $operation] 开始导入 ${logTarget(url)}" }
         logger.debug { "[订阅 $operation] 每次请求最多等待 ${settings.timeoutSeconds} 秒，每个 UA 候选最多重试 ${settings.retries} 次，单次下载上限为 ${settings.maxMiB} MiB；整次导入共用 ${minOf(settings.timeoutSeconds * 4000L, 60_000L)} 毫秒时间预算" }
         return try {
-            importContent(url, settings, operation).also { result ->
+            importContent(url, settings, operation, resolveName, mirrors).also { result ->
                 logger.info { "[订阅 $operation] 导入${if (result.failure == null) "成功，得到 ${result.nodes.size} 个节点" else "失败：${subscriptionFailureDescription(result.failure)}"}；共有 ${result.warnings.size} 条提示，耗时 ${started.elapsedNow().inWholeMilliseconds} 毫秒" }
             }
         } catch (cancelled: CancellationException) {
@@ -40,17 +44,20 @@ internal class SubscriptionImporter(
         }
     }
 
-    private suspend fun importContent(url: String, settings: SubscriptionSettings, operation: String): SubscriptionImportResult {
+    private suspend fun importContent(
+        url: String, settings: SubscriptionSettings, operation: String, resolveName: Boolean,
+        mirrors: SubscriptionMirrorSettings,
+    ): SubscriptionImportResult {
         validateSubscriptionUrl(url)?.let { return SubscriptionImportResult(failure = it) }
         val target = url.trim()
         val budgetMillis = minOf(settings.timeoutSeconds * 4000L, 60_000L).coerceAtLeast(1)
         val started = timeSource.markNow()
         fun remaining() = budgetMillis - started.elapsedNow().inWholeMilliseconds
-        val initial = fetchSnapshot(target, settings, emptyMap(), ::remaining, operation)
+        val initial = fetchSnapshot(target, settings, emptyMap(), ::remaining, operation, resolveName, mirrors)
         val parsed = initial.parsed
             ?: return SubscriptionImportResult(failure = initial.failure ?: "获取 url 失败")
         val resolved = resolveSubscriptionProviders(target, parsed, parse, ::remaining, operation) { providerUrl, headers ->
-            fetchSnapshot(providerUrl, settings, headers, ::remaining, operation)
+            fetchSnapshot(providerUrl, settings, headers, ::remaining, operation, resolveName = false, mirrors = mirrors)
         }
         val merged = parsed.copy(nodes = resolved.nodes)
         if (!hasUsableSubscriptionSnapshot(merged)) {
@@ -59,45 +66,55 @@ internal class SubscriptionImporter(
             } else "未解析到有效节点"
             return SubscriptionImportResult(failure = failure, warnings = resolved.warnings)
         }
-        return filterNodes(merged, settings, operation).copy(warnings = resolved.warnings)
+        return filterNodes(merged, settings, operation).copy(
+            warnings = resolved.warnings, usage = initial.usage, name = initial.name,
+        )
     }
 
     private suspend fun fetchSnapshot(
         url: String, settings: SubscriptionSettings, headers: Map<String, List<String>>,
-        remainingBudget: () -> Long, operation: String,
+        remainingBudget: () -> Long, operation: String, resolveName: Boolean,
+        mirrors: SubscriptionMirrorSettings,
     ): ParsedAttempt {
         val timeoutMillis = (settings.timeoutSeconds * 1000L).coerceAtLeast(1)
         var best: ParsedAttempt? = null
         val providerAgent = headers.entries.firstOrNull { it.key.equals("User-Agent", ignoreCase = true) }
         val agents = if (providerAgent != null) listOf(providerAgent.value.first())
             else subscriptionUserAgents(url, settings.userAgent)
+        val urls = subscriptionRequestUrls(url, headers, mirrors)
         attempts@ for ((agentIndex, userAgent) in agents.withIndex()) {
-            var retries = 0
-            while (true) {
-                val remaining = minOf(timeoutMillis, remainingBudget())
-                if (remaining <= 0) {
-                    logger.debug { "[订阅 $operation] 总时间预算耗尽，停止后续候选请求" }
-                    break@attempts
-                }
-                logger.debug { "[订阅 $operation] 尝试第 ${agentIndex + 1} 个 UA 候选（共 ${agents.size} 个）：${subscriptionUserAgentDescription(userAgent)}；这是该候选的第 ${retries + 1} 次请求，最多等待 ${remaining} 毫秒" }
-                val attempt = fetchAndParse(url, settings, userAgent, remaining, headers, operation)
-                val selected = pickBetterAttempt(best, attempt)
-                logger.debug { "[订阅 $operation] 已比较可用性和节点质量，${if (selected === attempt) "暂选本次结果" else "保留此前更合适的结果"}；本次解析 ${attempt.parsed?.nodes?.size ?: 0} 个节点，${attempt.failure?.let { "失败原因：${subscriptionFailureDescription(it)}" } ?: "请求和解析已完成"}" }
-                best = selected
-                // GitHub 默认模式明确只请求一次，连可重试错误也不再发起请求。
-                if (!attempt.retryable || userAgent == null || retries >= settings.retries) {
-                    if (attempt.failure != null) logger.debug {
-                        val reason = when {
-                            !attempt.retryable -> "该错误不适合重试"
-                            userAgent == null -> "当前无 UA 模式只请求一次"
-                            else -> "已用完 ${settings.retries} 次重试机会"
-                        }
-                        "[订阅 $operation] 不再重试当前候选：$reason"
+            routes@ for (requestUrl in urls) {
+                var retries = 0
+                while (true) {
+                    val remaining = minOf(timeoutMillis, remainingBudget())
+                    if (remaining <= 0) {
+                        logger.debug { "[订阅 $operation] 总时间预算耗尽，停止后续候选请求" }
+                        break@attempts
                     }
-                    break
+                    logger.debug { "[订阅 $operation] 尝试第 ${agentIndex + 1} 个 UA 候选（共 ${agents.size} 个）：${subscriptionUserAgentDescription(userAgent)}；这是该候选的第 ${retries + 1} 次请求，最多等待 ${remaining} 毫秒" }
+                    val attempt = fetchAndParse(requestUrl, settings, userAgent, remaining, headers, operation, resolveName,
+                        publicMirror = requestUrl != url)
+                    val selected = pickBetterAttempt(best, attempt)
+                    logger.debug { "[订阅 $operation] 已比较可用性和节点质量，${if (selected === attempt) "暂选本次结果" else "保留此前更合适的结果"}；本次解析 ${attempt.parsed?.nodes?.size ?: 0} 个节点，${attempt.failure?.let { "失败原因：${subscriptionFailureDescription(it)}" } ?: "请求和解析已完成"}" }
+                    best = selected
+                    val parsed = attempt.parsed
+                    // 空内容或更新占位不阻断线路回退；仅包含 provider 的订阅仍可继续展开。
+                    if (parsed != null && (hasUsableSubscriptionSnapshot(parsed) || parsed.proxyProviders.isNotEmpty())) {
+                        break@routes
+                    }
+                    if (!attempt.retryable || retries >= settings.retries) {
+                        if (attempt.failure != null) logger.debug {
+                            val reason = when {
+                                !attempt.retryable -> "该错误不适合重试"
+                                else -> "已用完 ${settings.retries} 次重试机会"
+                            }
+                            "[订阅 $operation] 不再重试当前候选：$reason"
+                        }
+                        break
+                    }
+                    retries++
+                    logger.debug { "[订阅 $operation] 因${subscriptionFailureDescription(attempt.failure.orEmpty())}，将以相同 UA 进行第 $retries 次重试" }
                 }
-                retries++
-                logger.debug { "[订阅 $operation] 因${subscriptionFailureDescription(attempt.failure.orEmpty())}，将以相同 UA 进行第 $retries 次重试" }
             }
         }
         return best ?: ParsedAttempt(failure = "订阅导入已达到总超时")
@@ -105,10 +122,10 @@ internal class SubscriptionImporter(
 
     private suspend fun fetchAndParse(
         url: String, settings: SubscriptionSettings, userAgent: String?, timeoutMillis: Long,
-        headers: Map<String, List<String>>, operation: String,
+        headers: Map<String, List<String>>, operation: String, resolveName: Boolean, publicMirror: Boolean,
     ): ParsedAttempt {
         val content = try {
-            fetcher.fetch(url, settings, userAgent, timeoutMillis, headers, operation)
+            fetcher.fetch(url, settings, userAgent, timeoutMillis, headers, operation, resolveName, publicMirror)
         } catch (e: CancellationException) {
             throw e
         } catch (e: SubscriptionFetchException) {
@@ -120,8 +137,8 @@ internal class SubscriptionImporter(
         }
         return try {
             val started = timeSource.markNow()
-            logger.debug { "[订阅 $operation] 开始 Go 解析，输入 ${content.length} 字符" }
-            val parsed = parse(content)
+            logger.debug { "[订阅 $operation] 开始 Go 解析，输入 ${content.body.length} 字符" }
+            val parsed = parse(content.body)
             logger.debug { "[订阅 $operation] 解析完成：检查了 ${parsed.candidates} 条候选，成功解析 ${parsed.parsed} 个节点，跳过 ${parsed.skipped} 次，耗时 ${started.elapsedNow().inWholeMilliseconds} 毫秒" }
             logger.debug {
                 val formats = buildList {
@@ -137,7 +154,7 @@ internal class SubscriptionImporter(
                     "${subscriptionSkipDescription(reason)}，共 $count 次"
                 }
             }
-            ParsedAttempt(parsed = parsed)
+            ParsedAttempt(parsed = parsed, usage = content.usage, name = content.name)
         } catch (e: CancellationException) {
             throw e
         } catch (error: Exception) {

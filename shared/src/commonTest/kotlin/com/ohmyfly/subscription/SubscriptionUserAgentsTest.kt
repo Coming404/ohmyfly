@@ -53,18 +53,19 @@ class SubscriptionUserAgentsTest {
     }
 
     @Test
-    fun githubEmptySettingsSendNoAgentAndOnlyOneRequest() = runTest {
-        for (setting in listOf("", " | ")) {
+    fun githubAndGistUseOneBrowserProfile() = runTest {
+        for (host in listOf("RAW.GITHUBUSERCONTENT.COM.", "gist.githubusercontent.com", "GIST.GITHUB.COM.",
+            "github.com", "githubusercontent.com", "api.github.com", "nested.api.githubusercontent.com")) {
             var requests = 0
             val client = subscriptionClient { request ->
                 requests++
-                assertNull(request.headers[HttpHeaders.UserAgent])
+                assertEquals(MozillaSubscriptionUserAgent, request.headers[HttpHeaders.UserAgent])
                 respondOk("p")
             }
             try {
                 val importer = SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) })
                 assertNull(importer.importSubscription(
-                    "https://RAW.GITHUBUSERCONTENT.COM./p", SubscriptionSettings(userAgent = setting),
+                    "https://$host/p", SubscriptionSettings(),
                 ).failure)
                 assertEquals(1, requests)
             } finally { client.close() }
@@ -72,13 +73,13 @@ class SubscriptionUserAgentsTest {
     }
 
     @Test
-    fun githubUsesChangedCustomListInOrder() = runTest {
+    fun githubUsesFixedBrowserInsteadOfCustomList() = runTest {
         val agents = mutableListOf<String?>()
         val client = subscriptionClient { request -> agents += request.headers[HttpHeaders.UserAgent]; respondOk("p") }
         try {
             val importer = SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) })
             importer.importSubscription("https://raw.githubusercontent.com/p", SubscriptionSettings(userAgent = " a | b "))
-            assertEquals(listOf<String?>("a", "b"), agents)
+            assertEquals(listOf<String?>(MozillaSubscriptionUserAgent), agents)
         } finally { client.close() }
     }
 

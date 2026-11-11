@@ -35,13 +35,7 @@ internal class MirrorResourceFetcher(private val transport: MirrorTransport) {
         require(maxBytes > 0) { "大小上限必须为正数" }
         if (!enabled) return directOnly(originalUrl, timeoutMillis, maxBytes, expectedSha256)
 
-        val selectedIndex = mirrors.indexOfFirst { it.id == selectedMirrorId }
-        val ordered = buildList<MirrorEntry?> {
-            if (selectedIndex >= 0) add(mirrors[selectedIndex])
-            mirrors.forEachIndexed { index, entry -> if (index != selectedIndex) add(entry) }
-            // No direct option in the UI: direct is attempted only after every mirror fails.
-            add(null)
-        }.distinctBy { it?.id ?: DIRECT_MIRROR_ID }
+        val ordered = orderedMirrorCandidates(enabled, mirrors, selectedMirrorId)
 
         val failed = mutableListOf<String>()
         for (entry in ordered) {
