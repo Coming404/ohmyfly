@@ -27,6 +27,8 @@ internal fun OverviewScreen(
     listState: LazyListState,
     nodes: List<NodeSummary>,
     subscriptionCount: Int,
+    flightCount: Long,
+    catalogFailure: String?,
     selectedCount: Int,
     onNodes: () -> Unit,
     onSettings: () -> Unit,
@@ -44,8 +46,9 @@ internal fun OverviewScreen(
             Column {
                 SmallTitle("概况")
                 Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
+                    catalogFailure?.let { BasicComponent(title = "目录读取失败", summary = it) }
                     BasicComponent(title = "塔台来源", endActions = { Text(subscriptionCount.toString()) })
-                    BasicComponent(title = "航班总数", endActions = { Text(nodes.size.toString()) })
+                    BasicComponent(title = "航班总数", endActions = { Text(flightCount.toString()) })
                     BasicComponent(title = "已选择", endActions = { Text(selectedCount.toString()) })
                 }
             }

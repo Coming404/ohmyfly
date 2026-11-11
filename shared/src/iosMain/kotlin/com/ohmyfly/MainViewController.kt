@@ -11,6 +11,7 @@ fun MainViewController(
     onThemeChanged: (dark: Boolean, followsSystem: Boolean) -> Unit,
 ): platform.UIKit.UIViewController {
     initializeAppLogging()
+    com.ohmyfly.catalog.initializeCatalog()
     val path = iosSettingsPath()
     val bundle = NSBundle.mainBundle
     val name = bundle.objectForInfoDictionaryKey("CFBundleShortVersionString") as? String ?: "未知版本"

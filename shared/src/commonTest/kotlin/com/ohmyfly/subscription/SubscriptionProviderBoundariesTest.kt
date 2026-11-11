@@ -88,7 +88,7 @@ class SubscriptionProviderBoundariesTest {
         val root = testSnapshot(testNode()).copy(proxyProviders = listOf(testProvider("file", "", "file")))
         val client = subscriptionClient { respondOk("root") }
         try {
-            val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { root }))
+            val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { root }))
             store.add("https://sub.example/root", SubscriptionSettings(userAgent = "one"))
             val tower = store.towers.value.single()
             assertEquals(1, tower.nodes.size)

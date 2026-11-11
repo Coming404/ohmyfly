@@ -55,6 +55,7 @@ func parseSubscription(content string) (string, error) {
 			Server:       value.Server,
 			Port:         value.Port,
 			Fields:       jsonSafeValue(value.Fields).(map[string]any),
+			RawInput:     value.RawInput,
 			SourceFormat: value.SourceFormat,
 			FromBase64:   value.FromBase64,
 			Fingerprint:  fmt.Sprintf("%x", flight.Fingerprint(value)),
@@ -154,6 +155,7 @@ type subscriptionNode struct {
 	Server       string         `json:"server"`
 	Port         int            `json:"port"`
 	Fields       map[string]any `json:"fields"`
+	RawInput     string         `json:"rawInput"`
 	SourceFormat string         `json:"sourceFormat"`
 	FromBase64   bool           `json:"fromBase64"`
 }

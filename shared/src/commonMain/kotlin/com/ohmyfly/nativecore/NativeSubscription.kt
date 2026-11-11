@@ -39,7 +39,14 @@ data class NativeSubscriptionNode(
     val sourceFormat: String,
     val fromBase64: Boolean,
     val fingerprint: String,
+    val source: JsonObject = JsonObject(emptyMap()),
+    val eligible: Boolean = true,
+    val rawInput: String = "",
 )
+
+internal interface NativeSubscriptionResource { fun close() }
+
+internal fun NativeSubscription.close() { (nodes as? NativeSubscriptionResource)?.close() }
 
 class NativeCoreException(message: String) : Exception(message)
 

@@ -11,6 +11,7 @@ type Flight struct {
 	Server       string
 	Port         int
 	Fields       map[string]any
+	RawInput     string
 	SourceFormat string
 	FromBase64   bool
 }

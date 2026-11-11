@@ -20,7 +20,7 @@ class SubscriptionTowerStoreTest {
         var requests = 0
         val client = subscriptionClient { requests++; respondOk("p") }
         try {
-            val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
+            val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
             assertEquals("只支持 HTTP 或 HTTPS 地址", store.add("ftp://sub.example/p", settings))
             assertTrue(store.towers.value.isEmpty())
             assertEquals(0, requests)
@@ -31,9 +31,9 @@ class SubscriptionTowerStoreTest {
     fun addNormalizesAddressAndPublishesImportedNodeFields() = runTest {
         val client = subscriptionClient { respondOk("p") }
         try {
-            val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
+            val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
             assertNull(store.add("  https://sub.example/p  ", settings))
-            assertEquals(SubscriptionTower("https://sub.example/p", listOf(SubscriptionNode("HK", "ss", "node.example", 443)), name = "sub.example"), store.towers.value.single())
+            assertEquals(TestTower("https://sub.example/p", listOf(SubscriptionNode("HK", "ss", "node.example", 443, testNode().fields)), name = "sub.example"), store.towers.value.single())
         } finally { client.close() }
     }
 
@@ -44,7 +44,7 @@ class SubscriptionTowerStoreTest {
             if (content == "fail") respond("", HttpStatusCode.NotFound) else respondOk(content)
         }
         try {
-            val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode(it)) }))
+            val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode(it)) }))
             store.add("https://sub.example/p", settings)
             content = "second"
             store.refresh("https://sub.example/p", settings)
@@ -64,9 +64,9 @@ class SubscriptionTowerStoreTest {
     fun failedInitialImportRemainsInTheTowerListWithFailureInformation() = runTest {
         val client = subscriptionClient { respond("", HttpStatusCode.NotFound) }
         try {
-            val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { error("must not parse") }))
+            val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { error("must not parse") }))
             assertNull(store.add("https://sub.example/p", settings))
-            assertEquals(SubscriptionTower("https://sub.example/p", failure = "HTTP 404", name = "sub.example"), store.towers.value.single())
+            assertEquals(TestTower("https://sub.example/p", failure = "HTTP 404", name = "sub.example"), store.towers.value.single())
         } finally { client.close() }
     }
 
@@ -74,7 +74,7 @@ class SubscriptionTowerStoreTest {
     fun removeOnlyDeletesTheRequestedAddress() = runTest {
         val client = subscriptionClient { respondOk("p") }
         try {
-            val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
+            val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
             store.add("https://sub.example/one", settings)
             store.add("https://sub.example/two", settings)
             store.remove(" https://sub.example/one ")
@@ -92,7 +92,7 @@ class SubscriptionTowerStoreTest {
             respondOk("p")
         }
         try {
-            val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
+            val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
             store.add("https://sub.example/p", settings)
             paused = true
             val refresh = launch { store.refresh("https://sub.example/p", settings) }
@@ -109,7 +109,7 @@ class SubscriptionTowerStoreTest {
         var requests = 0
         val client = subscriptionClient { respondOk((++requests).toString()) }
         try {
-            val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode(it)) }))
+            val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode(it)) }))
             store.add("https://sub.example/p", settings)
             store.add(" https://sub.example/p ", settings)
             assertEquals(1, store.towers.value.size)

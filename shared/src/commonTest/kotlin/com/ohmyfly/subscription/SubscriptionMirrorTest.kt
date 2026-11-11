@@ -39,7 +39,7 @@ class SubscriptionMirrorTest {
         val hosts = mutableListOf<String>()
         val client = mirroredSubscriptionClient { request -> hosts += request.url.host; respond("nodes") }
         try {
-            val store = SubscriptionTowerStore(SubscriptionImporter(mirrorSubscriptionFetcher(client), { testSnapshot(testNode()) }))
+            val store = TestCatalogStore(SubscriptionImporter(mirrorSubscriptionFetcher(client), { testSnapshot(testNode()) }))
             store.add(mirrorSubscriptionUrl, settings, mirrors = subscriptionMirrors.copy(enabled = false))
             store.refresh(mirrorSubscriptionUrl, settings, subscriptionMirrors)
             store.refresh(mirrorSubscriptionUrl, settings, subscriptionMirrors.copy(mirrors = emptyList()))
@@ -131,7 +131,7 @@ class SubscriptionMirrorTest {
         val body = "n".repeat(70_000)
         val client = mirroredSubscriptionClient { respond(body) }
         try {
-            val store = SubscriptionTowerStore(SubscriptionImporter(mirrorSubscriptionFetcher(client), {
+            val store = TestCatalogStore(SubscriptionImporter(mirrorSubscriptionFetcher(client), {
                 assertEquals(body, it); testSnapshot(testNode())
             }))
             store.add(mirrorSubscriptionUrl, settings.copy(maxMiB = 1), mirrors = subscriptionMirrors)

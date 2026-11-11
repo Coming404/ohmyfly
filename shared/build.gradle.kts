@@ -64,6 +64,7 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
+            implementation(files(rootDir.resolve("native-core/build/android/native-core.aar")))
         }
         if (providers.systemProperty("os.name").get().startsWith("Mac")) {
             iosMain.dependencies {

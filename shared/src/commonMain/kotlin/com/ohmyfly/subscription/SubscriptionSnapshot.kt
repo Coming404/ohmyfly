@@ -30,8 +30,10 @@ internal fun isLocalServer(server: String): Boolean {
     return parts.size == 4 && parts[0] == "127" && parts.all { part -> part.toIntOrNull()?.let { it in 0..255 } == true }
 }
 
+internal fun isUsableSubscriptionNodeName(name: String): Boolean = !infoName.containsMatchIn(name.trim())
+
 internal fun hasUsableSubscriptionSnapshot(parsed: NativeSubscription): Boolean =
-    !looksLikeClientUpdatePlaceholderNodes(parsed.nodes) && parsed.nodes.any { !infoName.containsMatchIn(it.name.trim()) }
+    !looksLikeClientUpdatePlaceholderNodes(parsed.nodes) && parsed.nodes.any { isUsableSubscriptionNodeName(it.name) }
 
 private data class NodeAnchor(val type: String, val server: String, val port: Int)
 private data class NodeFields(val anchor: NodeAnchor, val fields: Map<String, String>)
@@ -57,11 +59,24 @@ private fun nodeFields(node: NativeSubscriptionNode): NodeFields? {
 
 private fun summarize(parsed: NativeSubscription): Snapshot {
     val candidates = if (looksLikeClientUpdatePlaceholderNodes(parsed.nodes)) emptyList() else parsed.nodes
-    val records = candidates.mapNotNull(::nodeFields).distinctBy { it.fields }
-    val protocols = candidates.filter { !infoName.containsMatchIn(it.name.trim()) }
-        .map { if (protocolName.matches(it.type)) it.type else "unknown" }.distinct().size
-    // shortcut: DTO 只提供 skipped 统计，以其近似上游 errors.length；DTO 支持逐条解析错误后再对齐。
-    return Snapshot(records, protocols, records.sumOf { it.fields.size }, parsed.skipped)
+    val indices = mutableListOf<Int>()
+    val hashes = mutableMapOf<Int, MutableList<Int>>()
+    val protocols = mutableSetOf<String>()
+    var fields = 0
+    candidates.forEachIndexed { index, node ->
+        val value = nodeFields(node) ?: return@forEachIndexed
+        protocols += if (protocolName.matches(node.type)) node.type else "unknown"
+        val bucket = hashes.getOrPut(value.fields.hashCode()) { mutableListOf() }
+        // 标量索引常驻；完整字段每次只加载当前记录和一个同哈希候选。
+        if (bucket.none { nodeFields(candidates[it])!!.fields == value.fields }) {
+            bucket += index; indices += index; fields += value.fields.size
+        }
+    }
+    val records = object : AbstractList<NodeFields>() {
+        override val size: Int get() = indices.size
+        override fun get(index: Int): NodeFields = nodeFields(candidates[indices[index]])!!
+    }
+    return Snapshot(records, protocols.size, fields, parsed.skipped)
 }
 
 private fun isSubset(left: NodeFields, right: NodeFields): Boolean =
@@ -69,12 +84,16 @@ private fun isSubset(left: NodeFields, right: NodeFields): Boolean =
 
 private fun covers(left: Snapshot, right: Snapshot): Boolean {
     if (left.nodes.size > right.nodes.size) return false
-    val groups = right.nodes.groupBy { it.anchor }
-        .mapValues { (_, nodes) -> nodes.sortedBy { it.fields.size }.toMutableList() }
+    val sizes = right.nodes.indices.map { right.nodes[it].fields.size }
+    val groups = mutableMapOf<NodeAnchor, MutableList<Int>>()
+    right.nodes.indices.forEach { index -> groups.getOrPut(right.nodes[index].anchor) { mutableListOf() }.add(index) }
+    groups.values.forEach { it.sortBy { index -> sizes[index] } }
+    val leftSizes = left.nodes.indices.map { left.nodes[it].fields.size }
     var comparisons = 0
-    for (node in left.nodes.sortedByDescending { it.fields.size }) {
+    for (ordinal in left.nodes.indices.sortedByDescending { leftSizes[it] }) {
+        val node = left.nodes[ordinal]
         val group = groups[node.anchor] ?: return false
-        val index = group.indexOfFirst { ++comparisons <= 100_000 && isSubset(node, it) }
+        val index = group.indexOfFirst { ++comparisons <= 100_000 && isSubset(node, right.nodes[it]) }
         if (index < 0 || comparisons > 100_000) return false
         group.removeAt(index)
     }

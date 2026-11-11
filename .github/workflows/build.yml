@@ -33,6 +33,24 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6.4.0
         with:
           cache-read-only: false
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: native-core/go.mod
+          cache-dependency-path: native-core/go.sum
+      - name: Build NativeCore Android AAR
+        env:
+          GOMOBILE_VERSION: v0.0.0-20261011034528-197770444867
+        run: |
+          sdkmanager 'ndk;27.2.12479018'
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
+          go install "golang.org/x/mobile/cmd/gomobile@${GOMOBILE_VERSION}"
+          gomobile init
+          go install "golang.org/x/mobile/cmd/gobind@${GOMOBILE_VERSION}"
+          cp -R native-core "$RUNNER_TEMP/native-core"
+          cd "$RUNNER_TEMP/native-core"
+          go get -tool "golang.org/x/mobile/cmd/gobind@${GOMOBILE_VERSION}"
+          mkdir -p "$GITHUB_WORKSPACE/native-core/build/android"
+          gomobile bind -target=android -androidapi=33 -o "$GITHUB_WORKSPACE/native-core/build/android/native-core.aar" ./mobile
       - name: Restore private test-release keystore
         env:
           ANDROID_RELEASE_STORE_BASE64: ${{ secrets.ANDROID_RELEASE_STORE_BASE64 }}

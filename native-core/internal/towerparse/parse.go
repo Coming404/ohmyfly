@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"strings"
 
+	"go.yaml.in/yaml/v3"
+
 	"github.com/Coming404/ohmyfly/native-core/internal/flight"
 )
 
@@ -105,6 +107,7 @@ func parseLinks(source io.Reader, emit func(flight.Flight) error, stats Stats) (
 			stats.skip("invalid " + protocol + " link")
 			continue
 		}
+		value.RawInput = text
 		value.SourceFormat = string(FormatLink)
 		value.FromBase64 = fromBase64 || stats.Base64Layers > 0
 		if err := emit(value); err != nil {
@@ -196,6 +199,11 @@ func emitYAMLValue(value any, emit func(flight.Flight) error, stats *Stats) erro
 }
 
 func emitYAMLRecord(record map[string]any, emit func(flight.Flight) error, stats *Stats) error {
+	// 保存规范化前字段的 YAML 表示；不声称保留源文档空白、注释或锚点布局。
+	raw, err := yaml.Marshal(record)
+	if err != nil {
+		return err
+	}
 	record = maps.Clone(record)
 	if err := normalizeYAMLNode(record); err != nil {
 		stats.skip("invalid YAML item")
@@ -206,6 +214,7 @@ func emitYAMLRecord(record map[string]any, emit func(flight.Flight) error, stats
 		stats.skip("invalid YAML item")
 		return nil
 	}
+	flightValue.RawInput = string(raw)
 	flightValue.SourceFormat = string(FormatYAML)
 	if err := emit(flightValue); err != nil {
 		return err

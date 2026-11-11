@@ -18,9 +18,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -53,11 +51,6 @@ import com.ohmyfly.mirror.MirrorProbe
 import com.ohmyfly.mirror.createMirrorTransport
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.SettingsSession
-import com.ohmyfly.nativecore.parseSubscriptionContent
-import com.ohmyfly.subscription.SubscriptionFetcher
-import com.ohmyfly.subscription.SubscriptionImporter
-import com.ohmyfly.subscription.SubscriptionTowerStore
-import com.ohmyfly.subscription.createSubscriptionClient
 import com.ohmyfly.ui.HeaderAction
 import com.ohmyfly.ui.settings.MirrorDialog
 import com.ohmyfly.ui.settings.MirrorIcons
@@ -67,7 +60,6 @@ import com.ohmyfly.ui.glass.glassEffectsEnabled
 import com.ohmyfly.ui.glass.glassShaderSupported
 import com.ohmyfly.ui.settings.openSettingsPage
 import com.ohmyfly.ui.settings.popSettingsPage
-import kotlinx.coroutines.CoroutineScope
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -78,11 +70,7 @@ import top.yukonga.miuix.kmp.nav.core.NavBackStack
 import top.yukonga.miuix.kmp.nav.core.rememberNavBackStack
 import top.yukonga.miuix.kmp.utils.springAnimateToPage
 
-private val subscriptionTowerStore by lazy {
-    SubscriptionTowerStore(
-        SubscriptionImporter(SubscriptionFetcher(createSubscriptionClient()), ::parseSubscriptionContent),
-    )
-}
+private val subscriptionTowerStore get() = com.ohmyfly.catalog.appCatalog
 
 @Composable
 fun App(
@@ -122,7 +110,6 @@ private fun AppContent(
         ),
     ) { mutableStateOf(AppDestination.Overview) }
     val navScope = rememberCoroutineScope()
-    val subscriptionLoading = remember { mutableStateListOf<String>() }
     val motionAllowed = LocalAppMotionAllowed.current
     val mirrorRunner = remember(settingsSession, navScope) {
         MirrorProbeRunner(MirrorProbe(createMirrorTransport()), navScope)
@@ -153,9 +140,18 @@ private fun AppContent(
     val settingsBack: (() -> Unit)? = if (settingsChild) {
         { mirrorEditorBack?.invoke() ?: settingsStack.popSettingsPage() }
     } else null
-    var category by remember { mutableStateOf("全部") }
     var selectedIds by remember { mutableStateOf(emptySet<String>()) }
-    val nodes = emptyList<NodeSummary>()
+    val catalog by subscriptionTowerStore.state.collectAsState()
+    LaunchedEffect(Unit) { subscriptionTowerStore.start() }
+    val nodes = remember(catalog.flights) { catalog.flights.map {
+        NodeSummary(id = it.id.toString(), name = it.name, region = "", protocol = it.type)
+    } }
+    LaunchedEffect(nodes, catalog.filterRevision) {
+        selectedIds = selectedIds.intersect(nodes.mapTo(mutableSetOf()) { it.id })
+    }
+    com.ohmyfly.catalog.CatalogDestination(destination, catalog.flightPage, catalog.summary.revision) {
+        selectedIds = emptySet()
+    }
     val overviewState = rememberLazyListState()
     val subscriptionsState = rememberLazyListState()
     val speedState = rememberLazyListState()
@@ -165,18 +161,17 @@ private fun AppContent(
     AppTheme(dynamicColorSeed, dark) {
         AppFrame(
             dark, settings, settingsSession, onRetryRead, destination, settingsChild, settingsBack,
-            mirrorPage, mirrorAdd, logsPage, logClear, nodes, category, selectedIds, onSelection = { selectedIds = it },
+            mirrorPage, mirrorAdd, logsPage, logClear, nodes, selectedIds, onSelection = { selectedIds = it },
             onDestination = { destination = it },
         ) { padding ->
             AppPager(
                 pagerState, settings, onChange, version, settingsSession, mirrorRunner, settingsStack,
-                nodes, category, selectedIds, onCategory = { category = it }, onSelection = { selectedIds = it },
+                nodes, selectedIds, onSelection = { selectedIds = it },
                 onDestination = { destination = it }, editorBackActive = mirrorEditorBack != null,
                 onEditorBackChange = { mirrorEditorBack = it }, onMirrorAddChange = { mirrorAdd = it },
                 onLogClearChange = { logClear = it },
                 overviewState = overviewState, subscriptionsState = subscriptionsState, speedState = speedState,
-                nodesState = nodesState, settingsState = settingsState, scope = navScope,
-                subscriptionLoading = subscriptionLoading, padding = padding,
+                nodesState = nodesState, settingsState = settingsState, padding = padding,
             )
         }
     }
@@ -196,12 +191,13 @@ private fun AppFrame(
     logsPage: Boolean,
     logClear: (() -> Unit)?,
     nodes: List<NodeSummary>,
-    category: String,
     selectedIds: Set<String>,
     onSelection: (Set<String>) -> Unit,
     onDestination: (AppDestination) -> Unit,
     content: @Composable (PaddingValues) -> Unit,
 ) {
+    var filterOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(destination) { if (destination != AppDestination.NodeLibrary) filterOpen = false }
     val background = LocalAppSurfaceColors.current.page
     val reduceTransparency = settings.reduceTransparency
     val systemReduceTransparency by rememberSystemReduceTransparency()
@@ -213,8 +209,9 @@ private fun AppFrame(
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            AppTopBar(destination, settingsChild, settingsBack, mirrorPage, mirrorAdd, logsPage, logClear, nodes, category,
-                selectedIds, onSelection, backdrop, glassEnabled, dark, settings, settingsSession)
+            AppTopBar(destination, settingsChild, settingsBack, mirrorPage, mirrorAdd, logsPage, logClear, nodes,
+                selectedIds, onSelection, backdrop, glassEnabled, dark, settings, settingsSession,
+                onFilter = { filterOpen = true })
         },
         bottomBar = {
             if (!settingsChild) DriftNavigationBar(
@@ -235,6 +232,7 @@ private fun AppFrame(
         ) {
             Box(Modifier.widthIn(max = 760.dp).fillMaxSize()) { content(padding) }
         }
+        com.ohmyfly.ui.FlightFilterSheet(filterOpen, onClose = { filterOpen = false })
         AppMessageHost(padding, backdrop, glassEnabled, dark, settings.materialMode, blocked = settingsSession.state.readFailed)
         MirrorDialog(
             show = settingsSession.state.readFailed,
@@ -258,7 +256,6 @@ private fun AppTopBar(
     logsPage: Boolean,
     logClear: (() -> Unit)?,
     nodes: List<NodeSummary>,
-    category: String,
     selectedIds: Set<String>,
     onSelection: (Set<String>) -> Unit,
     backdrop: Backdrop,
@@ -266,6 +263,7 @@ private fun AppTopBar(
     dark: Boolean,
     settings: AppSettings,
     settingsSession: SettingsSession,
+    onFilter: () -> Unit,
 ) {
     DriftTopBar(
         title = if (settingsChild || destination == AppDestination.Settings) "" else destination.label,
@@ -275,7 +273,10 @@ private fun AppTopBar(
         materialMode = settings.materialMode,
         onBack = settingsBack,
         actions = if (destination == AppDestination.NodeLibrary) {
-            { NodeSelectionActions(nodes = nodes, category = category, selectedIds = selectedIds, onSelection = onSelection) }
+            {
+                NodeSelectionActions(nodes = nodes, selectedIds = selectedIds, onSelection = onSelection)
+                com.ohmyfly.ui.FlightFilterAction(onFilter)
+            }
         } else if (mirrorPage) {
             { HeaderAction("添加镜像", MirrorIcons.Add, onClick = { mirrorAdd?.invoke() },
                 enabled = mirrorAdd != null && settings.mirrorEnabled && !settingsSession.state.readFailed) }
@@ -297,9 +298,7 @@ private fun AppPager(
     mirrorRunner: MirrorProbeRunner,
     settingsStack: NavBackStack,
     nodes: List<NodeSummary>,
-    category: String,
     selectedIds: Set<String>,
-    onCategory: (String) -> Unit,
     onSelection: (Set<String>) -> Unit,
     onDestination: (AppDestination) -> Unit,
     editorBackActive: Boolean,
@@ -308,11 +307,9 @@ private fun AppPager(
     onLogClearChange: ((() -> Unit)?) -> Unit,
     overviewState: LazyListState, subscriptionsState: LazyListState, speedState: LazyListState,
     nodesState: LazyListState, settingsState: LazyListState,
-    scope: CoroutineScope,
-    subscriptionLoading: SnapshotStateList<String>,
     padding: PaddingValues,
 ) {
-    val towers by subscriptionTowerStore.towers.collectAsState()
+    val catalog by subscriptionTowerStore.state.collectAsState()
     HorizontalPager(
         state = pagerState,
         modifier = Modifier.fillMaxSize(),
@@ -320,7 +317,8 @@ private fun AppPager(
     ) { page ->
         when (AppDestination.entries[page]) {
             AppDestination.Overview -> OverviewScreen(
-                listState = overviewState, nodes = nodes, subscriptionCount = towers.size,
+                listState = overviewState, nodes = nodes, subscriptionCount = catalog.summary.towers.toInt(),
+                flightCount = catalog.summary.flights, catalogFailure = catalog.failure,
                 selectedCount = nodes.count { it.id in selectedIds },
                 onNodes = { onDestination(AppDestination.NodeLibrary) },
                 onSettings = { onDestination(AppDestination.Settings) },
@@ -329,8 +327,10 @@ private fun AppPager(
                 contentPadding = padding,
             )
             AppDestination.Subscriptions -> SubscriptionsScreen(
-                listState = subscriptionsState, store = subscriptionTowerStore, settings = settings,
-                scope = scope, loading = subscriptionLoading, contentPadding = padding,
+                listState = subscriptionsState, store = subscriptionTowerStore,
+                settings = settingsSession.state.confirmedSettings ?: settings,
+                importReady = settingsSession.state.confirmedSettings != null && !settingsSession.state.readFailed,
+                contentPadding = padding,
             )
             AppDestination.Speed -> SpeedScreen(
                 listState = speedState, nodes = nodes, selectedIds = selectedIds,
@@ -338,8 +338,9 @@ private fun AppPager(
                 contentPadding = padding,
             )
             AppDestination.NodeLibrary -> NodesScreen(
-                listState = nodesState, nodes = nodes, category = category, selectedIds = selectedIds,
-                onCategory = onCategory, onSelection = onSelection, contentPadding = padding,
+                listState = nodesState, nodes = nodes, selectedIds = selectedIds,
+                onSelection = onSelection, contentPadding = padding,
+                catalog = catalog, onPage = { subscriptionTowerStore.page("flights", it) },
             )
             AppDestination.Settings -> SettingsScreen(
                 listState = settingsState,

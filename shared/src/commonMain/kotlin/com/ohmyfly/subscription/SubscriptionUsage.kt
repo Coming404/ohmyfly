@@ -5,6 +5,7 @@ package com.ohmyfly.subscription
 
 internal const val SubscriptionUsageHeader = "subscription-userinfo"
 
+@kotlinx.serialization.Serializable
 internal data class SubscriptionUsage(
     val upload: Long? = null,
     val download: Long? = null,

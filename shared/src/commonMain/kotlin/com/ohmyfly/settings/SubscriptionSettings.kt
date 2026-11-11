@@ -1,5 +1,6 @@
 package com.ohmyfly.settings
 
+@kotlinx.serialization.Serializable
 internal data class SubscriptionSettings(
     val timeoutSeconds: Int = 15,
     val retries: Int = 2,

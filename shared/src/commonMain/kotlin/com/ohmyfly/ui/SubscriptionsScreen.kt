@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
@@ -17,7 +16,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
@@ -30,8 +28,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.subscription.SubscriptionMirrorSettings
-import com.ohmyfly.subscription.SubscriptionTower
-import com.ohmyfly.subscription.SubscriptionTowerStore
+import com.ohmyfly.catalog.CatalogTower
+import com.ohmyfly.catalog.CatalogStore
+import com.ohmyfly.catalog.CatalogPager
 import com.ohmyfly.subscription.validateSubscriptionUrl
 import com.ohmyfly.ui.settings.MirrorIcons
 import com.ohmyfly.ui.settings.SettingsButton
@@ -41,8 +40,6 @@ import com.ohmyfly.ui.settings.SettingsIcons
 import com.ohmyfly.ui.settings.SettingsInputMenu
 import com.ohmyfly.ui.settings.SettingsList
 import com.ohmyfly.ui.settings.SettingsName
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -50,55 +47,49 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 internal fun SubscriptionsScreen(
     listState: LazyListState,
-    store: SubscriptionTowerStore,
+    store: CatalogStore,
     settings: AppSettings,
-    scope: CoroutineScope,
-    loading: SnapshotStateList<String>,
+    importReady: Boolean,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
-    val towers by store.towers.collectAsState()
+    val catalog by store.state.collectAsState()
     val mirrors = SubscriptionMirrorSettings(settings.mirrorEnabled, settings.mirrors, settings.selectedMirrorId)
     SettingsList(contentPadding, listState) {
         item {
-            SubscriptionAddressInput(loading) { address ->
-                launchSubscriptionRequest(address, loading, scope) { store.add(address, settings.subscription, mirrors = mirrors) }
+            SubscriptionAddressInput(catalog.busy, catalog.ready && importReady) { address ->
+                store.add(address, settings.subscription, mirrors)
             }
         }
-        if (towers.isEmpty()) {
+        item {
+            CatalogPager(catalog.towerPage, catalog.summary.towers, catalog.failure,
+                onPrevious = { store.page("towers", catalog.towerPage - 1) },
+                onNext = { store.page("towers", catalog.towerPage + 1) },
+                onRetry = { if (catalog.ready) store.page("towers", catalog.towerPage) else store.start() })
+        }
+        if (catalog.ready && catalog.failure == null && catalog.summary.towers == 0L) {
             item { SettingsCard { BasicComponent(title = "暂无塔台") } }
         }
-        towers.forEach { tower ->
-            item(key = "tower:${tower.address}") {
+        catalog.towers.forEach { tower ->
+            item(key = "tower:${tower.id}") {
                 SubscriptionTowerHeader(
-                    tower = tower,
-                    loading = tower.address in loading,
-                    onRefresh = {
-                        launchSubscriptionRequest(tower.address, loading, scope) {
-                            store.refresh(tower.address, settings.subscription, mirrors)
-                        }
-                    },
-                    onRemove = { store.remove(tower.address) },
+                    tower = tower, loading = catalog.busy, ready = catalog.ready && importReady,
+                    onRefresh = { store.refresh(tower.id, settings.subscription, mirrors) },
+                    onRemove = { store.remove(tower.id) },
                 )
-            }
-            itemsIndexed(tower.nodes, key = { index, _ -> "node:${tower.address}:$index" }) { _, node ->
-                SettingsCard {
-                    BasicComponent(title = node.name, summary = "${node.type} · ${node.server}:${node.port}")
-                }
             }
         }
     }
 }
 
 @Composable
-private fun SubscriptionAddressInput(loading: List<String>, onAdd: (String) -> Unit) {
+private fun SubscriptionAddressInput(busy: Boolean, ready: Boolean, onAdd: (String) -> Unit) {
     var address by rememberSaveable { mutableStateOf("") }
     var attempted by rememberSaveable { mutableStateOf(false) }
     val validation = if (attempted) validateSubscriptionUrl(address) else null
-    val busy = address.trim() in loading
     val focus = LocalFocusManager.current
     val submit = {
         attempted = true
-        if (!busy && validateSubscriptionUrl(address) == null) {
+        if (ready && !busy && validateSubscriptionUrl(address) == null) {
             focus.clearFocus()
             onAdd(address.trim())
             address = ""
@@ -130,7 +121,7 @@ private fun SubscriptionAddressInput(loading: List<String>, onAdd: (String) -> U
                 text = if (busy) "拉取中…" else "添加",
                 icon = MirrorIcons.Add,
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !busy,
+                enabled = ready && !busy,
                 onClick = submit,
             )
         }
@@ -139,39 +130,25 @@ private fun SubscriptionAddressInput(loading: List<String>, onAdd: (String) -> U
 
 @Composable
 private fun SubscriptionTowerHeader(
-    tower: SubscriptionTower,
+    tower: CatalogTower,
     loading: Boolean,
+    ready: Boolean,
     onRefresh: () -> Unit,
     onRemove: () -> Unit,
 ) {
     SettingsCard {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SettingsName(tower.address)
-            SettingsHint(if (loading) "拉取中…" else "${tower.nodes.size} 个节点")
-            tower.failure?.let { SettingsHint(it, isError = true) }
-            tower.warnings.forEach { SettingsHint(it, isError = true) }
-            if (!loading && tower.failure == null && tower.nodes.isEmpty()) SettingsHint("暂无节点")
+            SettingsName(tower.name.ifBlank { "塔台 ${tower.id}" })
+            SettingsHint(if (loading) "拉取中…" else "${tower.nodeCount} 个航班")
+            if (tower.failure.isNotEmpty()) SettingsHint(tower.failure, isError = true)
+            tower.usage?.let { usage ->
+                SettingsHint("上传 ${usage.upload ?: "未知"} B · 下载 ${usage.download ?: "未知"} B · 总量 ${usage.total ?: "未知"} B")
+            }
+            if (!loading && tower.failure.isEmpty() && tower.nodeCount == 0L) SettingsHint("暂无航班")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                SettingsButton("刷新", SettingsIcons.Retry, Modifier.weight(1f), enabled = !loading, onClick = onRefresh)
+                SettingsButton("刷新", SettingsIcons.Retry, Modifier.weight(1f), enabled = ready && !loading, onClick = onRefresh)
                 SettingsButton("删除", MirrorIcons.Trash, Modifier.weight(1f), destructive = true, onClick = onRemove)
             }
-        }
-    }
-}
-
-private fun launchSubscriptionRequest(
-    address: String,
-    loading: SnapshotStateList<String>,
-    scope: CoroutineScope,
-    action: suspend () -> Unit,
-) {
-    if (address in loading) return
-    loading.add(address)
-    scope.launch {
-        try {
-            action()
-        } finally {
-            loading.remove(address)
         }
     }
 }

@@ -1,0 +1,136 @@
+package mobile
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"sync"
+
+	"github.com/Coming404/ohmyfly/native-core/internal/catalog"
+)
+
+var catalogMu sync.Mutex
+var catalogStore *catalog.Store
+
+// OpenCatalog 打开平台私有目录中的目录数据库，失败通过 JSON 明确返回。
+func OpenCatalog(path string) string {
+	catalogMu.Lock()
+	defer catalogMu.Unlock()
+	if catalogStore != nil {
+		return encodeError(errors.New("catalog already open"))
+	}
+	store, err := catalog.Open(context.Background(), path)
+	if err != nil {
+		return encodeError(errors.New("无法打开目录数据库"))
+	}
+	catalogStore = store
+	return `{"ok":true}`
+}
+
+type catalogRequest struct {
+	Action       string                   `json:"action"`
+	ID           int64                    `json:"id"`
+	Generation   int64                    `json:"generation"`
+	Address      string                   `json:"address"`
+	Name         string                   `json:"name"`
+	FilterTicket catalog.FilterTicket     `json:"filterTicket"`
+	FilterToken  int64                    `json:"filterToken"`
+	Decisions    []catalog.FilterDecision `json:"decisions"`
+	Failure      string                   `json:"failure"`
+	Kind         string                   `json:"kind"`
+	Anchor       int64                    `json:"anchor"`
+	Backwards    bool                     `json:"backwards"`
+	Revision     int64                    `json:"revision"`
+	Start        int                      `json:"start"`
+	Offset       int                      `json:"offset"`
+	Payload      string                   `json:"payload"`
+	Final        bool                     `json:"final"`
+	Nodes        []catalog.Node           `json:"nodes"`
+	Refresh      catalog.Refresh          `json:"refresh"`
+}
+
+// Catalog 仅暴露目录业务操作，不接受 SQL；跨语言批次同时限制条数和字节数。
+func Catalog(request string) string {
+	if len(request) > 1024*1024 {
+		return encodeError(errors.New("目录批次超过 1 MiB"))
+	}
+	var r catalogRequest
+	if err := json.Unmarshal([]byte(request), &r); err != nil {
+		return encodeError(errors.New("目录请求无效"))
+	}
+	catalogMu.Lock()
+	defer catalogMu.Unlock()
+	if catalogStore == nil {
+		return encodeError(errors.New("目录数据库尚未打开"))
+	}
+	value, err := callCatalog(context.Background(), r)
+	if err != nil {
+		if errors.Is(err, catalog.ErrStale) {
+			return `{"error":"目录已更新，请重新加载","stale":true}`
+		}
+		return encodeError(errors.New("目录操作未完成，请重新读取目录确认状态"))
+	}
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		return encodeError(errors.New("目录结果编码失败"))
+	}
+	return string(encoded)
+}
+
+func callCatalog(ctx context.Context, r catalogRequest) (any, error) {
+	s := catalogStore
+	switch r.Action {
+	case "parseBegin":
+		id, err := s.BeginParse(ctx)
+		return map[string]int64{"id": id}, err
+	case "parseChunk":
+		return map[string]bool{"ok": true}, s.ParseChunk(ctx, r.ID, r.Start, r.Payload)
+	case "parseFinish":
+		return parseCatalogSubscription(ctx, r.ID)
+	case "parseRecord":
+		return s.Parsed(ctx, r.ID, r.Kind, r.Start)
+	case "queuePush":
+		return map[string]bool{"ok": true}, s.QueuePush(ctx, r.ID, r.Start)
+	case "queuePop":
+		return s.QueuePop(ctx, r.ID, r.Start)
+	case "parseEnd":
+		return map[string]bool{"ok": true}, s.EndParse(ctx, r.ID)
+	case "summary":
+		return s.Summary(ctx)
+	case "page":
+		return s.Page(ctx, r.Kind, r.Anchor, r.Backwards, r.Revision, r.FilterToken)
+	case "detail":
+		return s.Detail(ctx, r.ID)
+	case "add":
+		id, err := s.Add(ctx, r.Address, r.Name)
+		return map[string]int64{"id": id}, err
+	case "begin":
+		return s.Begin(ctx, r.ID)
+	case "stage":
+		return map[string]bool{"ok": true}, s.Stage(ctx, r.ID, r.Generation, r.Start, r.Nodes)
+	case "chunk":
+		return map[string]bool{"ok": true}, s.StageChunk(ctx, r.ID, r.Generation, r.Start, r.Offset, r.Payload, r.Final)
+	case "commit":
+		return map[string]bool{"ok": true}, s.Commit(ctx, r.Refresh)
+	case "status":
+		return s.RefreshStatus(ctx, r.ID)
+	case "abort":
+		return map[string]bool{"ok": true}, s.Abort(ctx, r.ID, r.Generation)
+	case "fail":
+		return map[string]bool{"ok": true}, s.Fail(ctx, r.ID, r.Generation, r.Failure, r.Name)
+	case "remove":
+		return map[string]bool{"ok": true}, s.Remove(ctx, r.ID)
+	case "beginFilter":
+		return s.BeginFilter(ctx, r.Revision)
+	case "filterInputs":
+		inputs, err := s.FilterInputs(ctx, r.FilterTicket, r.Anchor)
+		return map[string]any{"inputs": inputs}, err
+	case "stageFilter":
+		return map[string]bool{"ok": true}, s.StageFilter(ctx, r.FilterTicket, r.Decisions)
+	case "commitFilter":
+		count, err := s.CommitFilter(ctx, r.FilterTicket)
+		return map[string]int64{"count": count}, err
+	default:
+		return nil, errors.New("unknown catalog operation")
+	}
+}

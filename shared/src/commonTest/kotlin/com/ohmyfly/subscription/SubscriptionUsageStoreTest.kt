@@ -33,7 +33,7 @@ class SubscriptionUsageStoreTest {
             respond(content, status, header?.let { headersOf(SubscriptionUsageHeader, it) } ?: Headers.Empty)
         }
         try {
-            val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode(it)) }))
+            val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode(it)) }))
             store.add(address, settings)
             assertEquals(SubscriptionUsage(upload = 1, total = 10, expireEpochSeconds = 1_800_000_000), store.towers.value.single().usage)
             content = "second"
@@ -73,7 +73,7 @@ class SubscriptionUsageStoreTest {
             respond("body", headers = headersOf(SubscriptionUsageHeader, "total=10"))
         }
         try {
-            val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
+            val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
             store.add(address, settings)
             val before = store.towers.value.single()
             cancel = true
@@ -92,7 +92,7 @@ class SubscriptionUsageStoreTest {
             respond("body", headers = headersOf(SubscriptionUsageHeader, "total=10"))
         }
         try {
-            val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
+            val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
             store.add(address, settings)
             assertEquals(SubscriptionUsage(total = 10), store.towers.value.single().usage)
             paused = true

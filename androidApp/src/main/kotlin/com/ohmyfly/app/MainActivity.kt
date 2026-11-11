@@ -20,6 +20,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initializeAppLogging(applicationContext)
+        com.ohmyfly.catalog.initializeCatalog(applicationContext)
         enableEdgeToEdge()
         val path = androidSettingsPath(applicationContext)
         val info = packageManager.getPackageInfo(packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
@@ -35,12 +36,14 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
+        com.ohmyfly.catalog.releaseCatalogPages()
         flushAppLogsInBackground()
         super.onStop()
     }
 
     override fun onResume() {
         super.onResume()
+        com.ohmyfly.catalog.resumeCatalogPages()
         // System palette resources also change when returning from wallpaper/theme settings.
         dynamicColorSeed = Color(getColor(android.R.color.system_accent1_500))
     }

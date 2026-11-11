@@ -21,7 +21,7 @@ class SubscriptionNameStoreTest {
     fun suppliedNonblankNameIsPreservedVerbatimAcrossAddAndRefresh() = runTest {
         val client = subscriptionClient { respond("body", headers = headersOf("profile-title", "Remote")) }
         try {
-            val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
+            val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
             store.add(address, settings, name = "  My title.yaml  ")
             assertEquals("  My title.yaml  ", store.towers.value.single().name)
             store.refresh(address, settings)
@@ -40,7 +40,7 @@ class SubscriptionNameStoreTest {
             respond("body", headers = headersOf("profile-title", title))
         }
         try {
-            val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
+            val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
             store.add(address, settings, name = " \t ")
             assertEquals("First.yaml", store.towers.value.single().name)
             title = "Second"
@@ -63,7 +63,7 @@ class SubscriptionNameStoreTest {
                 }
             }
             try {
-                val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
+                val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
                 store.add("https://user:secret@origin.example/private.yaml?token=hidden", settings)
                 assertEquals("origin.example", store.towers.value.single().name)
                 assertEquals(listOf("origin.example", "cdn.example"), hosts)
@@ -77,7 +77,7 @@ class SubscriptionNameStoreTest {
             var status = HttpStatusCode.NotFound
             val client = subscriptionClient { respond("body", status, headersOf("profile-title", "Remote")) }
             try {
-                val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
+                val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
                 store.add(address, settings, name)
                 val expected = if (name.isEmpty()) "sub.example" else name
                 assertEquals(expected, store.towers.value.single().name)
@@ -100,7 +100,7 @@ class SubscriptionNameStoreTest {
             ))
         }
         try {
-            val store = SubscriptionTowerStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode(it)) }))
+            val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode(it)) }))
             store.add(address, settings)
             val before = store.towers.value.single()
             content = "error"
