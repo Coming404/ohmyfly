@@ -34,9 +34,19 @@ internal suspend fun parseCatalogSubscription(content: String): NativeSubscripti
 
 private class ParsedNodes(private val session: Long, override val size: Int) :
     AbstractList<NativeSubscriptionNode>(), NativeSubscriptionResource {
-    override fun get(index: Int): NativeSubscriptionNode = catalogJson.decodeFromJsonElement(
-        catalogCall("parseRecord") { put("id", session); put("kind", "node"); put("start", index) })
-    override fun close() { catalogCall("parseEnd") { put("id", session) } }
+    private var first = 0
+    private var page = emptyList<NativeSubscriptionNode>()
+    override fun get(index: Int): NativeSubscriptionNode {
+        require(index in 0 until size)
+        if (index !in first until first + page.size) {
+            first = index
+            page = catalogJson.decodeFromJsonElement(catalogCall("parsePage") {
+                put("id", session); put("kind", "node"); put("start", index)
+            }.getValue("records"))
+        }
+        return page[index - first].copy(parsedSession = session, parsedOrdinal = index, parsedLast = index == size - 1)
+    }
+    override fun close() { page = emptyList(); catalogCall("parseEnd") { put("id", session) } }
 }
 
 private class ParsedProviders(private val session: Long, override val size: Int) : AbstractList<NativeSubscriptionProvider>() {

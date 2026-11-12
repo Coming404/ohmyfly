@@ -27,11 +27,13 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 internal fun FlightFilterAction(onClick: () -> Unit) {
     val state by appCatalog.state.collectAsState()
-    HeaderAction(
-        label = if (state.appliedFilter.active) "航班筛选（已启用）" else "航班筛选",
-        icon = SettingsIcons.Filter, onClick = onClick,
-        tint = if (state.appliedFilter.active) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurface,
-    )
+    top.yukonga.miuix.kmp.basic.FloatingActionButton(onClick = hapticClick(onClick)) {
+        top.yukonga.miuix.kmp.basic.Icon(
+            imageVector = SettingsIcons.Filter,
+            contentDescription = if (state.appliedFilter.active) "航班筛选（已启用）" else "航班筛选",
+            tint = MiuixTheme.colorScheme.onPrimary,
+        )
+    }
 }
 
 @Composable

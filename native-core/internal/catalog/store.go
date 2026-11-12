@@ -11,7 +11,10 @@ import (
 	"github.com/Coming404/ohmyfly/native-core/internal/sqlite"
 )
 
-type Store struct{ db *sql.DB }
+type Store struct {
+	db     *sql.DB
+	readDB *sql.DB
+}
 
 func Open(ctx context.Context, path string) (*Store, error) {
 	if !filepath.IsAbs(path) {
@@ -29,14 +32,27 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	if err := s.migrate(ctx); err != nil {
 		return nil, errors.Join(err, db.Close())
 	}
+	// WAL只读连接不取得写锁；仍由唯一写连接提交事务和自动checkpoint。
+	reader, err := sqlite.Open(ctx, dsn+"&_pragma=query_only(1)")
+	if err != nil {
+		return nil, errors.Join(err, db.Close())
+	}
+	reader.SetMaxOpenConns(2)
+	reader.SetMaxIdleConns(2)
+	s.readDB = reader
 	return s, nil
 }
 
-func (s *Store) Close() error { return s.db.Close() }
+func (s *Store) Close() error { return errors.Join(s.readDB.Close(), s.db.Close()) }
 
 func (s *Store) migrate(ctx context.Context) error {
-	if _, err := s.db.ExecContext(ctx, "PRAGMA journal_mode=DELETE"); err != nil {
+	// 模式切换可能返回原模式，必须确认实际启用WAL后才开放独立读取连接。
+	var mode string
+	if err := s.db.QueryRowContext(ctx, "PRAGMA journal_mode=WAL").Scan(&mode); err != nil {
 		return err
+	}
+	if mode != "wal" {
+		return fmt.Errorf("catalog requires WAL, got %s", mode)
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -58,6 +74,13 @@ func (s *Store) migrate(ctx context.Context) error {
 	var metricsRevision int64
 	if err := tx.QueryRowContext(ctx, "SELECT metrics_revision FROM catalog_meta WHERE id=1").Scan(&metricsRevision); err != nil {
 		return fmt.Errorf("catalog v1 schema is incomplete; explicit upgrade decision required: %w", err)
+	}
+	// 首版目录新增来源关系，不改动已有塔台及节点身份。
+	if _, err := tx.ExecContext(ctx, sourceSchema); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, refreshOptimizationSchema); err != nil {
+		return err
 	}
 	if err := interruptTasks(ctx, tx); err != nil {
 		return err

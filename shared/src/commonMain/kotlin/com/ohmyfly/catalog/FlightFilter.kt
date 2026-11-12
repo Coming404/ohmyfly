@@ -2,6 +2,7 @@ package com.ohmyfly.catalog
 
 internal data class FlightFilter(
     val enabled: Boolean = true,
+    val search: String = "",
     val includePattern: String = "",
     val excludePattern: String = "",
     val protocols: Set<String> = emptySet(),
@@ -19,10 +20,10 @@ internal class FlightPredicate(private val filter: FlightFilter) {
     private val include = compile(filter.includePattern)
     private val exclude = compile(filter.excludePattern)
 
-    fun matches(name: String, type: String): Boolean = !filter.enabled ||
-        ((include == null || include.containsMatchIn(name)) &&
+    fun matches(name: String, type: String): Boolean = name.contains(filter.search.trim(), ignoreCase = true) &&
+        (!filter.enabled || ((include == null || include.containsMatchIn(name)) &&
             (exclude == null || !exclude.containsMatchIn(name)) &&
-            (filter.protocols.isEmpty() || type in filter.protocols))
+            (filter.protocols.isEmpty() || type in filter.protocols)))
 }
 
 internal data class FlightFilterResult(val token: Long, val count: Long, val protocols: Set<String>)

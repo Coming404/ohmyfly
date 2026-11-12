@@ -54,6 +54,10 @@ internal fun validateSettings(settings: AppSettings): String? {
     }
 
     val subscription = settings.subscription
+    if (subscription.addressLimit !in 1..99999) return "单批地址上限需在 1–99999"
+    if (subscription.fileLimit !in 1..99999) return "本地文件多选上限需在 1–99999"
+    if (subscription.towerConcurrency !in 1..999) return "塔台并发数需在 1–999"
+    if (subscription.parseConcurrency !in 1..999) return "解析并发数需在 1–999"
     if (subscription.timeoutSeconds !in SettingsLimits.subscriptionTimeoutSeconds) {
         return "塔台超时需在 ${SettingsLimits.subscriptionTimeoutSeconds.rangeText()} 秒"
     }

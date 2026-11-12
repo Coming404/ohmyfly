@@ -1,54 +1,30 @@
 package com.ohmyfly.ui
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalAccessibilityManager
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.ohmyfly.settings.MaterialMode
-import com.ohmyfly.ui.glass.GlassShape
 import com.ohmyfly.ui.settings.MirrorIcons
 import com.ohmyfly.ui.settings.SettingsIcons
-import kotlinx.coroutines.delay
-import kotlin.math.roundToInt
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.blur.Backdrop
-import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.basic.*
 
 internal enum class AppMessageKind { Success, Failure, Error, Uncertain }
 
-internal class AppMessage(val kind: AppMessageKind, val text: String) {
+internal class AppMessage(
+    val kind: AppMessageKind,
+    val text: String,
+    val actionLabel: String = "关闭",
+    val onAction: () -> Unit = {},
+    val onDismiss: () -> Unit = {},
+) {
     val dismissible get() = kind != AppMessageKind.Success
     val durationMillis get() = if (dismissible) 8_000L else 3_000L
 }
@@ -56,13 +32,28 @@ internal class AppMessage(val kind: AppMessageKind, val text: String) {
 internal class AppMessageState {
     var current by mutableStateOf<AppMessage?>(null)
         private set
+    private val pending = ArrayDeque<AppMessage>()
 
     fun show(kind: AppMessageKind, text: String) {
-        current = AppMessage(kind, text)
+        val message = AppMessage(kind, text)
+        if (current?.actionLabel == "撤销") pending.addLast(message)
+        else current = message
+    }
+
+    fun show(message: AppMessage) {
+        if (current == null) current = message else pending.addLast(message)
     }
 
     fun dismiss(message: AppMessage? = current) {
-        if (current === message) current = null
+        if (current !== message || message == null) return
+        current = pending.removeFirstOrNull()
+        message.onDismiss()
+    }
+
+    fun perform(message: AppMessage) {
+        if (current !== message) return
+        current = pending.removeFirstOrNull()
+        message.onAction()
     }
 }
 
@@ -71,109 +62,68 @@ internal val LocalAppMessages = staticCompositionLocalOf<AppMessageState> {
 }
 
 @Composable
-internal fun AppMessageHost(
-    padding: PaddingValues,
-    backdrop: Backdrop,
-    glassEnabled: Boolean,
-    dark: Boolean,
-    materialMode: MaterialMode,
-    blocked: Boolean,
-) {
+internal fun AppMessageHost(blocked: Boolean) {
     val messages = LocalAppMessages.current
-    val motionAllowed = LocalAppMotionAllowed.current
-    val accessibility = LocalAccessibilityManager.current
-    val direction = LocalLayoutDirection.current
-    val target = messages.current.takeUnless { blocked }
-    var displayed by remember { mutableStateOf<AppMessage?>(null) }
-    val position = remember { Animatable(-1f) }
-    val movement = spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
-    LaunchedEffect(blocked, messages.current) { if (blocked) messages.dismiss() }
-    LaunchedEffect(target, motionAllowed, blocked) {
-        if (!motionAllowed || blocked) {
-            displayed = target
-            position.snapTo(0f)
-        } else {
-            if (displayed != null) position.animateTo(-1f, movement)
-            displayed = target
-            if (target != null) {
-                position.snapTo(-1f)
-                position.animateTo(0f, movement)
-            }
-        }
+    val message = messages.current
+    val motion = LocalAppMotionAllowed.current
+    // 0.9.4 的 showSnackbar 取消不清除宿主条目；模式切换必须丢弃旧宿主，防止重复动作。
+    val host = remember(message, blocked, motion) { SnackbarHostState() }
+    LaunchedEffect(message, blocked, motion) {
+        if (message == null || blocked || !motion) return@LaunchedEffect
+        val result = host.showSnackbar(
+            message = message.text,
+            actionLabel = message.actionLabel,
+            duration = SnackbarDuration.Custom(message.durationMillis),
+        )
+        if (result == SnackbarResult.ActionPerformed) messages.perform(message)
+        else messages.dismiss(message)
     }
-    val visible = if (!motionAllowed || blocked) target else displayed
-    LaunchedEffect(visible, accessibility) {
-        val message = visible ?: return@LaunchedEffect
-        val timeout = accessibility?.calculateRecommendedTimeoutMillis(
-            originalTimeoutMillis = message.durationMillis,
-            containsIcons = true,
-            containsText = true,
-            containsControls = message.dismissible,
-        ) ?: message.durationMillis
-        delay(timeout)
-        messages.dismiss(message)
-    }
-    if (visible != null) {
-        // 裁剪从实测顶栏底部开始，滑动过程也不能覆盖顶栏按钮。
-        Box(
-            Modifier.fillMaxSize().padding(
-                start = padding.calculateStartPadding(direction) + 16.dp,
-                end = padding.calculateEndPadding(direction) + 16.dp,
-                top = padding.calculateTopPadding(),
-            ).clipToBounds(),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            key(visible) {
-                AppMessageSurface(visible, backdrop, glassEnabled, dark, materialMode,
-                    Modifier.widthIn(max = 420.dp).fillMaxWidth().layout { measurable, constraints ->
-                        val placeable = measurable.measure(constraints)
-                        layout(placeable.width, placeable.height) {
-                            val offset = if (motionAllowed) (position.value * placeable.height).roundToInt() else 0
-                            placeable.placeRelative(0, offset)
-                        }
-                    },
-                    onDismiss = { messages.dismiss(visible) },
-                )
-            }
+    if (!blocked && !motion && message != null) {
+        StaticAppSnackbar(message, messages)
+    } else if (!blocked) {
+        SnackbarHost(state = host) { data ->
+            message?.let { AppSnackbar(data, it.kind) }
         }
     }
 }
 
 @Composable
-private fun AppMessageSurface(
-    message: AppMessage,
-    backdrop: Backdrop,
-    glassEnabled: Boolean,
-    dark: Boolean,
-    materialMode: MaterialMode,
-    modifier: Modifier,
-    onDismiss: () -> Unit,
-) {
-    val colors = MiuixTheme.colorScheme
-    val (icon, tint, label) = when (message.kind) {
-        AppMessageKind.Success -> Triple(DriftIcons.Check, colors.primary, "成功")
-        AppMessageKind.Failure -> Triple(DriftIcons.Clear, colors.error, "失败")
-        AppMessageKind.Error -> Triple(MirrorIcons.Alert, colors.onErrorContainer, "错误")
-        AppMessageKind.Uncertain -> Triple(SettingsIcons.Timer, colors.onSurfaceSecondary, "待确认")
-    }
-    Row(
-        modifier.padding(top = 8.dp)
-            .chromeMaterial(backdrop, glassEnabled, dark, materialMode, remember { GlassShape(20.dp) })
-            // 消息盖在列表上方，卡片内的点击不能落到下面的设置行。
-            .pointerInput(Unit) {}
-            .semantics {
-                isTraversalGroup = true
-                liveRegion = if (message.kind == AppMessageKind.Success) LiveRegionMode.Polite else LiveRegionMode.Assertive
-            }.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Icon(icon, contentDescription = label, modifier = Modifier.size(24.dp), tint = tint)
-        Text(message.text, modifier = Modifier.weight(1f), color = colors.onSurface, style = MiuixTheme.textStyles.body2)
-        if (message.dismissible) {
-            IconButton(onClick = hapticClick(onDismiss), minWidth = 44.dp, minHeight = 44.dp) {
-                Icon(DriftIcons.Clear, contentDescription = "关闭消息", modifier = Modifier.size(20.dp), tint = colors.onSurface)
-            }
+private fun StaticAppSnackbar(message: AppMessage, messages: AppMessageState) {
+    val accessibility = androidx.compose.ui.platform.LocalAccessibilityManager.current
+    val data = remember(message) {
+        object : SnackbarData {
+            override val visuals = SnackbarVisuals(message.text, message.actionLabel, false,
+                SnackbarDuration.Custom(message.durationMillis))
+            override suspend fun dismiss() { messages.dismiss(message) }
+            override suspend fun performAction() { messages.perform(message) }
         }
+    }
+    LaunchedEffect(message, accessibility) {
+        val duration = accessibility?.calculateRecommendedTimeoutMillis(
+            message.durationMillis, containsIcons = true, containsText = true, containsControls = true,
+        ) ?: message.durationMillis
+        kotlinx.coroutines.delay(duration)
+        messages.dismiss(message)
+    }
+    AppSnackbar(data, message.kind)
+}
+
+@Composable
+private fun AppSnackbar(data: SnackbarData, kind: AppMessageKind) {
+    val (icon, label) = when (kind) {
+        AppMessageKind.Success -> DriftIcons.Check to "成功"
+        AppMessageKind.Failure -> DriftIcons.Clear to "失败"
+        AppMessageKind.Error -> MirrorIcons.Alert to "错误"
+        AppMessageKind.Uncertain -> SettingsIcons.Timer to "待确认"
+    }
+    // 0.9.4 没有 leadingIcon 插槽；保留原生按钮、手势、超时与背景，只给图标留位。
+    Box(Modifier.fillMaxWidth()) {
+        Snackbar(data, insideMargin = PaddingValues(start = 52.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+            modifier = Modifier.semantics {
+                liveRegion = if (kind == AppMessageKind.Success) LiveRegionMode.Polite else LiveRegionMode.Assertive
+            })
+        Icon(icon, contentDescription = label,
+            modifier = Modifier.align(Alignment.CenterStart).padding(start = 28.dp).size(20.dp),
+            tint = SnackbarDefaults.snackbarColors().contentColor)
     }
 }

@@ -16,6 +16,8 @@ type Summary struct {
 }
 
 type TowerSummary struct {
+	SourceCount   int             `json:"sourceCount"`
+	SourceKind    string          `json:"sourceKind"`
 	LastAttemptAt *int64          `json:"lastAttemptAt"`
 	LastSuccessAt *int64          `json:"lastSuccessAt"`
 	Warnings      json.RawMessage `json:"warnings"`
@@ -46,7 +48,7 @@ type Page struct {
 
 func (s *Store) Summary(ctx context.Context) (Summary, error) {
 	var result Summary
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.readDB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return result, err
 	}
@@ -56,7 +58,7 @@ func (s *Store) Summary(ctx context.Context) (Summary, error) {
 		return result, err
 	}
 	err = tx.QueryRowContext(ctx, query+`SELECT revision,metrics_revision,
- (SELECT count(*) FROM towers),(SELECT count(*) FROM candidates) FROM catalog_meta WHERE id=1`).Scan(
+ (SELECT count(*) FROM towers WHERE id NOT IN (SELECT source_id FROM tower_sources)),(SELECT count(*) FROM candidates) FROM catalog_meta WHERE id=1`).Scan(
 		&result.Revision, &result.MetricsRevision, &result.Towers, &result.Flights)
 	if err != nil {
 		return result, err
@@ -69,7 +71,7 @@ func (s *Store) Page(ctx context.Context, kind string, anchor int64, backwards b
 	if anchor < 0 {
 		return result, errors.New("invalid page cursor")
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.readDB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return result, err
 	}
@@ -116,8 +118,11 @@ func (s *Store) Page(ctx context.Context, kind string, anchor int64, backwards b
 func towerPage(ctx context.Context, tx *sql.Tx, anchor int64, order string) ([]TowerSummary, error) {
 	result := []TowerSummary{}
 	rows, err := tx.QueryContext(ctx, `SELECT id,substr(name,1,256),
- (SELECT count(DISTINCT t.node_id) FROM tower_nodes t WHERE t.tower_id=towers.id AND t.eligible=1),
- substr(failure,1,512),usage,warnings,last_attempt_at,last_success_at FROM towers WHERE id `+order, anchor)
+ (SELECT count(DISTINCT t.node_id) FROM tower_nodes t WHERE t.tower_id IN
+ (SELECT source_id FROM tower_sources WHERE parent_id=towers.id UNION ALL SELECT towers.id) AND t.eligible=1),
+ substr(failure,1,512),usage,warnings,last_attempt_at,last_success_at,
+ CASE WHEN address LIKE 'local:merged:%' THEN 'merged' WHEN address LIKE 'local:file:%' THEN 'file' WHEN address LIKE 'local:text:%' THEN 'text' ELSE 'http' END
+ FROM towers WHERE id NOT IN (SELECT source_id FROM tower_sources) AND id `+order, anchor)
 	if err != nil {
 		return result, err
 	}
@@ -125,14 +130,26 @@ func towerPage(ctx context.Context, tx *sql.Tx, anchor int64, order string) ([]T
 	for rows.Next() {
 		var t TowerSummary
 		var usage, warnings string
-		if err = rows.Scan(&t.ID, &t.Name, &t.NodeCount, &t.Failure, &usage, &warnings, &t.LastAttemptAt, &t.LastSuccessAt); err != nil {
+		if err = rows.Scan(&t.ID, &t.Name, &t.NodeCount, &t.Failure, &usage, &warnings, &t.LastAttemptAt, &t.LastSuccessAt, &t.SourceKind); err != nil {
 			return result, err
 		}
 		t.Usage = json.RawMessage(usage)
 		t.Warnings = json.RawMessage(warnings)
 		result = append(result, t)
 	}
-	return result, rows.Err()
+	if err = rows.Err(); err != nil {
+		return result, err
+	}
+	if err = rows.Close(); err != nil {
+		return result, err
+	}
+	for i := range result {
+		result[i].SourceCount = 1
+		if err = sourceOverview(ctx, tx, &result[i]); err != nil {
+			return result, err
+		}
+	}
+	return result, nil
 }
 
 func flightPage(ctx context.Context, tx *sql.Tx, anchor int64, order string) ([]FlightSummary, error) {
@@ -158,7 +175,7 @@ func flightPage(ctx context.Context, tx *sql.Tx, anchor int64, order string) ([]
 }
 
 func (s *Store) Detail(ctx context.Context, id int64) (json.RawMessage, error) {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.readDB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +206,7 @@ func (s *Store) Detail(ctx context.Context, id int64) (json.RawMessage, error) {
 func detailSources(ctx context.Context, tx *sql.Tx, id int64) ([]json.RawMessage, error) {
 	result := []json.RawMessage{}
 	rows, err := tx.QueryContext(ctx, dedupCandidates+`SELECT json_object(
- 'towerId',m.tower_id,'ordinal',m.ordinal,'metadata',json(m.source))
+ 'towerId',coalesce((SELECT parent_id FROM tower_sources WHERE source_id=m.tower_id),m.tower_id),'sourceId',m.tower_id,'ordinal',m.ordinal,'metadata',json(m.source))
  FROM source_members m WHERE m.representative_id=? ORDER BY m.tower_id,m.ordinal`, id)
 	if err != nil {
 		return result, err

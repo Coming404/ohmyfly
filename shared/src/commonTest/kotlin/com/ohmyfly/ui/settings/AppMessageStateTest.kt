@@ -10,6 +10,30 @@ import kotlin.test.assertSame
 
 class AppMessageStateTest {
     @Test
+    fun undoQueueAndStaleCallbacksExecuteEachActionOnlyOnce() {
+        val messages = AppMessageState()
+        var removed = 0
+        var restored = 0
+        val first = com.ohmyfly.ui.AppMessage(AppMessageKind.Uncertain, "一", "撤销",
+            onAction = { restored++ }, onDismiss = { removed++ })
+        val second = com.ohmyfly.ui.AppMessage(AppMessageKind.Uncertain, "二", "撤销",
+            onAction = { restored++ }, onDismiss = { removed++ })
+        messages.show(first)
+        messages.show(second)
+        messages.show(AppMessageKind.Success, "普通消息")
+        assertSame(first, messages.current)
+        messages.perform(first)
+        messages.dismiss(first)
+        messages.perform(first)
+        assertSame(second, messages.current)
+        messages.dismiss(second)
+        messages.perform(second)
+        assertEquals(1, restored)
+        assertEquals(1, removed)
+        assertEquals("普通消息", messages.current?.text)
+    }
+
+    @Test
     fun newMessageReplacesOldAndStaleDismissCannotCloseReplacement() {
         val messages = AppMessageState()
         messages.show(AppMessageKind.Success, "设置已保存")

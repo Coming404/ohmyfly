@@ -47,6 +47,10 @@ internal object SettingsCodec {
     private val mediaConcurrency = intPreferencesKey("media.concurrency")
     private val mediaTimeout = intPreferencesKey("media.timeoutSeconds")
     private val mediaRetries = intPreferencesKey("media.retries")
+    private val subAddressLimit = intPreferencesKey("subscription.addressLimit")
+    private val subFileLimit = intPreferencesKey("subscription.fileLimit")
+    private val subTowerConcurrency = intPreferencesKey("subscription.towerConcurrency")
+    private val subParseConcurrency = intPreferencesKey("subscription.parseConcurrency")
     private val subTimeout = intPreferencesKey("subscription.timeoutSeconds")
     private val subRetries = intPreferencesKey("subscription.retries")
     private val subMaxMiB = intPreferencesKey("subscription.maxMiB")
@@ -93,6 +97,10 @@ internal object SettingsCodec {
         target[mediaTimeout] = media.timeoutSeconds
         target[mediaRetries] = media.retries
         val subscription = settings.subscription
+        target[subAddressLimit] = subscription.addressLimit
+        target[subFileLimit] = subscription.fileLimit
+        target[subTowerConcurrency] = subscription.towerConcurrency
+        target[subParseConcurrency] = subscription.parseConcurrency
         target[subTimeout] = subscription.timeoutSeconds
         target[subRetries] = subscription.retries
         target[subMaxMiB] = subscription.maxMiB
@@ -162,6 +170,10 @@ internal object SettingsCodec {
                 retries = preferences.read(mediaRetries, media.retries).inOr(SettingsLimits.mediaRetries, media.retries),
             ),
             subscription = SubscriptionSettings(
+                addressLimit = preferences.read(subAddressLimit, subscription.addressLimit).inOr(1..99999, subscription.addressLimit),
+                fileLimit = preferences.read(subFileLimit, subscription.fileLimit).inOr(1..99999, subscription.fileLimit),
+                towerConcurrency = preferences.read(subTowerConcurrency, subscription.towerConcurrency).inOr(1..999, subscription.towerConcurrency),
+                parseConcurrency = preferences.read(subParseConcurrency, subscription.parseConcurrency).inOr(1..999, subscription.parseConcurrency),
                 timeoutSeconds = preferences.read(subTimeout, subscription.timeoutSeconds)
                     .inOr(SettingsLimits.subscriptionTimeoutSeconds, subscription.timeoutSeconds),
                 retries = preferences.read(subRetries, subscription.retries)

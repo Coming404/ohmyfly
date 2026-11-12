@@ -62,6 +62,7 @@ internal fun SettingsScreen(
         ) {
             entry<SettingsPage>(swipeDismiss = swipeDirection) { page ->
                 SettingsPageScope(page) {
+                    val pageContent: @Composable () -> Unit = {
                     Column(Modifier.fillMaxSize().background(background)) {
                         when (page) {
                             SettingsPage.Home -> SettingsHome(settings, onChange, onPage, version, listState, contentPadding)
@@ -76,6 +77,15 @@ internal fun SettingsScreen(
                             SettingsPage.Sponsor -> SponsorSettingsPage(contentPadding)
                         }
                     }
+                    }
+                    val messages = LocalAppMessages.current
+                    val refreshSettings = LocalSettingsRefresh.current
+                    if (page == SettingsPage.Logs) pageContent()
+                    else PageRefresh(contentPadding, {
+                        if (page in listOf(SettingsPage.Privacy, SettingsPage.About, SettingsPage.Sponsor)) {
+                            messages.show(AppMessageKind.Uncertain, "此页为静态说明，无需刷新")
+                        } else refreshSettings()
+                    }, pageContent)
                 }
             }
         }

@@ -7,33 +7,44 @@ import kotlinx.serialization.json.*
 
 internal class CatalogRecordWriter(private val ticket: RefreshTicket, private val request: CatalogRequest = ::catalogCall) {
     private var start = 0
-    private var bytes = 0
-    private val batch = ArrayList<JsonElement>(100)
+    private var bytes = 2
+    private val batch = ArrayList<JsonElement>()
+    private var references = false
     fun flush() {
         if (batch.isEmpty()) return
-        request("stage") {
+        request(if (references) "stageParsed" else "stage") {
             put("id", ticket.id); put("generation", ticket.generation); put("start", start)
-            put("nodes", JsonArray(batch.toList()))
+            put(if (references) "references" else "nodes", JsonArray(batch.toList()))
         }
         start += batch.size
         batch.clear()
-        bytes = 0
+        bytes = 2
     }
     suspend fun append(node: NativeSubscriptionNode) {
         currentCoroutineContext().ensureActive()
-        val encoded = catalogJson.encodeToJsonElement(NativeSubscriptionNode.serializer(), node)
+        val reference = node.parsedSession != null
+        if (references != reference) flush()
+        references = reference
+        val encoded = if (reference) buildJsonObject {
+            put("session", node.parsedSession!!); put("ordinal", node.parsedOrdinal)
+            put("eligible", node.eligible); put("source", node.source)
+        } else catalogJson.encodeToJsonElement(NativeSubscriptionNode.serializer(), node)
         val text = encoded.toString()
         // 大节点独立分块，避免单节点受普通批次容量限制或生成整份 UTF-8 副本。
         if (text.length > 128 * 1024) {
             flush()
-            stageCatalogChunks(ticket, start, text, request)
+            val payload = if (reference) catalogJson.encodeToJsonElement(NativeSubscriptionNode.serializer(), node).toString() else text
+            stageCatalogChunks(ticket, start, payload, request)
             start++
             return
         }
         val size = text.encodeToByteArray().size
-        if (batch.size == 100 || bytes + size > 900_000) flush()
+        // 计入已转义JSON、UTF-8编码及元素逗号，条数由实际内容大小决定。
+        if (bytes + size + (if (batch.isEmpty()) 0 else 1) > CATALOG_BATCH_BYTES) flush()
+        bytes += size + if (batch.isEmpty()) 0 else 1
         batch += encoded
-        bytes += size
+        // provider解析会话会在枚举完成后关闭，尾记录必须先把引用复制入刷新暂存。
+        if (node.parsedLast) flush()
     }
 }
 

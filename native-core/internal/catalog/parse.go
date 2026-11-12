@@ -44,7 +44,7 @@ func (r *parseReader) Read(p []byte) (int, error) {
 			}
 		}
 		var text string
-		err := r.store.db.QueryRowContext(r.ctx, "SELECT payload FROM parse_chunks WHERE session_id=? AND ordinal=?", r.id, r.ordinal).Scan(&text)
+		err := r.store.readDB.QueryRowContext(r.ctx, "SELECT payload FROM parse_chunks WHERE session_id=? AND ordinal=?", r.id, r.ordinal).Scan(&text)
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, io.EOF
 		}
@@ -56,18 +56,9 @@ func (r *parseReader) Read(p []byte) (int, error) {
 	}
 }
 
-func (s *Store) SaveParsed(ctx context.Context, id int64, kind string, ordinal int, value any) error {
-	payload, err := json.Marshal(value)
-	if err != nil {
-		return err
-	}
-	_, err = s.db.ExecContext(ctx, "INSERT INTO parse_records(session_id,kind,ordinal,payload) VALUES(?,?,?,?)", id, kind, ordinal, string(payload))
-	return err
-}
-
 func (s *Store) Parsed(ctx context.Context, id int64, kind string, ordinal int) (json.RawMessage, error) {
 	var payload string
-	err := s.db.QueryRowContext(ctx, "SELECT payload FROM parse_records WHERE session_id=? AND kind=? AND ordinal=?", id, kind, ordinal).Scan(&payload)
+	err := s.readDB.QueryRowContext(ctx, "SELECT payload FROM parse_records WHERE session_id=? AND kind=? AND ordinal=?", id, kind, ordinal).Scan(&payload)
 	return json.RawMessage(payload), err
 }
 

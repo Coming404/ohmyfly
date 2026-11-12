@@ -33,6 +33,7 @@ internal data class CatalogSummary(val revision: Long = 0, val towers: Long = 0,
 @Serializable
 internal data class CatalogTower(
     val id: Long, val name: String, val nodeCount: Long, val failure: String,
+    val sourceKind: String = "http", val sourceCount: Int = 1,
     val usage: SubscriptionUsage? = null,
     val warnings: JsonArray = JsonArray(emptyList()), val lastAttemptAt: Long? = null, val lastSuccessAt: Long? = null,
 )
@@ -55,7 +56,14 @@ internal data class RefreshTicket(val id: Long, val generation: Long, val addres
 internal data class CatalogState(
     val summary: CatalogSummary = CatalogSummary(), val towers: List<CatalogTower> = emptyList(),
     val flights: List<CatalogFlight> = emptyList(), val towerPage: Int = 0, val flightPage: Int = 0,
+    val towerWindow: Map<Int, List<CatalogTower>> = emptyMap(),
+    val flightWindow: Map<Int, List<CatalogFlight>> = emptyMap(),
     val ready: Boolean = false, val failure: String? = null, val busy: Boolean = false,
+    val towerSearch: String = "", val towerMatchCount: Long? = null, val towerLoading: Boolean = true,
+    val sourceTasks: Map<Long, CatalogSourceTask> = emptyMap(),
+    val taskTotal: Int = 0, val taskCompleted: Int = 0, val taskFailed: Int = 0,
+    val queuedBatches: Int = 0,
+    val pendingRemoval: Set<Long> = emptySet(),
     val flightFilter: FlightFilter = FlightFilter(), val filterError: String? = null,
     val appliedFilter: FlightFilter = FlightFilter(), val filterRevision: Long = 0,
     val filterToken: Long = 0, val matchCount: Long? = null, val flightLoading: Boolean = true,

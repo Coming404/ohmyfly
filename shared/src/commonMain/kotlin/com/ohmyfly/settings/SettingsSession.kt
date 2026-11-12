@@ -149,6 +149,18 @@ internal class SettingsSession(
         }
     }
 
+    suspend fun refreshFromStorage() {
+        check(pending.isEmpty()) { "设置正在保存，请稍后刷新" }
+        val snapshot = state
+        val stored = values.first()
+        currentCoroutineContext().ensureActive()
+        // 等待期间发生编辑或存储回调时，不用较早读取覆盖当前值；页面草稿保持原 owner。
+        if (state !== snapshot || pending.isNotEmpty()) return
+        confirmed = stored
+        state = state.copy(settings = stored, confirmedSettings = stored, readFailed = false, writeUncertain = false)
+        if (scope?.isActive == true) observe()
+    }
+
     private fun observe() {
         reader?.cancel()
         reader = checkNotNull(scope).launch {

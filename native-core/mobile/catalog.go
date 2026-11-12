@@ -10,7 +10,8 @@ import (
 	"github.com/Coming404/ohmyfly/native-core/internal/flight"
 )
 
-var catalogMu sync.Mutex
+// 生命周期独占，普通请求共享；解析计算不再阻塞其他目录调用。
+var catalogMu sync.RWMutex
 var catalogStore *catalog.Store
 
 // OpenCatalog 打开平台私有目录中的目录数据库，失败通过 JSON 明确返回。
@@ -29,6 +30,9 @@ func OpenCatalog(path string) string {
 }
 
 type catalogRequest struct {
+	References   []catalog.ParsedReference  `json:"references"`
+	Sources      []catalog.SourceInput      `json:"sources"`
+	Merge        bool                       `json:"merge"`
 	Mode         string                     `json:"mode"`
 	Settings     json.RawMessage            `json:"settings"`
 	NodeIDs      []int64                    `json:"nodeIds"`
@@ -71,8 +75,8 @@ func Catalog(request string) string {
 	if err := json.Unmarshal([]byte(request), &r); err != nil {
 		return encodeError(errors.New("目录请求无效"))
 	}
-	catalogMu.Lock()
-	defer catalogMu.Unlock()
+	catalogMu.RLock()
+	defer catalogMu.RUnlock()
 	if catalogStore == nil {
 		return encodeError(errors.New("目录数据库尚未打开"))
 	}
@@ -104,6 +108,8 @@ func callCatalog(ctx context.Context, r catalogRequest) (any, error) {
 		return map[string]bool{"ok": true}, s.ParseChunk(ctx, r.ID, r.Start, r.Payload)
 	case "parseFinish":
 		return parseCatalogSubscription(ctx, r.ID)
+	case "parsePage":
+		return s.ParsedPage(ctx, r.ID, r.Kind, r.Start)
 	case "parseRecord":
 		return s.Parsed(ctx, r.ID, r.Kind, r.Start)
 	case "queuePush":
@@ -116,13 +122,23 @@ func callCatalog(ctx context.Context, r catalogRequest) (any, error) {
 		return s.Summary(ctx)
 	case "page":
 		return s.Page(ctx, r.Kind, r.Anchor, r.Backwards, r.Revision, r.FilterToken)
+	case "towerFlights":
+		return s.TowerFlights(ctx, r.ID, r.Anchor, r.Revision)
 	case "detail":
 		return s.Detail(ctx, r.ID)
+	case "addSources":
+		sources, err := s.AddSources(ctx, r.Sources, r.Merge, r.Name, r.ID)
+		return map[string]any{"sources": sources}, err
+	case "sources":
+		sources, err := s.Sources(ctx, r.ID, r.Anchor)
+		return map[string]any{"sources": sources}, err
 	case "add":
 		id, err := s.Add(ctx, r.Address, r.Name)
 		return map[string]int64{"id": id}, err
 	case "begin":
 		return s.Begin(ctx, r.ID)
+	case "stageParsed":
+		return map[string]bool{"ok": true}, s.StageParsed(ctx, r.ID, r.Generation, r.Start, r.References)
 	case "stage":
 		return map[string]bool{"ok": true}, s.Stage(ctx, r.ID, r.Generation, r.Start, r.Nodes)
 	case "chunk":

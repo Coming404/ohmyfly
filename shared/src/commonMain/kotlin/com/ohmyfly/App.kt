@@ -77,8 +77,10 @@ fun App(
     dynamicColorSeed: Color?,
     settingsPath: String,
     version: String,
+    filePicker: com.ohmyfly.subscription.SubscriptionFilePicker,
     onThemeChanged: (dark: Boolean, followsSystem: Boolean) -> Unit,
 ) {
+    androidx.compose.runtime.CompositionLocalProvider(com.ohmyfly.subscription.LocalSubscriptionFilePicker provides filePicker) {
     PersistedSettings(settingsPath) { settings, onChange, session, onRetryRead ->
         val themeMode = settings.themeMode
         val dark = themeMode.isDark(isSystemInDarkTheme())
@@ -90,6 +92,7 @@ fun App(
                 AppContent(dynamicColorSeed, dark, settings, onChange, version, session, onRetryRead)
             }
         }
+    }
     }
 }
 
@@ -144,13 +147,13 @@ private fun AppContent(
     val catalog by subscriptionTowerStore.state.collectAsState()
     LaunchedEffect(Unit) { subscriptionTowerStore.start() }
     ApplyOutputDeduplication(catalog.ready, settingsSession)
-    val nodes = remember(catalog.flights) { catalog.flights.map {
+    val nodes = remember(catalog.flightWindow) { catalog.flightWindow.entries.sortedBy { it.key }.flatMap { it.value }.map {
         NodeSummary(id = it.id.toString(), name = it.name, region = "", protocol = it.type)
     } }
     LaunchedEffect(nodes, catalog.filterRevision) {
         selectedIds = selectedIds.intersect(nodes.mapTo(mutableSetOf()) { it.id })
     }
-    com.ohmyfly.catalog.CatalogDestination(destination, catalog.flightPage, catalog.summary.revision) {
+    com.ohmyfly.catalog.CatalogDestination(destination, catalog.summary.revision) {
         selectedIds = emptySet()
     }
     val overviewState = rememberLazyListState()
@@ -208,6 +211,10 @@ private fun AppFrame(
     }
     val glassEnabled = glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)
     Scaffold(
+        snackbarHost = { AppMessageHost(blocked = settingsSession.state.readFailed) },
+        floatingActionButton = {
+            if (destination == AppDestination.NodeLibrary) com.ohmyfly.ui.FlightFilterAction { filterOpen = true }
+        },
         containerColor = Color.Transparent,
         topBar = {
             AppTopBar(destination, settingsChild, settingsBack, mirrorPage, mirrorAdd, logsPage, logClear, nodes,
@@ -234,7 +241,6 @@ private fun AppFrame(
             Box(Modifier.widthIn(max = 760.dp).fillMaxSize()) { content(padding) }
         }
         com.ohmyfly.ui.FlightFilterSheet(filterOpen, onClose = { filterOpen = false })
-        AppMessageHost(padding, backdrop, glassEnabled, dark, settings.materialMode, blocked = settingsSession.state.readFailed)
         MirrorDialog(
             show = settingsSession.state.readFailed,
             title = if (settingsSession.state.writeUncertain) "设置结果待确认" else "读取设置失败",
@@ -267,7 +273,7 @@ private fun AppTopBar(
     onFilter: () -> Unit,
 ) {
     DriftTopBar(
-        title = if (settingsChild || destination == AppDestination.Settings) "" else destination.label,
+        title = if (settingsChild || destination in listOf(AppDestination.Settings, AppDestination.Subscriptions, AppDestination.NodeLibrary)) "" else destination.label,
         backdrop = backdrop,
         glassEnabled = glassEnabled,
         dark = dark,
@@ -276,7 +282,6 @@ private fun AppTopBar(
         actions = if (destination == AppDestination.NodeLibrary) {
             {
                 NodeSelectionActions(nodes = nodes, selectedIds = selectedIds, onSelection = onSelection)
-                com.ohmyfly.ui.FlightFilterAction(onFilter)
             }
         } else if (mirrorPage) {
             { HeaderAction("添加镜像", MirrorIcons.Add, onClick = { mirrorAdd?.invoke() },
@@ -326,6 +331,7 @@ private fun AppPager(
         modifier = Modifier.fillMaxSize(),
         userScrollEnabled = false,
     ) { page ->
+        val pageContent: @Composable () -> Unit = {
         when (AppDestination.entries[page]) {
             AppDestination.Overview -> OverviewScreen(
                 listState = overviewState, nodes = nodes, subscriptionCount = catalog.summary.towers.toInt(),
@@ -365,5 +371,15 @@ private fun AppPager(
                 version = version, contentPadding = padding,
             )
         }
+        }
+        if (AppDestination.entries[page] in listOf(AppDestination.Speed, AppDestination.Settings)) pageContent()
+        else com.ohmyfly.ui.PageRefresh(padding, {
+            if (AppDestination.entries[page] == AppDestination.Subscriptions) {
+                val confirmed = checkNotNull(settingsSession.state.confirmedSettings) { "设置尚未读取完成" }
+                check(!settingsSession.state.readFailed) { "设置读取失败，请先重试" }
+                subscriptionTowerStore.syncAll(confirmed.subscription,
+                    com.ohmyfly.subscription.SubscriptionMirrorSettings(confirmed.mirrorEnabled, confirmed.mirrors, confirmed.selectedMirrorId))
+            } else subscriptionTowerStore.refreshView()
+        }, pageContent)
     }
 }

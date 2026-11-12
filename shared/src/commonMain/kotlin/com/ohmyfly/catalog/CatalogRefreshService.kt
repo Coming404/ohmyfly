@@ -16,6 +16,7 @@ internal typealias CatalogRequest = (String, JsonObjectBuilder.() -> Unit) -> Js
 internal class CatalogRefreshService(
     private val importer: SubscriptionImporter,
     private val request: CatalogRequest = ::catalogCall,
+    private val committing: () -> Unit = {},
 ) {
     suspend fun add(address: String, settings: SubscriptionSettings, name: String = "",
         mirrors: SubscriptionMirrorSettings = SubscriptionMirrorSettings()): String? {
@@ -35,17 +36,52 @@ internal class CatalogRefreshService(
         }
     }
 
-    suspend fun refresh(id: Long, settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) {
+    suspend fun importBody(body: SubscriptionBody, settings: SubscriptionSettings, replaceId: Long? = null) {
+        validateSubscriptionBody(body.content, settings.maxMiB)
+        val id = replaceId ?: request("add") {
+            put("address", newBodyAddress(body.kind)); put("name", body.name)
+        }.getValue("id").jsonPrimitive.long
+        val ticket = catalogJson.decodeFromJsonElement<RefreshTicket>(request("begin") { put("id", id) })
+        val writer = CatalogRecordWriter(ticket, request)
+        try {
+            require(ticket.address.startsWith("local:")) { "只能重新导入本地塔台" }
+            val result = importer.importBody(body.content, settings, writer::append)
+            result.failure?.let { failure ->
+                request("fail") { put("id", id); put("generation", ticket.generation); put("failure", failure); put("name", body.name) }
+                throw IllegalArgumentException(failure)
+            }
+            committing()
+            writer.flush()
+            currentCoroutineContext().ensureActive()
+            commit(ticket) {
+                put("refresh", buildJsonObject {
+                    put("id", id); put("generation", ticket.generation); put("count", result.recordCount)
+                    put("name", body.name); put("usage", JsonNull)
+                    put("warnings", JsonArray(result.warnings.map(::JsonPrimitive)))
+                })
+            }
+        } catch (error: Exception) {
+            withContext(NonCancellable) {
+                try { request("abort") { put("id", id); put("generation", ticket.generation) } }
+                catch (cleanup: Exception) { error.addSuppressed(cleanup) }
+            }
+            throw error
+        }
+    }
+
+    suspend fun refresh(id: Long, settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings): Boolean {
         val ticket = catalogJson.decodeFromJsonElement<RefreshTicket>(request("begin") { put("id", id) })
         val effective = settings
         val writer = CatalogRecordWriter(ticket, request)
         try {
+            require(!ticket.address.startsWith("local:")) { "本地塔台请重新选择文件或粘贴正文" }
             val result = importer.importSubscription(ticket.address, effective, ticket.name.isBlank(), mirrors, writer::append)
             if (result.failure != null) {
                 request("fail") { put("id", id); put("generation", ticket.generation)
                     put("failure", result.failure); put("name", parseUrl(ticket.address)!!.host) }
-                return
+                return false
             }
+            committing()
             writer.flush()
             currentCoroutineContext().ensureActive()
             commit(ticket) {
@@ -68,5 +104,6 @@ internal class CatalogRefreshService(
             request("abort") { put("id", id); put("generation", ticket.generation) }
             throw error
         }
+        return true
     }
 }

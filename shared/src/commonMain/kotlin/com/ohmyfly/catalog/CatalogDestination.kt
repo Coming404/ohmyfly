@@ -5,7 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import com.ohmyfly.ui.AppDestination
 
 @Composable
-internal fun CatalogDestination(destination: AppDestination, page: Int, revision: Long, clearSelection: () -> Unit) {
+internal fun CatalogDestination(destination: AppDestination, revision: Long, clearSelection: () -> Unit) {
     LaunchedEffect(destination) {
         clearSelection()
         appCatalog.show(when (destination) {
@@ -14,5 +14,5 @@ internal fun CatalogDestination(destination: AppDestination, page: Int, revision
             else -> null
         })
     }
-    LaunchedEffect(page, revision) { clearSelection() }
+    LaunchedEffect(revision) { clearSelection() }
 }

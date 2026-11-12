@@ -10,6 +10,9 @@ internal class CatalogPages {
     private var bytes = 0
     private var visible: Key? = null
 
+    fun window(kind: String): Map<Int, CatalogPage> = entries.filterKeys { it.kind == kind }
+        .mapKeys { it.key.index }.mapValues { it.value.page }
+
     fun show(kind: String, index: Int) { visible = Key(kind, index) }
 
     fun get(kind: String, index: Int): CatalogPage? {
@@ -21,7 +24,7 @@ internal class CatalogPages {
 
     fun put(kind: String, index: Int, page: CatalogPage) {
         val key = Key(kind, index)
-        val size = 256 + page.towers.sumOf { 256 + it.name.length * 2 + it.failure.length * 2 } +
+        val size = 256 + page.towers.sumOf { 256 + 2 * (it.name.length + it.failure.length + it.warnings.toString().length) } +
             page.flights.sumOf { 192 + 2 * (it.name.length + it.server.length + it.type.length) + measurementBytes(it.measurements) }
         entries.remove(key)?.let { bytes -= it.bytes }
         if (size > CatalogCacheBudgetBytes) return

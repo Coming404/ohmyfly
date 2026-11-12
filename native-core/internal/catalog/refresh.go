@@ -70,7 +70,13 @@ func (s *Store) Begin(ctx context.Context, id int64) (Ticket, error) {
 	var rule string
 	err = tx.QueryRowContext(ctx, `UPDATE towers SET generation=generation+1,last_attempt_at=? WHERE id=?
  RETURNING id,generation,address,name,dedup_rules`, time.Now().UnixMilli(), id).Scan(&t.ID, &t.Generation, &t.Address, &t.Name, &rule)
+	if errors.Is(err, sql.ErrNoRows) {
+		return t, ErrStale
+	}
 	if err != nil {
+		return t, err
+	}
+	if err = tx.QueryRowContext(ctx, `SELECT coalesce((SELECT address FROM tower_sources WHERE source_id=?),?)`, id, t.Address).Scan(&t.Address); err != nil {
 		return t, err
 	}
 	if err = json.Unmarshal([]byte(rule), &t.DedupRules); err != nil {
@@ -97,7 +103,8 @@ func checkTicket(ctx context.Context, tx *sql.Tx, id, generation int64) error {
 }
 
 func (s *Store) Stage(ctx context.Context, id, generation int64, start int, nodes []Node) error {
-	if len(nodes) > 100 || start < 0 {
+	// 移动桥接已限定请求字节数；暂存批次不再按节点条数截断。
+	if start < 0 {
 		return errors.New("invalid catalog batch")
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -121,6 +128,13 @@ func (s *Store) Stage(ctx context.Context, id, generation int64, start int, node
 }
 
 func (s *Store) Commit(ctx context.Context, r Refresh) error {
+	if r.Count < 0 {
+		return errors.New("invalid catalog refresh count")
+	}
+	rules, err := s.prepareRefresh(ctx, r)
+	if err != nil {
+		return err
+	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -136,17 +150,20 @@ func (s *Store) Commit(ctx context.Context, r Refresh) error {
 	if count != r.Count {
 		return errors.New("incomplete catalog refresh")
 	}
-	towerRule, outputRule, err := loadDedupRules(ctx, tx, r.ID)
-	if err != nil {
+	var towerRule, outputRule string
+	if err = tx.QueryRowContext(ctx, "SELECT dedup_rules,output_rules FROM towers,catalog_meta WHERE towers.id=? AND catalog_meta.id=1", r.ID).Scan(&towerRule, &outputRule); err != nil {
 		return err
 	}
-	if err = prepareRefresh(ctx, tx, r, towerRule); err != nil {
+	if towerRule != rules.tower || outputRule != rules.output {
+		return ErrStale
+	}
+	if err = classifyRefresh(ctx, tx, r.ID); err != nil {
 		return err
 	}
 	if _, err = tx.ExecContext(ctx, "DELETE FROM tower_nodes WHERE tower_id=?", r.ID); err != nil {
 		return err
 	}
-	if err = commitRefreshNodes(ctx, tx, r, outputRule); err != nil {
+	if err = commitRefreshNodes(ctx, tx, r); err != nil {
 		return err
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE towers SET name=CASE WHEN name='' THEN ? ELSE name END,
@@ -157,7 +174,7 @@ func (s *Store) Commit(ctx context.Context, r Refresh) error {
 	if _, err = tx.ExecContext(ctx, "DELETE FROM refresh_nodes WHERE tower_id=?", r.ID); err != nil {
 		return err
 	}
-	if err = collect(ctx, tx); err != nil {
+	if err = collectRefresh(ctx, tx); err != nil {
 		return err
 	}
 	if err = bump(ctx, tx); err != nil {
@@ -193,6 +210,10 @@ func (s *Store) Remove(ctx context.Context, id int64) error {
 		return err
 	}
 	defer tx.Rollback()
+	// 先删独占的子来源，外键清理关联后再回收零引用节点。
+	if _, err = tx.ExecContext(ctx, "DELETE FROM towers WHERE id IN (SELECT source_id FROM tower_sources WHERE parent_id=?)", id); err != nil {
+		return err
+	}
 	if _, err = tx.ExecContext(ctx, "DELETE FROM towers WHERE id=?", id); err != nil {
 		return err
 	}

@@ -42,6 +42,10 @@ data class NativeSubscriptionNode(
     val source: JsonObject = JsonObject(emptyMap()),
     val eligible: Boolean = true,
     val rawInput: String = "",
+    // 仅进程内用于直接复制原生暂存，不能由外部订阅或JSON提供。
+    @kotlinx.serialization.Transient val parsedSession: Long? = null,
+    @kotlinx.serialization.Transient val parsedOrdinal: Int = 0,
+    @kotlinx.serialization.Transient val parsedLast: Boolean = false,
 )
 
 internal interface NativeSubscriptionResource { fun close() }

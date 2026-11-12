@@ -62,7 +62,12 @@ internal fun PersistedSettings(
     }
     val retryRead: () -> Unit = if (repository == null) ({ retry += 1 }) else session::retryRead
 
-    CompositionLocalProvider(LocalAppMessages provides messages) {
+    CompositionLocalProvider(
+        LocalAppMessages provides messages,
+        com.ohmyfly.ui.LocalSettingsRefresh provides {
+            session.refreshFromStorage()
+        },
+    ) {
         content(
             current,
             { name, transform -> session.change(name, transform) },

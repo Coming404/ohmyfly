@@ -86,10 +86,10 @@ func (s *Store) SetTowerDedup(ctx context.Context, id int64, rule flight.Dedupli
 		return err
 	}
 	defer tx.Rollback()
-	if _, err = tx.ExecContext(ctx, "UPDATE towers SET dedup_rules=?,generation=generation+1 WHERE id=?", string(encoded), id); err != nil {
+	if _, err = tx.ExecContext(ctx, "UPDATE towers SET dedup_rules=?,generation=generation+1 WHERE id=? OR id IN (SELECT source_id FROM tower_sources WHERE parent_id=?)", string(encoded), id, id); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, "DELETE FROM refresh_nodes WHERE tower_id=?", id); err != nil {
+	if _, err = tx.ExecContext(ctx, "DELETE FROM refresh_nodes WHERE tower_id=? OR tower_id IN (SELECT source_id FROM tower_sources WHERE parent_id=?)", id, id); err != nil {
 		return err
 	}
 	if err = bump(ctx, tx); err != nil {
@@ -106,18 +106,4 @@ func nodeFlight(node Node) (flight.Flight, error) {
 		return flight.Flight{}, err
 	}
 	return flight.Flight{Name: node.Name, Type: node.Type, Server: node.Server, Port: node.Port, Fields: fields}, nil
-}
-
-func loadDedupRules(ctx context.Context, tx *sql.Tx, towerID int64) (flight.DeduplicationConfig, flight.DeduplicationConfig, error) {
-	var tower, output flight.DeduplicationConfig
-	var t, o string
-	err := tx.QueryRowContext(ctx, "SELECT dedup_rules,output_rules FROM towers,catalog_meta WHERE towers.id=? AND catalog_meta.id=1", towerID).Scan(&t, &o)
-	if err != nil {
-		return tower, output, err
-	}
-	if err = json.Unmarshal([]byte(t), &tower); err != nil {
-		return tower, output, err
-	}
-	err = json.Unmarshal([]byte(o), &output)
-	return tower, output, err
 }

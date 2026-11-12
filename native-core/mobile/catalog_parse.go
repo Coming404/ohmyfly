@@ -12,24 +12,32 @@ import (
 // 解析时逐节点写入私有 SQLite，桥接只返回统计与按需读取句柄。
 func parseCatalogSubscription(ctx context.Context, id int64) (any, error) {
 	index := 0
+	nodes := catalogStore.NewParseWriter(id, "node")
 	stats, err := towerparse.Parse(catalogStore.ParseReader(ctx, id), func(value flight.Flight) error {
 		node := subscriptionNode{Name: value.Name, Type: value.Type, Server: value.Server, Port: value.Port,
 			Fields: jsonSafeValue(value.Fields).(map[string]any), RawInput: value.RawInput,
 			SourceFormat: value.SourceFormat, FromBase64: value.FromBase64,
 			ContentHash: flight.ContentHash(value)}
-		err := catalogStore.SaveParsed(ctx, id, "node", index, node)
+		err := nodes.Append(ctx, node)
 		index++
 		return err
 	})
 	if err != nil {
 		return nil, err
 	}
+	if err = nodes.Flush(ctx); err != nil {
+		return nil, err
+	}
+	providers := catalogStore.NewParseWriter(id, "provider")
 	slices.SortFunc(stats.ProxyProviders, func(a, b towerparse.ProxyProvider) int { return strings.Compare(a.Name, b.Name) })
-	for i, provider := range stats.ProxyProviders {
+	for _, provider := range stats.ProxyProviders {
 		value := subscriptionProvider{Name: provider.Name, URL: provider.URL, Fields: jsonSafeValue(provider.Fields).(map[string]any)}
-		if err = catalogStore.SaveParsed(ctx, id, "provider", i, value); err != nil {
+		if err = providers.Append(ctx, value); err != nil {
 			return nil, err
 		}
+	}
+	if err = providers.Flush(ctx); err != nil {
+		return nil, err
 	}
 	if err = catalogStore.ClearParseInput(ctx, id); err != nil {
 		return nil, err

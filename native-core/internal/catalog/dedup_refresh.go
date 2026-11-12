@@ -3,46 +3,21 @@ package catalog
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
-	"errors"
-	"strings"
-
-	"github.com/Coming404/ohmyfly/native-core/internal/flight"
 )
-
-func prepareRefresh(ctx context.Context, tx *sql.Tx, r Refresh, rule flight.DeduplicationConfig) error {
-	for ordinal := 0; ordinal < r.Count; ordinal++ {
-		var payload string
-		if err := tx.QueryRowContext(ctx, "SELECT payload FROM refresh_nodes WHERE tower_id=? AND generation=? AND ordinal=?", r.ID, r.Generation, ordinal).Scan(&payload); err != nil {
-			return err
-		}
-		var node Node
-		if err := json.Unmarshal([]byte(payload), &node); err != nil {
-			return err
-		}
-		value, err := nodeFlight(node)
-		if err != nil {
-			return err
-		}
-		hash := flight.ContentHash(value)
-		if hash == "" {
-			return errors.New("invalid node content hash")
-		}
-		_, err = tx.ExecContext(ctx, `UPDATE refresh_nodes SET content_hash=?,name=?,advanced_key=?,eligible=?
- WHERE tower_id=? AND generation=? AND ordinal=?`, hash, strings.TrimSpace(node.Name), flight.DeduplicationKey(value, rule), node.Eligible, r.ID, r.Generation, ordinal)
-		if err != nil {
-			return err
-		}
-	}
-	return classifyRefresh(ctx, tx, r.ID)
-}
 
 func classifyRefresh(ctx context.Context, tx *sql.Tx, towerID int64) error {
 	// 只依据当前数据库快照和本次刷新分类，不能永久记住已经消失的多名称。
-	_, err := tx.ExecContext(ctx, `DELETE FROM tower_info_hashes;
+	_, err := tx.ExecContext(ctx, `DELETE FROM refresh_affected;
+ INSERT INTO refresh_affected SELECT DISTINCT content_hash FROM nodes n JOIN tower_nodes t ON t.node_id=n.id WHERE t.tower_id=?;
+ INSERT OR IGNORE INTO refresh_affected SELECT DISTINCT content_hash FROM refresh_nodes WHERE tower_id=?`, towerID, towerID)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `DELETE FROM tower_info_hashes WHERE content_hash IN (SELECT content_hash FROM refresh_affected);
  INSERT INTO tower_info_hashes(tower_id,content_hash)
  SELECT t.tower_id,n.content_hash FROM tower_nodes t JOIN nodes n ON n.id=t.node_id
- WHERE t.eligible=1 GROUP BY t.tower_id,n.content_hash HAVING count(DISTINCT trim(n.name))>1`)
+ WHERE t.eligible=1 AND n.content_hash IN (SELECT content_hash FROM refresh_affected)
+ GROUP BY t.tower_id,n.content_hash HAVING count(DISTINCT trim(n.name))>1`)
 	if err != nil {
 		return err
 	}
@@ -58,7 +33,7 @@ func classifyRefresh(ctx context.Context, tx *sql.Tx, towerID int64) error {
 	if err = collapseOrdinaryNodes(ctx, tx); err != nil {
 		return err
 	}
-	_, err = tx.ExecContext(ctx, `UPDATE nodes SET name_key=trim(name) WHERE name_key='' AND EXISTS(
+	_, err = tx.ExecContext(ctx, `UPDATE nodes SET name_key=trim(name) WHERE name_key='' AND content_hash IN (SELECT content_hash FROM refresh_affected) AND EXISTS(
  SELECT 1 FROM tower_info_hashes i WHERE i.content_hash=nodes.content_hash)`)
 	if err != nil {
 		return err
@@ -86,25 +61,26 @@ func groupRefresh(ctx context.Context, tx *sql.Tx, towerID int64) error {
 	return err
 }
 
-func commitRefreshNodes(ctx context.Context, tx *sql.Tx, r Refresh, output flight.DeduplicationConfig) error {
-	for ordinal := 0; ordinal < r.Count; ordinal++ {
-		var payload, hash, nameKey string
-		var representative int
-		err := tx.QueryRowContext(ctx, `SELECT payload,content_hash,name_key,representative FROM refresh_nodes
- WHERE tower_id=? AND ordinal=?`, r.ID, ordinal).Scan(&payload, &hash, &nameKey, &representative)
-		if err != nil {
-			return err
-		}
-		if representative < 0 {
-			continue
-		}
-		var node Node
-		if err = json.Unmarshal([]byte(payload), &node); err != nil {
-			return err
-		}
-		if err = insertNode(ctx, tx, r.ID, ordinal, representative, node, hash, nameKey, output); err != nil {
-			return err
-		}
+// 代表节点与来源关联通过集合SQL写入，不逐节点返回ID或再次解码JSON。
+func commitRefreshNodes(ctx context.Context, tx *sql.Tx, r Refresh) error {
+	_, err := tx.ExecContext(ctx, `INSERT INTO nodes(content_hash,name_key,output_key,config,name,type,server,port)
+ SELECT n.content_hash,n.name_key,p.output_key,p.config,n.name,json_extract(p.config,'$.type'),
+ json_extract(p.config,'$.server'),json_extract(p.config,'$.port')
+ FROM refresh_nodes n JOIN refresh_prepared p USING(tower_id,generation,ordinal)
+ WHERE n.tower_id=? AND n.generation=? AND n.eligible=1 AND n.representative=n.ordinal
+ ORDER BY n.ordinal
+ ON CONFLICT(content_hash,name_key) DO UPDATE SET
+ config=CASE WHEN NOT EXISTS(SELECT 1 FROM tower_nodes t WHERE t.node_id=nodes.id) THEN excluded.config ELSE nodes.config END,
+ name=CASE WHEN NOT EXISTS(SELECT 1 FROM tower_nodes t WHERE t.node_id=nodes.id) THEN excluded.name ELSE nodes.name END,
+ output_key=CASE WHEN NOT EXISTS(SELECT 1 FROM tower_nodes t WHERE t.node_id=nodes.id) THEN excluded.output_key ELSE nodes.output_key END`, r.ID, r.Generation)
+	if err != nil {
+		return err
 	}
-	return nil
+	_, err = tx.ExecContext(ctx, `INSERT INTO tower_nodes(tower_id,ordinal,node_id,source,eligible)
+ SELECT n.tower_id,n.ordinal,f.id,p.source,1 FROM refresh_nodes n
+ JOIN refresh_prepared p USING(tower_id,generation,ordinal)
+ JOIN refresh_nodes representative ON representative.tower_id=n.tower_id AND representative.generation=n.generation AND representative.ordinal=n.representative
+ JOIN nodes f ON f.content_hash=representative.content_hash AND f.name_key=representative.name_key
+ WHERE n.tower_id=? AND n.generation=? AND n.eligible=1 AND n.representative>=0`, r.ID, r.Generation)
+	return err
 }

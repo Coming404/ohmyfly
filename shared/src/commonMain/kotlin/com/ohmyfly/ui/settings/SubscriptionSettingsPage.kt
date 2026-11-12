@@ -13,6 +13,18 @@ internal fun SubscriptionSettingsPage(padding: PaddingValues) {
         item { SettingsSectionTitle("请求", MirrorIcons.Globe) }
         item {
             SettingsCard {
+                NumberSetting("塔台并发数", { it.subscription.towerConcurrency }, 1..999, SettingsIcons.Download) {
+                    current, n -> current.withSubscription { it.copy(towerConcurrency = n) }
+                }
+                NumberSetting("解析并发数", { it.subscription.parseConcurrency }, 1..999, SettingsIcons.File) {
+                    current, n -> current.withSubscription { it.copy(parseConcurrency = n) }
+                }
+                NumberSetting("单批地址上限", { it.subscription.addressLimit }, 1..99999, MirrorIcons.Link) {
+                    current, n -> current.withSubscription { it.copy(addressLimit = n) }
+                }
+                NumberSetting("本地文件多选上限", { it.subscription.fileLimit }, 1..99999, SettingsIcons.File) {
+                    current, n -> current.withSubscription { it.copy(fileLimit = n) }
+                }
                 NumberSetting("单次请求超时（秒）", { it.subscription.timeoutSeconds }, 3..120, SettingsIcons.Timer) {
                     current, n -> current.withSubscription { it.copy(timeoutSeconds = n) }
                 }

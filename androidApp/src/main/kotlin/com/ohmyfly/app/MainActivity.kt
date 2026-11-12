@@ -16,6 +16,7 @@ import com.ohmyfly.settings.androidSettingsPath
 
 class MainActivity : ComponentActivity() {
     private var dynamicColorSeed by mutableStateOf<Color?>(null)
+    private val subscriptionFiles = AndroidSubscriptionFilePicker(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,7 +28,7 @@ class MainActivity : ComponentActivity() {
         val version = "${info.versionName ?: "未知版本"} (${info.longVersionCode}) · Android"
         dynamicColorSeed = Color(getColor(android.R.color.system_accent1_500))
         setContent {
-            App(dynamicColorSeed = dynamicColorSeed, settingsPath = path, version = version) { dark, _ ->
+            App(dynamicColorSeed = dynamicColorSeed, settingsPath = path, version = version, filePicker = subscriptionFiles) { dark, _ ->
                 val systemBars = WindowCompat.getInsetsController(window, window.decorView)
                 systemBars.isAppearanceLightStatusBars = !dark
                 systemBars.isAppearanceLightNavigationBars = !dark

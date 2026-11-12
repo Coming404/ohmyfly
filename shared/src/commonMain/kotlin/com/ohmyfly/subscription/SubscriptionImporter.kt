@@ -53,6 +53,27 @@ internal class SubscriptionImporter(
         }
     }
 
+    suspend fun importBody(
+        content: String, settings: SubscriptionSettings,
+        accept: suspend (NativeSubscriptionNode) -> Unit,
+    ): SubscriptionImportResult {
+        val filter = SubscriptionFilter(settings)
+        val parsed = parse(content)
+        try {
+            if (!hasUsableSubscriptionSnapshot(parsed)) {
+                return SubscriptionImportResult(failure = "未解析到有效节点；本地正文不会自动抓取外部 provider")
+            }
+            for (node in parsed.nodes) {
+                accept(node.copy(eligible = filter.reason(node.name, node.server, node.type) < 0))
+            }
+            val warnings = buildList {
+                if (parsed.skipped > 0) add("跳过 ${parsed.skipped} 条无法解析的记录")
+                if (parsed.proxyProviders.isNotEmpty()) add("本地正文中的外部 provider 未抓取，请单独添加订阅链接")
+            }
+            return SubscriptionImportResult(recordCount = parsed.nodes.size, warnings = warnings)
+        } finally { parsed.close() }
+    }
+
     private suspend fun importContent(
         url: String, settings: SubscriptionSettings, operation: String, resolveName: Boolean,
         mirrors: SubscriptionMirrorSettings,

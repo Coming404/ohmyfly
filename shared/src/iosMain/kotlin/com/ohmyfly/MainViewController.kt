@@ -16,8 +16,11 @@ fun MainViewController(
     val bundle = NSBundle.mainBundle
     val name = bundle.objectForInfoDictionaryKey("CFBundleShortVersionString") as? String ?: "未知版本"
     val build = bundle.objectForInfoDictionaryKey("CFBundleVersion") as? String ?: "?"
-    return ComposeUIViewController {
+    lateinit var controller: platform.UIKit.UIViewController
+    val filePicker = com.ohmyfly.subscription.IosSubscriptionFilePicker { controller }
+    controller = ComposeUIViewController {
         LaunchedEffect(Unit) { requestStartupNetworkAccess() }
-        App(dynamicColorSeed = null, settingsPath = path, version = "$name ($build) · iOS", onThemeChanged = onThemeChanged)
+        App(dynamicColorSeed = null, settingsPath = path, version = "$name ($build) · iOS", filePicker = filePicker, onThemeChanged = onThemeChanged)
     }
+    return controller
 }
