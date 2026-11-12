@@ -21,7 +21,9 @@
 
 ## 本地存储
 
-使用 `androidx.datastore:datastore-preferences:1.2.1`，不是 SQLite／Room。普通参数用强类型 preferences key，镜像用有界索引字段存储；本轮NavDisplay引入的JSON序列化只用于库自带导航Saver，不改变DataStore文件或镜像编码。
+使用 `androidx.datastore:datastore-preferences:1.2.1` 保存普通设置，不使用 SQLite／Room 保存这份当前设置。普通参数用强类型 preferences key，镜像用有界索引字段存储；NavDisplay 的导航 Saver 和目录任务快照各自使用 JSON，不改变 DataStore 文件或镜像编码。
+
+创建目录任务时将传入 `SpeedSettings`（含 `SpeedMode` 和默认参数）编码为完整 JSON 快照，写入 SQLite `flight_tasks.settings`；后续修改当前设置不追改历史任务。延迟结果用 ms、下载/上传用 B/s，时间用 Unix 毫秒。平台检测结果保留平台标识、状态、地区和时间，不以状态计数替代平台身份。任务/结果与普通设置分属不同事实源，详见[目录任务与测量结果契约](catalog-results.md)。
 
 - Android：`context.filesDir/datastore/settings.preferences_pb`。
 - iOS：`Library/Application Support/ohmyfly/settings.preferences_pb`。

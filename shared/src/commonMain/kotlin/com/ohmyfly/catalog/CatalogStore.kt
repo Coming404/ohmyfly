@@ -11,7 +11,13 @@ import kotlinx.serialization.json.*
 
 internal val appCatalog = CatalogStore()
 
-internal class CatalogStore {
+internal class CatalogStore(
+    internal val worker: CoroutineDispatcher = Dispatchers.Default,
+    private val bridge: (String) -> String = ::nativeCatalog,
+    private val open: () -> String = ::openNativeCatalog,
+) {
+    internal fun call(action: String, block: JsonObjectBuilder.() -> Unit = {}): JsonObject =
+        decodeCatalog(bridge(buildJsonObject { put("action", action); block() }.toString()))
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val pages = CatalogPages()
     private data class Position(
@@ -31,6 +37,7 @@ internal class CatalogStore {
     private var filterJob: Job? = null
     private var filterSequence = 0L
     private var reloadSequence = 0L
+    private var measurementsSequence = 0L
     private val importer = SubscriptionImporter(SubscriptionFetcher(createSubscriptionClient()), ::parseCatalogSubscription,
         queue = ::CatalogProviderQueue)
 
@@ -39,7 +46,7 @@ internal class CatalogStore {
         initialization = scope.launch {
             try {
                 if (!opened) {
-                    withContext(Dispatchers.Default) { decodeCatalog(openNativeCatalog()) }
+                    withContext(worker) { decodeCatalog(open()) }
                     opened = true
                 }
                 reload()
@@ -51,12 +58,12 @@ internal class CatalogStore {
     // 规则编辑界面尚未确定；调用方通过目录业务接口应用规则，不混入名称/协议过滤。
     fun updateTowerDeduplication(id: Long, rule: DeduplicationRule) = runOperation {
         val encoded = catalogJson.encodeToJsonElement(DeduplicationRule.serializer(), rule)
-        catalogCall("setTowerDedup") { put("id", id); put("rule", encoded) }
+        call("setTowerDedup") { put("id", id); put("rule", encoded) }
     }
 
     fun updateOutputDeduplication(rule: DeduplicationRule) = runOperation {
         val encoded = catalogJson.encodeToJsonElement(DeduplicationRule.serializer(), rule)
-        catalogCall("setDedup") { put("dedup", buildJsonObject { put("output", encoded) }) }
+        call("setDedup") { put("dedup", buildJsonObject { put("output", encoded) }) }
     }
 
     fun updateFlightFilter(value: FlightFilter, debounce: Boolean = false) {
@@ -83,7 +90,7 @@ internal class CatalogStore {
         filterJob = scope.launch {
             try {
                 delay(wait)
-                val result = withContext(Dispatchers.Default) { queryFlightFilter(revision, FlightPredicate(filter)) }
+                val result = withContext(worker) { queryFlightFilter(revision, FlightPredicate(filter)) }
                 if (sequence != filterSequence || revision != state.value.summary.revision || !foreground) return@launch
                 mutableState.update { it.copy(filterToken = result.token, matchCount = result.count,
                     protocols = result.protocols, flightLoading = active == "flights", failure = null) }
@@ -137,14 +144,16 @@ internal class CatalogStore {
                 else it.copy(flights = value.flights, flightPage = index, failure = null,
                     matchCount = value.matchCount, flightLoading = false)
             }
+            if (kind == "flights" && (state.value.measurementsPending ||
+                value.metricsRevision < state.value.summary.metricsRevision)) measurementsChanged()
         }
         pages.get(kind, index)?.let { publish(it); return }
         mutableState.update { if (kind == "towers") it.copy(towers = emptyList())
             else it.copy(flights = emptyList(), flightLoading = true) }
         pageJob = scope.launch {
             try {
-                val result = withContext(Dispatchers.Default) {
-                    catalogJson.decodeFromJsonElement<CatalogPage>(catalogCall("page") {
+                val result = withContext(worker) {
+                    catalogJson.decodeFromJsonElement<CatalogPage>(call("page") {
                         put("kind", kind); put("anchor", target.anchor); put("backwards", target.backwards)
                         put("revision", revision); put("filterToken", filterToken)
                     })
@@ -162,10 +171,57 @@ internal class CatalogStore {
         }
     }
 
+    fun measurementsChanged() {
+        // 提交已确认；显示刷新使用目录自身生命周期，不能夺走任务 ID 或变成写入失败。
+        scope.launch { refreshMeasurements() }
+    }
+
+    suspend fun refreshMeasurements() = withContext(Dispatchers.Main) {
+        val sequence = ++measurementsSequence
+        mutableState.update { it.copy(measurementsPending = true) }
+        while (opened && foreground && state.value.ready) {
+            val snapshot = state.value
+            val pageEpoch = epoch
+            val ids = snapshot.flights.map { it.id }
+            if (ids.isEmpty() || snapshot.flightLoading) return@withContext
+            val batch = try {
+                withContext(worker) {
+                    catalogJson.decodeFromJsonElement<CatalogMeasurementBatch>(call("measurements") {
+                        put("nodeIds", JsonArray(ids.map { JsonPrimitive(it) })); put("revision", snapshot.summary.revision)
+                    })
+                }
+            } catch (e: CancellationException) { throw e
+            } catch (_: Exception) {
+                if (sequence != measurementsSequence) return@withContext
+                val current = state.value
+                if (pageEpoch != epoch || snapshot.summary.revision != current.summary.revision ||
+                    snapshot.filterToken != current.filterToken || ids != current.flights.map { it.id }) continue
+                mutableState.update {
+                    it.copy(measurementsFailure = "结果摘要读取失败，请重新读取目录；已提交数据保留")
+                }
+                return@withContext
+            }
+            if (!foreground || sequence != measurementsSequence) return@withContext
+            val current = state.value
+            // 旧页响应不能抬高新页版本；页面/筛选变化后直接补读当前可见集合。
+            if (pageEpoch != epoch || snapshot.summary.revision != current.summary.revision ||
+                snapshot.filterToken != current.filterToken || ids != current.flights.map { it.id }) continue
+            if (batch.revision != current.summary.revision || batch.metricsRevision < current.summary.metricsRevision) continue
+            pages.invalidateMeasurements(batch.metricsRevision)
+            val summaries = batch.nodes.associateBy { it.nodeId }
+            mutableState.update { value ->
+                value.copy(summary = value.summary.copy(metricsRevision = batch.metricsRevision),
+                    flights = value.flights.map { it.copy(measurements = summaries.getValue(it.id)) },
+                    measurementsPending = false, measurementsFailure = null)
+            }
+            return@withContext
+        }
+    }
+
     private suspend fun reload() {
         val token = ++reloadSequence
-        val summary = withContext(Dispatchers.Default) {
-            catalogJson.decodeFromJsonElement<CatalogSummary>(catalogCall("summary"))
+        val summary = withContext(worker) {
+            catalogJson.decodeFromJsonElement<CatalogSummary>(call("summary"))
         }
         if (token != reloadSequence || summary.revision < state.value.summary.revision) return
         pageJob?.cancel()
@@ -181,7 +237,7 @@ internal class CatalogStore {
     fun add(address: String, settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) {
         validateSubscriptionUrl(address)?.let { failure -> mutableState.update { it.copy(failure = failure) }; return }
         runOperation {
-            val id = catalogCall("add") { put("address", address.trim()); put("name", "") }["id"]!!.jsonPrimitive.long
+            val id = call("add") { put("address", address.trim()); put("name", "") }["id"]!!.jsonPrimitive.long
             refreshNow(id, settings, mirrors)
         }
     }
@@ -193,7 +249,7 @@ internal class CatalogStore {
     fun remove(id: Long) = scope.launch {
         if (!opened || !state.value.ready) return@launch
         try {
-            withContext(Dispatchers.Default) { catalogCall("remove") { put("id", id) } }
+            withContext(worker) { call("remove") { put("id", id) } }
             reload()
         } catch (e: CancellationException) { throw e
         } catch (_: Exception) { mutableState.update { it.copy(failure = "删除结果待确认，请重新读取目录") } }
@@ -204,7 +260,7 @@ internal class CatalogStore {
         if (!opened || !state.value.ready || operation?.isActive == true) return
         mutableState.update { it.copy(busy = true, failure = null) }
         operation = scope.launch {
-            try { withContext(Dispatchers.Default) { block() }; reload()
+            try { withContext(worker) { block() }; reload()
             } catch (e: CancellationException) { throw e
             } catch (_: Exception) { mutableState.update { it.copy(failure = "目录更新未完成，请重新读取目录确认状态") }
             } finally { mutableState.update { it.copy(busy = false) } }

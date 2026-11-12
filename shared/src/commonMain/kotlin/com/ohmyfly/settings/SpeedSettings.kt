@@ -1,5 +1,8 @@
 package com.ohmyfly.settings
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 internal data class SpeedSettings(
     val mode: SpeedMode = SpeedMode.Download,
     val latencyUrl: String = "https://www.gstatic.com/generate_204",

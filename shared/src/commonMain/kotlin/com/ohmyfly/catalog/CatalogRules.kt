@@ -4,13 +4,13 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.serialization.json.*
 
-internal suspend fun queryFlightFilter(revision: Long, predicate: FlightPredicate): FlightFilterResult {
-    val ticket = catalogCall("beginFilter") { put("revision", revision) }
+internal suspend fun CatalogStore.queryFlightFilter(revision: Long, predicate: FlightPredicate): FlightFilterResult {
+    val ticket = call("beginFilter") { put("revision", revision) }
     val protocols = mutableSetOf<String>()
     var anchor = 0L
     while (true) {
         currentCoroutineContext().ensureActive()
-        val inputs = catalogCall("filterInputs") {
+        val inputs = call("filterInputs") {
             put("filterTicket", ticket); put("anchor", anchor)
         }.getValue("inputs").jsonArray
         if (inputs.isEmpty()) break
@@ -24,11 +24,11 @@ internal suspend fun queryFlightFilter(revision: Long, predicate: FlightPredicat
                 put("eligible", predicate.matches(node.getValue("name").jsonPrimitive.content, type))
             }
         }
-        catalogCall("stageFilter") { put("filterTicket", ticket); put("decisions", JsonArray(decisions)) }
+        call("stageFilter") { put("filterTicket", ticket); put("decisions", JsonArray(decisions)) }
         anchor = inputs.last().jsonObject.getValue("id").jsonPrimitive.long
     }
     currentCoroutineContext().ensureActive()
-    val result = catalogCall("commitFilter") { put("filterTicket", ticket) }
+    val result = call("commitFilter") { put("filterTicket", ticket) }
     return FlightFilterResult(ticket.getValue("token").jsonPrimitive.long,
         result.getValue("count").jsonPrimitive.long, protocols)
 }

@@ -9,41 +9,59 @@ import (
 )
 
 type Summary struct {
-	Revision int64 `json:"revision"`
-	Towers   int64 `json:"towers"`
-	Flights  int64 `json:"flights"`
+	MetricsRevision int64 `json:"metricsRevision"`
+	Revision        int64 `json:"revision"`
+	Towers          int64 `json:"towers"`
+	Flights         int64 `json:"flights"`
 }
 
 type TowerSummary struct {
-	ID        int64           `json:"id"`
-	Name      string          `json:"name"`
-	NodeCount int64           `json:"nodeCount"`
-	Failure   string          `json:"failure"`
-	Usage     json.RawMessage `json:"usage"`
+	LastAttemptAt *int64          `json:"lastAttemptAt"`
+	LastSuccessAt *int64          `json:"lastSuccessAt"`
+	Warnings      json.RawMessage `json:"warnings"`
+	ID            int64           `json:"id"`
+	Name          string          `json:"name"`
+	NodeCount     int64           `json:"nodeCount"`
+	Failure       string          `json:"failure"`
+	Usage         json.RawMessage `json:"usage"`
 }
 
 type FlightSummary struct {
-	ID     int64  `json:"id"`
-	Name   string `json:"name"`
-	Type   string `json:"type"`
-	Server string `json:"server"`
-	Port   int    `json:"port"`
+	Measurements MeasurementSummary `json:"measurements"`
+	ID           int64              `json:"id"`
+	Name         string             `json:"name"`
+	Type         string             `json:"type"`
+	Server       string             `json:"server"`
+	Port         int                `json:"port"`
 }
 
 type Page struct {
-	Revision    int64           `json:"revision"`
-	FilterToken int64           `json:"filterToken"`
-	MatchCount  int64           `json:"matchCount"`
-	Towers      []TowerSummary  `json:"towers"`
-	Flights     []FlightSummary `json:"flights"`
+	MetricsRevision int64           `json:"metricsRevision"`
+	Revision        int64           `json:"revision"`
+	FilterToken     int64           `json:"filterToken"`
+	MatchCount      int64           `json:"matchCount"`
+	Towers          []TowerSummary  `json:"towers"`
+	Flights         []FlightSummary `json:"flights"`
 }
 
 func (s *Store) Summary(ctx context.Context) (Summary, error) {
 	var result Summary
-	err := s.db.QueryRowContext(ctx, candidates+`SELECT revision,
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return result, err
+	}
+	defer tx.Rollback()
+	query, err := candidateQuery(ctx, tx, false)
+	if err != nil {
+		return result, err
+	}
+	err = tx.QueryRowContext(ctx, query+`SELECT revision,metrics_revision,
  (SELECT count(*) FROM towers),(SELECT count(*) FROM candidates) FROM catalog_meta WHERE id=1`).Scan(
-		&result.Revision, &result.Towers, &result.Flights)
-	return result, err
+		&result.Revision, &result.MetricsRevision, &result.Towers, &result.Flights)
+	if err != nil {
+		return result, err
+	}
+	return result, tx.Commit()
 }
 
 func (s *Store) Page(ctx context.Context, kind string, anchor int64, backwards bool, revision, filterToken int64) (Page, error) {
@@ -56,7 +74,7 @@ func (s *Store) Page(ctx context.Context, kind string, anchor int64, backwards b
 		return result, err
 	}
 	defer tx.Rollback()
-	if err = tx.QueryRowContext(ctx, "SELECT revision FROM catalog_meta WHERE id=1").Scan(&result.Revision); err != nil {
+	if err = tx.QueryRowContext(ctx, "SELECT revision,metrics_revision FROM catalog_meta WHERE id=1").Scan(&result.Revision, &result.MetricsRevision); err != nil {
 		return result, err
 	}
 	if revision != result.Revision {
@@ -76,10 +94,13 @@ func (s *Store) Page(ctx context.Context, kind string, anchor int64, backwards b
 		if err = checkFilter(ctx, tx, FilterTicket{Token: filterToken, Revision: revision}, true); err != nil {
 			return result, err
 		}
-		if err = tx.QueryRowContext(ctx, filteredCandidates+"SELECT count(*) FROM matched").Scan(&result.MatchCount); err != nil {
+		if err = tx.QueryRowContext(ctx, "SELECT match_count FROM filter_work WHERE id=1").Scan(&result.MatchCount); err != nil {
 			return result, err
 		}
 		result.Flights, err = flightPage(ctx, tx, anchor, order)
+		if err == nil {
+			err = attachMeasurements(ctx, tx, result.Flights)
+		}
 		if backwards {
 			slices.Reverse(result.Flights)
 		}
@@ -96,18 +117,19 @@ func towerPage(ctx context.Context, tx *sql.Tx, anchor int64, order string) ([]T
 	result := []TowerSummary{}
 	rows, err := tx.QueryContext(ctx, `SELECT id,substr(name,1,256),
  (SELECT count(DISTINCT t.node_id) FROM tower_nodes t WHERE t.tower_id=towers.id AND t.eligible=1),
- substr(failure,1,512),usage FROM towers WHERE id `+order, anchor)
+ substr(failure,1,512),usage,warnings,last_attempt_at,last_success_at FROM towers WHERE id `+order, anchor)
 	if err != nil {
 		return result, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var t TowerSummary
-		var usage string
-		if err = rows.Scan(&t.ID, &t.Name, &t.NodeCount, &t.Failure, &usage); err != nil {
+		var usage, warnings string
+		if err = rows.Scan(&t.ID, &t.Name, &t.NodeCount, &t.Failure, &usage, &warnings, &t.LastAttemptAt, &t.LastSuccessAt); err != nil {
 			return result, err
 		}
 		t.Usage = json.RawMessage(usage)
+		t.Warnings = json.RawMessage(warnings)
 		result = append(result, t)
 	}
 	return result, rows.Err()
@@ -115,8 +137,11 @@ func towerPage(ctx context.Context, tx *sql.Tx, anchor int64, order string) ([]T
 
 func flightPage(ctx context.Context, tx *sql.Tx, anchor int64, order string) ([]FlightSummary, error) {
 	result := []FlightSummary{}
-	// 完整三层去重先于游标分页。
-	rows, err := tx.QueryContext(ctx, filteredCandidates+`SELECT n.id AS id,substr(n.name,1,256),substr(n.type,1,32),substr(n.server,1,256),n.port
+	query, err := candidateQuery(ctx, tx, true)
+	if err != nil {
+		return result, err
+	}
+	rows, err := tx.QueryContext(ctx, query+`SELECT n.id AS id,substr(n.name,1,256),substr(n.type,1,32),substr(n.server,1,256),n.port
  FROM matched c JOIN nodes n ON n.id=c.id WHERE n.id `+order, anchor)
 	if err != nil {
 		return result, err

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/Coming404/ohmyfly/native-core/internal/flight"
+	"time"
 )
 
 type Node struct {
@@ -67,8 +68,8 @@ func (s *Store) Begin(ctx context.Context, id int64) (Ticket, error) {
 	defer tx.Rollback()
 	var t Ticket
 	var rule string
-	err = tx.QueryRowContext(ctx, `UPDATE towers SET generation=generation+1 WHERE id=?
- RETURNING id,generation,address,name,dedup_rules`, id).Scan(&t.ID, &t.Generation, &t.Address, &t.Name, &rule)
+	err = tx.QueryRowContext(ctx, `UPDATE towers SET generation=generation+1,last_attempt_at=? WHERE id=?
+ RETURNING id,generation,address,name,dedup_rules`, time.Now().UnixMilli(), id).Scan(&t.ID, &t.Generation, &t.Address, &t.Name, &rule)
 	if err != nil {
 		return t, err
 	}
@@ -149,7 +150,7 @@ func (s *Store) Commit(ctx context.Context, r Refresh) error {
 		return err
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE towers SET name=CASE WHEN name='' THEN ? ELSE name END,
- usage=?,warnings=?,failure='',committed_generation=? WHERE id=?`, r.Name, string(r.Usage), string(r.Warnings), r.Generation, r.ID)
+ usage=?,warnings=?,failure='',committed_generation=?,last_success_at=? WHERE id=?`, r.Name, string(r.Usage), string(r.Warnings), r.Generation, time.Now().UnixMilli(), r.ID)
 	if err != nil {
 		return err
 	}

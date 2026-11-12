@@ -19,6 +19,13 @@ func collapseOrdinaryNodes(ctx context.Context, tx *sql.Tx) error {
 	if err != nil {
 		return err
 	}
+	// 只合并相同 ContentHash 的历史；run ID 保留，因此同任务原来的两个节点仍各有真实记录。
+	if _, err := tx.ExecContext(ctx, `UPDATE node_runs SET node_id=(SELECT min(n.id) FROM nodes n
+ WHERE n.content_hash=(SELECT content_hash FROM nodes WHERE id=node_runs.node_id))
+ WHERE NOT EXISTS(SELECT 1 FROM tower_info_hashes i JOIN nodes n ON n.content_hash=i.content_hash
+ WHERE n.id=node_runs.node_id)`); err != nil {
+		return err
+	}
 	_, err = tx.ExecContext(ctx, `DELETE FROM nodes WHERE
  NOT EXISTS(SELECT 1 FROM tower_info_hashes i WHERE i.content_hash=nodes.content_hash)
  AND id<>(SELECT min(n.id) FROM nodes n WHERE n.content_hash=nodes.content_hash)`)

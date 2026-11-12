@@ -33,6 +33,12 @@ func flight.ContentHash(value flight.Flight) string
 
 适配差异：未知属性按语义树参与哈希，不复制上游 YAML AST 行列及注释；字符串数组也识别 JSON 解码的 `[]any`，整数数组保序；规则键使用 JSON 元组，避免 `:`/`|` 拼接冲突。保留内部下划线元数据不参与哈希的本地约定。不复制原始凭据日志、不引入 GORM、测速、DNS 或 GeoIP，也不移植 GetSub 的 EffectiveName 无条件去重。
 
+## 任务与结果持久化
+
+目录现已包含 `flight_tasks`、`node_runs`、`metric_results`、`platform_results`，由 `mobile.Catalog` 暴露创建任务、补成员、状态更新、指标/平台写入、历史与批量摘要读取。Go 与 Kotlin 共用结果字段，平台摘要保留平台标识、状态、地区和 Unix 毫秒时间；成功指标允许0，延迟单位 ms，速度 B/s。单测延迟保留旧速度，失败记录与最近成功值分别提供；取消和重启关闭未完成阶段，完整历史保留。
+
+页面与结果独立修订；任务或结果成功提交后，共享层独立刷新摘要，读取失败不改变写入成功或丢失 task ID。页面/筛选身份变化后补读当前集合。所有列表共享50 MiB估算缓存、每列表最多5批、每批100条。完整 schema、状态、历史游标和 JSON API 见[目录任务与测量结果契约](../docs/catalog-results.md)。当前旧开发 v1 缺少 `metrics_revision` 时拒绝打开并保留文件，升级方案尚未实现；当前实现是持久化契约，网络执行及任务恢复调度属于后续阶段。
+
 ## 已实现
 
 - 格式识别：有界前缀按上游根语法分流，支持根级映射、顶层列表、单节点、JSON、带引号或空格的根键。分享链接走独立解析器；Base64 解码后重新识别，最多 3 轮。
@@ -90,4 +96,4 @@ go test -count=1 -p 1 ./...
 go test -run '^$' -bench . -benchtime=1x ./internal/towerparse
 ```
 
-包含集成测试标签时共 163 个 Go 测试函数，覆盖格式识别、YAML 整理与容错、各协议链接、内容哈希、入库去重及 mobile 桥接契约。真实订阅用例从外部 `REVIEW_DATA_DIR` 读取 `source1.yaml` 和 `source2.yaml`，数据不加入仓库；运行 `go test -tags integration ./...`。目录未设置时仅跳过外部数据用例，合成协议、事务和分页用例照常执行。3 个 benchmark 分别用 1 万条 YAML、链接和 Base64 链接。2026-11-06 对固定上游执行 464 项 YAML 差分，452 项一致，剩余 12 项属于上文记录的本地行为或名称契约；公开 Parse 入口与 YAML 入口节点结果一致。VMess 116 项、VLESS 262 项链接差分全部一致。
+包含集成测试标签的用例覆盖格式识别、YAML 整理与容错、各协议链接、内容哈希、入库去重、结果生命周期与 mobile JSON 桥接契约。结果回归覆盖部分指标保留、取消/重启、来源删除/合并、平台跨任务最新摘要与历史保留、批量节点隔离及版本/空值/单位时间字段。真实订阅用例从外部 `REVIEW_DATA_DIR` 读取 `source1.yaml` 和 `source2.yaml`，数据不加入仓库；运行 `go test -tags integration ./...`。目录未设置时仅跳过外部数据用例，合成协议、事务和分页用例照常执行。3 个 benchmark 分别用 1 万条 YAML、链接和 Base64 链接。2026-11-06 对固定上游执行 464 项 YAML 差分，452 项一致，剩余 12 项属于上文记录的本地行为或名称契约；公开 Parse 入口与 YAML 入口节点结果一致。VMess 116 项、VLESS 262 项链接差分全部一致。

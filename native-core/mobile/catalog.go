@@ -29,6 +29,16 @@ func OpenCatalog(path string) string {
 }
 
 type catalogRequest struct {
+	Mode         string                     `json:"mode"`
+	Settings     json.RawMessage            `json:"settings"`
+	NodeIDs      []int64                    `json:"nodeIds"`
+	NodeID       int64                      `json:"nodeId"`
+	TaskID       int64                      `json:"taskId"`
+	Status       string                     `json:"status"`
+	Reason       string                     `json:"reason"`
+	Limit        int                        `json:"limit"`
+	Metric       catalog.Metric             `json:"metric"`
+	Platform     catalog.PlatformResult     `json:"platform"`
 	Dedup        catalog.DedupSettings      `json:"dedup"`
 	Rule         flight.DeduplicationConfig `json:"rule"`
 	Action       string                     `json:"action"`
@@ -137,6 +147,8 @@ func callCatalog(ctx context.Context, r catalogRequest) (any, error) {
 	case "commitFilter":
 		count, err := s.CommitFilter(ctx, r.FilterTicket)
 		return map[string]int64{"count": count}, err
+	case "taskCreate", "taskAddNodes", "taskUpdate", "task", "runUpdate", "metricWrite", "platformWrite", "results", "measurements":
+		return callResults(ctx, s, r)
 	default:
 		return nil, errors.New("unknown catalog operation")
 	}
