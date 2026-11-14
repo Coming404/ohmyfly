@@ -22,7 +22,7 @@ class BottomNavigationTests(unittest.TestCase):
         self.assertIn('onDestination = onDestination', nav)
         self.assertIn('onSelect = { onDestination(AppDestination.entries[it]) }', surface)
         self.assertIn('onDestination = { destination = it }', app)
-        self.assertIn('if (!settingsChild) DriftNavigationBar(', app)
+        self.assertRegex(app, r'if\s*\(!settingsChild\s*&&\s*selectionMode\s*==\s*null\)\s*DriftNavigationBar\(')
         self.assertIn('materialMode = settings.materialMode', app)
         self.assertNotIn('FloatingNavigationBarItem(', surface)
         self.assertNotIn('FloatingNavigationBar(', surface)

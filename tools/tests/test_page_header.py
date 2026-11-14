@@ -44,7 +44,13 @@ class PageHeaderTests(unittest.TestCase):
     def test_titles_and_back_share_the_existing_navigation_state(self):
         app = (COMMON / 'App.kt').read_text()
         screen = (UI / 'SettingsScreen.kt').read_text()
-        self.assertIn('title = if (settingsChild || destination == AppDestination.Settings) "" else destination.label', app)
+        title = app.split('DriftTopBar(', 1)[1].split('backdrop = backdrop', 1)[0]
+        self.assertIn('title = if (selectionMode != null)', title)
+        self.assertIn('selectedIds.size else selectedTowerIds.size', title)
+        self.assertIn('settingsChild || destination in listOf(', title)
+        for page in ('Settings', 'Subscriptions', 'NodeLibrary'):
+            self.assertIn(f'AppDestination.{page}', title)
+        self.assertIn('"" else destination.label', title)
         home = (UI / 'settings/SettingsHome.kt').read_text()
         title_item = home.split('SettingsList(padding, state) {', 1)[1].split('item(key = "identity")', 1)[0]
         self.assertIn('item(key = "title")', title_item)
@@ -58,21 +64,25 @@ class PageHeaderTests(unittest.TestCase):
         self.assertIn('NavDisplay(', screen)
         self.assertIn('onBack = onBack', screen)
         self.assertNotIn('SettingsBackHandler', app)
-        self.assertIn('if (!settingsChild) DriftNavigationBar(', app)
+        self.assertRegex(app, r'if\s*\(!settingsChild\s*&&\s*selectionMode\s*==\s*null\)\s*DriftNavigationBar\(')
         self.assertIn('contentPadding = padding', app)
 
     def test_only_real_actions_get_a_surface(self):
         source = (UI / 'DriftTopBar.kt').read_text()
         app = (COMMON / 'App.kt').read_text()
-        actions = (UI / 'NodeSelectionActions.kt').read_text()
         self.assertIn('actions: (@Composable RowScope.() -> Unit)? = null', source)
         self.assertIn('if (actions != null)', source)
         self.assertIn('content = actions', source)
-        self.assertIn('actions = if (destination == AppDestination.NodeLibrary)', app)
-        self.assertIn('} else null,', app)
-        self.assertIn('enabled = visibleIds.isNotEmpty()', actions)
-        self.assertIn('enabled = selectedIds.isNotEmpty()', actions)
+        actions = app.split('actions = when {', 1)[1].split('private fun ApplyOutputDeduplication', 1)[0]
+        self.assertIn('selectionMode != null ->', actions)
+        self.assertIn('HeaderTextAction("取消"', actions)
+        self.assertIn('CatalogSelectAllAction(selectionMode, selectionTowerId', actions)
         self.assertIn('onSelection(emptySet())', actions)
+        for page in ('NodeLibrary', 'Subscriptions'):
+            self.assertIn(f'destination == AppDestination.{page} ->', actions)
+        self.assertIn('mirrorPage ->', actions)
+        self.assertIn('logsPage ->', actions)
+        self.assertIn('else -> null', actions)
 
     def test_safe_area_and_readability_without_resizing_the_content_viewport(self):
         source = (UI / 'DriftTopBar.kt').read_text()

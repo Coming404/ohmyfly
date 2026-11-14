@@ -83,7 +83,9 @@ class LogFilesTests(unittest.TestCase):
         self.assertIn('SettingsExpansion(expanded)', policy)
         self.assertIn('TextSetting(', policy)
         self.assertIn('onChange("日志记录级别")', policy)
-        self.assertIn('else if (logsPage)', app)
+        log_action = app.split('logsPage -> {', 1)[1].split('else -> null', 1)[0]
+        self.assertIn('HeaderAction("清理全部日志"', log_action)
+        self.assertIn('logClear?.invoke()', log_action)
         self.assertIn('MiuixTheme.colorScheme.error', app)
         self.assertIn('日志文件 ${storage.files} 个 ${logBytes(storage.bytes)}', actions)
         self.assertNotIn('导入', actions)
