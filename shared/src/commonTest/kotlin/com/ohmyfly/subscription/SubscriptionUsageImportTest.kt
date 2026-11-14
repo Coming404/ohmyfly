@@ -53,7 +53,7 @@ class SubscriptionUsageImportTest {
             assertNull(result.failure)
             assertEquals(2, result.nodes.size)
             assertEquals(SubscriptionUsage(download = 9), result.usage)
-            assertEquals(listOf("one", "two"), calls)
+            assertEquals<List<String?>>(listOf("one", "two"), calls)
         } finally { client.close() }
     }
 
