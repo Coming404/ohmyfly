@@ -24,7 +24,7 @@ internal actual suspend fun shareCatalogFile(text: String) {
     }
     val scene = UIApplication.sharedApplication.connectedScenes.filterIsInstance<UIWindowScene>()
         .firstOrNull { it.activationState == UISceneActivationStateForegroundActive }
-    var controller = (scene?.windows?.filterIsInstance<UIWindow>()?.firstOrNull { it.isKeyWindow })?.rootViewController
+    var controller = (scene?.windows?.filterIsInstance<UIWindow>()?.firstOrNull { it.isKeyWindow() })?.rootViewController
         ?: error("系统分享入口尚未就绪")
     while (controller.presentedViewController != null) controller = controller.presentedViewController!!
     val activity = UIActivityViewController(listOf(url), null)

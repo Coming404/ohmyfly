@@ -1,3 +1,4 @@
+// 系统选择器按需读取文件，正文大小受订阅导入上限约束。
 package com.ohmyfly.subscription
 
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -8,11 +9,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import platform.Foundation.NSFileHandle
-import platform.Foundation.NSObject
-import platform.Foundation.NSURL
+import platform.Foundation.*
+import platform.darwin.NSObject
+import platform.UniformTypeIdentifiers.UTTypeData
 import platform.UIKit.UIDocumentPickerDelegateProtocol
-import platform.UIKit.UIDocumentPickerMode
 import platform.UIKit.UIDocumentPickerViewController
 import platform.UIKit.UIViewController
 import platform.posix.memcpy
@@ -36,7 +36,8 @@ internal class IosSubscriptionFilePicker(private val presenter: () -> UIViewCont
     override suspend fun pick(maxFiles: Int): List<SubscriptionFileSelection> {
         val urls = suspendCancellableCoroutine<List<NSURL>> { continuation ->
             check(pending == null) { "文件选择器已打开" }
-            val picker = UIDocumentPickerViewController(listOf("public.data"), UIDocumentPickerMode.UIDocumentPickerModeImport)
+            // 使用 iOS 14 起的类型化导入 API；复制语义与原导入模式一致。
+            val picker = UIDocumentPickerViewController(forOpeningContentTypes = listOf(UTTypeData), asCopy = true)
             pending = continuation
             picker.delegate = delegate
             picker.allowsMultipleSelection = maxFiles > 1

@@ -109,8 +109,3 @@ internal fun resultStatus(value: String): String = when (value) {
     "locked" -> "未解锁"
     else -> value
 }
-" -> "已中断"
-    "unlocked" -> "已解锁"
-    "locked" -> "未解锁"
-    else -> value
-}
