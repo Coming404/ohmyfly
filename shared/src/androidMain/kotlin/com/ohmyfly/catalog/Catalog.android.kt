@@ -9,6 +9,7 @@ private lateinit var catalogContext: Context
 
 public fun initializeCatalog(context: Context) {
     catalogContext = context.applicationContext
+    com.ohmyfly.ui.catalogClipboardContext = catalogContext
     catalogContext.registerComponentCallbacks(object : ComponentCallbacks2 {
         override fun onConfigurationChanged(newConfig: Configuration) = Unit
         override fun onLowMemory() { appCatalog.release(background = false) }

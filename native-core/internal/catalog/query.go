@@ -29,6 +29,10 @@ type TowerSummary struct {
 }
 
 type FlightSummary struct {
+	Enabled      bool               `json:"enabled"`
+	// Region 为中文显示名，RegionCode 单独供国旗查找使用。
+	Region       string             `json:"region"`
+	RegionCode   string             `json:"regionCode"`
 	Measurements MeasurementSummary `json:"measurements"`
 	ID           int64              `json:"id"`
 	Name         string             `json:"name"`
@@ -100,6 +104,9 @@ func (s *Store) Page(ctx context.Context, kind string, anchor int64, backwards b
 			return result, err
 		}
 		result.Flights, err = flightPage(ctx, tx, anchor, order)
+		if err == nil {
+			err = attachRegions(ctx, tx, result.Flights)
+		}
 		if err == nil {
 			err = attachMeasurements(ctx, tx, result.Flights)
 		}
@@ -188,6 +195,12 @@ func (s *Store) Detail(ctx context.Context, id int64) (json.RawMessage, error) {
 	if err = json.Unmarshal([]byte(config), &result); err != nil {
 		return nil, err
 	}
+	var group string
+	if err = tx.QueryRowContext(ctx, `SELECT coalesce((SELECT json_object('id',g.id,'name',g.name)
+ FROM node_groups m JOIN flight_groups g ON g.id=m.group_id WHERE m.node_id=?),'null')`, id).Scan(&group); err != nil {
+		return nil, err
+	}
+	result["group"] = json.RawMessage(group)
 	sources, err := detailSources(ctx, tx, id)
 	if err != nil {
 		return nil, err
@@ -206,7 +219,9 @@ func (s *Store) Detail(ctx context.Context, id int64) (json.RawMessage, error) {
 func detailSources(ctx context.Context, tx *sql.Tx, id int64) ([]json.RawMessage, error) {
 	result := []json.RawMessage{}
 	rows, err := tx.QueryContext(ctx, dedupCandidates+`SELECT json_object(
- 'towerId',coalesce((SELECT parent_id FROM tower_sources WHERE source_id=m.tower_id),m.tower_id),'sourceId',m.tower_id,'ordinal',m.ordinal,'metadata',json(m.source))
+ 'towerId',coalesce((SELECT parent_id FROM tower_sources WHERE source_id=m.tower_id),m.tower_id),
+ 'towerName',(SELECT name FROM towers WHERE id=coalesce((SELECT parent_id FROM tower_sources WHERE source_id=m.tower_id),m.tower_id)),
+ 'sourceId',m.tower_id,'ordinal',m.ordinal,'metadata',json(m.source))
  FROM source_members m WHERE m.representative_id=? ORDER BY m.tower_id,m.ordinal`, id)
 	if err != nil {
 		return result, err

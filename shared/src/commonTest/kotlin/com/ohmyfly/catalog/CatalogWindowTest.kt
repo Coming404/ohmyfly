@@ -18,6 +18,7 @@ class CatalogWindowTest {
                     "summary" -> """{"revision":1,"towers":1200}"""
                     "beginFilter" -> """{"token":1,"revision":1}"""
                     "filterInputs" -> """{"inputs":[]}"""
+                    "groups" -> """{"revision":1,"groups":[],"counts":{"all":0}}"""
                     "commitFilter" -> """{"count":0}"""
                     "page" -> {
                         val anchor = request["anchor"]?.jsonPrimitive?.long ?: 0

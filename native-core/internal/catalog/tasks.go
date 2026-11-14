@@ -90,7 +90,8 @@ func addTaskNodes(ctx context.Context, tx *sql.Tx, id int64, nodes []int64) erro
 			return errors.New("duplicate task node")
 		}
 		result, err := tx.ExecContext(ctx, `INSERT INTO node_runs(task_id,node_id,status)
- SELECT ?,n.id,'queued' FROM nodes n WHERE n.id=? AND `+effectiveNodes, id, node)
+ SELECT ?,n.id,'queued' FROM nodes n WHERE n.id=?
+ AND NOT EXISTS(SELECT 1 FROM node_controls c WHERE c.node_id=n.id AND c.enabled=0) AND `+effectiveNodes, id, node)
 		if err != nil {
 			return err
 		}

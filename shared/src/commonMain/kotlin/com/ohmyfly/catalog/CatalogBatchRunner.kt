@@ -61,18 +61,21 @@ internal class CatalogBatchRunner(
         }
     }
 
-    suspend fun sync(parentId: Long, pendingRemoval: () -> Set<Long>) {
+    // 所选塔台共用一个批次与工作池，页面离开或首个来源提交不会取消其余来源。
+    suspend fun sync(parentIds: Collection<Long>, pendingRemoval: () -> Set<Long>) {
         execute { queue ->
-            var anchor = 0L
-            do {
-                currentCoroutineContext().ensureActive()
-                val batch = readSources(parentId, anchor)
-                for (source in batch) {
-                    if (!source.local && source.parentId !in pendingRemoval()) enqueue(queue, Work(source, null))
-                }
-                if (batch.size < 100) break
-                anchor = batch.last().id
-            } while (true)
+            for (parentId in parentIds) {
+                var anchor = 0L
+                do {
+                    currentCoroutineContext().ensureActive()
+                    val batch = readSources(parentId, anchor)
+                    for (source in batch) {
+                        if (!source.local && source.parentId !in pendingRemoval()) enqueue(queue, Work(source, null))
+                    }
+                    if (batch.size < 100) break
+                    anchor = batch.last().id
+                } while (true)
+            }
         }
     }
 

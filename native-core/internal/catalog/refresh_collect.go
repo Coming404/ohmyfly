@@ -8,6 +8,9 @@ import (
 
 // collectRefresh 将失去来源的历史迁移到同内容存活节点，再回收零引用节点。
 func collectRefresh(ctx context.Context, tx *sql.Tx) error {
+	if err := transferOrphanGroups(ctx, tx, true); err != nil {
+		return err
+	}
 	_, err := tx.ExecContext(ctx, `WITH orphan AS (
  SELECT n.id,n.content_hash FROM nodes n
  WHERE n.content_hash IN (SELECT content_hash FROM refresh_affected)

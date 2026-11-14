@@ -9,7 +9,6 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import com.ohmyfly.catalog.*
 import com.ohmyfly.ui.settings.SettingsButton
-import com.ohmyfly.ui.settings.SettingsHint
 import com.ohmyfly.ui.settings.SettingsIcons
 
 @Composable
@@ -21,8 +20,13 @@ internal fun NodesScreen(
     contentPadding: PaddingValues = PaddingValues(),
     catalog: CatalogState,
     onPage: (Int) -> Unit,
+    searchOpen: Boolean = false,
+    onSearchOpenChange: (Boolean) -> Unit = {},
+    selectionMode: CatalogSelectionMode? = null,
+    onEnterSelection: () -> Unit = {},
 ) {
-    var detail by remember { mutableStateOf<CatalogFlight?>(null) }
+    var expanded by remember { mutableStateOf<Long?>(null) }
+    val inSelection = selectionMode == CatalogSelectionMode.Nodes
     val count = catalog.matchCount ?: 0
     CatalogViewport(listState, 2, catalog.flightPage, catalog.flightWindow.keys, count,
         catalog.failure != null, onPage)
@@ -30,17 +34,19 @@ internal fun NodesScreen(
     LazyColumn(
         modifier = Modifier.fillMaxSize(), state = listState,
         contentPadding = contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item("search") {
-            CatalogSearch(catalog.flightFilter.search, "搜索航班", "航班", count) {
+            CatalogSearch(catalog.flightFilter.search, "搜索航班", "航班", count,
+                expandedState = searchOpen, onExpandedChange = onSearchOpenChange, onQuery = {
                 appCatalog.updateFlightFilter(catalog.flightFilter.copy(search = it), debounce = true)
-            }
+            })
         }
         item("status") {
+            FlightGroups(catalog)
             when {
                 catalog.failure != null -> Column {
-                    SettingsHint(catalog.failure, isError = true)
+                    CatalogNotice(catalog.failure)
                     SettingsButton("重试", SettingsIcons.Retry) {
                         if (!catalog.ready) appCatalog.start()
                         else if (catalog.filterToken == 0L) appCatalog.updateFlightFilter(catalog.appliedFilter)
@@ -50,15 +56,15 @@ internal fun NodesScreen(
                 !catalog.ready || catalog.matchCount == null -> CatalogLoading("正在筛选…")
                 count == 0L -> CatalogEmpty("暂无匹配航班", "添加塔台或调整搜索与筛选条件")
             }
-            catalog.measurementsFailure?.let { SettingsHint(it, isError = true) }
+            catalog.measurementsFailure?.let { CatalogNotice(it) }
         }
         items(count.coerceAtMost(Int.MAX_VALUE.toLong() - 2).toInt(), key = { "flight-slot:$it" }) { index ->
             val flight = catalog.flightWindow[index / 100]?.getOrNull(index % 100)
             if (flight == null) CatalogLoading()
             else FlightCard(flight, flight.id.toString() in selectedIds,
-                onSelect = { onSelection(toggleSelection(selectedIds, flight.id.toString())) },
-                onDetails = { detail = flight })
+                onSelect = { if (!inSelection) onEnterSelection(); onSelection(toggleSelection(selectedIds, flight.id.toString())) },
+                onDetails = { expanded = if (expanded == flight.id) null else flight.id },
+                expanded = expanded == flight.id, revision = catalog.summary.revision, selectionMode = inSelection)
         }
     }
-    detail?.let { FlightDetails(it, onClose = { detail = null }) }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -114,7 +115,10 @@ internal fun SettingsButton(
         enabled = enabled, colors = colors, minHeight = 48.dp) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
-            Text(text, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+            // 图标保留原尺寸，文字只在剩余宽度内缩放。
+            Text(text, modifier = Modifier.weight(1f, fill = false),
+                autoSize = TextAutoSize.StepBased(13.sp, 15.sp, 0.5.sp), fontWeight = FontWeight.Normal,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

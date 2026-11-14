@@ -14,12 +14,18 @@ import (
 
 func reviewFilter(t *testing.T, s *Store, match func(FilterInput) bool) FilterTicket {
 	t.Helper()
+	return reviewScopedFilter(t, s, FlightScope{GroupID: -1, Status: "all"}, match)
+}
+
+// reviewScopedFilter走真实批量筛选事务，验证分组与匹配条件共同生效。
+func reviewScopedFilter(t *testing.T, s *Store, scope FlightScope, match func(FilterInput) bool) FilterTicket {
+	t.Helper()
 	ctx := context.Background()
 	summary, err := s.Summary(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ticket, err := s.BeginFilter(ctx, summary.Revision)
+	ticket, err := s.BeginFilter(ctx, summary.Revision, scope)
 	if err != nil {
 		t.Fatal(err)
 	}

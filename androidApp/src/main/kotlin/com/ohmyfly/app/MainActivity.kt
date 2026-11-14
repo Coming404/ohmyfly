@@ -22,6 +22,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         initializeAppLogging(applicationContext)
         com.ohmyfly.catalog.initializeCatalog(applicationContext)
+        com.ohmyfly.ui.initializeCatalogFileSharing { text -> shareCatalogYaml(text) }
         enableEdgeToEdge()
         val path = androidSettingsPath(applicationContext)
         val info = packageManager.getPackageInfo(packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
@@ -34,6 +35,11 @@ class MainActivity : ComponentActivity() {
                 systemBars.isAppearanceLightNavigationBars = !dark
             }
         }
+    }
+
+    override fun onDestroy() {
+        com.ohmyfly.ui.initializeCatalogFileSharing(null)
+        super.onDestroy()
     }
 
     override fun onStop() {

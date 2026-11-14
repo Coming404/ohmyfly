@@ -40,7 +40,9 @@ internal data class CatalogTower(
 
 @Serializable
 internal data class CatalogFlight(val id: Long, val name: String, val type: String, val server: String, val port: Int,
-    val measurements: CatalogMeasurements = CatalogMeasurements(id))
+    val measurements: CatalogMeasurements = CatalogMeasurements(id),
+    // 地区文字与国旗代码分离，CloudFlare 和未知地区没有国旗。
+    val region: String = "未知", val regionCode: String = "", val enabled: Boolean = true)
 
 @Serializable
 internal data class CatalogPage(
@@ -64,6 +66,7 @@ internal data class CatalogState(
     val taskTotal: Int = 0, val taskCompleted: Int = 0, val taskFailed: Int = 0,
     val queuedBatches: Int = 0,
     val pendingRemoval: Set<Long> = emptySet(),
+    val groups: CatalogGroups = CatalogGroups(),
     val flightFilter: FlightFilter = FlightFilter(), val filterError: String? = null,
     val appliedFilter: FlightFilter = FlightFilter(), val filterRevision: Long = 0,
     val filterToken: Long = 0, val matchCount: Long? = null, val flightLoading: Boolean = true,

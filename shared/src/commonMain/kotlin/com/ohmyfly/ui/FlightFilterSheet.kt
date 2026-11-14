@@ -15,12 +15,10 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import com.ohmyfly.catalog.FlightFilter
 import com.ohmyfly.catalog.appCatalog
-import com.ohmyfly.ui.settings.SettingsHint
 import com.ohmyfly.ui.settings.SettingsIcons
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.overlay.OverlayBottomSheet
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -45,8 +43,8 @@ internal fun FlightFilterSheet(show: Boolean, onClose: () -> Unit) {
     val filter = state.flightFilter
     OverlayBottomSheet(
         show = show, title = "航班筛选", onDismissRequest = onClose,
-        startAction = { TextButton(text = "重置", onClick = hapticClick { appCatalog.updateFlightFilter(FlightFilter()) }) },
-        endAction = { TextButton(text = "关闭", onClick = hapticClick(onClose)) },
+        startAction = { CatalogTextButton(text = "重置", onClick = hapticClick { appCatalog.updateFlightFilter(FlightFilter()) }) },
+        endAction = { CatalogTextButton(text = "关闭", onClick = hapticClick(onClose)) },
     ) {
         Column(Modifier.fillMaxWidth().height(height * if (expanded) 0.72f else 0.42f)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -55,7 +53,7 @@ internal fun FlightFilterSheet(show: Boolean, onClose: () -> Unit) {
                     state.matchCount == null -> if (state.failure != null) "筛选未完成" else "正在筛选…"
                     else -> "匹配 ${state.matchCount} 个航班"
                 }, modifier = Modifier.weight(1f))
-                TextButton(text = if (expanded) "收起" else "展开", onClick = hapticClick { expanded = !expanded })
+                CatalogTextButton(text = if (expanded) "收起" else "展开", onClick = hapticClick { expanded = !expanded })
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth().toggleable(filter.enabled, role = Role.Switch,
@@ -70,8 +68,8 @@ internal fun FlightFilterSheet(show: Boolean, onClose: () -> Unit) {
                 FlightFilterInput("名称排除", filter.excludePattern, filter.enabled, onFocus = { expanded = true }) {
                     appCatalog.updateFlightFilter(appCatalog.state.value.flightFilter.copy(excludePattern = it), debounce = true)
                 }
-                state.filterError?.let { SettingsHint(it, isError = true) }
-                state.failure?.let { SettingsHint(it, isError = true) }
+                state.filterError?.let { CatalogNotice(it) }
+                state.failure?.let { CatalogNotice(it) }
                 Text("协议")
                 (state.protocols + filter.protocols).sorted().forEach { protocol ->
                     FlightProtocolChoice(protocol, protocol in filter.protocols, filter.enabled) {

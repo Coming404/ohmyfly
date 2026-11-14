@@ -25,6 +25,7 @@ class CatalogMeasurementsTest {
                 "summary" -> """{"revision":1,"metricsRevision":0}"""
                 "beginFilter" -> { filterToken++; """{"token":$filterToken,"revision":1}""" }
                 "filterInputs" -> """{"inputs":[]}"""
+                "groups" -> """{"revision":1,"groups":[],"counts":{"all":2}}"""
                 "commitFilter" -> """{"count":2}"""
                 "page" -> {
                     onPage()

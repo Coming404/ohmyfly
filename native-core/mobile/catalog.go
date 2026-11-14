@@ -30,6 +30,8 @@ func OpenCatalog(path string) string {
 }
 
 type catalogRequest struct {
+	GroupID      int64                      `json:"groupId"`
+	Scope        catalog.FlightScope        `json:"scope"`
 	References   []catalog.ParsedReference  `json:"references"`
 	Sources      []catalog.SourceInput      `json:"sources"`
 	Merge        bool                       `json:"merge"`
@@ -153,8 +155,28 @@ func callCatalog(ctx context.Context, r catalogRequest) (any, error) {
 		return map[string]bool{"ok": true}, s.Fail(ctx, r.ID, r.Generation, r.Failure, r.Name)
 	case "remove":
 		return map[string]bool{"ok": true}, s.Remove(ctx, r.ID)
+	case "removeTowers":
+		return map[string]bool{"ok": true}, s.RemoveTowers(ctx, r.NodeIDs)
+	case "nodeChange":
+		return map[string]bool{"ok": true}, s.ChangeNodes(ctx, r.NodeIDs, r.Mode)
+	case "selectionPage":
+		ids, err := s.SelectionPage(ctx, r.Kind, r.Name, r.ID, r.Anchor, r.Revision, r.FilterToken)
+		return map[string]any{"ids": ids}, err
+	case "exportYAML":
+		yamlText, err := s.ExportYAML(ctx, r.NodeIDs)
+		return map[string]string{"yaml": yamlText}, err
+	case "groups":
+		return s.Groups(ctx, &r.FilterTicket)
+	case "groupCreate":
+		return s.CreateGroup(ctx, r.Name)
+	case "groupRename":
+		return map[string]bool{"ok": true}, s.RenameGroup(ctx, r.GroupID, r.Name)
+	case "groupDelete":
+		return map[string]bool{"ok": true}, s.DeleteGroup(ctx, r.GroupID)
+	case "groupMove":
+		return map[string]bool{"ok": true}, s.MoveGroup(ctx, r.GroupID, r.NodeIDs)
 	case "beginFilter":
-		return s.BeginFilter(ctx, r.Revision)
+		return s.BeginFilter(ctx, r.Revision, r.Scope)
 	case "filterInputs":
 		inputs, err := s.FilterInputs(ctx, r.FilterTicket, r.Anchor)
 		return map[string]any{"inputs": inputs}, err

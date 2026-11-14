@@ -17,6 +17,7 @@ android-targetSdk = "37"
 android-minSdk = "33"
 
 [libraries]
+flagkit = { module = "dev.carlsen.flagkit:flagkit", version = "1.1.0" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }

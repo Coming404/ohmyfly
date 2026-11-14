@@ -34,7 +34,20 @@ func candidateQuery(ctx context.Context, tx *sql.Tx, filtered bool) (string, err
 		query = basicCandidates
 	}
 	if filtered {
-		query += `, matched AS (SELECT c.id FROM candidates c JOIN filter_results r ON r.node_id=c.id WHERE r.eligible=1) `
+		var groupID int64
+		var status string
+		if err := tx.QueryRowContext(ctx, "SELECT group_id,status FROM filter_scope WHERE id=1").Scan(&groupID, &status); err != nil {
+			return "", err
+		}
+		if groupID == -1 && status == "all" {
+			query += `, matched AS (SELECT c.id FROM candidates c JOIN filter_results r ON r.node_id=c.id WHERE r.eligible=1) `
+		} else {
+			query += `, base_matched AS (SELECT c.id FROM candidates c JOIN filter_results r ON r.node_id=c.id WHERE r.eligible=1),
+ matched AS (SELECT b.id FROM base_matched b CROSS JOIN filter_scope s WHERE s.id=1
+ AND (s.group_id=-1 OR (s.group_id=0 AND NOT EXISTS(SELECT 1 FROM node_groups g WHERE g.node_id=b.id AND g.group_id IS NOT NULL))
+ OR EXISTS(SELECT 1 FROM node_groups g WHERE g.node_id=b.id AND g.group_id=s.group_id))
+ AND (s.status='all' OR coalesce((SELECT status FROM node_runs r WHERE r.node_id=b.id ORDER BY r.id DESC LIMIT 1),'none')=s.status)) `
+		}
 	}
 	return query, nil
 }

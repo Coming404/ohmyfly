@@ -82,6 +82,15 @@ func (s *Store) migrate(ctx context.Context) error {
 	if _, err := tx.ExecContext(ctx, refreshOptimizationSchema); err != nil {
 		return err
 	}
+	if _, err := tx.ExecContext(ctx, groupSchema); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, nodeControlSchema); err != nil {
+		return err
+	}
+	if err := initRegions(ctx, tx); err != nil {
+		return err
+	}
 	if err := interruptTasks(ctx, tx); err != nil {
 		return err
 	}
@@ -149,6 +158,9 @@ func bump(ctx context.Context, tx *sql.Tx) error {
 }
 
 func collect(ctx context.Context, tx *sql.Tx) error {
+	if err := transferOrphanGroups(ctx, tx, false); err != nil {
+		return err
+	}
 	// 同配置还有来源时保留历史；不同 ContentHash 或最后来源消失时由外键级联回收。
 	if _, err := tx.ExecContext(ctx, `UPDATE node_runs SET node_id=(
  SELECT min(n.id) FROM nodes n WHERE n.content_hash=(SELECT content_hash FROM nodes WHERE id=node_runs.node_id)

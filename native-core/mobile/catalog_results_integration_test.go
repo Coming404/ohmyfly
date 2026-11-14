@@ -29,7 +29,7 @@ func resultBridgeNodes(t *testing.T) ([]any, float64) {
 	reviewCall(t, "stage", map[string]any{"id": tower, "generation": ticket["generation"], "nodes": parsed.Nodes})
 	reviewCall(t, "commit", map[string]any{"refresh": map[string]any{"id": tower, "generation": ticket["generation"], "count": 2}})
 	revision := reviewCall(t, "summary", nil)["revision"].(float64)
-	filter := reviewCall(t, "beginFilter", map[string]any{"revision": revision})
+	filter := reviewCall(t, "beginFilter", map[string]any{"revision": revision, "scope": map[string]any{"groupId": -1, "status": "all"}})
 	inputs := reviewCall(t, "filterInputs", map[string]any{"filterTicket": filter})["inputs"].([]any)
 	return []any{inputs[0].(map[string]any)["id"], inputs[1].(map[string]any)["id"]}, revision
 }

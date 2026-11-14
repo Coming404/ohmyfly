@@ -1,6 +1,8 @@
 package com.ohmyfly.catalog
 
 internal data class FlightFilter(
+    val groupId: Long = -1,
+    val status: String = "all",
     val enabled: Boolean = true,
     val search: String = "",
     val includePattern: String = "",
@@ -26,4 +28,5 @@ internal class FlightPredicate(private val filter: FlightFilter) {
             (filter.protocols.isEmpty() || type in filter.protocols)))
 }
 
-internal data class FlightFilterResult(val token: Long, val count: Long, val protocols: Set<String>)
+internal data class FlightFilterResult(val token: Long, val count: Long, val protocols: Set<String>,
+    val groups: CatalogGroups)

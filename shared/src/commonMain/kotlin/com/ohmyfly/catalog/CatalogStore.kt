@@ -91,10 +91,10 @@ internal class CatalogStore(
         filterJob = scope.launch {
             try {
                 delay(wait)
-                val result = withContext(worker) { queryFlightFilter(revision, FlightPredicate(filter)) }
+                val result = withContext(worker) { queryFlightFilter(revision, filter) }
                 if (sequence != filterSequence || revision != state.value.summary.revision || !foreground) return@launch
                 mutableState.update { it.copy(filterToken = result.token, matchCount = result.count,
-                    protocols = result.protocols, flightLoading = active == "flights", failure = null) }
+                    groups = result.groups, protocols = result.protocols, flightLoading = active == "flights", failure = null) }
                 if (active == "flights") page("flights", 0)
             } catch (e: CancellationException) { throw e
             } catch (_: CatalogStaleException) {
@@ -184,7 +184,30 @@ internal class CatalogStore(
 
     fun measurementsChanged() {
         // 提交已确认；显示刷新使用目录自身生命周期，不能夺走任务 ID 或变成写入失败。
-        scope.launch { refreshMeasurements() }
+        if (state.value.appliedFilter.status != "all") {
+            queryFlights()
+            return
+        }
+        scope.launch {
+            refreshMeasurements()
+            val snapshot = state.value
+            if (snapshot.filterToken == 0L || !foreground) return@launch
+            try {
+                val groups = withContext(worker) {
+                    catalogJson.decodeFromJsonElement<CatalogGroups>(call("groups") {
+                        put("filterTicket", buildJsonObject {
+                            put("token", snapshot.filterToken); put("revision", snapshot.summary.revision)
+                        })
+                    })
+                }
+                if (state.value.filterToken == snapshot.filterToken && state.value.summary.revision == groups.revision) {
+                    mutableState.update { it.copy(groups = groups) }
+                }
+            } catch (e: CancellationException) { throw e
+            } catch (_: Exception) {
+                mutableState.update { it.copy(measurementsFailure = "状态计数读取失败，请重新读取目录") }
+            }
+        }
     }
 
     suspend fun refreshMeasurements() = withContext(Dispatchers.Main) {
@@ -267,17 +290,99 @@ internal class CatalogStore(
         check(state.value.taskFailed == 0) { "${state.value.taskFailed} 个来源导入失败，已保留上次成功数据" }
     }
 
+    suspend fun exportYaml(ids: Set<Long>): String = withContext(worker) {
+        require(ids.isNotEmpty()) { "请先选择航班" }
+        // 每批只跨桥接传输一百个配置，最终保持一个 proxies 集合。
+        buildString {
+            append("proxies:\n")
+            ids.sorted().chunked(100).forEach { batch ->
+                val yaml = call("exportYAML") {
+                    put("nodeIds", JsonArray(batch.map { JsonPrimitive(it) }))
+                }.getValue("yaml").jsonPrimitive.content
+                append(yaml.removePrefix("proxies:\n"))
+            }
+        }
+    }
+
+    // 组操作使用目录生命周期；先确认写入，再独立报告列表重读失败。
+    fun changeGroup(action: String, id: Long = 0, name: String = "", nodeIds: Set<Long> = emptySet(),
+        onResult: (Boolean, String) -> Unit) = scope.launch {
+        if (!opened || !state.value.ready) {
+            onResult(false, "目录尚未就绪")
+            return@launch
+        }
+        try {
+            withContext(worker) {
+                call(action) {
+                    put("groupId", id); put("name", name)
+                    put("nodeIds", JsonArray(nodeIds.map { JsonPrimitive(it) }))
+                }
+            }
+        } catch (e: CancellationException) { throw e
+        } catch (_: Exception) {
+            onResult(false, "分组操作未确认，请重新读取目录")
+            return@launch
+        }
+        if (action == "groupDelete" && state.value.flightFilter.groupId == id) {
+            mutableState.update { it.copy(flightFilter = it.flightFilter.copy(groupId = -1),
+                appliedFilter = it.appliedFilter.copy(groupId = -1)) }
+        }
+        onResult(true, when (action) {
+            "groupCreate" -> "分组已添加"
+            "groupRename" -> "分组已重命名"
+            "groupDelete" -> "分组已删除，节点已移至未分组"
+            else -> "节点已移动"
+        })
+        try { reload()
+        } catch (e: CancellationException) { throw e
+        } catch (_: Exception) {
+            mutableState.update { it.copy(failure = "分组已保存，列表重读失败，请下拉重试") }
+        }
+    }
+
+    // 写入确认与目录重读分别报告，不把刷新失败误报成写入失败。
+    fun changeNodes(ids: Set<Long>, mode: String, onResult: (Boolean, String) -> Unit) = scope.launch {
+        try {
+            withContext(worker) { call("nodeChange") {
+                put("nodeIds", JsonArray(ids.map { JsonPrimitive(it) })); put("mode", mode)
+            } }
+        } catch (e: CancellationException) { throw e
+        } catch (_: Exception) { onResult(false, "操作未确认，请重新读取目录"); return@launch }
+        onResult(true, when (mode) { "enable" -> "已启用"; "disable" -> "已停用"; else -> "已删除" })
+        try { reload()
+        } catch (e: CancellationException) { throw e
+        } catch (_: Exception) { mutableState.update { it.copy(failure = "操作已保存，列表重读失败") } }
+    }
+
+    // 批量删除结束后仅重读一次，失败保留未完成选择供重试。
+    fun removeTowers(ids: Set<Long>, onResult: (Boolean, String) -> Unit) = scope.launch {
+        try {
+            withContext(worker) { call("removeTowers") {
+                put("nodeIds", JsonArray(ids.map { JsonPrimitive(it) }))
+            } }
+        } catch (e: CancellationException) { throw e
+        } catch (_: Exception) { onResult(false, "塔台删除未确认，请重新读取目录"); return@launch }
+        onResult(true, "所选塔台已删除")
+        try { reload()
+        } catch (e: CancellationException) { throw e
+        } catch (_: Exception) { mutableState.update { it.copy(failure = "删除已完成，列表重读失败") } }
+    }
+
     fun cancelOperation() { operations.cancelAll() }
 
     suspend fun syncAll(settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) = withContext(Dispatchers.Main) {
         runOperation {
-            batch(settings, mirrors).sync(0) { state.value.pendingRemoval }
+            batch(settings, mirrors).sync(listOf(0L)) { state.value.pendingRemoval }
             check(state.value.taskFailed == 0) { "${state.value.taskFailed} 个来源同步失败，已保留上次成功数据" }
         }.await()
     }
 
-    fun refresh(id: Long, settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) = runOperation {
-        batch(settings, mirrors).sync(id) { state.value.pendingRemoval }
+    fun refresh(id: Long, settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) =
+        refreshTowers(setOf(id), settings, mirrors)
+
+    // 批量任务由目录队列持有；UI 只提交一次，不按卡片生命周期逐个等待。
+    fun refreshTowers(ids: Set<Long>, settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) = runOperation {
+        batch(settings, mirrors).sync(ids) { state.value.pendingRemoval }
         check(state.value.taskFailed == 0) { "${state.value.taskFailed} 个来源同步失败，已保留上次成功数据" }
     }
 

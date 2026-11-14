@@ -141,3 +141,28 @@ internal fun HeaderAction(
         }
     }
 }
+
+@Composable
+internal fun HeaderTextAction(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    tint: Color = MiuixTheme.colorScheme.primary,
+) {
+    val surface = LocalHeaderSurface.current
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        Modifier.defaultMinSize(minWidth = 44.dp, minHeight = 44.dp)
+            .clickable(interactionSource = interaction, indication = null, enabled = enabled,
+                role = Role.Button, onClick = hapticClick(onClick)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(Modifier.padding(horizontal = 8.dp).then(surface()).indication(interaction, LocalIndication.current),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(icon, label, Modifier.size(18.dp), tint = if (enabled) tint else tint.copy(alpha = 0.38f))
+            Text(label, color = if (enabled) tint else tint.copy(alpha = 0.38f), fontSize = 14.sp,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}

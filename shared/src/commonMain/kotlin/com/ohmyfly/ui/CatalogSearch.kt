@@ -17,22 +17,21 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.ui.platform.LocalFocusManager
 import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.SearchBar
-import top.yukonga.miuix.kmp.basic.TextButton
 
 @Composable
 internal fun CatalogSearch(query: String, label: String, title: String, count: Long,
-    onAdd: (() -> Unit)? = null, addEnabled: Boolean = true, onQuery: (String) -> Unit) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
+    onAdd: (() -> Unit)? = null, addEnabled: Boolean = true, onQuery: (String) -> Unit,
+    expandedState: Boolean? = null, onExpandedChange: ((Boolean) -> Unit)? = null) {
+    var localExpanded by rememberSaveable { mutableStateOf(false) }
+    val expanded = expandedState ?: localExpanded
     val focus = LocalFocusManager.current
     val collapse: (Boolean) -> Unit = { value ->
-        expanded = value
+        if (expandedState == null) localExpanded = value else onExpandedChange?.invoke(value)
         if (!value) { onQuery(""); focus.clearFocus() }
     }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth().padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically,
+        if (expandedState == null) Row(Modifier.fillMaxWidth().padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, fontSize = 34.sp, fontWeight = FontWeight.Bold)
-            CatalogBadge(count.toString())
             Spacer(Modifier.weight(1f))
             IconButton(onClick = hapticClick { collapse(!expanded) }, modifier = Modifier.size(44.dp)) {
                 Icon(SettingsIcons.Search, "搜索$title", tint = MiuixTheme.colorScheme.onSurface)
@@ -43,7 +42,13 @@ internal fun CatalogSearch(query: String, label: String, title: String, count: L
                 }
             }
         }
-        if (expanded) SearchBar(
+        Row(Modifier.fillMaxWidth().padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(title, fontSize = 34.sp, fontWeight = FontWeight.Bold)
+            CatalogBadge(count.toString())
+        }
+        CatalogExpansion(expanded) {
+        SearchBar(
             modifier = Modifier.fillMaxWidth(),
             expanded = expanded,
             onExpandedChange = collapse,
@@ -51,7 +56,8 @@ internal fun CatalogSearch(query: String, label: String, title: String, count: L
                 InputField(query = query, onQueryChange = onQuery, label = label,
                     onSearch = { focus.clearFocus() }, expanded = expanded, onExpandedChange = collapse)
             },
-            outsideEndAction = { TextButton("取消", onClick = hapticClick { collapse(false) }) },
+            outsideEndAction = { CatalogTextButton("取消", onClick = hapticClick { collapse(false) }) },
         ) {}
+        }
     }
 }

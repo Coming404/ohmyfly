@@ -46,6 +46,9 @@ func (s *Store) TowerFlights(ctx context.Context, towerID, anchor, revision int6
 	if err != nil {
 		return result, err
 	}
+	if err = attachRegions(ctx, tx, result.Flights); err != nil {
+		return result, err
+	}
 	if err = attachMeasurements(ctx, tx, result.Flights); err != nil {
 		return result, err
 	}

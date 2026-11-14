@@ -18,15 +18,17 @@ import kotlin.time.Clock
 
 @Composable
 internal fun CatalogAction(text: String, icon: ImageVector, modifier: Modifier = Modifier,
-    enabled: Boolean = true, destructive: Boolean = false, onClick: () -> Unit) {
-    val color = if (destructive) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.primary
+    enabled: Boolean = true, destructive: Boolean = false,
+    contentColor: Color = if (destructive) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.primary,
+    onClick: () -> Unit) {
     Button(onClick = hapticClick(onClick), modifier = modifier, enabled = enabled,
         minWidth = 0.dp, minHeight = 44.dp, insideMargin = PaddingValues(horizontal = 4.dp),
         colors = ButtonDefaults.buttonColors(color = Color.Transparent, disabledColor = Color.Transparent,
-            contentColor = color, disabledContentColor = MiuixTheme.colorScheme.onSurfaceVariantSummary)) {
+            contentColor = contentColor, disabledContentColor = MiuixTheme.colorScheme.onSurfaceVariantSummary)) {
         Icon(icon, null, Modifier.size(19.dp))
         Spacer(Modifier.width(5.dp))
-        Text(text, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(text, modifier = Modifier.weight(1f, fill = false), autoSize = CatalogTextSizing.CompactButton,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -51,8 +53,8 @@ internal fun CatalogEmpty(title: String, hint: String, onAdd: (() -> Unit)? = nu
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         CatalogTile(DriftIcons.Nodes, 64)
         Text(title, style = MiuixTheme.textStyles.title4)
-        Text(hint, color = MiuixTheme.colorScheme.onSurfaceVariantSummary, fontSize = 14.sp)
-        onAdd?.let { TextButton("添加塔台", onClick = hapticClick(it), colors = ButtonDefaults.textButtonColorsPrimary()) }
+        Text(hint, color = MiuixTheme.colorScheme.onSurfaceVariantSummary, autoSize = CatalogTextSizing.Notice)
+        onAdd?.let { CatalogTextButton("添加塔台", onClick = hapticClick(it), colors = ButtonDefaults.buttonColorsPrimary()) }
     }
 }
 

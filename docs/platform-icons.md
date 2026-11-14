@@ -38,3 +38,7 @@ SVG 路径内部使用黑色作为单色遮罩，最终显示色来自显式 tin
 - 巴哈姆特：来自 Donnnno 与 Arcticons 贡献者的 [Arcticons](https://github.com/Arcticons-Team/Arcticons)，经 [Iconify arcticons:bahamut](https://api.iconify.design/arcticons/bahamut.svg) 获取，2026-11-12。保留原始路径和线宽，增加青色展示及 Compose 包装。**该图标图形及其改编继续使用 CC BY-SA 4.0**；图形署名不改变其余文件中独立代码与其他图形的许可。[CC BY-SA 4.0 完整文本](../third-party/licenses/arcticons-CC-BY-SA-4.0.txt)。Arcticons README 单独规定图标为 CC BY-SA 4.0，其应用代码 GPL 许可不是这里所用图形的许可。
 
 品牌名称与标识的商标权归各品牌所有。
+
+地区旗帜使用 [kmp-flagkit 1.1.0](https://github.com/acarlsen/kmp-flagkit/tree/1.1.0)，通过 `FlagKit.getFlag(countryCode)` 按节点名称识别所得的地区代码或平台结果自身的地区代码查找；两类地区独立展示，未知或空代码不显示旗帜。该库覆盖 Android、iOS、macOS、桌面和 Web 目标，使用 MIT 许可。[MIT 原文](https://github.com/acarlsen/kmp-flagkit/blob/1.1.0/LICENSE)。
+
+CloudFlare 地区标签的国旗槽使用用户指定的 [theSVG 原始资源](https://cdn.jsdelivr.net/gh/glincker/thesvg@main/public/icons/cloudflare/default.svg)，获取日期为 2026-11-14。`CloudFlareIcon.kt` 保留三个 SVG 路径及白色、橙色填充，按原始 256×116 比例居中到方形画布，通过 `Image` 原色渲染；资源内置，不在运行时下载。Copyright (c) 2025 thesvg.org；[MIT 完整文本](../third-party/licenses/thesvg-MIT.txt)。

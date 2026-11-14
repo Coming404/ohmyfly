@@ -4,8 +4,12 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.serialization.json.*
 
-internal suspend fun CatalogStore.queryFlightFilter(revision: Long, predicate: FlightPredicate): FlightFilterResult {
-    val ticket = call("beginFilter") { put("revision", revision) }
+internal suspend fun CatalogStore.queryFlightFilter(revision: Long, filter: FlightFilter): FlightFilterResult {
+    val predicate = FlightPredicate(filter)
+    val ticket = call("beginFilter") {
+        put("revision", revision)
+        put("scope", buildJsonObject { put("groupId", filter.groupId); put("status", filter.status) })
+    }
     val protocols = mutableSetOf<String>()
     var anchor = 0L
     while (true) {
@@ -30,5 +34,6 @@ internal suspend fun CatalogStore.queryFlightFilter(revision: Long, predicate: F
     currentCoroutineContext().ensureActive()
     val result = call("commitFilter") { put("filterTicket", ticket) }
     return FlightFilterResult(ticket.getValue("token").jsonPrimitive.long,
-        result.getValue("count").jsonPrimitive.long, protocols)
+        result.getValue("count").jsonPrimitive.long, protocols,
+        catalogJson.decodeFromJsonElement<CatalogGroups>(call("groups") { put("filterTicket", ticket) }))
 }

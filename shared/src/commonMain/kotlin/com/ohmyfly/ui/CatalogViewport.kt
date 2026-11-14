@@ -36,12 +36,3 @@ internal fun CatalogViewport(
         }
     }
 }
-
-@Composable
-internal fun CatalogLoading(label: String = "正在读取…") {
-    Row(Modifier.fillMaxWidth().heightIn(min = 88.dp).padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        CircularProgressIndicator()
-        Text(label)
-    }
-}

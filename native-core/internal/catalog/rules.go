@@ -24,7 +24,10 @@ type FilterDecision struct {
 	Eligible bool  `json:"eligible"`
 }
 
-func (s *Store) BeginFilter(ctx context.Context, revision int64) (FilterTicket, error) {
+func (s *Store) BeginFilter(ctx context.Context, revision int64, scope FlightScope) (FilterTicket, error) {
+	if scope.GroupID < -1 || (scope.Status != "all" && scope.Status != "none" && scope.Status != "succeeded" && scope.Status != "failed") {
+		return FilterTicket{}, errors.New("invalid flight scope")
+	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return FilterTicket{}, err
@@ -46,13 +49,18 @@ func (s *Store) BeginFilter(ctx context.Context, revision int64) (FilterTicket, 
 	if _, err = tx.ExecContext(ctx, "INSERT INTO filter_work(id,token,revision,ready) VALUES(1,?,?,0)", ticket.Token, ticket.Revision); err != nil {
 		return ticket, err
 	}
+	if _, err = tx.ExecContext(ctx, `INSERT INTO filter_scope(id,group_id,status,metrics_revision)
+ SELECT 1,?,?,metrics_revision FROM catalog_meta WHERE id=1`, scope.GroupID, scope.Status); err != nil {
+		return ticket, err
+	}
 	return ticket, tx.Commit()
 }
 
 func checkFilter(ctx context.Context, tx *sql.Tx, ticket FilterTicket, ready bool) error {
 	var valid bool
 	err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM filter_work w JOIN catalog_meta m ON m.id=w.id
- WHERE w.token=? AND w.revision=? AND m.revision=w.revision AND w.ready=?)`, ticket.Token, ticket.Revision, ready).Scan(&valid)
+ WHERE w.token=? AND w.revision=? AND m.revision=w.revision AND w.ready=?
+ AND EXISTS(SELECT 1 FROM filter_scope s WHERE s.id=w.id))`, ticket.Token, ticket.Revision, ready).Scan(&valid)
 	if err != nil {
 		return err
 	}

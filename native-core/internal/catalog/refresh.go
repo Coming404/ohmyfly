@@ -166,6 +166,9 @@ func (s *Store) Commit(ctx context.Context, r Refresh) error {
 	if err = commitRefreshNodes(ctx, tx, r); err != nil {
 		return err
 	}
+	if err = applyNameRegions(ctx, tx, r.ID); err != nil {
+		return err
+	}
 	_, err = tx.ExecContext(ctx, `UPDATE towers SET name=CASE WHEN name='' THEN ? ELSE name END,
  usage=?,warnings=?,failure='',committed_generation=?,last_success_at=? WHERE id=?`, r.Name, string(r.Usage), string(r.Warnings), r.Generation, time.Now().UnixMilli(), r.ID)
 	if err != nil {

@@ -1,13 +1,21 @@
 package com.ohmyfly.ui
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.text.style.TextOverflow
+import kotlinx.coroutines.launch
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -116,14 +124,38 @@ private fun AppSnackbar(data: SnackbarData, kind: AppMessageKind) {
         AppMessageKind.Error -> MirrorIcons.Alert to "错误"
         AppMessageKind.Uncertain -> SettingsIcons.Timer to "待确认"
     }
-    // 0.9.4 没有 leadingIcon 插槽；保留原生按钮、手势、超时与背景，只给图标留位。
-    Box(Modifier.fillMaxWidth()) {
-        Snackbar(data, insideMargin = PaddingValues(start = 52.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
-            modifier = Modifier.semantics {
-                liveRegion = if (kind == AppMessageKind.Success) LiveRegionMode.Polite else LiveRegionMode.Assertive
-            })
-        Icon(icon, contentDescription = label,
-            modifier = Modifier.align(Alignment.CenterStart).padding(start = 28.dp).size(20.dp),
-            tint = SnackbarDefaults.snackbarColors().contentColor)
+    val colors = SnackbarDefaults.snackbarColors()
+    val scope = rememberCoroutineScope()
+    // 仍由SnackbarHost负责动画、超时和动作；自定义内容解除原生两行省略限制。
+    Card(modifier = Modifier.fillMaxWidth().padding(SnackbarDefaults.OuterPadding)
+        .dropShadow(shape = RoundedCornerShape(SnackbarDefaults.CornerRadius),
+            shadow = Shadow(radius = 10.dp, color = Color.Black, alpha = 0.1f))
+        .semantics {
+            isTraversalGroup = true
+            liveRegion = if (kind == AppMessageKind.Success) LiveRegionMode.Polite else LiveRegionMode.Assertive
+        }.pointerInput(Unit) { detectTapGestures { /* 消费空白区域点击，避免穿透。 */ } },
+        cornerRadius = SnackbarDefaults.CornerRadius,
+        insideMargin = PaddingValues(0.dp),
+        colors = CardDefaults.defaultColors(color = colors.containerColor, contentColor = colors.contentColor)) {
+        Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp).padding(SnackbarDefaults.InsideMargin), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp), tint = colors.contentColor)
+            // 过长消息在正文区滚动，动作按钮始终可见；普通消息由内容撑高。
+            Text(data.visuals.message, modifier = Modifier.weight(1f)
+                .heightIn(max = LocalWindowInfo.current.containerDpSize.height * 0.4f)
+                .verticalScroll(rememberScrollState()), color = colors.contentColor,
+                autoSize = CatalogTextSizing.Notice)
+            data.visuals.actionLabel?.takeIf { it.isNotEmpty() }?.let { action ->
+                Button(onClick = { scope.launch { data.performAction() } },
+                    modifier = Modifier.widthIn(max = 96.dp),
+                    minWidth = 26.dp, minHeight = 26.dp, cornerRadius = SnackbarDefaults.ActionCornerRadius,
+                    insideMargin = SnackbarDefaults.ActionInsideMargin,
+                    colors = ButtonDefaults.buttonColorsPrimary(color = colors.actionContainerColor,
+                        contentColor = colors.actionContentColor)) {
+                    Text(action, autoSize = CatalogTextSizing.CompactButton,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
     }
 }

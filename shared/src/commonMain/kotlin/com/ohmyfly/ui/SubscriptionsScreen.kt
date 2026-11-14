@@ -20,13 +20,27 @@ internal fun SubscriptionsScreen(
     store: CatalogStore,
     settings: AppSettings,
     importReady: Boolean,
+    selectedTowerIds: Set<Long> = emptySet(),
+    onTowerSelection: (Set<Long>) -> Unit = {},
+    selectionMode: CatalogSelectionMode? = null,
+    selectionTowerId: Long = 0L,
+    onEnterSelection: () -> Unit = {},
+    selectedNodeIds: Set<String> = emptySet(),
+    onNodeSelection: (Set<String>) -> Unit = {},
+    onEnterNodeSelection: (Long) -> Unit = {},
+    searchOpen: Boolean = false,
+    onSearchOpenChange: (Boolean) -> Unit = {},
+    importOpen: Boolean = false,
+    onImportOpenChange: (Boolean) -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val catalog by store.state.collectAsState()
     val mirrors = SubscriptionMirrorSettings(settings.mirrorEnabled, settings.mirrors, settings.selectedMirrorId)
     val messages = LocalAppMessages.current
     val scope = rememberCoroutineScope()
-    var importing by remember { mutableStateOf(false) }
+    var importing by remember { mutableStateOf(importOpen) }
+    LaunchedEffect(importOpen) { importing = importOpen }
+    LaunchedEffect(importing) { onImportOpenChange(importing) }
     var target by remember { mutableStateOf<CatalogTower?>(null) }
     var expanded by remember { mutableStateOf<Long?>(null) }
     val count = catalog.towerMatchCount ?: 0
@@ -40,6 +54,7 @@ internal fun SubscriptionsScreen(
         item("search") {
             CatalogSearch(catalog.towerSearch, "按塔台名称搜索", "塔台", catalog.summary.towers,
                 onAdd = { target = null; importing = true }, addEnabled = importReady && catalog.ready,
+                expandedState = searchOpen, onExpandedChange = onSearchOpenChange,
                 onQuery = store::updateTowerSearch)
         }
         item("control") {
@@ -58,7 +73,13 @@ internal fun SubscriptionsScreen(
             if (tower == null) CatalogLoading()
             else if (tower.id in catalog.pendingRemoval) SettingsHint("等待删除确认，可在底部撤销")
             else TowerCard(tower, catalog.sourceTasks.values.any { it.parentId == tower.id }, importReady && catalog.ready,
-                phase = catalog.sourceTasks.values.firstOrNull { it.parentId == tower.id }?.phase,
+                selected = tower.id in selectedTowerIds, selectionMode = selectionMode == CatalogSelectionMode.Towers,
+                onSelect = { if (selectionMode != CatalogSelectionMode.Towers) onEnterSelection();
+                    onTowerSelection(toggleLongSelection(selectedTowerIds, tower.id)) },
+                // 不同塔台的选择集合隔离，切换来源后全选与已选始终属于同一范围。
+                selectedNodeIds = if (selectionTowerId == tower.id) selectedNodeIds else emptySet(),
+                nodeSelectionMode = selectionMode == CatalogSelectionMode.Nodes,
+                onNodeSelection = { onEnterNodeSelection(tower.id); onNodeSelection(it) },
                 onSourceImport = { source ->
                     target = CatalogTower(source.id, source.name, 0, source.failure, source.kind)
                     importing = true
@@ -94,7 +115,7 @@ internal fun SubscriptionsScreen(
 private fun TowerListStatus(catalog: CatalogState, count: Long, store: CatalogStore, onAdd: () -> Unit) {
     when {
         catalog.failure != null -> Column {
-            SettingsHint(catalog.failure, isError = true)
+            CatalogNotice(catalog.failure)
             SettingsButton("重试", SettingsIcons.Retry) { if (catalog.ready) store.page("towers", catalog.towerPage) else store.start() }
         }
         catalog.towerMatchCount == null -> CatalogLoading()

@@ -1,7 +1,10 @@
 package com.ohmyfly.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
@@ -22,7 +25,7 @@ import kotlin.time.Instant
 
 @Composable
 internal fun TowerControl(state: CatalogState, ready: Boolean, onCancel: () -> Unit, onSync: () -> Unit) {
-    Card(Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
+    Card(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             TowerStatistic(state.summary.towers, "塔台", Modifier.weight(1f))
             Box(Modifier.width(0.5.dp).height(30.dp).background(MiuixTheme.colorScheme.outline.copy(alpha = 0.2f)))
@@ -62,12 +65,28 @@ internal fun TowerCard(
     tower: CatalogTower, loading: Boolean, ready: Boolean, expanded: Boolean, revision: Long,
     onExpand: () -> Unit, onRefresh: () -> Unit, onRemove: () -> Unit,
     phase: String? = null, onSourceImport: (CatalogSource) -> Unit = {},
+    selected: Boolean = false, selectionMode: Boolean = false, onSelect: () -> Unit = {},
+    selectedNodeIds: Set<String> = emptySet(), onNodeSelection: (Set<String>) -> Unit = {},
+    nodeSelectionMode: Boolean = false,
 ) {
     var more by remember(tower.id) { mutableStateOf(false) }
-    Card(Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
-        Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 6.dp)) {
+    // 同步操作按原型固定蓝/红语义，避免动态壁纸主题把正常同步改成其他色相。
+    val dark = MiuixTheme.colorScheme.background.luminance() < 0.5f
+    val syncColor = when {
+        tower.failure.isNotBlank() -> if (dark) Color(0xFFFF6B6B) else Color(0xFFCF2E2E)
+        dark -> Color(0xFF6FA6FF)
+        else -> Color(0xFF1F6FE5)
+    }
+    val select = hapticClick(onSelect)
+    Card(Modifier.fillMaxWidth().combinedClickable(
+        onClick = hapticClick { if (selectionMode) onSelect() else onExpand() },
+        onLongClick = select,
+    )) {
+        Column(Modifier.fillMaxWidth().background(if (selected) MiuixTheme.colorScheme.primaryContainer else Color.Transparent)
+            .padding(14.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically) {
+                if (selectionMode) CatalogSelectionCheck(selected)
                 CatalogTile(if (tower.sourceKind == "http") MirrorIcons.Link else SettingsIcons.File)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(tower.name, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -79,18 +98,20 @@ internal fun TowerCard(
             }
             if (loading) LinearProgressIndicator(Modifier.padding(top = 14.dp).fillMaxWidth())
             TowerUsage(tower)
-            if (tower.failure.isNotBlank()) SettingsHint(tower.failure, isError = true)
-            tower.warnings.forEach { SettingsHint(it.jsonPrimitive.content) }
+            if (tower.failure.isNotBlank()) CatalogNotice(tower.failure)
+            tower.warnings.forEach { CatalogNotice(it.jsonPrimitive.content, CatalogNoticeKind.Warning) }
             Spacer(Modifier.height(10.dp))
             HorizontalDivider()
-            Row(Modifier.fillMaxWidth()) {
+            if (!selectionMode && !nodeSelectionMode) Row(Modifier.fillMaxWidth()) {
                 CatalogAction("航班 ${tower.nodeCount} ${if (expanded) "⌃" else "⌄"}", DriftIcons.Nodes,
                     Modifier.weight(1.2f), onClick = onExpand)
                 CatalogAction(if (tower.sourceKind == "http" || tower.sourceKind == "merged") "同步" else "重导入", SettingsIcons.Retry,
-                    Modifier.weight(1f), enabled = ready && !loading, onClick = onRefresh)
+                    Modifier.weight(1f), enabled = ready && !loading, contentColor = syncColor, onClick = onRefresh)
                 CatalogAction("更多", MirrorIcons.More, Modifier.weight(1f)) { more = true }
             }
-            if (expanded) { HorizontalDivider(); TowerFlights(tower.id, revision) }
+            CatalogExpansion(expanded && !selectionMode) {
+                TowerFlights(tower.id, revision, selectedNodeIds, onNodeSelection, nodeSelectionMode)
+            }
         }
     }
     if (more) OverlayBottomSheet(show = true, title = tower.name, onDismissRequest = { more = false }) {
@@ -117,41 +138,6 @@ private fun TowerUsage(tower: CatalogTower) {
             }
         }
     }
-}
-
-@Composable
-private fun TowerFlights(id: Long, revision: Long) {
-    var page by remember(id, revision) { mutableStateOf<CatalogPage?>(null) }
-    var anchor by remember(id, revision) { mutableStateOf(0L) }
-    var retry by remember { mutableStateOf(0) }
-    var failure by remember { mutableStateOf(false) }
-    var detail by remember { mutableStateOf<CatalogFlight?>(null) }
-    LaunchedEffect(id, revision, anchor, retry) {
-        page = null; failure = false
-        try {
-            page = withContext(Dispatchers.Default) {
-                catalogJson.decodeFromJsonElement<CatalogPage>(catalogCall("towerFlights") {
-                    put("id", id); put("revision", revision); put("anchor", anchor)
-                })
-            }
-        } catch (e: CancellationException) { throw e
-        } catch (_: Exception) { failure = true }
-    }
-    when {
-        failure -> SettingsButton("来源航班读取失败，重试", SettingsIcons.Retry) { retry++ }
-        page == null -> CatalogLoading()
-        else -> {
-            val loaded = page!!
-            loaded.flights.forEach { flight ->
-                FlightRow(flight, onDetails = { detail = flight })
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (anchor > 0) SettingsButton("回到首批", SettingsIcons.Retry) { anchor = 0 }
-                if (loaded.flights.size == 100) SettingsButton("下一批", DriftIcons.Nodes) { anchor = loaded.flights.last().id }
-            }
-        }
-    }
-    detail?.let { FlightDetails(it) { detail = null } }
 }
 
 private fun sourceLabel(kind: String) = when (kind) { "file" -> "本地文件"; "text" -> "粘贴正文"; else -> "网络订阅" }

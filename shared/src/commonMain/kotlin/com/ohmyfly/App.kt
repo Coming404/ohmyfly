@@ -18,6 +18,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -30,6 +31,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ohmyfly.ui.AppDestination
 import com.ohmyfly.ui.AppMessageHost
+import com.ohmyfly.ui.AppMessageKind
+import com.ohmyfly.ui.LocalAppMessages
+import com.ohmyfly.ui.copyCatalogText
+import com.ohmyfly.ui.exportCatalogYaml
 import com.ohmyfly.ui.DriftNavigationBar
 import com.ohmyfly.ui.DriftTopBar
 import com.ohmyfly.ui.NodeSelectionActions
@@ -44,6 +49,11 @@ import com.ohmyfly.ui.ThemeMode
 import com.ohmyfly.ui.AppHaptics
 import com.ohmyfly.ui.hapticClick
 import com.ohmyfly.ui.AppMotion
+import com.ohmyfly.ui.CatalogSelectionMode
+import com.ohmyfly.ui.CatalogSelectionToolbar
+import com.ohmyfly.ui.CatalogSelectAllAction
+import com.ohmyfly.ui.DriftIcons
+import com.ohmyfly.ui.HeaderTextAction
 import com.ohmyfly.ui.LocalAppMotionAllowed
 import com.ohmyfly.ui.LocalAppSurfaceColors
 import com.ohmyfly.ui.rememberSystemReduceTransparency
@@ -61,6 +71,7 @@ import com.ohmyfly.ui.glass.glassShaderSupported
 import com.ohmyfly.ui.settings.openSettingsPage
 import com.ohmyfly.ui.settings.popSettingsPage
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.ToolbarPosition
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.blur.Backdrop
@@ -144,17 +155,27 @@ private fun AppContent(
         { mirrorEditorBack?.invoke() ?: settingsStack.popSettingsPage() }
     } else null
     var selectedIds by remember { mutableStateOf(emptySet<String>()) }
+    var selectedTowerIds by remember { mutableStateOf(emptySet<Long>()) }
+    var selectionTowerId by remember { mutableStateOf(0L) }
+    var selectionMode by remember { mutableStateOf<CatalogSelectionMode?>(null) }
+    var towerSearchOpen by remember { mutableStateOf(false) }
+    var flightSearchOpen by remember { mutableStateOf(false) }
+    var towerImportOpen by remember { mutableStateOf(false) }
     val catalog by subscriptionTowerStore.state.collectAsState()
     LaunchedEffect(Unit) { subscriptionTowerStore.start() }
     ApplyOutputDeduplication(catalog.ready, settingsSession)
     val nodes = remember(catalog.flightWindow) { catalog.flightWindow.entries.sortedBy { it.key }.flatMap { it.value }.map {
         NodeSummary(id = it.id.toString(), name = it.name, region = "", protocol = it.type)
     } }
-    LaunchedEffect(nodes, catalog.filterRevision) {
-        selectedIds = selectedIds.intersect(nodes.mapTo(mutableSetOf()) { it.id })
+    LaunchedEffect(catalog.filterRevision) {
+        selectedIds = emptySet()
+        if (selectionMode == CatalogSelectionMode.Nodes) selectionMode = null
+    }
+    LaunchedEffect(catalog.towerSearch) {
+        selectedIds = emptySet(); selectedTowerIds = emptySet(); selectionMode = null
     }
     com.ohmyfly.catalog.CatalogDestination(destination, catalog.summary.revision) {
-        selectedIds = emptySet()
+        selectedIds = emptySet(); selectedTowerIds = emptySet(); selectionMode = null
     }
     val overviewState = rememberLazyListState()
     val subscriptionsState = rememberLazyListState()
@@ -166,15 +187,36 @@ private fun AppContent(
         AppFrame(
             dark, settings, settingsSession, onRetryRead, destination, settingsChild, settingsBack,
             mirrorPage, mirrorAdd, logsPage, logClear, nodes, selectedIds, onSelection = { selectedIds = it },
+            selectedTowerIds = selectedTowerIds, selectionMode = selectionMode, selectionTowerId = selectionTowerId,
+            onSelectionMode = { selectionMode = it }, onTowerSelection = { selectedTowerIds = it },
             onDestination = { destination = it },
+            onCatalogSearch = {
+                if (destination == AppDestination.Subscriptions) towerSearchOpen = !towerSearchOpen
+                else flightSearchOpen = !flightSearchOpen
+            },
+            onTowerAdd = { towerImportOpen = true },
         ) { padding ->
             AppPager(
                 pagerState, settings, onChange, version, settingsSession, mirrorRunner, settingsStack,
                 nodes, selectedIds, onSelection = { selectedIds = it },
+                selectionMode = selectionMode, selectionTowerId = selectionTowerId, selectedTowerIds = selectedTowerIds,
+                onTowerSelection = { selectedTowerIds = it },
+                onEnterSelection = {
+                    selectedTowerIds = emptySet(); selectionTowerId = 0L; selectionMode = CatalogSelectionMode.Nodes
+                },
+                onEnterNodeSelection = {
+                    selectedTowerIds = emptySet(); selectionTowerId = it; selectionMode = CatalogSelectionMode.Nodes
+                },
+                onEnterTowerSelection = {
+                    selectedIds = emptySet(); selectionTowerId = 0L; selectionMode = CatalogSelectionMode.Towers
+                },
                 onDestination = { destination = it }, editorBackActive = mirrorEditorBack != null,
                 onEditorBackChange = { mirrorEditorBack = it }, onMirrorAddChange = { mirrorAdd = it },
                 onLogClearChange = { logClear = it },
                 overviewState = overviewState, subscriptionsState = subscriptionsState, speedState = speedState,
+                towerSearchOpen = towerSearchOpen, onTowerSearch = { towerSearchOpen = it },
+                flightSearchOpen = flightSearchOpen, onFlightSearch = { flightSearchOpen = it },
+                towerImportOpen = towerImportOpen, onTowerImport = { towerImportOpen = it },
                 nodesState = nodesState, settingsState = settingsState, padding = padding,
             )
         }
@@ -197,10 +239,19 @@ private fun AppFrame(
     nodes: List<NodeSummary>,
     selectedIds: Set<String>,
     onSelection: (Set<String>) -> Unit,
+    selectedTowerIds: Set<Long>,
+    selectionMode: CatalogSelectionMode?,
+    selectionTowerId: Long,
+    onSelectionMode: (CatalogSelectionMode?) -> Unit,
+    onTowerSelection: (Set<Long>) -> Unit,
     onDestination: (AppDestination) -> Unit,
+    onCatalogSearch: () -> Unit,
+    onTowerAdd: () -> Unit,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     var filterOpen by remember { mutableStateOf(false) }
+    val messages = LocalAppMessages.current
+    val scope = rememberCoroutineScope()
     LaunchedEffect(destination) { if (destination != AppDestination.NodeLibrary) filterOpen = false }
     val background = LocalAppSurfaceColors.current.page
     val reduceTransparency = settings.reduceTransparency
@@ -213,16 +264,28 @@ private fun AppFrame(
     Scaffold(
         snackbarHost = { AppMessageHost(blocked = settingsSession.state.readFailed) },
         floatingActionButton = {
-            if (destination == AppDestination.NodeLibrary) com.ohmyfly.ui.FlightFilterAction { filterOpen = true }
+            if (destination == AppDestination.NodeLibrary && selectionMode == null) com.ohmyfly.ui.FlightFilterAction { filterOpen = true }
         },
+        floatingToolbar = {
+            selectionMode?.let { mode ->
+                key(mode, selectionTowerId) {
+                    com.ohmyfly.ui.CatalogSelectionHost(mode,
+                        selectedIds.mapNotNull { it.toLongOrNull() }.toSet(), selectedTowerIds,
+                        settingsSession.state.confirmedSettings ?: settings,
+                        onDone = { onSelectionMode(null); onSelection(emptySet()); onTowerSelection(emptySet()) })
+                }
+            }
+        },
+        floatingToolbarPosition = ToolbarPosition.BottomCenter,
         containerColor = Color.Transparent,
         topBar = {
             AppTopBar(destination, settingsChild, settingsBack, mirrorPage, mirrorAdd, logsPage, logClear, nodes,
-                selectedIds, onSelection, backdrop, glassEnabled, dark, settings, settingsSession,
-                onFilter = { filterOpen = true })
+                selectedIds, onSelection, selectedTowerIds, selectionMode, selectionTowerId, onSelectionMode, onTowerSelection,
+                backdrop, glassEnabled, dark, settings, settingsSession,
+                onCatalogSearch = onCatalogSearch, onTowerAdd = onTowerAdd)
         },
         bottomBar = {
-            if (!settingsChild) DriftNavigationBar(
+            if (!settingsChild && selectionMode == null) DriftNavigationBar(
                 destination = destination,
                 onDestination = onDestination,
                 backdrop = backdrop,
@@ -265,32 +328,60 @@ private fun AppTopBar(
     nodes: List<NodeSummary>,
     selectedIds: Set<String>,
     onSelection: (Set<String>) -> Unit,
+    selectedTowerIds: Set<Long>,
+    selectionMode: CatalogSelectionMode?,
+    selectionTowerId: Long,
+    onSelectionMode: (CatalogSelectionMode?) -> Unit,
+    onTowerSelection: (Set<Long>) -> Unit,
     backdrop: Backdrop,
     glassEnabled: Boolean,
     dark: Boolean,
     settings: AppSettings,
     settingsSession: SettingsSession,
-    onFilter: () -> Unit,
+    onCatalogSearch: () -> Unit,
+    onTowerAdd: () -> Unit,
 ) {
     DriftTopBar(
-        title = if (settingsChild || destination in listOf(AppDestination.Settings, AppDestination.Subscriptions, AppDestination.NodeLibrary)) "" else destination.label,
+        title = if (selectionMode != null) "已选 ${if (selectionMode == CatalogSelectionMode.Nodes) selectedIds.size else selectedTowerIds.size}" else if (settingsChild || destination in listOf(AppDestination.Settings, AppDestination.Subscriptions, AppDestination.NodeLibrary)) "" else destination.label,
         backdrop = backdrop,
         glassEnabled = glassEnabled,
         dark = dark,
         materialMode = settings.materialMode,
         onBack = settingsBack,
-        actions = if (destination == AppDestination.NodeLibrary) {
-            {
-                NodeSelectionActions(nodes = nodes, selectedIds = selectedIds, onSelection = onSelection)
+        actions = when {
+            selectionMode != null -> {
+                {
+                    HeaderTextAction("取消", DriftIcons.Clear, onClick = {
+                        onSelectionMode(null); onSelection(emptySet()); onTowerSelection(emptySet())
+                    })
+                    key(selectionMode, selectionTowerId) {
+                        CatalogSelectAllAction(selectionMode, selectionTowerId, onSelection, onTowerSelection)
+                    }
+                }
             }
-        } else if (mirrorPage) {
-            { HeaderAction("添加镜像", MirrorIcons.Add, onClick = { mirrorAdd?.invoke() },
-                enabled = mirrorAdd != null && settings.mirrorEnabled && !settingsSession.state.readFailed) }
-        } else if (logsPage) {
-            { HeaderAction("清理全部日志", MirrorIcons.Trash, onClick = { logClear?.invoke() },
-                enabled = logClear != null && !settingsSession.state.readFailed,
-                tint = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.error) }
-        } else null,
+            destination == AppDestination.NodeLibrary -> {
+                {
+                    HeaderAction("搜索航班", com.ohmyfly.ui.settings.SettingsIcons.Search, onClick = onCatalogSearch)
+                }
+            }
+            destination == AppDestination.Subscriptions -> {
+                {
+                    HeaderAction("搜索塔台", com.ohmyfly.ui.settings.SettingsIcons.Search, onClick = onCatalogSearch)
+                    HeaderAction("添加塔台", MirrorIcons.Add, onClick = onTowerAdd,
+                        enabled = !settingsSession.state.readFailed)
+                }
+            }
+            mirrorPage -> {
+                { HeaderAction("添加镜像", MirrorIcons.Add, onClick = { mirrorAdd?.invoke() },
+                    enabled = mirrorAdd != null && settings.mirrorEnabled && !settingsSession.state.readFailed) }
+            }
+            logsPage -> {
+                { HeaderAction("清理全部日志", MirrorIcons.Trash, onClick = { logClear?.invoke() },
+                    enabled = logClear != null && !settingsSession.state.readFailed,
+                    tint = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.error) }
+            }
+            else -> null
+        },
     )
 }
 
@@ -316,12 +407,22 @@ private fun AppPager(
     nodes: List<NodeSummary>,
     selectedIds: Set<String>,
     onSelection: (Set<String>) -> Unit,
+    selectionMode: CatalogSelectionMode?,
+    selectionTowerId: Long,
+    selectedTowerIds: Set<Long>,
+    onTowerSelection: (Set<Long>) -> Unit,
+    onEnterSelection: () -> Unit,
+    onEnterTowerSelection: () -> Unit,
+    onEnterNodeSelection: (Long) -> Unit,
     onDestination: (AppDestination) -> Unit,
     editorBackActive: Boolean,
     onEditorBackChange: ((() -> Unit)?) -> Unit,
     onMirrorAddChange: ((() -> Unit)?) -> Unit,
     onLogClearChange: ((() -> Unit)?) -> Unit,
     overviewState: LazyListState, subscriptionsState: LazyListState, speedState: LazyListState,
+    towerSearchOpen: Boolean, onTowerSearch: (Boolean) -> Unit,
+    flightSearchOpen: Boolean, onFlightSearch: (Boolean) -> Unit,
+    towerImportOpen: Boolean, onTowerImport: (Boolean) -> Unit,
     nodesState: LazyListState, settingsState: LazyListState,
     padding: PaddingValues,
 ) {
@@ -347,6 +448,12 @@ private fun AppPager(
                 listState = subscriptionsState, store = subscriptionTowerStore,
                 settings = settingsSession.state.confirmedSettings ?: settings,
                 importReady = settingsSession.state.confirmedSettings != null && !settingsSession.state.readFailed,
+                selectedTowerIds = selectedTowerIds, selectionMode = selectionMode,
+                selectionTowerId = selectionTowerId, onEnterSelection = onEnterTowerSelection,
+                onTowerSelection = onTowerSelection, selectedNodeIds = selectedIds,
+                onNodeSelection = onSelection, onEnterNodeSelection = onEnterNodeSelection,
+                searchOpen = towerSearchOpen, onSearchOpenChange = onTowerSearch,
+                importOpen = towerImportOpen, onImportOpenChange = onTowerImport,
                 contentPadding = padding,
             )
             AppDestination.Speed -> SpeedScreen(
@@ -358,6 +465,8 @@ private fun AppPager(
                 listState = nodesState, nodes = nodes, selectedIds = selectedIds,
                 onSelection = onSelection, contentPadding = padding,
                 catalog = catalog, onPage = { subscriptionTowerStore.page("flights", it) },
+                selectionMode = selectionMode, onEnterSelection = onEnterSelection,
+                searchOpen = flightSearchOpen, onSearchOpenChange = onFlightSearch,
             )
             AppDestination.Settings -> SettingsScreen(
                 listState = settingsState,

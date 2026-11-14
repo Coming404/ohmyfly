@@ -34,14 +34,14 @@ internal fun TowerSources(parentId: Long, revision: Long, onImport: (CatalogSour
         } finally { loading = false }
     }
     if (loading) CatalogLoading()
-    if (failure) SettingsHint("来源读取失败，请重新打开", isError = true)
+    if (failure) CatalogNotice("来源读取失败，请重新打开")
     if (!loading && !failure) LazyColumn(Modifier.fillMaxWidth().heightIn(max = 320.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(sources, key = { it.id }) { source ->
             Column {
                 Text(source.name.ifBlank { "来源 ${source.id}" })
                 Text(catalogAge(source.lastSuccessAt))
-                if (source.failure.isNotBlank()) SettingsHint(source.failure, isError = true)
+                if (source.failure.isNotBlank()) CatalogNotice(source.failure)
                 if (source.local) CatalogAction("重新导入", SettingsIcons.File) { onImport(source) }
             }
         }
