@@ -15,17 +15,13 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.TimeSource
 
 /** One process-scoped client per platform, with streaming rather than automatic body caching. */
-internal class MirrorHttpTransport(
-    private val client: HttpClient,
-    private val verifyHost: suspend (String) -> Unit = ::ensurePublicHost,
-) : MirrorTransport {
+internal class MirrorHttpTransport(private val client: HttpClient) : MirrorTransport {
     override suspend fun head(url: String, timeoutMillis: Long): MirrorHeadResponse {
         logger.debug { "[镜像HTTP] HEAD ${logTarget(url)}，超时 ${timeoutMillis}ms" }
-        val parsed = parseHttpUrl(url) ?: throw MirrorFetchException("请求地址不是公网 HTTP 或 HTTPS 地址")
+        parseHttpUrl(url) ?: throw MirrorFetchException("请求地址不是公网 HTTP 或 HTTPS 地址")
         require(timeoutMillis in 1..60_000)
         return withTimeoutOrNull(timeoutMillis) {
             val start = TimeSource.Monotonic.markNow()
-            verifyHost(parsed.host)
             // 只计首个响应头；不跟随 3xx，也不消费正文。
             client.prepareHead(url) {
                 headers.append(HttpHeaders.CacheControl, "no-cache")
@@ -38,12 +34,10 @@ internal class MirrorHttpTransport(
 
     override suspend fun fetch(url: String, timeoutMillis: Long, maxBytes: Int): ProbeResponse {
         logger.debug { "[镜像HTTP] GET ${logTarget(url)}，超时 ${timeoutMillis}ms，最多 ${maxBytes}B" }
-        val parsed = parseHttpUrl(url) ?: throw MirrorFetchException("请求地址不是公网 HTTP 或 HTTPS 地址")
+        parseHttpUrl(url) ?: throw MirrorFetchException("请求地址不是公网 HTTP 或 HTTPS 地址")
         require(timeoutMillis in 1..60_000 && maxBytes in 1..1_048_576)
         return withTimeoutOrNull(timeoutMillis) {
             val start = TimeSource.Monotonic.markNow()
-            verifyHost(parsed.host)
-            logger.debug { "[镜像HTTP] 公网主机验证通过 ${parsed.host}，耗时 ${start.elapsedNow().inWholeMilliseconds}ms" }
             client.prepareGet(url) {
                 headers.append(HttpHeaders.AcceptEncoding, "identity")
                 headers.append(HttpHeaders.CacheControl, "no-cache")
@@ -83,5 +77,3 @@ internal fun HttpClientConfig<*>.mirrorHttpPolicy() {
     expectSuccess = false
     // No logging, Auth, HttpCookies, or body transformation plugins are installed.
 }
-
-internal expect suspend fun ensurePublicHost(host: String)

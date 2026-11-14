@@ -29,7 +29,7 @@ internal fun TestScope.mirroredSubscriptionClient(handler: MockRequestHandler): 
     followRedirects = false
     engine { dispatcher = StandardTestDispatcher(testScheduler); addHandler(handler) }
 }
-internal fun mirrorSubscriptionFetcher(client: HttpClient) = SubscriptionFetcher(client, { client }, {})
+internal fun mirrorSubscriptionFetcher(client: HttpClient) = SubscriptionFetcher(client, { client })
 
 class SubscriptionMirrorTest {
     private val settings = SubscriptionSettings(userAgent = "custom-one|custom-two", retries = 0)

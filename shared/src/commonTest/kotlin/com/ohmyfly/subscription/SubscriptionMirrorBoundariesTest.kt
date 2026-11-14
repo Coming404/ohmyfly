@@ -110,9 +110,8 @@ class SubscriptionMirrorBoundariesTest {
     }
 
     @Test
-    fun mirrorRedirectsRejectThirdPartyDestinationsAndKeepDnsChecks() = runTest {
+    fun mirrorRedirectsRejectThirdPartyDestinationsBeforeRequestingThem() = runTest {
         val hosts = mutableListOf<String>()
-        val verified = mutableListOf<String>()
         val client = mirroredSubscriptionClient { request ->
             hosts += request.url.host
             if (request.url.host == "b.example") respond("", HttpStatusCode.Found,
@@ -120,11 +119,10 @@ class SubscriptionMirrorBoundariesTest {
             else respond("nodes")
         }
         try {
-            val fetcher = SubscriptionFetcher(client, { client }, { verified += it })
+            val fetcher = SubscriptionFetcher(client, { client })
             val importer = SubscriptionImporter(fetcher, { testSnapshot(testNode()) })
             assertNull(importer.importSubscription(mirrorSubscriptionUrl, settings, mirrors = subscriptionMirrors).failure)
             assertEquals(listOf("b.example", "a.example"), hosts)
-            assertEquals(hosts, verified)
         } finally { client.close() }
     }
 }

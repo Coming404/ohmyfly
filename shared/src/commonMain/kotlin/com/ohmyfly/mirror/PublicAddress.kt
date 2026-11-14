@@ -1,6 +1,6 @@
 package com.ohmyfly.mirror
 
-/** Applied to literal hosts and to every address returned by the resolver. */
+/** 仅校验 URL 中直接填写的 IP；域名解析与 VPN 路由由系统网络栈负责。 */
 internal fun isPublicAddress(bytes: ByteArray): Boolean {
     val b = bytes.map { it.toInt() and 255 }
     if (b.size == 4) {

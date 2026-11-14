@@ -76,9 +76,9 @@
 - 单项测试不改变选择；全部测试正常完成后自动选择本轮最低延迟的成功镜像，并通过既有设置链持久化。停止测试或全部失败时保留当前选择。实际资源下载仍按选中优先、其余持久化顺序降级，保留有界 GET、摘要校验及逐跳安全校验。
 - 公共镜像不接收 GitHub Authorization、塔台令牌或 Cookie，不默认代理私有仓库。内容样本正确不等于运营方可信；实际资源需独立完整性验证。
 - iOS 设置输入框通过局部 `SettingsInputMenu`／`LocalTextToolbar` 抑制 Select／Select All 等浮动编辑菜单；Android 菜单和只读预览复制不受影响。未改变键盘、游标和合成输入。
-- HTTP 镜像为用户显式允许的明文端点：Android 允许 cleartext，iOS ATS 允许任意载入（用户域名无法预枚举）。实际镜像传输仍逐跳校验公网端点／DNS、拒绝凭据与 HTTPS→HTTP 降级；不放宽原始 GitHub HTTPS 与其他设置 URL。HTTP 本身不加密，公开样本哈希校验不等于普通下载的传输加密。
+- HTTP 镜像为用户显式允许的明文端点：Android 允许 cleartext，iOS ATS 允许任意载入（用户域名无法预枚举）。实际镜像传输仍逐跳校验 URL 域名与字面 IP、拒绝凭据与 HTTPS→HTTP 降级；不放宽原始 GitHub HTTPS 与其他设置 URL。HTTP 本身不加密，公开样本哈希校验不等于普通下载的传输加密。
 - 默认目录包含 8 个镜像：`gh-proxy.com`、`githubdog.com`、`hk.gh-proxy.org`、`cdn.gh-proxy.org`、`gh.wglee.org`、`api.gitproxy.dev`、`ghfast.top`、`ghproxy.net`。新增三项来自 [github-accelerator](https://github.com/ybq666/github-accelerator/blob/5d004853bd42dcc012a3de7609487b92a5972649/github-accelerator.user.js#L35-L69)，重复的 `gh-proxy.com` 只保留一次。已有持久化列表不自动追加或覆盖；新目录用于默认设置。
-- Android在OkHttp DNS回调返回经过验证的同一批地址，避免检查后重新解析。iOS预查公网DNS，但NSURLSession会自行解析，**不能保证完全防DNS复绑定**；仅用于用户主动选择的公开镜像，无凭据。原生DNS解析也受系统超时约束，取消和4秒测速预算不能保证立即中断底层解析调用。
+- 镜像探测与镜像订阅下载沿用系统 DNS、代理及 VPN 路由。Android 不自定义 DNS 或强制直连，iOS 不预先调用 getaddrinfo 或清空代理配置；域名解析得到的 Fake-IP 交给系统网络栈，不按保留网段提前拒绝。URL 中直接填写的本地／保留 IP、localhost 与本地域名仍被拒绝；域名最终连接地址由用户的系统网络环境决定，不再提供 DNS 结果级公网限制。四秒 HEAD 预算、逐跳 URL 校验、凭据隔离和正文上限保持不变。
 - 读屏焦点目前无法从common可靠检测；只实现稳定key及操作期间冻结排序，不声称已完成所有焦点保护。跨网络结果与离页结果不持久化，重新进入显示未测试。
 
 ## 新依赖核对

@@ -128,7 +128,7 @@ class SubscriptionProvidersTest {
     }
 
     @Test
-    fun filtersNamesBeforeDeduplicatingAcrossProviders() = runTest {
+    fun filtersNamesAndPreservesProviderCandidatesForCatalogDeduplication() = runTest {
         val extra = buildJsonObject { put("password", "one") }
         val root = testSnapshot(testNode("剩余流量", extra = extra))
             .copy(proxyProviders = listOf(testProvider("a")))
@@ -139,7 +139,9 @@ class SubscriptionProvidersTest {
             val importer = SubscriptionImporter(SubscriptionFetcher(client), { if (it == "/root") root else child })
             val result = importer.importSubscription("https://sub.example/root", SubscriptionSettings(userAgent = "one"))
             assertNull(result.failure)
-            assertEquals(listOf("HK", "HK other password"), result.nodes.map { it.name })
+            // 导入阶段保留同配置候选和来源资格，ContentHash 合并由目录事务负责。
+            assertEquals(listOf("HK", "HK copy", "HK other password"), result.nodes.map { it.name })
+            assertEquals(listOf(false, true, true, true), result.records.map { it.eligible })
         } finally { client.close() }
     }
 

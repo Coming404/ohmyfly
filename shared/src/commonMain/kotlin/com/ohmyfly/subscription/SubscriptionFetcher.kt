@@ -7,7 +7,6 @@ import kotlin.time.TimeSource
 
 import com.ohmyfly.mirror.isGitHubHost
 import com.ohmyfly.mirror.createMirrorClient
-import com.ohmyfly.mirror.ensurePublicHost
 import com.ohmyfly.mirror.parseHttpUrl
 import com.ohmyfly.mirror.resolveRedirect
 import com.ohmyfly.mirror.MAX_REDIRECTS
@@ -64,7 +63,6 @@ internal data class SubscriptionResponse(
 internal class SubscriptionFetcher(
     private val client: HttpClient,
     private val mirrorClient: () -> HttpClient = ::createMirrorClient,
-    private val verifyHost: suspend (String) -> Unit = ::ensurePublicHost,
 ) {
     suspend fun fetch(
         url: String, settings: SubscriptionSettings, userAgent: String?, timeoutMillis: Long,
@@ -77,8 +75,8 @@ internal class SubscriptionFetcher(
         return withTimeoutOrNull(timeoutMillis) {
             var current = url
             repeat(MAX_REDIRECTS + 1) { hop ->
-                val parsed = parseHttpUrl(current) ?: throw SubscriptionFetchException("镜像地址无效", false)
-                verifyHost(parsed.host)
+                // 逐跳校验 URL；实际 DNS 与 Fake-IP 转发交给系统网络栈。
+                parseHttpUrl(current) ?: throw SubscriptionFetchException("镜像地址无效", false)
                 try {
                     return@withTimeoutOrNull request(mirrorClient(), current, settings, userAgent,
                         timeoutMillis, requestHeaders, operation, resolveName, redirect = true)

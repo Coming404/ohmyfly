@@ -32,8 +32,8 @@ class MirrorHttpTransportTest {
     fun headReturnsAfterHeadersWithoutWaitingForOrReadingBody() = runTest {
         val body = ByteChannel()
         var calls = 0
-        val hosts = mutableListOf<String>()
         val client = mockClient { request ->
+            assertEquals("example.com", request.url.host)
             calls++
             assertEquals(HttpMethod.Head, request.method)
             assertEquals("no-cache", request.headers[HttpHeaders.CacheControl])
@@ -43,11 +43,10 @@ class MirrorHttpTransportTest {
             respond(body, headers = headersOf(HttpHeaders.ContentLength, "99999999"))
         }
         try {
-            val response = MirrorHttpTransport(client, { hosts += it }).head("https://example.com/file", 4_000)
+            val response = MirrorHttpTransport(client).head("https://example.com/file", 4_000)
             assertEquals(200, response.statusCode)
             assertTrue(response.latencyMs >= 0)
             assertEquals(0L, testScheduler.currentTime)
-            assertEquals(listOf("example.com"), hosts)
             assertEquals(1, calls)
         } finally { client.close() }
     }
@@ -61,7 +60,7 @@ class MirrorHttpTransportTest {
             respond(ByteReadChannel(byteArrayOf()), HttpStatusCode.Found, headersOf(HttpHeaders.Location, "https://127.0.0.1/"))
         }
         try {
-            val result = MirrorProbe(MirrorHttpTransport(client, {})).measure(null)
+            val result = MirrorProbe(MirrorHttpTransport(client)).measure(null)
             assertEquals(ProbeStatus.Success, result.status)
             assertEquals("HTTP 302", result.detail)
             assertEquals(1, calls)
@@ -69,15 +68,15 @@ class MirrorHttpTransportTest {
     }
 
     @Test
-    fun headDeadlineIncludesHostVerificationAndResponseWait() = runTest {
+    fun headDeadlineIncludesEngineConnectionAndResponseWait() = runTest {
         var calls = 0
         val client = mockClient {
             calls++
-            delay(2_000)
+            delay(4_500)
             respond(ByteReadChannel(byteArrayOf()))
         }
         try {
-            val transport = MirrorHttpTransport(client, { delay(2_500) })
+            val transport = MirrorHttpTransport(client)
             assertFailsWith<MirrorTimeoutException> { transport.head("https://example.com/file", 4_000) }
             assertEquals(4_000L, testScheduler.currentTime)
             assertEquals(1, calls)
@@ -85,12 +84,15 @@ class MirrorHttpTransportTest {
     }
 
     @Test
-    fun headNeverRequestsAHostRejectedByPublicDnsVerification() = runTest {
+    fun headAndFetchRejectLocalOrReservedLiteralUrlsBeforeConnecting() = runTest {
         var calls = 0
         val client = mockClient { calls++; respond(ByteReadChannel(byteArrayOf())) }
         try {
-            val transport = MirrorHttpTransport(client, { throw MirrorFetchException("private DNS address") })
-            assertFailsWith<MirrorFetchException> { transport.head("https://example.com/file", 4_000) }
+            val transport = MirrorHttpTransport(client)
+            for (host in listOf("127.0.0.1", "192.168.1.1", "198.18.0.1", "localhost", "[::1]")) {
+                assertFailsWith<MirrorFetchException> { transport.head("https://$host/file", 4_000) }
+                assertFailsWith<MirrorFetchException> { transport.fetch("https://$host/file", 4_000, 8) }
+            }
             assertEquals(0, calls)
         } finally { client.close() }
     }
@@ -99,7 +101,7 @@ class MirrorHttpTransportTest {
     fun streamCapIsEnforcedWithoutContentLength() = runTest {
         val client = mockClient { respond(ByteReadChannel(ByteArray(33))) }
         try {
-            val transport = MirrorHttpTransport(client, verifyHost = {})
+            val transport = MirrorHttpTransport(client)
             assertFailsWith<MirrorFetchException> { transport.fetch("https://example.com/file", 5000, 8) }
         } finally { client.close() }
     }
@@ -110,7 +112,7 @@ class MirrorHttpTransportTest {
             respond(ByteReadChannel(ByteArray(32)), headers = headersOf(HttpHeaders.ContentLength, "32"))
         }
         try {
-            assertFailsWith<MirrorFetchException> { MirrorHttpTransport(client, {}).fetch("https://example.com/file", 5000, 8) }
+            assertFailsWith<MirrorFetchException> { MirrorHttpTransport(client).fetch("https://example.com/file", 5000, 8) }
         } finally { client.close() }
     }
 
@@ -122,7 +124,7 @@ class MirrorHttpTransportTest {
             respond(ByteReadChannel(byteArrayOf()), HttpStatusCode.Found, headersOf(HttpHeaders.Location, "https://127.0.0.1/"))
         }
         try {
-            val response = MirrorHttpTransport(client, {}).fetch("https://example.com/file", 5000, 8)
+            val response = MirrorHttpTransport(client).fetch("https://example.com/file", 5000, 8)
             assertEquals(302, response.statusCode)
             assertEquals(1, calls)
             assertEquals("https://127.0.0.1/", response.location)
@@ -137,7 +139,7 @@ class MirrorHttpTransportTest {
             respond(ByteReadChannel("abc".encodeToByteArray()), headers = headersOf(HttpHeaders.SetCookie, "session=secret"))
         }
         try {
-            val transport = MirrorHttpTransport(client, {})
+            val transport = MirrorHttpTransport(client)
             repeat(2) { assertEquals(3, transport.fetch("https://example.com/file", 5000, 8).body.size) }
         } finally { client.close() }
     }
