@@ -85,6 +85,8 @@ jobs:
           with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as output:
               output.write(summary)
           PY
+      - name: Install APK verification dependency
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Verify signatures and collect per-ABI Release APKs
         shell: bash
         run: |
