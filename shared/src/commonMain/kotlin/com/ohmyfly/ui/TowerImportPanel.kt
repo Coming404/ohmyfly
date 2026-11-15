@@ -29,7 +29,7 @@ internal fun TowerImportPanel(
     val draft = remember(target?.id) { TowerImportDraft(target) }
     val focus = LocalFocusManager.current
     var accepted by remember(target?.id) { mutableStateOf(false) }
-    OverlayBottomSheet(show = true, title = if (target == null) "添加塔台" else "重新导入",
+    OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(), title = if (target == null) "添加塔台" else "重新导入",
         onDismissRequest = { if (!draft.reading) onClose() }, backgroundColor = MiuixTheme.colorScheme.background,
         endAction = { IconButton(onClick = hapticClick(onClose), enabled = !draft.reading) { Icon(DriftIcons.Clear, "关闭") } }) {
         // 入队成功留在抽屉内反馈，完成按钮关闭；隐藏表单避免重复提交同一份来源。
@@ -45,9 +45,11 @@ internal fun TowerImportPanel(
             .verticalScroll(rememberScrollState()).imePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (target == null) TowerImportSources(draft.mode, !draft.reading) { draft.mode = it; draft.failure = null }
             TowerImportInput(draft, settings, target != null)
-            TextField(value = draft.name, onValueChange = { draft.name = it }, label = "名称（自动命名）", singleLine = true)
+            Text("名称（自动命名）", style = catalogInputStyle())
+            TextField(value = draft.name, textStyle = catalogInputStyle(), onValueChange = { draft.name = it },
+                insideMargin = androidx.compose.ui.unit.DpSize(12.dp, 12.dp), singleLine = true)
             if (target == null) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("合并为一个塔台", Modifier.weight(1f))
+                Text("合并为一个塔台", Modifier.weight(1f), style = catalogInputStyle())
                 Switch(checked = draft.merge, onCheckedChange = { draft.merge = it }, enabled = !draft.reading)
             }
             draft.failure?.let { CatalogNotice(it) }
@@ -92,10 +94,13 @@ private fun TowerImportInput(draft: TowerImportDraft, settings: SubscriptionSett
             }
         }
         if (draft.files.isNotEmpty()) CatalogAction("清除选择", DriftIcons.Clear) { draft.files = emptyList() }
-    } else TextField(value = if (draft.mode == "url") draft.urls else draft.text,
-        onValueChange = { if (draft.mode == "url") draft.urls = it else draft.text = it; draft.failure = null },
-        label = if (draft.mode == "url") "订阅地址，每行一个" else "粘贴配置或节点链接", useLabelAsPlaceholder = true,
-        singleLine = false, minLines = 3, modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp))
+    } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(if (draft.mode == "url") "订阅地址或节点链接，每行一个" else "YAML 正文或节点链接", style = catalogInputStyle())
+        TextField(value = if (draft.mode == "url") draft.urls else draft.text,
+            onValueChange = { if (draft.mode == "url") draft.urls = it else draft.text = it; draft.failure = null },
+            textStyle = catalogInputStyle(), insideMargin = androidx.compose.ui.unit.DpSize(12.dp, 12.dp),
+            singleLine = false, minLines = 3, modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp))
+    }
 }
 
 @Composable

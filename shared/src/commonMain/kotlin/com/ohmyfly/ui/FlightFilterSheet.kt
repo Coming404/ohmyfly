@@ -42,7 +42,7 @@ internal fun FlightFilterSheet(show: Boolean, onClose: () -> Unit) {
     val height = LocalWindowInfo.current.containerDpSize.height
     val filter = state.flightFilter
     OverlayBottomSheet(
-        show = show, title = "航班筛选", onDismissRequest = onClose,
+        show = show, title = "航班筛选", onDismissRequest = onClose, insideMargin = catalogSheetMargin(),
         startAction = { CatalogTextButton(text = "重置", onClick = hapticClick { appCatalog.updateFlightFilter(FlightFilter()) }) },
         endAction = { CatalogTextButton(text = "关闭", onClick = hapticClick(onClose)) },
     ) {
@@ -52,14 +52,14 @@ internal fun FlightFilterSheet(show: Boolean, onClose: () -> Unit) {
                     !state.ready -> "正在读取航班…"
                     state.matchCount == null -> if (state.failure != null) "筛选未完成" else "正在筛选…"
                     else -> "匹配 ${state.matchCount} 个航班"
-                }, modifier = Modifier.weight(1f))
+                }, modifier = Modifier.weight(1f), style = catalogInputStyle())
                 CatalogTextButton(text = if (expanded) "收起" else "展开", onClick = hapticClick { expanded = !expanded })
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth().toggleable(filter.enabled, role = Role.Switch,
                     onValueChange = hapticChange { appCatalog.updateFlightFilter(filter.copy(enabled = it)) })
                     .padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("启用筛选", Modifier.weight(1f))
+                    Text("启用筛选", Modifier.weight(1f), style = catalogInputStyle())
                     Switch(checked = filter.enabled, onCheckedChange = null, modifier = Modifier.clearAndSetSemantics {})
                 }
                 FlightFilterInput("名称包含", filter.includePattern, filter.enabled, onFocus = { expanded = true }) {
@@ -70,14 +70,14 @@ internal fun FlightFilterSheet(show: Boolean, onClose: () -> Unit) {
                 }
                 state.filterError?.let { CatalogNotice(it) }
                 state.failure?.let { CatalogNotice(it) }
-                Text("协议")
+                Text("协议", style = catalogInputStyle())
                 (state.protocols + filter.protocols).sorted().forEach { protocol ->
                     FlightProtocolChoice(protocol, protocol in filter.protocols, filter.enabled) {
                         val selected = if (protocol in filter.protocols) filter.protocols - protocol else filter.protocols + protocol
                         appCatalog.updateFlightFilter(filter.copy(protocols = selected))
                     }
                 }
-                if (state.ready && state.protocols.isEmpty() && filter.protocols.isEmpty()) Text("暂无协议")
+                if (state.ready && state.protocols.isEmpty() && filter.protocols.isEmpty()) Text("暂无协议", style = catalogInputStyle())
             }
         }
     }
@@ -87,7 +87,7 @@ internal fun FlightFilterSheet(show: Boolean, onClose: () -> Unit) {
 private fun FlightProtocolChoice(name: String, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().toggleable(selected, enabled = enabled, role = Role.Checkbox,
         onValueChange = hapticChange { onClick() }).padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(name, Modifier.weight(1f))
+        Text(name, Modifier.weight(1f), style = catalogInputStyle())
         Checkbox(state = if (selected) ToggleableState.On else ToggleableState.Off,
             onClick = null, modifier = Modifier.clearAndSetSemantics {})
     }

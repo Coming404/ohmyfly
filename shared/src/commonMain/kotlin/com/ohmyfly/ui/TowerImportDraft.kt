@@ -23,8 +23,21 @@ internal class TowerImportDraft(target: CatalogTower?) {
         val result = mutableListOf<CatalogImportSource>()
         val title = name.trim()
         require(title.length <= 256) { "名称最多 256 字符" }
-        if (urls.isNotBlank()) subscriptionAddresses(urls, settings.addressLimit).forEach {
-            result += CatalogImportSource(it, "")
+        if (urls.isNotBlank()) {
+            val lines = urls.lineSequence().map(String::trim).filter(String::isNotEmpty).distinct().toList()
+            require(lines.size <= settings.addressLimit) { "每批最多 ${settings.addressLimit} 个地址" }
+            val (subscriptions, links) = lines.partition {
+                it.startsWith("https://", ignoreCase = true) || it.startsWith("http://", ignoreCase = true)
+            }
+            if (subscriptions.isNotEmpty()) subscriptionAddresses(subscriptions.joinToString("\n"), settings.addressLimit).forEach {
+                result += CatalogImportSource(it, "")
+            }
+            if (links.isNotEmpty()) {
+                require(links.all { "://" in it }) { "请输入完整订阅地址或节点协议链接" }
+                val content = links.joinToString("\n")
+                validateSubscriptionBody(content, settings.maxMiB)
+                result += CatalogImportSource(newBodyAddress("text"), "节点链接") { SubscriptionBody("节点链接", content, "text") }
+            }
         }
         require(files.size <= if (target == null) settings.fileLimit else 1) { "所选文件超过数量上限" }
         files.forEach { file ->

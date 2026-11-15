@@ -5,6 +5,11 @@ import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonColors
@@ -14,12 +19,21 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 // 上限沿用原有文字层级，避免短文案被放大到不符合卡片比例的字号。
 internal object CatalogTextSizing {
-    val Button = TextAutoSize.StepBased(14.sp, 17.sp, 0.5.sp)
+    val Button = TextAutoSize.StepBased(13.sp, 15.sp, 0.5.sp)
     val CompactButton = TextAutoSize.StepBased(12.sp, 14.sp, 0.5.sp)
     val Caption = TextAutoSize.StepBased(11.sp, 13.sp, 0.5.sp)
     val Notice = TextAutoSize.StepBased(12.sp, 14.sp, 0.5.sp)
-    val Body = TextAutoSize.StepBased(14.sp, 17.sp, 0.5.sp)
+    val Body = TextAutoSize.StepBased(13.sp, 15.sp, 0.5.sp)
 }
+
+// Miuix 抽屉默认底部边距为零；使用实际安全区，避免按钮与 iOS Home 指示条重叠。
+@Composable
+internal fun catalogSheetMargin(): DpSize = DpSize(
+    16.dp, WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding() + 12.dp,
+)
+
+@Composable
+internal fun catalogInputStyle() = MiuixTheme.textStyles.main.copy(fontSize = 15.sp)
 
 // Miuix TextButton未暴露autoSize，使用同样的Button基础和默认尺寸承载可缩放文字。
 @Composable

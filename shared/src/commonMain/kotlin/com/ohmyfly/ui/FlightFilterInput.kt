@@ -1,7 +1,12 @@
 // 使用 Miuix 状态式输入；文字变化交由目录会话防抖，重置由外部条件同步。
 package com.ohmyfly.ui
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
+import top.yukonga.miuix.kmp.basic.Text
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
@@ -32,13 +37,16 @@ internal fun FlightFilterInput(
             if (text != latestValue) latestChange(text)
         }
     }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Text(title, style = catalogInputStyle())
     SettingsInputMenu {
         TextField(
-            state = input, label = title, enabled = enabled,
+            state = input, enabled = enabled, textStyle = catalogInputStyle(), insideMargin = DpSize(12.dp, 12.dp),
             lineLimits = TextFieldLineLimits.SingleLine,
             keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, imeAction = ImeAction.Done),
             modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) onFocus() }
                 .semantics { contentDescription = title },
         )
+    }
     }
 }

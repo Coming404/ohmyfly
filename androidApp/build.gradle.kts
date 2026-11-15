@@ -16,6 +16,15 @@ android {
         versionCode = 1
         versionName = "0.1.0"
     }
+    // 每个 APK 仅携带目标 ABI 的原生库，不额外生成体积更大的通用包。
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86_64")
+            isUniversalApk = false
+        }
+    }
     signingConfigs {
         create("release") {
             storeFile = providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull?.let { file(it) }

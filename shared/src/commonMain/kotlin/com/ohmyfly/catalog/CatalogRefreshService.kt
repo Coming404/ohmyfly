@@ -77,6 +77,7 @@ internal class CatalogRefreshService(
             require(!ticket.address.startsWith("local:")) { "本地塔台请重新选择文件或粘贴正文" }
             val result = importer.importSubscription(ticket.address, effective, ticket.name.isBlank(), mirrors, writer::append)
             if (result.failure != null) {
+                logCatalogFailure("来源 $id 网络导入", IllegalArgumentException(result.failure))
                 request("fail") { put("id", id); put("generation", ticket.generation)
                     put("failure", result.failure); put("name", parseUrl(ticket.address)!!.host) }
                 return false

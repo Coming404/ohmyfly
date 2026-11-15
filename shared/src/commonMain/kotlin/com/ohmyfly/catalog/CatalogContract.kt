@@ -51,9 +51,9 @@ internal data class CatalogPage(
     val towers: List<CatalogTower> = emptyList(), val flights: List<CatalogFlight> = emptyList(),
 )
 
+// 去重规则只在 Go 提交事务内读取，刷新票据不重复传输规则集合。
 @Serializable
-internal data class RefreshTicket(val id: Long, val generation: Long, val address: String, val name: String,
-    val dedupRules: DeduplicationRule = DeduplicationRule())
+internal data class RefreshTicket(val id: Long, val generation: Long, val address: String, val name: String)
 
 internal data class CatalogState(
     val summary: CatalogSummary = CatalogSummary(), val towers: List<CatalogTower> = emptyList(),

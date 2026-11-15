@@ -28,10 +28,10 @@ internal fun FlightGroupEditor(group: CatalogGroup?, groups: List<CatalogGroup>,
             else failure = text
         }
     }
-    OverlayBottomSheet(show = true, title = if (group == null) "新建分组" else "管理分组",
+    OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(), title = if (group == null) "新建分组" else "管理分组",
         onDismissRequest = { if (!busy) onClose() }) {
         Column(Modifier.fillMaxWidth().imePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            TextField(value = name, onValueChange = { name = it; failure = null }, label = "分组名称",
+            TextField(value = name, textStyle = catalogInputStyle(), onValueChange = { name = it; failure = null }, label = "分组名称",
                 singleLine = true, enabled = !busy)
             failure?.let { CatalogNotice(it) }
             if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -70,7 +70,7 @@ internal fun FlightGroupMove(nodeIds: Set<Long>, onMoved: () -> Unit, onClose: (
             else failure = text
         }
     }
-    OverlayBottomSheet(show = true, title = "移动 ${nodeIds.size} 个航班",
+    OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(), title = "移动 ${nodeIds.size} 个航班",
         onDismissRequest = { if (!busy) onClose() }) {
         Column(Modifier.fillMaxWidth().heightIn(max = LocalWindowInfo.current.containerDpSize.height * 0.65f)
             .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {

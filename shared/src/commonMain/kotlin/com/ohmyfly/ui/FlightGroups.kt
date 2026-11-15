@@ -59,7 +59,7 @@ private fun GroupChip(title: String, count: Long?, active: Boolean, onClick: () 
         .clickable(role = Role.Tab, onClick = hapticClick(onClick)).semantics { selected = active }
         .heightIn(min = 44.dp).padding(horizontal = 14.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, color = if (active) colors.primary else colors.onSurface)
-        count?.let { Text(it.toString(), color = colors.onSurfaceVariantSummary) }
+        Text(title, color = if (active) colors.primary else colors.onSurface, style = catalogInputStyle())
+        count?.let { Text(it.toString(), color = colors.onSurfaceVariantSummary, style = catalogInputStyle()) }
     }
 }

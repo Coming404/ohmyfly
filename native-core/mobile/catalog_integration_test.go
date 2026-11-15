@@ -66,6 +66,10 @@ func TestRealCatalogBridge(t *testing.T) {
 		}
 		id := reviewCall(t, "add", map[string]any{"address": file, "name": file})["id"]
 		ticket := reviewCall(t, "begin", map[string]any{"id": id})
+		// 刷新票据只含身份字段，去重配置留在 Go 事务，避免跨端解码空集合。
+		if len(ticket) != 4 || ticket["address"] == nil || ticket["name"] == nil {
+			t.Fatal("刷新票据桥接契约不完整")
+		}
 		for i, want := range direct.Nodes {
 			node := reviewCall(t, "parseRecord", map[string]any{"id": parseID, "kind": "node", "start": i})
 			if !reflect.DeepEqual(node, want) {

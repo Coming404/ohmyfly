@@ -6,7 +6,9 @@
 
 | 产物 | 用途 |
 |---|---|
-| `ohmyfly-release.apk` | 专用测试证书签名的 Android Release，供真机安装 |
+| `ohmyfly-armeabi-v7a-release.apk` | Android 32 位 ARM，专用测试证书签名 |
+| `ohmyfly-arm64-v8a-release.apk` | Android 64 位 ARM（arm64／v8a），专用测试证书签名 |
+| `ohmyfly-x86_64-release.apk` | Android 64 位 x86，专用测试证书签名 |
 | `ohmyfly-release-unsigned.ipa` | iPhoneOS / arm64 / Release，用户使用自己的 Apple 签名工具重签后安装 |
 
 校验摘要写入 Actions Job Summary；不再把元数据和安装包一起压缩分发。
@@ -32,8 +34,9 @@ Gradle 通过上述密码/别名和构建时的 `ANDROID_KEYSTORE_PATH` 读取�
 
 ## 构建与验证边界
 
-- Android：`testAndroidHostTest` + `assembleRelease`；校验证书签名，拒绝带 `application-debuggable` 标记的 APK。不构建 AAB（仅商店上架需要，本项目不上架）。
+- Android：`testAndroidHostTest` + `assembleRelease`；使用 ABI splits 分别生成 armeabi-v7a、arm64-v8a、x86_64 三个独立 APK，不生成 universal APK。每个包验证签名、唯一 ABI 和对应 `libgojni.so`，拒绝带 `application-debuggable` 标记的包。三种架构沿用同一应用 ID、版本号与签名，按设备选择一个安装。不构建 AAB。
 - iOS：Xcode `Release`、`iphoneos`、`arm64`、`archive`，关闭代码签名。`~/.konan`（Kotlin/Native 工具链）用 `actions/cache` 缓存，Gradle 缓存可写，避免每次重新下载。`tools/package_ios_release.py` 在打包前检查 App 元数据、Mach-O CPU 与 iOS device 平台，拒绝 arm64 模拟器冒充真机包。
+- Xcode 内嵌 Gradle 调用启用 `--profile`；工作流将构建／配置／编译／链接任务计时保存为 `ios-gradle-profile`，用于区分 Kotlin/Native Release 链接和 Xcode 归档耗时。
 - `tools/package_ios_release.py` 是 CI 所需的保留工具：校验部分只用 Python 标准库，归档打包使用 macOS 自带 `ditto`。不是 App 运行依赖。
 - 本地只运行 `python3 tools/check_project.py` 和 `python3 -m unittest discover -s tools/tests -v`，不下载完整移动端工具链。打包验证测试可以在 Linux 运行，不声称本地运行了 Xcode。
 - Android host tests 已通过 `withHostTest {}` 与 `:shared:testAndroidHostTest` 接入 Release。当前已验证代码基线为 `78d80bd`：[Release run 39426815748](https://github.com/Coming404/ohmyfly/actions/runs/39426815748) 双端成功，[Project checks 39426798576](https://github.com/Coming404/ohmyfly/actions/runs/39426798576) 成功；JUnit确认146项Kotlin共享测试全部通过，无失败或跳过。构建前已按用户要求清空旧Actions及产物；重试修复了生命周期目录别名、iOS常量导入和宿主几何测试边界。三份原格式产物保留至2026-10-27，未下载到本地。最低iOS16/Android13真机、玻璃像素/传感器、读屏、大字体、运行中减少动态和帧耗仍待验证；应用开关未覆盖所有Miuix内置动画。

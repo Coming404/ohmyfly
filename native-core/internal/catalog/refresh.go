@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/Coming404/ohmyfly/native-core/internal/flight"
 	"time"
 )
 
@@ -24,11 +23,10 @@ type Node struct {
 }
 
 type Ticket struct {
-	DedupRules flight.DeduplicationConfig `json:"dedupRules"`
-	ID         int64                      `json:"id"`
-	Generation int64                      `json:"generation"`
-	Address    string                     `json:"address"`
-	Name       string                     `json:"name"`
+	ID         int64  `json:"id"`
+	Generation int64  `json:"generation"`
+	Address    string `json:"address"`
+	Name       string `json:"name"`
 }
 
 type Refresh struct {
@@ -67,9 +65,8 @@ func (s *Store) Begin(ctx context.Context, id int64) (Ticket, error) {
 	}
 	defer tx.Rollback()
 	var t Ticket
-	var rule string
 	err = tx.QueryRowContext(ctx, `UPDATE towers SET generation=generation+1,last_attempt_at=? WHERE id=?
- RETURNING id,generation,address,name,dedup_rules`, time.Now().UnixMilli(), id).Scan(&t.ID, &t.Generation, &t.Address, &t.Name, &rule)
+ RETURNING id,generation,address,name`, time.Now().UnixMilli(), id).Scan(&t.ID, &t.Generation, &t.Address, &t.Name)
 	if errors.Is(err, sql.ErrNoRows) {
 		return t, ErrStale
 	}
@@ -77,9 +74,6 @@ func (s *Store) Begin(ctx context.Context, id int64) (Ticket, error) {
 		return t, err
 	}
 	if err = tx.QueryRowContext(ctx, `SELECT coalesce((SELECT address FROM tower_sources WHERE source_id=?),?)`, id, t.Address).Scan(&t.Address); err != nil {
-		return t, err
-	}
-	if err = json.Unmarshal([]byte(rule), &t.DedupRules); err != nil {
 		return t, err
 	}
 	if _, err = tx.ExecContext(ctx, "DELETE FROM refresh_nodes WHERE tower_id=?", id); err != nil {

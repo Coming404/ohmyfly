@@ -47,9 +47,9 @@ class PageHeaderTests(unittest.TestCase):
         title = app.split('DriftTopBar(', 1)[1].split('backdrop = backdrop', 1)[0]
         self.assertIn('title = if (selectionMode != null)', title)
         self.assertIn('selectedIds.size else selectedTowerIds.size', title)
-        self.assertIn('settingsChild || destination in listOf(', title)
-        for page in ('Settings', 'Subscriptions', 'NodeLibrary'):
-            self.assertIn(f'AppDestination.{page}', title)
+        self.assertIn('settingsChild || destination == AppDestination.Settings', title)
+        self.assertNotIn('destination in listOf(', title)
+        self.assertNotIn('34.sp', (UI / 'CatalogSearch.kt').read_text())
         self.assertIn('"" else destination.label', title)
         home = (UI / 'settings/SettingsHome.kt').read_text()
         title_item = home.split('SettingsList(padding, state) {', 1)[1].split('item(key = "identity")', 1)[0]

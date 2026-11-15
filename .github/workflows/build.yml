@@ -50,7 +50,7 @@ jobs:
           cd "$RUNNER_TEMP/native-core"
           go get -tool "golang.org/x/mobile/cmd/gobind@${GOMOBILE_VERSION}"
           mkdir -p "$GITHUB_WORKSPACE/native-core/build/android"
-          gomobile bind -target=android -androidapi=33 -o "$GITHUB_WORKSPACE/native-core/build/android/native-core.aar" ./mobile
+          gomobile bind -target=android/arm,android/arm64,android/amd64 -androidapi=33 -o "$GITHUB_WORKSPACE/native-core/build/android/native-core.aar" ./mobile
       - name: Restore private test-release keystore
         env:
           ANDROID_RELEASE_STORE_BASE64: ${{ secrets.ANDROID_RELEASE_STORE_BASE64 }}
@@ -85,24 +85,41 @@ jobs:
           with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as output:
               output.write(summary)
           PY
-      - name: Verify signature and collect Release APK
+      - name: Verify signatures and collect per-ABI Release APKs
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p build/release/android
-          apk=(androidApp/build/outputs/apk/release/*.apk)
-          test "${#apk[@]}" -eq 1 && test -f "${apk[0]}"
-          "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --verbose --print-certs "${apk[0]}" | tee build/release/android/signature.txt
-          "$ANDROID_HOME/build-tools/37.0.0/aapt" dump badging "${apk[0]}" > "$RUNNER_TEMP/apk-badging.txt"
-          if grep -q '^application-debuggable' "$RUNNER_TEMP/apk-badging.txt"; then
-            echo 'Refusing to publish a debuggable APK'; exit 1
-          fi
-          cp "${apk[0]}" build/release/android/ohmyfly-release.apk
-          (cd build/release/android && sha256sum *.apk > SHA256SUMS.txt)
-          cat build/release/android/SHA256SUMS.txt >> "$GITHUB_STEP_SUMMARY"
+          apks=(androidApp/build/outputs/apk/release/*.apk)
+          test "${#apks[@]}" -eq 3
+          for abi in armeabi-v7a arm64-v8a x86_64; do
+            apk=(androidApp/build/outputs/apk/release/*-"$abi"-release.apk)
+            test "${#apk[@]}" -eq 1 && test -f "${apk[0]}"
+            "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --verbose --print-certs "${apk[0]}" > "build/release/android/signature-$abi.txt"
+            "$ANDROID_HOME/build-tools/37.0.0/aapt" dump badging "${apk[0]}" > "$RUNNER_TEMP/apk-badging.txt"
+            if rg -q '^application-debuggable' "$RUNNER_TEMP/apk-badging.txt"; then
+              echo 'Refusing to publish a debuggable APK'; exit 1
+            fi
+            rg -q "^native-code: '$abi'[[:space:]]*$" "$RUNNER_TEMP/apk-badging.txt"
+            unzip -Z1 "${apk[0]}" | rg -x "lib/$abi/libgojni.so"
+            cp "${apk[0]}" "build/release/android/ohmyfly-$abi-release.apk"
+            echo "Android Release: $abi, signature and native libraries verified." >> "$GITHUB_STEP_SUMMARY"
+          done
       - uses: actions/upload-artifact@v7.0.2
         with:
-          path: build/release/android/ohmyfly-release.apk
+          path: build/release/android/ohmyfly-armeabi-v7a-release.apk
+          archive: false
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          path: build/release/android/ohmyfly-arm64-v8a-release.apk
+          archive: false
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          path: build/release/android/ohmyfly-x86_64-release.apk
           archive: false
           if-no-files-found: error
           retention-days: 7
@@ -170,6 +187,14 @@ jobs:
           CODE_SIGN_IDENTITY='' DEVELOPMENT_TEAM=''
           DEBUG_INFORMATION_FORMAT=dwarf-with-dsym
           SKIP_INSTALL=NO archive
+      - name: Upload Kotlin build timing
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: ios-gradle-profile
+          path: build/reports/profile/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Validate and package device IPA
         run: |
           python3 tools/package_ios_release.py build/ios-device/ohmyfly.xcarchive build/release/ios

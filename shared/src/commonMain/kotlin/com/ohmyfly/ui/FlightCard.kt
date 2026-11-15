@@ -46,7 +46,7 @@ internal fun FlightRow(flight: CatalogFlight, selected: Boolean = false, selecti
     onSelect: (() -> Unit)? = null, onDetails: () -> Unit, expanded: Boolean = false) {
     val select = onSelect?.let { hapticClick(it) }
     Row(Modifier.fillMaxWidth()
-        .background(if (selected) MiuixTheme.colorScheme.primaryContainer else Color.Transparent)
+        .background(if (selected) MiuixTheme.colorScheme.primary.copy(alpha = 0.10f) else Color.Transparent)
         .alpha(if (flight.enabled) 1f else 0.5f).combinedClickable(
         onClick = hapticClick { if (selectionMode) onSelect?.invoke() else onDetails() }, onLongClick = select,
         role = Role.Button, onLongClickLabel = if (selected) "取消选择" else "选择航班")

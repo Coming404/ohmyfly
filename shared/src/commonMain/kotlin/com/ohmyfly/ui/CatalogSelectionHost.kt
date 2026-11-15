@@ -38,7 +38,7 @@ internal fun CatalogSelectionHost(mode: CatalogSelectionMode, nodeIds: Set<Long>
         })
     if (sheet == "share") CatalogShareSheet(nodeIds) { sheet = "" }
     if (sheet == "move") FlightGroupMove(nodeIds, onMoved = { sheet = ""; onDone() }, onClose = { sheet = "" })
-    if (sheet == "toggle" || sheet == "delete") OverlayBottomSheet(show = true,
+    if (sheet == "toggle" || sheet == "delete") OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(),
         title = if (sheet == "toggle") "启停 $count 个航班" else "删除 $count 个${if (mode == CatalogSelectionMode.Nodes) "航班" else "塔台"}",
         onDismissRequest = { if (!busy) sheet = "" }) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -51,7 +51,7 @@ internal fun CatalogSelectionHost(mode: CatalogSelectionMode, nodeIds: Set<Long>
                     busy = true; appCatalog.changeNodes(nodeIds, "disable", finish)
                 }
             } else {
-                Text(if (mode == CatalogSelectionMode.Nodes) "删除所选节点及其来源和记录；下次同步可能重新导入。" else "删除所选塔台及其来源；其他塔台仍引用的节点会保留。")
+                Text(if (mode == CatalogSelectionMode.Nodes) "删除所选节点及其来源和记录；下次同步可能重新导入。" else "删除所选塔台及其来源；其他塔台仍引用的节点会保留。", style = catalogInputStyle())
                 CatalogAction("确认删除", MirrorIcons.Trash, destructive = true, enabled = !busy) {
                     busy = true
                     if (mode == CatalogSelectionMode.Nodes) appCatalog.changeNodes(nodeIds, "delete", finish)

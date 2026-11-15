@@ -2,6 +2,8 @@ package com.ohmyfly.catalog
 
 import com.ohmyfly.settings.SubscriptionSettings
 import com.ohmyfly.subscription.*
+import com.ohmyfly.logging.logger
+import com.ohmyfly.logging.logTarget
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.sync.Semaphore
@@ -101,8 +103,14 @@ internal class CatalogBatchRunner(
 
     private suspend fun process(work: Work) {
         val source = work.source
-        fun phase(value: String) = update { state -> state.copy(sourceTasks = state.sourceTasks +
-            (source.id to CatalogSourceTask(source.parentId, value, source.name.ifBlank { "来源 ${source.id}" }))) }
+        var stage = "准备"
+        logger.info { "[目录] 来源 ${source.id} 开始处理，塔台 ${source.parentId}，${if (work.read == null) logTarget(source.address) else "本地正文或文件"}" }
+        fun phase(value: String) {
+            stage = value
+            logger.info { "[目录] 来源 ${source.id} 阶段：$value" }
+            update { state -> state.copy(sourceTasks = state.sourceTasks +
+                (source.id to CatalogSourceTask(source.parentId, value, source.name.ifBlank { "来源 ${source.id}" }))) }
+        }
         var failed = false
         try {
             phase(if (work.read == null) "下载" else "读取")
@@ -115,13 +123,20 @@ internal class CatalogBatchRunner(
             }, queue = ::CatalogProviderQueue)
             val service = CatalogRefreshService(importer, request) { phase("提交") }
             if (work.read != null) service.importBody(work.read.invoke(), settings, source.id)
-            else check(service.refresh(source.id, settings, mirrors)) { "来源同步失败，已保留上次成功数据" }
-        } catch (e: CancellationException) { throw e
+            else if (!service.refresh(source.id, settings, mirrors)) {
+                failed = true
+                return
+            }
+            logger.info { "[目录] 来源 ${source.id} 处理完成" }
+        } catch (e: CancellationException) {
+            logger.info { "[目录] 来源 ${source.id} 已取消，阶段：$stage" }
+            throw e
         } catch (_: CatalogStaleException) {
             // 删除已使来源失效，不重新创建或提交旧结果。
         } catch (e: Exception) {
             failed = true
-            recordFailure(source.id, if (e is IllegalArgumentException) e.message ?: "来源内容无效" else "来源处理失败，已保留上次成功数据")
+            val reason = logCatalogFailure("来源 ${source.id} $stage", e)
+            recordFailure(source.id, "$stage：$reason")
         } finally {
             update { it.copy(taskCompleted = it.taskCompleted + 1, taskFailed = it.taskFailed + if (failed) 1 else 0,
                 sourceTasks = it.sourceTasks - source.id) }

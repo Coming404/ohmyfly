@@ -48,13 +48,15 @@ internal class CatalogOperations(
         var message: String? = null
         try { withContext(worker) { pending.block() }
         } catch (e: CancellationException) { failure = e; message = "操作已取消，已提交的数据保留"
-        } catch (e: IllegalArgumentException) { failure = e; message = e.message ?: "导入内容无效"
-        } catch (e: IllegalStateException) { failure = e; message = e.message ?: "目录更新未完成"
-        } catch (e: Exception) { failure = e; message = "目录更新未完成，请重新读取目录确认状态"
+        } catch (e: Exception) {
+            failure = e; message = logCatalogFailure("批次处理", e)
         } finally {
             withContext(NonCancellable) {
                 try { reload() }
-                catch (e: Exception) { if (failure == null) { failure = e; message = "数据已提交，列表重读失败，请下拉重新读取" } }
+                catch (e: Exception) {
+                    val reason = logCatalogFailure("批次后重读目录", e)
+                    if (failure == null) { failure = e; message = "数据已提交，列表重读失败：$reason" }
+                }
                 update { it.copy(busy = it.queuedBatches > 0, sourceTasks = emptyMap(), failure = message) }
                 val error = failure
                 if (error == null) pending.done.complete(Unit) else pending.done.completeExceptionally(error)

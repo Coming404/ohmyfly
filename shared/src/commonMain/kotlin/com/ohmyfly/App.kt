@@ -261,8 +261,8 @@ private fun AppFrame(
         drawContent()
     }
     val glassEnabled = glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)
+    Box(Modifier.fillMaxSize()) {
     Scaffold(
-        snackbarHost = { AppMessageHost(blocked = settingsSession.state.readFailed) },
         floatingActionButton = {
             if (destination == AppDestination.NodeLibrary && selectionMode == null) com.ohmyfly.ui.FlightFilterAction { filterOpen = true }
         },
@@ -314,6 +314,9 @@ private fun AppFrame(
             footer = { TextButton(text = "重试", onClick = hapticClick(onRetryRead)) },
         ) { Text(if (settingsSession.state.writeUncertain) "已提交，但未能读回" else "未更改本地数据") }
     }
+    AppMessageHost(blocked = settingsSession.state.readFailed,
+        modifier = Modifier.align(Alignment.TopCenter))
+    }
 }
 
 @Composable
@@ -342,7 +345,7 @@ private fun AppTopBar(
     onTowerAdd: () -> Unit,
 ) {
     DriftTopBar(
-        title = if (selectionMode != null) "已选 ${if (selectionMode == CatalogSelectionMode.Nodes) selectedIds.size else selectedTowerIds.size}" else if (settingsChild || destination in listOf(AppDestination.Settings, AppDestination.Subscriptions, AppDestination.NodeLibrary)) "" else destination.label,
+        title = if (selectionMode != null) "已选 ${if (selectionMode == CatalogSelectionMode.Nodes) selectedIds.size else selectedTowerIds.size}" else if (settingsChild || destination == AppDestination.Settings) "" else destination.label,
         backdrop = backdrop,
         glassEnabled = glassEnabled,
         dark = dark,

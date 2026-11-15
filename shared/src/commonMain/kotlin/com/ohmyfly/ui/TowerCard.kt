@@ -28,7 +28,6 @@ internal fun TowerControl(state: CatalogState, ready: Boolean, onCancel: () -> U
     Card(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             TowerStatistic(state.summary.towers, "塔台", Modifier.weight(1f))
-            Box(Modifier.width(0.5.dp).height(30.dp).background(MiuixTheme.colorScheme.outline.copy(alpha = 0.2f)))
             TowerStatistic(state.summary.flights, "航班", Modifier.weight(1f))
         }
         HorizontalDivider(Modifier.padding(horizontal = 16.dp))
@@ -54,7 +53,7 @@ internal fun TowerControl(state: CatalogState, ready: Boolean, onCancel: () -> U
 @Composable
 private fun TowerStatistic(count: Long, label: String, modifier: Modifier) {
     Row(modifier, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-        Text(count.toString(), fontSize = 26.sp, fontWeight = FontWeight.Bold)
+        Text(count.toString(), fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.width(6.dp))
         Text(label, fontSize = 15.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
     }
@@ -82,14 +81,14 @@ internal fun TowerCard(
         onClick = hapticClick { if (selectionMode) onSelect() else onExpand() },
         onLongClick = select,
     )) {
-        Column(Modifier.fillMaxWidth().background(if (selected) MiuixTheme.colorScheme.primaryContainer else Color.Transparent)
+        Column(Modifier.fillMaxWidth().background(if (selected) MiuixTheme.colorScheme.primary.copy(alpha = 0.10f) else Color.Transparent)
             .padding(14.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 if (selectionMode) CatalogSelectionCheck(selected)
                 CatalogTile(if (tower.sourceKind == "http") MirrorIcons.Link else SettingsIcons.File)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(tower.name, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(tower.name.ifBlank { "塔台 ${tower.id}" }, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text("${if (tower.sourceKind == "merged") "${tower.sourceCount} 个来源" else sourceLabel(tower.sourceKind)} · ${phase ?: catalogAge(tower.lastSuccessAt)}",
                         fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary, maxLines = 1)
                 }
@@ -101,7 +100,7 @@ internal fun TowerCard(
             if (tower.failure.isNotBlank()) CatalogNotice(tower.failure)
             tower.warnings.forEach { CatalogNotice(it.jsonPrimitive.content, CatalogNoticeKind.Warning) }
             Spacer(Modifier.height(10.dp))
-            HorizontalDivider()
+            if (!selectionMode && !nodeSelectionMode) HorizontalDivider()
             if (!selectionMode && !nodeSelectionMode) Row(Modifier.fillMaxWidth()) {
                 CatalogAction("航班 ${tower.nodeCount} ${if (expanded) "⌃" else "⌄"}", DriftIcons.Nodes,
                     Modifier.weight(1.2f), onClick = onExpand)
@@ -114,7 +113,7 @@ internal fun TowerCard(
             }
         }
     }
-    if (more) OverlayBottomSheet(show = true, title = tower.name, onDismissRequest = { more = false }) {
+    if (more) OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(), title = tower.name, onDismissRequest = { more = false }) {
         if (tower.sourceKind == "merged") TowerSources(tower.id, revision) { source -> more = false; onSourceImport(source) }
         tower.lastAttemptAt?.let { Text("最近尝试：${Instant.fromEpochMilliseconds(it)}") }
         CatalogAction("删除塔台", MirrorIcons.Trash, Modifier.fillMaxWidth(), enabled = !loading, destructive = true) {

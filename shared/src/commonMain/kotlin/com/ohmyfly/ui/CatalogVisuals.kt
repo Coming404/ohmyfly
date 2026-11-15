@@ -51,9 +51,9 @@ internal fun CatalogBadge(text: String, failed: Boolean = false) {
 internal fun CatalogEmpty(title: String, hint: String, onAdd: (() -> Unit)? = null) {
     Column(Modifier.fillMaxWidth().padding(vertical = 36.dp, horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        CatalogTile(DriftIcons.Nodes, 64)
-        Text(title, style = MiuixTheme.textStyles.title4)
-        Text(hint, color = MiuixTheme.colorScheme.onSurfaceVariantSummary, autoSize = CatalogTextSizing.Notice)
+        CatalogTile(DriftIcons.Nodes, 48)
+        Text(title, fontSize = 16.sp)
+        if (hint.isNotBlank()) Text(hint, color = MiuixTheme.colorScheme.onSurfaceVariantSummary, autoSize = CatalogTextSizing.Notice)
         onAdd?.let { CatalogTextButton("添加塔台", onClick = hapticClick(it), colors = ButtonDefaults.buttonColorsPrimary()) }
     }
 }

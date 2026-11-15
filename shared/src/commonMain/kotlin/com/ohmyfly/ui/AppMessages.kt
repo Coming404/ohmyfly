@@ -70,7 +70,9 @@ internal val LocalAppMessages = staticCompositionLocalOf<AppMessageState> {
 }
 
 @Composable
-internal fun AppMessageHost(blocked: Boolean) {
+internal fun AppMessageHost(blocked: Boolean, modifier: Modifier = Modifier) {
+    Box(modifier.widthIn(max = 760.dp).fillMaxWidth()
+        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))) {
     val messages = LocalAppMessages.current
     val message = messages.current
     val motion = LocalAppMotionAllowed.current
@@ -92,6 +94,7 @@ internal fun AppMessageHost(blocked: Boolean) {
         SnackbarHost(state = host) { data ->
             message?.let { AppSnackbar(data, it.kind) }
         }
+    }
     }
 }
 

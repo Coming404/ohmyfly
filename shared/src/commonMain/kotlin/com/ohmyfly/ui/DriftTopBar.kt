@@ -158,7 +158,8 @@ internal fun HeaderTextAction(
                 role = Role.Button, onClick = hapticClick(onClick)),
         contentAlignment = Alignment.Center,
     ) {
-        Row(Modifier.padding(horizontal = 8.dp).then(surface()).indication(interaction, LocalIndication.current),
+        Row(Modifier.heightIn(min = 38.dp).then(surface()).indication(interaction, LocalIndication.current)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Icon(icon, label, Modifier.size(18.dp), tint = if (enabled) tint else tint.copy(alpha = 0.38f))
             Text(label, color = if (enabled) tint else tint.copy(alpha = 0.38f), fontSize = 14.sp,

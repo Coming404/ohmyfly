@@ -52,7 +52,10 @@ internal class CatalogStore(
                 }
                 reload()
             } catch (e: CancellationException) { throw e
-            } catch (_: Exception) { mutableState.update { it.copy(ready = false, failure = "目录打开失败，请检查存储后重试") } }
+            } catch (error: Exception) {
+                val reason = logCatalogFailure("打开目录", error)
+                mutableState.update { it.copy(ready = false, failure = "目录打开失败：$reason") }
+            }
         }
     }
 
@@ -99,9 +102,10 @@ internal class CatalogStore(
             } catch (e: CancellationException) { throw e
             } catch (_: CatalogStaleException) {
                 if (sequence == filterSequence && foreground) reload()
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                val reason = logCatalogFailure("航班筛选", error)
                 if (sequence == filterSequence) mutableState.update {
-                    it.copy(flightLoading = false, failure = "航班筛选读取失败，请重试")
+                    it.copy(flightLoading = false, failure = "航班筛选读取失败：$reason")
                 }
             }
         }
@@ -176,8 +180,9 @@ internal class CatalogStore(
             } catch (e: CancellationException) { throw e
             } catch (_: CatalogStaleException) {
                 if (token == epoch) reload()
-            } catch (_: Exception) {
-                if (token == epoch) mutableState.update { it.copy(flightLoading = false, towerLoading = false, failure = "目录页面读取失败，请重试") }
+            } catch (error: Exception) {
+                val reason = logCatalogFailure("读取目录页面 $kind", error)
+                if (token == epoch) mutableState.update { it.copy(flightLoading = false, towerLoading = false, failure = "目录页面读取失败：$reason") }
             }
         }
     }

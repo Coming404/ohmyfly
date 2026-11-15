@@ -27,8 +27,9 @@ internal fun PageRefresh(
                     onRefresh()
                 } catch (cancelled: CancellationException) {
                     throw cancelled
-                } catch (_: Exception) {
-                    messages.show(AppMessageKind.Failure, "刷新失败，请重试")
+                } catch (error: Exception) {
+                    val reason = com.ohmyfly.catalog.logCatalogFailure("下拉刷新", error)
+                    messages.show(AppMessageKind.Failure, "刷新失败：$reason")
                 } finally {
                     refreshing = false
                 }

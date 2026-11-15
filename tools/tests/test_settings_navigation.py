@@ -38,7 +38,9 @@ class SettingsNavigationTests(unittest.TestCase):
         self.assertIn('.background(background)', screen)
         self.assertNotIn('writeError', screen)
         self.assertNotIn('onDismissError', screen)
-        self.assertRegex(app, r'snackbarHost\s*=\s*\{\s*AppMessageHost\(blocked\s*=\s*settingsSession.state.readFailed\)')
+        self.assertIn('AppMessageHost(blocked = settingsSession.state.readFailed,', app)
+        self.assertIn('modifier = Modifier.align(Alignment.TopCenter)', app)
+        self.assertEqual(1, app.count('AppMessageHost('))
         self.assertEqual(1, app.count('Scaffold('))
         self.assertIn('Modifier.layerBackdrop(backdrop)', app)
 

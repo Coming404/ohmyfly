@@ -42,9 +42,9 @@ internal fun CatalogSearch(query: String, label: String, title: String, count: L
                 }
             }
         }
-        Row(Modifier.fillMaxWidth().padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically,
+        if (expandedState == null) Row(Modifier.fillMaxWidth().padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(title, fontSize = 34.sp, fontWeight = FontWeight.Bold)
+            Text(title, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             CatalogBadge(count.toString())
         }
         CatalogExpansion(expanded) {
