@@ -67,7 +67,7 @@ private fun TowerFlightWindow(id: Long, revision: Long, expectedCount: Long, sel
         pages = emptyMap()
         target = 0
         failure = false
-        retry++
+        retry = retry + 1
     }
     val hasFlights = pages.values.any { it.flights.isNotEmpty() }
     val incompletePage = count != null && pages.any { (page, value) ->
