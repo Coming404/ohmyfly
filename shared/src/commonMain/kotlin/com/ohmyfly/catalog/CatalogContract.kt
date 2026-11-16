@@ -24,11 +24,18 @@ internal fun decodeCatalog(raw: String): JsonObject {
     return result
 }
 
-internal class CatalogStaleException : Exception("目录已更新，请重新加载")
+internal class CatalogStaleException : Exception("塔台与航班数据已更新，请刷新")
 
 @Serializable
 internal data class CatalogSummary(val revision: Long = 0, val towers: Long = 0, val flights: Long = 0,
-    val metricsRevision: Long = 0)
+    val metricsRevision: Long = 0, val availableFlights: Long = 0,
+    val failedTowers: Long = 0, val usedTrafficBytes: Long = 0)
+
+@Serializable
+internal data class CatalogImportResult(
+    val added: Long = 0, val updated: Long = 0, val removed: Long = 0,
+    val failed: Long = 0, val details: List<String> = emptyList(),
+)
 
 @Serializable
 internal data class CatalogTower(
@@ -36,6 +43,8 @@ internal data class CatalogTower(
     val sourceKind: String = "http", val sourceCount: Int = 1,
     val usage: SubscriptionUsage? = null,
     val warnings: JsonArray = JsonArray(emptyList()), val lastAttemptAt: Long? = null, val lastSuccessAt: Long? = null,
+    val address: String = "", val availableNodeCount: Long = 0,
+    val importResult: CatalogImportResult = CatalogImportResult(),
 )
 
 @Serializable

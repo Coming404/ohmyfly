@@ -61,7 +61,7 @@ internal fun SubscriptionSettingsPage(padding: PaddingValues) {
         item {
             SettingsCard {
                 SettingsInfo("配置等价去重", "完整比较协议、凭据、传输和 TLS 参数，不按显示名称去重。", SettingsIcons.Copy)
-                SettingsInfo("刷新失败保留旧目录", "隔离单个航班错误，不中断整份塔台。", SettingsIcons.Backup)
+                SettingsInfo("刷新失败时保留旧数据", "单个订阅失败不会影响其他塔台。", SettingsIcons.Backup)
             }
         }
         item { ResetSettings(SettingsResetTarget.Subscription) }

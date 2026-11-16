@@ -8,7 +8,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 @Serializable
-data class NativeSubscription(
+internal data class NativeSubscription(
     val nodes: List<NativeSubscriptionNode>,
     val candidates: Int,
     val parsed: Int,
@@ -23,14 +23,14 @@ data class NativeSubscription(
 )
 
 @Serializable
-data class NativeSubscriptionProvider(
+internal data class NativeSubscriptionProvider(
     val name: String,
     val url: String,
     val fields: JsonObject,
 )
 
 @Serializable
-data class NativeSubscriptionNode(
+internal data class NativeSubscriptionNode(
     val name: String,
     val type: String,
     val server: String,
@@ -52,7 +52,7 @@ internal interface NativeSubscriptionResource { fun close() }
 
 internal fun NativeSubscription.close() { (nodes as? NativeSubscriptionResource)?.close() }
 
-class NativeCoreException(message: String) : Exception(message)
+internal class NativeCoreException(message: String) : Exception(message)
 
 private val nativeJson = Json { ignoreUnknownKeys = true }
 

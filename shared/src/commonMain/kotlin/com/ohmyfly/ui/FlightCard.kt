@@ -30,7 +30,7 @@ import kotlin.math.roundToLong
 @Composable
 internal fun FlightCard(flight: CatalogFlight, selected: Boolean, selectionMode: Boolean,
     onSelect: () -> Unit, onDetails: () -> Unit, expanded: Boolean, revision: Long) {
-    Card(Modifier.fillMaxWidth()) {
+    Card(Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
         FlightRow(flight, selected, selectionMode, onSelect, onDetails, expanded)
         CatalogExpansion(expanded && !selectionMode) {
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

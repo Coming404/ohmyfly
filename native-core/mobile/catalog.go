@@ -137,6 +137,8 @@ func callCatalog(ctx context.Context, r catalogRequest) (any, error) {
 	case "add":
 		id, err := s.Add(ctx, r.Address, r.Name)
 		return map[string]int64{"id": id}, err
+	case "updateTower":
+		return map[string]bool{"ok": true}, s.UpdateTower(ctx, r.ID, r.Address, r.Name)
 	case "begin":
 		return s.Begin(ctx, r.ID)
 	case "stageParsed":

@@ -154,10 +154,21 @@ func (s *Store) Commit(ctx context.Context, r Refresh) error {
 	if err = classifyRefresh(ctx, tx, r.ID); err != nil {
 		return err
 	}
+	added, updated, removed, err := importResult(ctx, tx, r)
+	if err != nil {
+		return err
+	}
 	if _, err = tx.ExecContext(ctx, "DELETE FROM tower_nodes WHERE tower_id=?", r.ID); err != nil {
 		return err
 	}
 	if err = commitRefreshNodes(ctx, tx, r); err != nil {
+		return err
+	}
+	details := string(r.Warnings)
+	if details == "" || details == "null" {
+		details = "[]"
+	}
+	if err = saveImportResult(ctx, tx, r.ID, added, updated, removed, 0, details); err != nil {
 		return err
 	}
 	if err = applyNameRegions(ctx, tx, r.ID); err != nil {
@@ -187,6 +198,9 @@ func (s *Store) Fail(ctx context.Context, id, generation int64, failure, name st
 	}
 	defer tx.Rollback()
 	if err = checkTicket(ctx, tx, id, generation); err != nil {
+		return err
+	}
+	if err = markImportFailure(ctx, tx, id, failure); err != nil {
 		return err
 	}
 	if _, err = tx.ExecContext(ctx, "UPDATE towers SET failure=?,name=CASE WHEN name='' THEN ? ELSE name END WHERE id=?", failure, name, id); err != nil {

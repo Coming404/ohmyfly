@@ -53,8 +53,8 @@ internal class CatalogStore(
                 reload()
             } catch (e: CancellationException) { throw e
             } catch (error: Exception) {
-                val reason = logCatalogFailure("打开目录", error)
-                mutableState.update { it.copy(ready = false, failure = "目录打开失败：$reason") }
+                val reason = logCatalogFailure("打开塔台与航班数据", error)
+                mutableState.update { it.copy(ready = false, failure = "塔台与航班数据打开失败：$reason") }
             }
         }
     }
@@ -181,8 +181,9 @@ internal class CatalogStore(
             } catch (_: CatalogStaleException) {
                 if (token == epoch) reload()
             } catch (error: Exception) {
-                val reason = logCatalogFailure("读取目录页面 $kind", error)
-                if (token == epoch) mutableState.update { it.copy(flightLoading = false, towerLoading = false, failure = "目录页面读取失败：$reason") }
+                val listName = if (kind == "towers") "塔台" else "航班"
+                val reason = logCatalogFailure("读取$listName列表", error)
+                if (token == epoch) mutableState.update { it.copy(flightLoading = false, towerLoading = false, failure = "$listName列表读取失败：$reason") }
             }
         }
     }
@@ -210,7 +211,7 @@ internal class CatalogStore(
                 }
             } catch (e: CancellationException) { throw e
             } catch (_: Exception) {
-                mutableState.update { it.copy(measurementsFailure = "状态计数读取失败，请重新读取目录") }
+                mutableState.update { it.copy(measurementsFailure = "状态计数读取失败，请刷新塔台与航班数据") }
             }
         }
     }
@@ -236,7 +237,7 @@ internal class CatalogStore(
                 if (pageEpoch != epoch || snapshot.summary.revision != current.summary.revision ||
                     snapshot.filterToken != current.filterToken || ids != current.flights.map { it.id }) continue
                 mutableState.update {
-                    it.copy(measurementsFailure = "结果摘要读取失败，请重新读取目录；已提交数据保留")
+                    it.copy(measurementsFailure = "结果摘要读取失败，请刷新塔台与航班数据；已提交数据保留")
                 }
                 return@withContext
             }
@@ -267,6 +268,12 @@ internal class CatalogStore(
             catalogJson.decodeFromJsonElement<CatalogSummary>(call("summary"))
         }
         if (token != reloadSequence || summary.revision < state.value.summary.revision) return
+        val current = state.value
+        if (current.ready && current.summary.revision == summary.revision) {
+            mutableState.update { it.copy(summary = summary, ready = true, failure = null) }
+            active?.let { kind -> page(kind, if (kind == "towers") current.towerPage else current.flightPage) }
+            return
+        }
         pageJob?.cancel()
         epoch++
         pages.clear()
@@ -313,7 +320,7 @@ internal class CatalogStore(
     fun changeGroup(action: String, id: Long = 0, name: String = "", nodeIds: Set<Long> = emptySet(),
         onResult: (Boolean, String) -> Unit) = scope.launch {
         if (!opened || !state.value.ready) {
-            onResult(false, "目录尚未就绪")
+            onResult(false, "塔台与航班数据尚未准备好")
             return@launch
         }
         try {
@@ -325,7 +332,7 @@ internal class CatalogStore(
             }
         } catch (e: CancellationException) { throw e
         } catch (_: Exception) {
-            onResult(false, "分组操作未确认，请重新读取目录")
+            onResult(false, "分组操作未确认，请刷新塔台与航班数据")
             return@launch
         }
         if (action == "groupDelete" && state.value.flightFilter.groupId == id) {
@@ -352,7 +359,7 @@ internal class CatalogStore(
                 put("nodeIds", JsonArray(ids.map { JsonPrimitive(it) })); put("mode", mode)
             } }
         } catch (e: CancellationException) { throw e
-        } catch (_: Exception) { onResult(false, "操作未确认，请重新读取目录"); return@launch }
+        } catch (_: Exception) { onResult(false, "操作未确认，请刷新塔台与航班数据"); return@launch }
         onResult(true, when (mode) { "enable" -> "已启用"; "disable" -> "已停用"; else -> "已删除" })
         try { reload()
         } catch (e: CancellationException) { throw e
@@ -366,7 +373,7 @@ internal class CatalogStore(
                 put("nodeIds", JsonArray(ids.map { JsonPrimitive(it) }))
             } }
         } catch (e: CancellationException) { throw e
-        } catch (_: Exception) { onResult(false, "塔台删除未确认，请重新读取目录"); return@launch }
+        } catch (_: Exception) { onResult(false, "塔台删除未确认，请刷新塔台与航班数据"); return@launch }
         onResult(true, "所选塔台已删除")
         try { reload()
         } catch (e: CancellationException) { throw e
@@ -380,6 +387,21 @@ internal class CatalogStore(
             batch(settings, mirrors).sync(listOf(0L)) { state.value.pendingRemoval }
             check(state.value.taskFailed == 0) { "${state.value.taskFailed} 个来源同步失败，已保留上次成功数据" }
         }.await()
+    }
+
+    fun updateTower(id: Long, address: String, name: String, onResult: (Boolean, String) -> Unit = { _, _ -> }) = scope.launch {
+        try {
+            withContext(worker) { call("updateTower") { put("id", id); put("address", address); put("name", name) } }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            onResult(false, "塔台保存失败，请检查名称和地址")
+            return@launch
+        }
+        onResult(true, "塔台已保存")
+        try { reload() }
+        catch (e: CancellationException) { throw e }
+        catch (_: Exception) { mutableState.update { it.copy(failure = "塔台已保存，列表重读失败") } }
     }
 
     fun refresh(id: Long, settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) =
@@ -409,18 +431,18 @@ internal class CatalogStore(
     fun remove(id: Long, onResult: (Boolean, String) -> Unit = { _, _ -> }) = scope.launch {
         if (!opened || !state.value.ready) {
             cancelRemoval(id)
-            onResult(false, "目录尚未就绪，删除未执行")
+            onResult(false, "塔台与航班数据尚未准备好，删除未执行")
             return@launch
         }
         try {
             withContext(worker) { call("remove") { put("id", id) } }
         } catch (e: CancellationException) {
             cancelRemoval(id)
-            onResult(false, "删除已取消，请重新读取目录确认")
+            onResult(false, "删除已取消，请刷新塔台与航班数据确认")
             throw e
         } catch (_: Exception) {
             cancelRemoval(id)
-            onResult(false, "删除结果待确认，请重新读取目录")
+            onResult(false, "删除结果待确认，请刷新塔台与航班数据")
             return@launch
         }
         cancelRemoval(id)
@@ -431,17 +453,16 @@ internal class CatalogStore(
     }
 
     private fun runOperation(block: suspend () -> Unit): Deferred<Unit> {
-        check(opened && state.value.ready) { "目录尚未就绪，请稍后再试" }
+        check(opened && state.value.ready) { "塔台与航班数据尚未准备好，请稍后再试" }
         return operations.submit(block)
     }
 
     fun release(background: Boolean) {
         pageJob?.cancel(); epoch++
         if (background) {
-            foreground = false; pages.clear(); filterJob?.cancel(); filterSequence++; reloadSequence++
+            foreground = false; filterJob?.cancel(); filterSequence++; reloadSequence++
         } else pages.trim()
-        if (background) mutableState.update { it.copy(towers = emptyList(), flights = emptyList(), towerWindow = emptyMap(), flightWindow = emptyMap()) }
-        else mutableState.update { it.copy(
+        if (!background) mutableState.update { it.copy(
             towerWindow = pages.window("towers").mapValues { entry -> entry.value.towers },
             flightWindow = pages.window("flights").mapValues { entry -> entry.value.flights },
             towers = pages.window("towers")[it.towerPage]?.towers.orEmpty(),
@@ -452,7 +473,7 @@ internal class CatalogStore(
         foreground = true
         if (opened) scope.launch {
             try { reload() } catch (e: CancellationException) { throw e
-            } catch (_: Exception) { mutableState.update { it.copy(failure = "目录重新读取失败，请重试") } }
+            } catch (_: Exception) { mutableState.update { it.copy(failure = "塔台与航班数据刷新失败，请重试") } }
         } else start()
     }
 }

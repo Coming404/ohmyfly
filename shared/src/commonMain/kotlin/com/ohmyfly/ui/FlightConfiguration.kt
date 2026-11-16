@@ -4,30 +4,24 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import top.yukonga.miuix.kmp.basic.Text
 
 @Composable
 internal fun FlightConfiguration(value: JsonObject) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("连接信息")
-        listOf("name" to "名称", "type" to "协议", "server" to "服务器", "port" to "端口",
-            "sourceFormat" to "解析格式").forEach { (key, label) ->
-            (value[key] as? JsonPrimitive)?.contentOrNull?.let { Text("$label：$it", autoSize = CatalogTextSizing.Body) }
+    val internalFields = setOf("fields", "rawInput", "sourceFormat", "fromBase64", "contentHash", "source", "eligible", "sources", "group")
+    val entries = buildList {
+        value.forEach { (key, item) ->
+            if (key == "fields") (item as? JsonObject)?.forEach { (field, content) -> add(field to content) }
+            else if (key !in internalFields) add(key to item)
         }
-        val fields = value["fields"] as? JsonObject
-        listOf("network" to "传输", "tls" to "TLS", "cipher" to "加密方式", "udp" to "UDP").forEach { (key, label) ->
-            (fields?.get(key) as? JsonPrimitive)?.contentOrNull?.let { Text("$label：$it", autoSize = CatalogTextSizing.Body) }
-        }
-        Text("来源")
-        val sources = value["sources"] as? JsonArray
-        if (sources.isNullOrEmpty()) Text("暂无来源")
-        sources?.forEach { item ->
-            val source = item.jsonObject
-            val metadata = source["metadata"]?.jsonObject
-            Text("塔台 ${source["towerId"]?.jsonPrimitive?.content} · ${metadata?.get("name")?.jsonPrimitive?.content.orEmpty()}",
-                autoSize = CatalogTextSizing.Body)
-            metadata?.get("format")?.jsonPrimitive?.content?.let { Text("来源格式：$it") }
+    }.sortedBy { it.first }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        entries.forEach { (key, content) ->
+            Text("$key: ${nodeValue(content)}", autoSize = CatalogTextSizing.Body)
         }
     }
 }
+
+private fun nodeValue(value: JsonElement): String = value.toString()

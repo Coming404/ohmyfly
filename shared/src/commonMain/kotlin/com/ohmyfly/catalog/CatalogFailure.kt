@@ -9,14 +9,14 @@ import kotlinx.serialization.SerializationException
 internal fun catalogFailure(error: Exception): String {
     if (error is SerializationException) {
         val field = Regex("path: (\\$[A-Za-z0-9_.\\[\\]]+)").find(error.message.orEmpty())?.groupValues?.get(1)
-        return "目录数据格式不匹配" + (field?.let { "（$it）" } ?: "")
+        return "塔台与航班数据格式不匹配" + (field?.let { "（$it）" } ?: "")
     }
     val reason = error.message.orEmpty().substringBefore("JSON input:").lineSequence().firstOrNull().orEmpty()
         .replace(Regex("[A-Za-z][A-Za-z0-9+.-]*://\\S+"), "[地址已隐藏]")
         .replace(Regex("(?i)(password|token|secret|authorization|uuid|private[-_]?key)\\s*[:=]\\s*\\S+"), "$1=[已隐藏]")
         .take(240)
     return when {
-        error is NativeCoreException -> "目录操作失败：${reason.ifBlank { "原生核心返回错误" }}"
+        error is NativeCoreException -> "塔台与航班数据操作失败：${reason.ifBlank { "本地核心返回错误" }}"
         reason.isNotBlank() -> reason
         else -> "操作失败（${error::class.simpleName ?: "未知错误"}）"
     }
@@ -25,6 +25,6 @@ internal fun catalogFailure(error: Exception): String {
 // 记录阶段、来源 ID 与异常类型，使导入前失败也能在日志中定位。
 internal fun logCatalogFailure(stage: String, error: Exception): String {
     val reason = catalogFailure(error)
-    logger.info { "[目录] $stage 失败：$reason；类型=${error::class.simpleName}" }
+    logger.info { "[塔台航班] $stage失败：$reason" }
     return reason
 }

@@ -8,14 +8,16 @@ import com.ohmyfly.ui.DriftIcons
 @Composable
 internal fun AboutSettingsPage(version: String, padding: PaddingValues) {
     val uri = LocalUriHandler.current
+    // 页面显示短提交号，日志保留完整标识用于对照构建。
+    val coreVersion = androidx.compose.runtime.remember { com.ohmyfly.nativecore.nativeCoreVersion().take(12) }
     SettingsList(padding) {
         item { SettingsPageIntro("关于 OhMyFly") }
         item { SettingsCard {
-            SettingsInfo("版本", "", SettingsIcons.Hint, value = version)
+            SettingsInfo("App 版本", "", SettingsIcons.Hint, value = version)
+            SettingsInfo("NativeCore", "", SettingsIcons.Tune, value = coreVersion)
             SettingsActionRow("项目主页", MirrorIcons.Github, "Coming404/ohmyfly") {
                 uri.openUri("https://github.com/Coming404/ohmyfly")
             }
-            SettingsInfo("航班与媒体核心", "尚未接入；设置保存不代表测试已经可用。", SettingsIcons.Tune)
         } }
         item { SettingsSectionTitle("开源许可与来源", SettingsIcons.Copy) }
         item { SettingsCard {

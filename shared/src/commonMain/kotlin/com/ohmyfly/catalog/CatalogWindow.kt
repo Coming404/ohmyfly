@@ -20,7 +20,7 @@ internal suspend fun CatalogStore.loadWindowPage(
         })
         if (pageIndex == index) return page
         val ids = if (kind == "towers") page.towers.map { it.id } else page.flights.map { it.id }
-        check(ids.isNotEmpty()) { "目录批次已失效，请重新读取" }
+        check(ids.isNotEmpty()) { "列表已更新，请重新读取" }
         cursor = if (backwards) ids.first() else ids.last()
         pageIndex += if (backwards) -1 else 1
     }

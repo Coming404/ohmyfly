@@ -48,13 +48,21 @@ internal fun CatalogBadge(text: String, failed: Boolean = false) {
 }
 
 @Composable
-internal fun CatalogEmpty(title: String, hint: String, onAdd: (() -> Unit)? = null) {
+internal fun CatalogEmpty(
+    title: String,
+    hint: String = "",
+    onAction: (() -> Unit)? = null,
+    actionLabel: String = "添加塔台",
+    icon: ImageVector = DriftIcons.Nodes,
+) {
     Column(Modifier.fillMaxWidth().padding(vertical = 36.dp, horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        CatalogTile(DriftIcons.Nodes, 48)
+        CatalogTile(icon, 48)
         Text(title, fontSize = 16.sp)
-        if (hint.isNotBlank()) Text(hint, color = MiuixTheme.colorScheme.onSurfaceVariantSummary, autoSize = CatalogTextSizing.Notice)
-        onAdd?.let { CatalogTextButton("添加塔台", onClick = hapticClick(it), colors = ButtonDefaults.buttonColorsPrimary()) }
+        if (hint.isNotBlank()) Text(hint, color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            autoSize = CatalogTextSizing.Notice)
+        onAction?.let { CatalogTextButton(actionLabel, onClick = hapticClick(it),
+            colors = ButtonDefaults.buttonColorsPrimary()) }
     }
 }
 

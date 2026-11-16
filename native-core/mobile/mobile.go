@@ -12,10 +12,10 @@ import (
 	"github.com/Coming404/ohmyfly/native-core/internal/towerparse"
 )
 
-// shortcut: 版本暂以桥接 API 常量返回，发布流程接入后再改为构建注入。
-const version = "0.1.0"
+// version 由 gomobile bind 的 -ldflags -X 注入源码提交号，避免固定标识掩盖实际构建版本。
+var version string
 
-// Version 返回 mobile 桥接 API 的版本。
+// Version 返回当前二进制构建时注入的源码提交号。
 func Version() string {
 	return version
 }

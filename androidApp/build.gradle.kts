@@ -14,7 +14,7 @@ android {
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "1.0.0"
     }
     // 每个 APK 仅携带目标 ABI 的原生库，不额外生成体积更大的通用包。
     splits {

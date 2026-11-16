@@ -75,20 +75,25 @@ internal class CatalogRefreshService(
         val writer = CatalogRecordWriter(ticket, request)
         try {
             require(!ticket.address.startsWith("local:")) { "本地塔台请重新选择文件或粘贴正文" }
-            val result = importer.importSubscription(ticket.address, effective, ticket.name.isBlank(), mirrors, writer::append)
+            val result = importer.importSubscription(ticket.address, effective, ticket.name.isBlank(), mirrors,
+                writer::append, displayName = ticket.name)
             if (result.failure != null) {
-                logCatalogFailure("来源 $id 网络导入", IllegalArgumentException(result.failure))
+                val name = ticket.name.ifBlank { parseUrl(ticket.address)!!.host }
+                val reason = subscriptionFailureDescription(result.failure)
+                logCatalogFailure("同步“$name”", IllegalArgumentException(reason))
                 request("fail") { put("id", id); put("generation", ticket.generation)
-                    put("failure", result.failure); put("name", parseUrl(ticket.address)!!.host) }
+                    put("failure", reason); put("name", name) }
                 return false
             }
+
             committing()
             writer.flush()
             currentCoroutineContext().ensureActive()
+            val resolvedName = ticket.name.ifBlank { result.name ?: parseUrl(ticket.address)!!.host }
             commit(ticket) {
                 put("refresh", buildJsonObject {
                     put("id", id); put("generation", ticket.generation); put("count", result.recordCount)
-                    put("name", result.name ?: parseUrl(ticket.address)!!.host)
+                    put("name", resolvedName)
                     put("usage", result.usage?.let { catalogJson.encodeToJsonElement(SubscriptionUsage.serializer(), it) } ?: JsonNull)
                     put("warnings", JsonArray(result.warnings.map(::JsonPrimitive)))
                 })

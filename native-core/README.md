@@ -12,6 +12,8 @@ OhMyFly 的纯 Go 核心。它读取订阅内容（Clash/Mihomo YAML、逐行分
 
 ## API
 
+`mobile.Version()` 返回当前原生库构建时注入的源码提交号，不再返回固定语义版本。标准 CI 将 `GITHUB_SHA` 传给 Go 链接器的 `-X github.com/Coming404/ohmyfly/native-core/mobile.version=...`；手工构建也需传入该值。App 从实际链接的 AAR／XCFramework 读取这一标识，完整值写入日志，关于页展示前12位。
+
 ```go
 func towerparse.Parse(r io.Reader, emit func(flight.Flight) error) (towerparse.Stats, error)
 func towerparse.DetectFormat(prefix []byte) towerparse.Format

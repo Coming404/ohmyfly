@@ -33,7 +33,7 @@ internal class LogWorker(
     private class Request(
         val action: Action,
         val policy: LogPolicy? = null,
-        val level: LogLevel = LogLevel.Detail,
+        val level: LogLevel = LogLevel.Info,
         val file: LogFileInfo? = null,
         val fileCursor: LogFileCursor? = null,
         val result: CompletableDeferred<Reply> = CompletableDeferred(),

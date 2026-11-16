@@ -26,10 +26,13 @@ kotlin {
     // Apple toolchains require macOS; do not create unbuildable native tasks on Linux CI.
     if (providers.systemProperty("os.name").get().startsWith("Mac")) {
         val nativeCore = rootDir.resolve("native-core/build/ios/NativeCore.xcframework")
-        listOf(
-            iosArm64() to "ios-arm64",
-            iosSimulatorArm64() to "ios-arm64_x86_64-simulator",
-        ).forEach { (target, slice) ->
+        // 设备归档只注册真机目标；模拟器开发仍使用完整目标集合。
+        val deviceOnly = providers.gradleProperty("iosDeviceOnly").map(String::toBooleanStrict).getOrElse(false)
+        val nativeTargets = buildList {
+            add(iosArm64() to "ios-arm64")
+            if (!deviceOnly) add(iosSimulatorArm64() to "ios-arm64_x86_64-simulator")
+        }
+        nativeTargets.forEach { (target, slice) ->
             target.binaries.framework {
                 baseName = "Shared"
                 isStatic = true

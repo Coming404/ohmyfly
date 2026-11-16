@@ -88,6 +88,9 @@ func (s *Store) migrate(ctx context.Context) error {
 	if _, err := tx.ExecContext(ctx, nodeControlSchema); err != nil {
 		return err
 	}
+	if _, err := tx.ExecContext(ctx, towerImportSchema); err != nil {
+		return err
+	}
 	if err := initRegions(ctx, tx); err != nil {
 		return err
 	}

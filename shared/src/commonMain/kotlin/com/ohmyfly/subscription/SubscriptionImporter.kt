@@ -9,6 +9,7 @@ import com.ohmyfly.logging.newLogId
 import com.ohmyfly.nativecore.NativeSubscription
 import com.ohmyfly.nativecore.NativeSubscriptionNode
 import com.ohmyfly.nativecore.close
+import io.ktor.http.parseUrl
 import kotlinx.serialization.json.JsonObject
 import com.ohmyfly.settings.SubscriptionSettings
 import kotlinx.coroutines.CancellationException
@@ -38,17 +39,23 @@ internal class SubscriptionImporter(
         url: String, settings: SubscriptionSettings, resolveName: Boolean = true,
         mirrors: SubscriptionMirrorSettings = SubscriptionMirrorSettings(),
         accept: (suspend (NativeSubscriptionNode) -> Unit)? = null,
+        displayName: String? = null,
     ): SubscriptionImportResult {
         val operation = newLogId().take(8)
         val started = timeSource.markNow()
-        logger.info { "[订阅 $operation] 开始导入 ${logTarget(url)}" }
+        val label = displayName?.takeIf(String::isNotBlank) ?: parseUrl(url)?.host ?: "订阅"
+        logger.info { "[订阅] 正在获取订阅：$label" }
         logger.debug { "[订阅 $operation] 每次请求最多等待 ${settings.timeoutSeconds} 秒，每个 UA 候选最多重试 ${settings.retries} 次，单次下载上限为 ${settings.maxMiB} MiB；整次导入共用 ${minOf(settings.timeoutSeconds * 4000L, 60_000L)} 毫秒时间预算" }
         return try {
             importContent(url, settings, operation, resolveName, mirrors, accept).also { result ->
-                logger.info { "[订阅 $operation] 导入${if (result.failure == null) "成功，得到 ${result.nodes.size} 个节点" else "失败：${subscriptionFailureDescription(result.failure)}"}；共有 ${result.warnings.size} 条提示，耗时 ${started.elapsedNow().inWholeMilliseconds} 毫秒" }
+                val resultName = displayName?.takeIf(String::isNotBlank) ?: result.name?.takeIf(String::isNotBlank)
+                    ?: parseUrl(url)?.host ?: "订阅"
+                val status = result.failure?.let { "同步失败：${subscriptionFailureDescription(it)}" }
+                    ?: "同步成功，共保存 ${result.recordCount} 个节点"
+                logger.info { "[订阅] 塔台“$resultName”$status；${result.warnings.size} 条提示，耗时 ${started.elapsedNow().inWholeMilliseconds} 毫秒" }
             }
         } catch (cancelled: CancellationException) {
-            logger.info { "[订阅 $operation] 导入已取消，耗时 ${started.elapsedNow().inWholeMilliseconds}ms" }
+            logger.info { "[订阅] “$label”同步已取消" }
             throw cancelled
         }
     }
@@ -202,10 +209,10 @@ internal class SubscriptionImporter(
         } catch (e: CancellationException) {
             throw e
         } catch (e: SubscriptionFetchException) {
-            logger.info { "[订阅 $operation] 请求失败：${subscriptionFailureDescription(e.message.orEmpty())}；${if (e.retryable) "该错误允许在剩余预算内重试" else "该错误不再重试"}" }
+            logger.debug { "[订阅 $operation] 请求失败：${subscriptionFailureDescription(e.message.orEmpty())}；${if (e.retryable) "该错误允许在剩余预算内重试" else "该错误不再重试"}" }
             return ParsedAttempt(failure = e.message, retryable = e.retryable)
         } catch (error: Exception) {
-            logger.info { "[订阅 $operation] 网络请求失败，异常类型为 ${error::class.simpleName}" }
+            logger.debug { "[订阅 $operation] 网络请求失败，异常类型为 ${error::class.simpleName}" }
             return ParsedAttempt(failure = "订阅请求失败")
         }
         return try {
@@ -222,7 +229,7 @@ internal class SubscriptionImporter(
                 }
                 "[订阅 $operation] 解析过程：${formats.joinToString("；").ifEmpty { "未识别出可处理的内容" }}"
             }
-            if (parsed.skippedByReason.isNotEmpty()) logger.info {
+            if (parsed.skippedByReason.isNotEmpty()) logger.debug {
                 "[订阅 $operation] 跳过原因：" + parsed.skippedByReason.entries.joinToString("；") { (reason, count) ->
                     "${subscriptionSkipDescription(reason)}，共 $count 次"
                 }
@@ -231,7 +238,7 @@ internal class SubscriptionImporter(
         } catch (e: CancellationException) {
             throw e
         } catch (error: Exception) {
-            logger.info { "[订阅 $operation] Go解析失败，异常类型为 ${error::class.simpleName}" }
+            logger.debug { "[订阅 $operation] 解析失败，异常类型为 ${error::class.simpleName}" }
             // NativeCore 错误可能含订阅凭据，不把异常原文放进塔台状态。
             ParsedAttempt(failure = "订阅解析失败")
         }

@@ -3,11 +3,18 @@ package com.ohmyfly.subscription
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+@OptIn(kotlin.experimental.ExperimentalObjCRefinement::class)
+@kotlin.native.HiddenFromObjC
 public data class SubscriptionFile(val name: String, val content: String)
 
 // 队列只持有本次选择的引用；正文在取得来源任务名额后才读取。
+@OptIn(kotlin.experimental.ExperimentalObjCRefinement::class)
+@kotlin.native.HiddenFromObjC
 public class SubscriptionFileSelection(public val name: String, public val read: suspend (Int) -> SubscriptionFile)
 
+// 双端文件选择器均由 Kotlin 实现，Swift 只持有页面控制器。
+@OptIn(kotlin.experimental.ExperimentalObjCRefinement::class)
+@kotlin.native.HiddenFromObjC
 public interface SubscriptionFilePicker {
     public suspend fun pick(maxFiles: Int): List<SubscriptionFileSelection>
 }

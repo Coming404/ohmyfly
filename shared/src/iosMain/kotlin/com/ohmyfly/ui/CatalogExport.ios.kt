@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 internal actual fun copyCatalogText(text: String) { UIPasteboard.generalPasteboard.string = text }
+internal actual fun readCatalogText(): String? = UIPasteboard.generalPasteboard.string
 
 @OptIn(ExperimentalForeignApi::class)
 internal actual suspend fun shareCatalogFile(text: String) {

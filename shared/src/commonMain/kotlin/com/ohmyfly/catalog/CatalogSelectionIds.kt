@@ -27,7 +27,7 @@ internal suspend fun CatalogStore.selectionIds(kind: String, towerId: Long = 0):
         val current = state.value
         check(current.summary.revision == snapshot.summary.revision &&
             current.filterToken == snapshot.filterToken && current.towerSearch == snapshot.towerSearch) {
-            "目录或筛选已更新，请重新全选"
+            "塔台或航班列表已更新，请重新全选"
         }
         ids
     }

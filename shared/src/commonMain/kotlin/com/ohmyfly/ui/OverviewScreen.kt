@@ -46,7 +46,7 @@ internal fun OverviewScreen(
             Column {
                 SmallTitle("概况")
                 Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
-                    catalogFailure?.let { BasicComponent(title = "目录读取失败", summary = it) }
+                    catalogFailure?.let { BasicComponent(title = "塔台与航班读取失败", summary = it) }
                     BasicComponent(title = "塔台来源", endActions = { Text(subscriptionCount.toString()) })
                     BasicComponent(title = "航班总数", endActions = { Text(flightCount.toString()) })
                     BasicComponent(title = "已选择", endActions = { Text(selectedCount.toString()) })

@@ -22,7 +22,7 @@ internal class LogPageState(
         private set
     var selected by mutableStateOf<LogFileInfo?>(null)
         private set
-    var level by mutableStateOf(LogLevel.Detail)
+    var level by mutableStateOf(LogLevel.Info)
         private set
     var pages by mutableStateOf(emptyList<LogFilePage>())
         private set

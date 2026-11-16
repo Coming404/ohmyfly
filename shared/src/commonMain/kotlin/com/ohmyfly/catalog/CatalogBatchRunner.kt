@@ -3,7 +3,7 @@ package com.ohmyfly.catalog
 import com.ohmyfly.settings.SubscriptionSettings
 import com.ohmyfly.subscription.*
 import com.ohmyfly.logging.logger
-import com.ohmyfly.logging.logTarget
+import io.ktor.http.parseUrl
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.sync.Semaphore
@@ -86,7 +86,8 @@ internal class CatalogBatchRunner(
 
     private suspend fun enqueue(queue: Channel<Work>, work: Work) {
         update { it.copy(taskTotal = it.taskTotal + 1,
-            sourceTasks = it.sourceTasks + (work.source.id to CatalogSourceTask(work.source.parentId, "排队", work.source.name.ifBlank { "来源 ${work.source.id}" }))) }
+            sourceTasks = it.sourceTasks + (work.source.id to CatalogSourceTask(
+                work.source.parentId, "排队", work.source.displayName()))) }
         queue.send(work)
     }
 
@@ -104,12 +105,13 @@ internal class CatalogBatchRunner(
     private suspend fun process(work: Work) {
         val source = work.source
         var stage = "准备"
-        logger.info { "[目录] 来源 ${source.id} 开始处理，塔台 ${source.parentId}，${if (work.read == null) logTarget(source.address) else "本地正文或文件"}" }
+        val displayName = source.displayName()
+        logger.info { "[塔台航班] 正在处理“$displayName”" }
         fun phase(value: String) {
             stage = value
-            logger.info { "[目录] 来源 ${source.id} 阶段：$value" }
+            logger.debug { "[塔台航班] “$displayName”阶段：$value" }
             update { state -> state.copy(sourceTasks = state.sourceTasks +
-                (source.id to CatalogSourceTask(source.parentId, value, source.name.ifBlank { "来源 ${source.id}" }))) }
+                (source.id to CatalogSourceTask(source.parentId, value, displayName))) }
         }
         var failed = false
         try {
@@ -127,15 +129,15 @@ internal class CatalogBatchRunner(
                 failed = true
                 return
             }
-            logger.info { "[目录] 来源 ${source.id} 处理完成" }
+            logger.info { "[塔台航班] “$displayName”同步完成" }
         } catch (e: CancellationException) {
-            logger.info { "[目录] 来源 ${source.id} 已取消，阶段：$stage" }
+            logger.info { "[塔台航班] “$displayName”同步已取消" }
             throw e
         } catch (_: CatalogStaleException) {
             // 删除已使来源失效，不重新创建或提交旧结果。
         } catch (e: Exception) {
             failed = true
-            val reason = logCatalogFailure("来源 ${source.id} $stage", e)
+            val reason = logCatalogFailure("同步“$displayName”时的$stage阶段", e)
             recordFailure(source.id, "$stage：$reason")
         } finally {
             update { it.copy(taskCompleted = it.taskCompleted + 1, taskFailed = it.taskFailed + if (failed) 1 else 0,
@@ -147,8 +149,11 @@ internal class CatalogBatchRunner(
         try {
             val ticket = catalogJson.decodeFromJsonElement<RefreshTicket>(request("begin") { put("id", id) })
             request("fail") { put("id", id); put("generation", ticket.generation); put("name", ""); put("failure", failure) }
-        } catch (_: CatalogStaleException) {
-            // 来源已删除时无需再保存失败状态。
-        }
     }
+}
+
+private fun CatalogSource.displayName(): String = name.takeIf(String::isNotBlank) ?: when {
+    local && kind == "file" -> "配置文件"
+    local -> "粘贴内容"
+    else -> parseUrl(address)?.host ?: "网络订阅"
 }

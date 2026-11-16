@@ -9,27 +9,33 @@ import (
 )
 
 type Summary struct {
-	MetricsRevision int64 `json:"metricsRevision"`
-	Revision        int64 `json:"revision"`
-	Towers          int64 `json:"towers"`
-	Flights         int64 `json:"flights"`
+	MetricsRevision  int64 `json:"metricsRevision"`
+	Revision         int64 `json:"revision"`
+	Towers           int64 `json:"towers"`
+	Flights          int64 `json:"flights"`
+	AvailableFlights int64 `json:"availableFlights"`
+	FailedTowers     int64 `json:"failedTowers"`
+	UsedTrafficBytes int64 `json:"usedTrafficBytes"`
 }
 
 type TowerSummary struct {
-	SourceCount   int             `json:"sourceCount"`
-	SourceKind    string          `json:"sourceKind"`
-	LastAttemptAt *int64          `json:"lastAttemptAt"`
-	LastSuccessAt *int64          `json:"lastSuccessAt"`
-	Warnings      json.RawMessage `json:"warnings"`
-	ID            int64           `json:"id"`
-	Name          string          `json:"name"`
-	NodeCount     int64           `json:"nodeCount"`
-	Failure       string          `json:"failure"`
-	Usage         json.RawMessage `json:"usage"`
+	SourceCount        int               `json:"sourceCount"`
+	SourceKind         string            `json:"sourceKind"`
+	Address            string            `json:"address"`
+	AvailableNodeCount int64             `json:"availableNodeCount"`
+	LastAttemptAt      *int64            `json:"lastAttemptAt"`
+	LastSuccessAt      *int64            `json:"lastSuccessAt"`
+	Warnings           json.RawMessage   `json:"warnings"`
+	ImportResult       TowerImportResult `json:"importResult"`
+	ID                 int64             `json:"id"`
+	Name               string            `json:"name"`
+	NodeCount          int64             `json:"nodeCount"`
+	Failure            string            `json:"failure"`
+	Usage              json.RawMessage   `json:"usage"`
 }
 
 type FlightSummary struct {
-	Enabled      bool               `json:"enabled"`
+	Enabled bool `json:"enabled"`
 	// Region 为中文显示名，RegionCode 单独供国旗查找使用。
 	Region       string             `json:"region"`
 	RegionCode   string             `json:"regionCode"`
@@ -62,8 +68,19 @@ func (s *Store) Summary(ctx context.Context) (Summary, error) {
 		return result, err
 	}
 	err = tx.QueryRowContext(ctx, query+`SELECT revision,metrics_revision,
- (SELECT count(*) FROM towers WHERE id NOT IN (SELECT source_id FROM tower_sources)),(SELECT count(*) FROM candidates) FROM catalog_meta WHERE id=1`).Scan(
-		&result.Revision, &result.MetricsRevision, &result.Towers, &result.Flights)
+ (SELECT count(*) FROM towers WHERE id NOT IN (SELECT source_id FROM tower_sources)),
+ (SELECT count(*) FROM candidates),
+ (SELECT count(*) FROM candidates c WHERE coalesce((SELECT r.status FROM node_runs r WHERE r.node_id=c.id ORDER BY r.id DESC LIMIT 1),'')='succeeded'
+  AND NOT EXISTS (SELECT 1 FROM node_controls nctl WHERE nctl.node_id=c.id AND nctl.enabled=0)),
+ (SELECT count(*) FROM towers t WHERE t.id NOT IN (SELECT source_id FROM tower_sources)
+  AND (t.failure<>'' OR (t.address LIKE 'local:merged:%' AND EXISTS(
+   SELECT 1 FROM tower_sources s JOIN towers child ON child.id=s.source_id
+   WHERE s.parent_id=t.id AND child.failure<>'')))),
+ (SELECT coalesce(sum(coalesce(json_extract(usage,'$.upload'),0)+coalesce(json_extract(usage,'$.download'),0)),0)
+  FROM towers WHERE id NOT IN (SELECT source_id FROM tower_sources) AND json_valid(usage))
+ FROM catalog_meta WHERE id=1`).Scan(
+		&result.Revision, &result.MetricsRevision, &result.Towers, &result.Flights,
+		&result.AvailableFlights, &result.FailedTowers, &result.UsedTrafficBytes)
 	if err != nil {
 		return result, err
 	}
@@ -125,9 +142,18 @@ func (s *Store) Page(ctx context.Context, kind string, anchor int64, backwards b
 func towerPage(ctx context.Context, tx *sql.Tx, anchor int64, order string) ([]TowerSummary, error) {
 	result := []TowerSummary{}
 	rows, err := tx.QueryContext(ctx, `SELECT id,substr(name,1,256),
+ CASE WHEN address LIKE 'local:merged:%' THEN '' ELSE coalesce((SELECT address FROM tower_sources WHERE source_id=towers.id),address) END,
  (SELECT count(DISTINCT t.node_id) FROM tower_nodes t WHERE t.tower_id IN
  (SELECT source_id FROM tower_sources WHERE parent_id=towers.id UNION ALL SELECT towers.id) AND t.eligible=1),
+ (SELECT count(DISTINCT t.node_id) FROM tower_nodes t LEFT JOIN node_controls c ON c.node_id=t.node_id WHERE t.tower_id IN
+ (SELECT source_id FROM tower_sources WHERE parent_id=towers.id UNION ALL SELECT towers.id) AND t.eligible=1
+ AND coalesce(c.enabled,1)=1 AND coalesce((SELECT r.status FROM node_runs r WHERE r.node_id=t.node_id ORDER BY r.id DESC LIMIT 1),'')='succeeded'),
  substr(failure,1,512),usage,warnings,last_attempt_at,last_success_at,
+ coalesce((SELECT added FROM tower_imports WHERE tower_id=towers.id),0),
+ coalesce((SELECT updated FROM tower_imports WHERE tower_id=towers.id),0),
+ coalesce((SELECT removed FROM tower_imports WHERE tower_id=towers.id),0),
+ coalesce((SELECT failed FROM tower_imports WHERE tower_id=towers.id),0),
+ coalesce((SELECT details FROM tower_imports WHERE tower_id=towers.id),'[]'),
  CASE WHEN address LIKE 'local:merged:%' THEN 'merged' WHEN address LIKE 'local:file:%' THEN 'file' WHEN address LIKE 'local:text:%' THEN 'text' ELSE 'http' END
  FROM towers WHERE id NOT IN (SELECT source_id FROM tower_sources) AND id `+order, anchor)
 	if err != nil {
@@ -136,12 +162,19 @@ func towerPage(ctx context.Context, tx *sql.Tx, anchor int64, order string) ([]T
 	defer rows.Close()
 	for rows.Next() {
 		var t TowerSummary
-		var usage, warnings string
-		if err = rows.Scan(&t.ID, &t.Name, &t.NodeCount, &t.Failure, &usage, &warnings, &t.LastAttemptAt, &t.LastSuccessAt, &t.SourceKind); err != nil {
+		var usage, warnings, importDetails string
+		t.ImportResult.Details = []string{}
+		if err = rows.Scan(&t.ID, &t.Name, &t.Address, &t.NodeCount, &t.AvailableNodeCount,
+			&t.Failure, &usage, &warnings, &t.LastAttemptAt, &t.LastSuccessAt,
+			&t.ImportResult.Added, &t.ImportResult.Updated, &t.ImportResult.Removed,
+			&t.ImportResult.Failed, &importDetails, &t.SourceKind); err != nil {
 			return result, err
 		}
 		t.Usage = json.RawMessage(usage)
 		t.Warnings = json.RawMessage(warnings)
+		if err = json.Unmarshal([]byte(importDetails), &t.ImportResult.Details); err != nil {
+			return result, err
+		}
 		result = append(result, t)
 	}
 	if err = rows.Err(); err != nil {

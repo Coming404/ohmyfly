@@ -54,7 +54,7 @@ internal class CatalogOperations(
             withContext(NonCancellable) {
                 try { reload() }
                 catch (e: Exception) {
-                    val reason = logCatalogFailure("批次后重读目录", e)
+                    val reason = logCatalogFailure("同步后刷新列表", e)
                     if (failure == null) { failure = e; message = "数据已提交，列表重读失败：$reason" }
                 }
                 update { it.copy(busy = it.queuedBatches > 0, sourceTasks = emptyMap(), failure = message) }

@@ -66,10 +66,9 @@ internal fun FlightDetails(flight: CatalogFlight, revision: Long) {
             CatalogAction(if (connections) "收起协议与连接详情" else "协议与连接详情", DriftIcons.Subscriptions,
                 Modifier.fillMaxWidth()) { connections = !connections }
             if (connections) config?.let { value ->
-                FlightConfiguration(value)
                 CatalogTextButton(if (reveal) "隐藏敏感配置" else "显示敏感配置（包含凭据）",
                     onClick = hapticClick { reveal = !reveal })
-                if (reveal) SelectionContainer { Text(value.toString(), autoSize = CatalogTextSizing.Body) }
+                if (reveal) SelectionContainer { FlightConfiguration(value) }
             }
             CatalogAction(if (showHistory) "收起结果历史" else "结果历史", com.ohmyfly.ui.settings.SettingsIcons.Timer,
                 Modifier.fillMaxWidth()) { showHistory = !showHistory }

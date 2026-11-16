@@ -17,6 +17,12 @@
 
 工件只保留在私有仓库的对应 Actions run 中，默认保留七天；使用官方 `upload-artifact` 的 `archive: false` 单独交付原格式 IPA/APK，不需要解开外层 ZIP。不自动下载安装包到本地设备；已下载的一次性副本已清理。归档与 dSYM 仅作为 CI 中间结果，不再额外生成 ZIP 分发。不创建公开 GitHub Release，也不上传商店。当前开发包名 `com.ohmyfly.app` 和图标仍是测试用途，目录初始为空，塔台来源和Go起飞待接通。
 
+## 版本标识
+
+Android 与 iOS 的 App 版本统一为 `1.0.0 (1)`，分别来自 Gradle 的 `versionName/versionCode` 和 Info.plist 的 `CFBundleShortVersionString/CFBundleVersion`。
+
+NativeCore 版本为构建时的完整 Git 提交号，由两个原生库工作流的 `gomobile bind -ldflags="-X github.com/Coming404/ohmyfly/native-core/mobile.version=${GITHUB_SHA}"` 注入。关于页从实际加载的 Go 库读取并显示前12位，目录启动日志保留完整值。桥接通道没有独立版本号。
+
 ## Android 测试签名
 
 本次生成独立测试 Release 签名，不使用 Android debug keystore，也不把它视为最终上架签名。相同签名用于后续测试包，避免每次构建都换证书。
@@ -36,6 +42,7 @@ Gradle 通过上述密码/别名和构建时的 `ANDROID_KEYSTORE_PATH` 读取�
 
 - Android：`testAndroidHostTest` + `assembleRelease`；使用 ABI splits 分别生成 armeabi-v7a、arm64-v8a、x86_64 三个独立 APK，不生成 universal APK。每个包验证签名、唯一 ABI 和对应 `libgojni.so`，拒绝带 `application-debuggable` 标记的包。三种架构沿用同一应用 ID、版本号与签名，按设备选择一个安装。不构建 AAB。
 - iOS：Xcode `Release`、`iphoneos`、`arm64`、`archive`，关闭代码签名。`~/.konan`（Kotlin/Native 工具链）用 `actions/cache` 缓存，Gradle 缓存可写，避免每次重新下载。`tools/package_ios_release.py` 在打包前检查 App 元数据、Mach-O CPU 与 iOS device 平台，拒绝 arm64 模拟器冒充真机包。
+- 设备构建设置 `iosDeviceOnly=true`，Kotlin 只注册 `iosArm64`，Go 使用 `-target=ios/arm64` 生成真机切片；普通开发配置仍注册模拟器目标，独立原生库工作流提供含模拟器的 XCFramework。Release 保留完整 LTO，不启用实验性 Release 二进制缓存，也不削减 LLVM 优化阶段。只供 Kotlin 使用的解析模型与绘制接口不导出给 Swift，Android 公开入口通过 `HiddenFromObjC` 保留跨 Kotlin 模块调用。
 - Xcode 内嵌 Gradle 调用启用 `--profile`；工作流将构建／配置／编译／链接任务计时保存为 `ios-gradle-profile`，用于区分 Kotlin/Native Release 链接和 Xcode 归档耗时。
 - `tools/package_ios_release.py` 是 CI 所需的保留工具：校验部分只用 Python 标准库，归档打包使用 macOS 自带 `ditto`。不是 App 运行依赖。
 - 本地只运行 `python3 tools/check_project.py` 和 `python3 -m unittest discover -s tools/tests -v`，不下载完整移动端工具链。打包验证测试可以在 Linux 运行，不声称本地运行了 Xcode。

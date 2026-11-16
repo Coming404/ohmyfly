@@ -1,4 +1,4 @@
-// 选择工具栏共享实际目录操作，抽屉负责启停、删除确认和分享。
+// 底部工具栏只持有批量操作；顶部取消与全选由页面顶栏持有。
 package com.ohmyfly.ui
 
 import androidx.compose.foundation.layout.*
@@ -13,8 +13,14 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.overlay.OverlayBottomSheet
 
 @Composable
-internal fun CatalogSelectionHost(mode: CatalogSelectionMode, nodeIds: Set<Long>, towerIds: Set<Long>,
-    settings: AppSettings, onDone: () -> Unit) {
+internal fun CatalogSelectionHost(
+    mode: CatalogSelectionMode,
+    nodeIds: Set<Long>,
+    towerIds: Set<Long>,
+    settings: AppSettings,
+    toolbarModifier: Modifier,
+    onDone: () -> Unit,
+) {
     var sheet by remember(mode) { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var failure by remember { mutableStateOf<String?>(null) }
@@ -25,8 +31,8 @@ internal fun CatalogSelectionHost(mode: CatalogSelectionMode, nodeIds: Set<Long>
         if (ok) { messages.show(AppMessageKind.Success, text); sheet = ""; onDone() }
         else failure = text
     }
-    CatalogSelectionToolbar(mode, enabled = count > 0 && !busy,
-        onSpeed = { messages.show(AppMessageKind.Uncertain, "测速入口已保留，执行器尚未接入") },
+    CatalogSelectionToolbar(mode, modifier = toolbarModifier, enabled = count > 0 && !busy,
+        onSpeed = { messages.show(AppMessageKind.Uncertain, "测速功能尚未开放") },
         onToggle = { sheet = "toggle"; failure = null }, onMove = { sheet = "move" },
         onShare = { sheet = "share" }, onDelete = { sheet = "delete"; failure = null },
         onSync = {

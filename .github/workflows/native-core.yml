@@ -56,7 +56,7 @@ jobs:
         working-directory: ${{ runner.temp }}/native-core
         run: |
           go get -tool "golang.org/x/mobile/cmd/gobind@${GOMOBILE_VERSION}"
-          gomobile bind -target=android -androidapi=33 -o "$RUNNER_TEMP/build/native-core.aar" ./mobile
+          gomobile bind -target=android/arm,android/arm64,android/amd64 -androidapi=33 -ldflags="-X github.com/Coming404/ohmyfly/native-core/mobile.version=${GITHUB_SHA}" -o "$RUNNER_TEMP/build/native-core.aar" ./mobile
       - uses: actions/upload-artifact@v7.0.2
         with:
           path: ${{ runner.temp }}/build/native-core.aar
@@ -90,7 +90,7 @@ jobs:
         working-directory: ${{ runner.temp }}/native-core
         run: |
           go get -tool "golang.org/x/mobile/cmd/gobind@${GOMOBILE_VERSION}"
-          gomobile bind -target=ios -iosversion=16.0 -o "$RUNNER_TEMP/build/NativeCore.xcframework" ./mobile
+          gomobile bind -target=ios -iosversion=16.0 -ldflags="-X github.com/Coming404/ohmyfly/native-core/mobile.version=${GITHUB_SHA}" -o "$RUNNER_TEMP/build/NativeCore.xcframework" ./mobile
           ditto -c -k --keepParent "$RUNNER_TEMP/build/NativeCore.xcframework" "$RUNNER_TEMP/build/NativeCore.xcframework.zip"
       - uses: actions/upload-artifact@v7.0.2
         with:

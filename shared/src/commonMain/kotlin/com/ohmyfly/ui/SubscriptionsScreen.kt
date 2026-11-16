@@ -42,7 +42,9 @@ internal fun SubscriptionsScreen(
     LaunchedEffect(importOpen) { importing = importOpen }
     LaunchedEffect(importing) { onImportOpenChange(importing) }
     var target by remember { mutableStateOf<CatalogTower?>(null) }
-    var expanded by remember { mutableStateOf<Long?>(null) }
+    var editing by remember { mutableStateOf<CatalogTower?>(null) }
+    // 原型允许同时展开多个塔台，集合状态不会因打开新卡片而关闭旧卡片。
+    var expanded by remember { mutableStateOf<Set<Long>>(emptySet()) }
     val count = catalog.towerMatchCount ?: 0
     LaunchedEffect(catalog.towerSearch) { listState.scrollToItem(0) }
     LaunchedEffect(catalog.failure) { catalog.failure?.let { messages.show(AppMessageKind.Failure, it) } }
@@ -81,11 +83,12 @@ internal fun SubscriptionsScreen(
                 nodeSelectionMode = selectionMode == CatalogSelectionMode.Nodes,
                 onNodeSelection = { onEnterNodeSelection(tower.id); onNodeSelection(it) },
                 onSourceImport = { source ->
-                    target = CatalogTower(source.id, source.name, 0, source.failure, source.kind)
+                    target = CatalogTower(source.id, source.name, 0, source.failure, source.kind, address = source.address)
                     importing = true
                 },
-                expanded = expanded == tower.id, revision = catalog.summary.revision,
-                onExpand = { expanded = if (expanded == tower.id) null else tower.id },
+                onEdit = { editing = tower },
+                expanded = tower.id in expanded, revision = catalog.summary.revision,
+                onExpand = { expanded = if (tower.id in expanded) expanded - tower.id else expanded + tower.id },
                 onRefresh = {
                     if (tower.sourceKind == "http" || tower.sourceKind == "merged") {
                         try { store.refresh(tower.id, settings.subscription, mirrors) }
@@ -109,6 +112,7 @@ internal fun SubscriptionsScreen(
     if (importing) TowerImportPanel(importReady && catalog.ready, settings.subscription, target,
         onSubmit = { inputs, name, merge, id -> store.importSources(inputs, name, merge, settings.subscription, mirrors, id) },
         onClose = { importing = false; target = null })
+    editing?.let { tower -> TowerEditSheet(tower, store) { editing = null } }
 }
 
 @Composable
@@ -118,9 +122,17 @@ private fun TowerListStatus(catalog: CatalogState, count: Long, store: CatalogSt
             CatalogNotice(catalog.failure)
             SettingsButton("重试", SettingsIcons.Retry) { if (catalog.ready) store.page("towers", catalog.towerPage) else store.start() }
         }
-        catalog.towerMatchCount == null -> CatalogLoading()
-        count == 0L -> CatalogEmpty(if (catalog.towerSearch.isBlank()) "还没有塔台" else "没有匹配的塔台",
-            if (catalog.towerSearch.isBlank()) "添加订阅链接、配置文件或节点正文" else "尝试更换关键词",
-            if (catalog.towerSearch.isBlank()) onAdd else null)
+        catalog.towerMatchCount == null -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            repeat(3) { CatalogTowerLoading() }
+        }
+        count == 0L -> {
+            val searching = catalog.towerSearch.isNotBlank()
+            CatalogEmpty(
+                title = if (searching) "没有匹配的塔台" else "还没有塔台",
+                onAction = if (searching) ({ store.updateTowerSearch("") }) else onAdd,
+                actionLabel = if (searching) "清除搜索" else "添加塔台",
+                icon = if (searching) SettingsIcons.Search else DriftIcons.Nodes,
+            )
+        }
     }
 }

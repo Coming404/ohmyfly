@@ -24,9 +24,13 @@ internal fun NodesScreen(
     onSearchOpenChange: (Boolean) -> Unit = {},
     selectionMode: CatalogSelectionMode? = null,
     onEnterSelection: () -> Unit = {},
+    onSubscriptions: () -> Unit = {},
 ) {
-    var expanded by remember { mutableStateOf<Long?>(null) }
-    val inSelection = selectionMode == CatalogSelectionMode.Nodes
+    // 原型允许多个航班详情同时展开；进入选择模式时统一收起详情。
+    var expanded by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    LaunchedEffect(selectionMode) {
+        if (selectionMode == CatalogSelectionMode.Nodes) expanded = emptySet()
+    }
     val count = catalog.matchCount ?: 0
     CatalogViewport(listState, 2, catalog.flightPage, catalog.flightWindow.keys, count,
         catalog.failure != null, onPage)
@@ -53,8 +57,23 @@ internal fun NodesScreen(
                         else onPage(catalog.flightPage)
                     }
                 }
-                !catalog.ready || catalog.matchCount == null -> CatalogLoading("正在筛选…")
-                count == 0L -> CatalogEmpty("暂无匹配航班", "添加塔台或调整搜索与筛选条件")
+                !catalog.ready || catalog.matchCount == null -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    repeat(7) { CatalogLoading("正在筛选…") }
+                }
+                count == 0L -> {
+                    val noFlights = catalog.summary.flights == 0L
+                    CatalogEmpty(
+                        title = if (noFlights) "还没有航班" else "没有匹配的航班",
+                        onAction = if (noFlights) onSubscriptions else {
+                            {
+                                appCatalog.updateFlightFilter(FlightFilter())
+                                onSearchOpenChange(false)
+                            }
+                        },
+                        actionLabel = if (noFlights) "前往塔台" else "清除筛选",
+                        icon = if (noFlights) DriftIcons.Nodes else SettingsIcons.Search,
+                    )
+                }
             }
             catalog.measurementsFailure?.let { CatalogNotice(it) }
         }
@@ -63,8 +82,8 @@ internal fun NodesScreen(
             if (flight == null) CatalogLoading()
             else FlightCard(flight, flight.id.toString() in selectedIds,
                 onSelect = { if (!inSelection) onEnterSelection(); onSelection(toggleSelection(selectedIds, flight.id.toString())) },
-                onDetails = { expanded = if (expanded == flight.id) null else flight.id },
-                expanded = expanded == flight.id, revision = catalog.summary.revision, selectionMode = inSelection)
+                onDetails = { expanded = if (flight.id in expanded) expanded - flight.id else expanded + flight.id },
+                expanded = flight.id in expanded, revision = catalog.summary.revision, selectionMode = inSelection)
         }
     }
 }

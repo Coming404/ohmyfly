@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 internal expect fun copyCatalogText(text: String)
+internal expect fun readCatalogText(): String?
 internal expect suspend fun shareCatalogFile(text: String)
 
 internal suspend fun exportCatalogYaml(ids: Set<Long>): String = withContext(Dispatchers.Default) {

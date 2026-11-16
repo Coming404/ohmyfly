@@ -20,6 +20,7 @@ public fun initializeCatalog(context: Context) {
 }
 
 internal actual fun openNativeCatalog(): String {
+    com.ohmyfly.logging.logger.info { "[原生核心] Android 构建版本：${com.ohmyfly.nativecore.nativeCoreVersion()}" }
     val directory = File(catalogContext.noBackupFilesDir, "catalog")
     check(directory.isDirectory || directory.mkdirs()) { "无法建立目录数据库文件夹" }
     return mobile.Mobile.openCatalog(File(directory, "catalog.sqlite").absolutePath)

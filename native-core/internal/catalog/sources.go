@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -125,11 +126,21 @@ func sourceOverview(ctx context.Context, tx *sql.Tx, tower *TowerSummary) error 
 	}
 	var failed int
 	err := tx.QueryRowContext(ctx, `SELECT count(*),coalesce(sum(t.failure<>''),0),max(t.last_attempt_at),
- CASE WHEN count(t.last_success_at)=count(*) THEN min(t.last_success_at) END
- FROM tower_sources s JOIN towers t ON t.id=s.source_id WHERE s.parent_id=?`, tower.ID).
-		Scan(&tower.SourceCount, &failed, &tower.LastAttemptAt, &tower.LastSuccessAt)
+ CASE WHEN count(t.last_success_at)=count(*) THEN min(t.last_success_at) END,
+ coalesce(sum(i.added),0),coalesce(sum(i.updated),0),coalesce(sum(i.removed),0),coalesce(sum(i.failed),0)
+ FROM tower_sources s JOIN towers t ON t.id=s.source_id
+ LEFT JOIN tower_imports i ON i.tower_id=t.id WHERE s.parent_id=?`, tower.ID).
+		Scan(&tower.SourceCount, &failed, &tower.LastAttemptAt, &tower.LastSuccessAt,
+			&tower.ImportResult.Added, &tower.ImportResult.Updated, &tower.ImportResult.Removed, &tower.ImportResult.Failed)
 	if failed > 0 {
 		tower.Failure = fmt.Sprintf("%d 个来源更新失败，已保留上次成功数据", failed)
 	}
-	return err
+	var details string
+	if err = tx.QueryRowContext(ctx, `SELECT coalesce(json_group_array(value),'[]') FROM (
+ SELECT DISTINCT item.value AS value FROM tower_sources s
+ JOIN tower_imports i ON i.tower_id=s.source_id, json_each(i.details) item
+ WHERE s.parent_id=? ORDER BY item.value)`, tower.ID).Scan(&details); err != nil {
+		return err
+	}
+	return json.Unmarshal([]byte(details), &tower.ImportResult.Details)
 }

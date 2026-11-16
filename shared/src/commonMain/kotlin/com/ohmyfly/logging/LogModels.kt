@@ -12,7 +12,7 @@ internal data class LogPolicy(
     val fileMiB: Long = 8,
     val totalMiB: Long = 128,
     val retentionDays: Long = 7,
-    val level: LogLevel = LogLevel.Detail,
+    val level: LogLevel = LogLevel.Info,
 ) {
     fun validate() {
         if (fileMiB <= 0 || totalMiB < fileMiB || retentionDays <= 0 ||

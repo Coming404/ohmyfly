@@ -24,8 +24,8 @@ import kotlinx.coroutines.launch
 internal enum class SettingsResetTarget(val page: SettingsPage?, val title: String, val description: String) {
     Speed(SettingsPage.Speed, "恢复本页默认", "恢复全部测速参数；不更改其他设置，不删除塔台、航班或历史。"),
     Media(SettingsPage.Media, "恢复本页默认", "恢复全部流媒体与 AI 检测偏好；不更改其他设置，不删除测试结果。"),
-    Subscription(SettingsPage.Subscription, "恢复本页默认", "恢复塔台请求与过滤偏好；不更改其他设置，不删除已导入的业务目录。"),
-    All(null, "恢复全部设置", "重置所有设置，包含外观、测试偏好、默认镜像列表与默认选择；自定义镜像将被移除。不会删除塔台、航班目录或历史。"),
+    Subscription(SettingsPage.Subscription, "恢复本页默认", "恢复塔台请求与过滤偏好；不更改其他设置，不删除已导入的塔台或航班数据。"),
+    All(null, "恢复全部设置", "重置所有设置，包含外观、测试偏好、默认镜像列表与默认选择；自定义镜像将被移除。不会删除塔台、航班数据或历史记录。"),
     ;
 
     fun apply(current: AppSettings): AppSettings = when (this) {

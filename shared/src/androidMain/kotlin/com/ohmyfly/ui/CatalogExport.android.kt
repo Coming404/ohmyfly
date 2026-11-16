@@ -16,3 +16,7 @@ internal actual fun copyCatalogText(text: String) {
     catalogClipboardContext.getSystemService(android.content.ClipboardManager::class.java)
         .setPrimaryClip(android.content.ClipData.newPlainText("Mihomo YAML", text))
 }
+
+internal actual fun readCatalogText(): String? =
+    catalogClipboardContext.getSystemService(android.content.ClipboardManager::class.java)
+        .primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(catalogClipboardContext)?.toString()
