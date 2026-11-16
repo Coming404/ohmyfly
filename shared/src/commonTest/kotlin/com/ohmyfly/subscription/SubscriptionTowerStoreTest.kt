@@ -51,7 +51,7 @@ class SubscriptionTowerStoreTest {
             assertEquals("second", store.towers.value.single().nodes.single().name)
             content = "fail"
             store.refresh("https://sub.example/p", settings)
-            assertEquals("HTTP 404", store.towers.value.single().failure)
+            assertEquals("服务器未找到订阅资源（HTTP 404）", store.towers.value.single().failure)
             assertEquals("second", store.towers.value.single().nodes.single().name)
             content = "recovered"
             store.refresh("https://sub.example/p", settings)
@@ -66,7 +66,9 @@ class SubscriptionTowerStoreTest {
         try {
             val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { error("must not parse") }))
             assertNull(store.add("https://sub.example/p", settings))
-            assertEquals(TestTower("https://sub.example/p", failure = "HTTP 404", name = "sub.example"), store.towers.value.single())
+            assertEquals(TestTower(
+                "https://sub.example/p", failure = "服务器未找到订阅资源（HTTP 404）", name = "sub.example"),
+                store.towers.value.single())
         } finally { client.close() }
     }
 

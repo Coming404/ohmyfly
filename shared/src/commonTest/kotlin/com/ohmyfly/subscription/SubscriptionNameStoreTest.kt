@@ -81,7 +81,7 @@ class SubscriptionNameStoreTest {
                 store.add(address, settings, name)
                 val expected = if (name.isEmpty()) "sub.example" else name
                 assertEquals(expected, store.towers.value.single().name)
-                assertEquals("HTTP 404", store.towers.value.single().failure)
+                assertEquals("服务器未找到订阅资源（HTTP 404）", store.towers.value.single().failure)
                 status = HttpStatusCode.OK
                 store.refresh(address, settings)
                 assertNull(store.towers.value.single().failure)
@@ -107,7 +107,7 @@ class SubscriptionNameStoreTest {
             status = HttpStatusCode.NotFound
             store.refresh(address, settings)
             val after = store.towers.value.single()
-            assertEquals("HTTP 404", after.failure)
+            assertEquals("服务器未找到订阅资源（HTTP 404）", after.failure)
             assertEquals(before.name, after.name)
             assertEquals(before.nodes, after.nodes)
             assertEquals(before.usage, after.usage)

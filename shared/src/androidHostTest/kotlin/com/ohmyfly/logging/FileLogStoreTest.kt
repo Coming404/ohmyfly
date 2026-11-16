@@ -49,7 +49,7 @@ class FileLogStoreTest {
     }
 
     @Test fun sparseLevelFilterAdvancesWithBoundedScan() = inDirectory { dir ->
-        val store = FileLogStore(fs, dir).apply { configure(LogPolicy()) }
+        val store = FileLogStore(fs, dir).apply { configure(LogPolicy(level = LogLevel.Detail)) }
         store.append(listOf(row(1)))
         repeat(12) { n -> store.append(List(100) { row(n * 100 + it + 2, "x".repeat(8192), LogLevel.Detail) }) }
         val files = store.listFiles()

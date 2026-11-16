@@ -49,8 +49,8 @@ class CatalogWindowTest {
             store.release(background = false)
             assertEquals(setOf(9), store.state.value.towerWindow.keys)
             store.release(background = true)
-            assertTrue(store.state.value.towerWindow.isEmpty())
-            assertTrue(store.state.value.towers.isEmpty())
+            assertEquals(setOf(9), store.state.value.towerWindow.keys)
+            assertEquals(901, store.state.value.towers.first().id)
         } finally { Dispatchers.resetMain() }
     }
 }

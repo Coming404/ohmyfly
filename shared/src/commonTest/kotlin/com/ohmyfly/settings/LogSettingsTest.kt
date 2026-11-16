@@ -32,14 +32,14 @@ class LogSettingsTest {
         assertNull(validateLogPolicy(LogPolicy(2048, 8192, 400)))
     }
 
-    @Test fun corruptValuesRecoverToUsablePolicy() {
+    @Test fun decodeCorruptLevelFallsBackToDefaultInfo() {
         val values = mutablePreferencesOf(
             longPreferencesKey("logging.fileMiB") to 16L,
             longPreferencesKey("logging.totalMiB") to 1L,
             longPreferencesKey("logging.retentionDays") to -1L,
             stringPreferencesKey("logging.level") to "Error",
         )
-        assertEquals(LogPolicy(16, 16, 7, LogLevel.Detail), SettingsCodec.decode(values).logging)
+        assertEquals(LogPolicy(16, 16, 7, LogLevel.Info), SettingsCodec.decode(values).logging)
     }
 
     @Test fun onlyTwoLevelsAndUrlSecretsAreNotLogged() {

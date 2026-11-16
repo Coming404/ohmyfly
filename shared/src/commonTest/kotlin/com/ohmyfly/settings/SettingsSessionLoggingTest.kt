@@ -46,7 +46,7 @@ class SettingsSessionLoggingTest {
 
     @Test fun finalResultWaitsForReadbackAndSurvivesInformationLevel() = runTest {
         val logs = SettingsLogCapture()
-        var disk = AppSettings()
+        var disk = AppSettings(logging = com.ohmyfly.logging.LogPolicy(level = LogLevel.Detail))
         var reads = 0
         val write = CompletableDeferred<Unit>()
         val read = CompletableDeferred<Unit>()

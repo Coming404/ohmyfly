@@ -40,7 +40,7 @@ class CatalogImportContractTest {
             error("需触发集合解码失败")
         } catch (error: kotlinx.serialization.SerializationException) { error }
         val reason = catalogFailure(error)
-        assertTrue(reason.startsWith("目录数据格式不匹配"))
+        assertTrue(reason.startsWith("塔台与航班数据格式不匹配"))
         assertTrue("secret-value" !in reason)
         assertTrue("JSON input" !in reason)
     }

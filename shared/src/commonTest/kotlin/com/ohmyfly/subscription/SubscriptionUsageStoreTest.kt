@@ -45,7 +45,7 @@ class SubscriptionUsageStoreTest {
             status = HttpStatusCode.NotFound
             header = "total=999"
             store.refresh(address, settings)
-            assertEquals("HTTP 404", store.towers.value.single().failure)
+            assertEquals("服务器未找到订阅资源（HTTP 404）", store.towers.value.single().failure)
             assertEquals(successful.nodes, store.towers.value.single().nodes)
             assertEquals(successful.usage, store.towers.value.single().usage)
             status = HttpStatusCode.OK
