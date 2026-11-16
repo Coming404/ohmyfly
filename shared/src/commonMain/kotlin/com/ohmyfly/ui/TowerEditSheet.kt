@@ -33,23 +33,28 @@ internal fun TowerEditSheet(tower: CatalogTower, store: CatalogStore, onClose: (
                     textStyle = catalogInputStyle(), singleLine = true, enabled = !saving)
             }
             failure?.let { CatalogNotice(it) }
-            CatalogTextButton("保存", enabled = !saving, modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColorsPrimary()) {
-                val title = name.trim()
-                when {
-                    title.isEmpty() -> failure = "请输入塔台名称"
-                    title.length > 256 -> failure = "塔台名称过长"
-                    tower.sourceKind == "http" && validateSubscriptionUrl(address) != null ->
-                        failure = validateSubscriptionUrl(address)
-                    else -> {
-                        saving = true
-                        store.updateTower(tower.id, if (tower.sourceKind == "http") address.trim() else tower.address, title) { ok, message ->
-                            saving = false
-                            if (ok) onClose() else failure = message
+            CatalogTextButton(
+                text = "保存",
+                enabled = !saving,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColorsPrimary(),
+                onClick = {
+                    val title = name.trim()
+                    when {
+                        title.isEmpty() -> failure = "请输入塔台名称"
+                        title.length > 256 -> failure = "塔台名称过长"
+                        tower.sourceKind == "http" && validateSubscriptionUrl(address) != null ->
+                            failure = validateSubscriptionUrl(address)
+                        else -> {
+                            saving = true
+                            store.updateTower(tower.id, if (tower.sourceKind == "http") address.trim() else tower.address, title) { ok, message ->
+                                saving = false
+                                if (ok) onClose() else failure = message
+                            }
                         }
                     }
-                }
-            }
+                },
+            )
             CatalogTextButton("取消", enabled = !saving, onClick = hapticClick(onClose), modifier = Modifier.fillMaxWidth())
         }
     }

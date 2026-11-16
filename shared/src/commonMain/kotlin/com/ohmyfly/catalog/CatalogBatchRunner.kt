@@ -137,7 +137,7 @@ internal class CatalogBatchRunner(
             // 删除已使来源失效，不重新创建或提交旧结果。
         } catch (e: Exception) {
             failed = true
-            val reason = logCatalogFailure("同步“$displayName”时的$stage阶段", e)
+            val reason = logCatalogFailure("同步“$displayName”时的${stage}阶段", e)
             recordFailure(source.id, "$stage：$reason")
         } finally {
             update { it.copy(taskCompleted = it.taskCompleted + 1, taskFailed = it.taskFailed + if (failed) 1 else 0,
@@ -149,6 +149,11 @@ internal class CatalogBatchRunner(
         try {
             val ticket = catalogJson.decodeFromJsonElement<RefreshTicket>(request("begin") { put("id", id) })
             request("fail") { put("id", id); put("generation", ticket.generation); put("name", ""); put("failure", failure) }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logCatalogFailure("保存塔台失败状态", e)
+        }
     }
 }
 

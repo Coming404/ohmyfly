@@ -182,8 +182,8 @@ internal class CatalogStore(
                 if (token == epoch) reload()
             } catch (error: Exception) {
                 val listName = if (kind == "towers") "塔台" else "航班"
-                val reason = logCatalogFailure("读取$listName列表", error)
-                if (token == epoch) mutableState.update { it.copy(flightLoading = false, towerLoading = false, failure = "$listName列表读取失败：$reason") }
+                val reason = logCatalogFailure("读取${listName}列表", error)
+                if (token == epoch) mutableState.update { it.copy(flightLoading = false, towerLoading = false, failure = "${listName}列表读取失败：$reason") }
             }
         }
     }

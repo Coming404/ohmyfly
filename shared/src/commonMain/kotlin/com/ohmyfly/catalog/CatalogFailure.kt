@@ -25,6 +25,6 @@ internal fun catalogFailure(error: Exception): String {
 // 记录阶段、来源 ID 与异常类型，使导入前失败也能在日志中定位。
 internal fun logCatalogFailure(stage: String, error: Exception): String {
     val reason = catalogFailure(error)
-    logger.info { "[塔台航班] $stage失败：$reason" }
+    logger.info { "[塔台航班] ${stage}失败：$reason" }
     return reason
 }

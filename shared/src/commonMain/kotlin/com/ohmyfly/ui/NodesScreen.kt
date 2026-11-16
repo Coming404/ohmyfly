@@ -28,6 +28,7 @@ internal fun NodesScreen(
 ) {
     // 原型允许多个航班详情同时展开；进入选择模式时统一收起详情。
     var expanded by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    val inSelection = selectionMode == CatalogSelectionMode.Nodes
     LaunchedEffect(selectionMode) {
         if (selectionMode == CatalogSelectionMode.Nodes) expanded = emptySet()
     }
