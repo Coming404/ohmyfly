@@ -64,7 +64,7 @@ class PageHeaderTests(unittest.TestCase):
         self.assertIn('NavDisplay(', screen)
         self.assertIn('onBack = onBack', screen)
         self.assertNotIn('SettingsBackHandler', app)
-        self.assertRegex(app, r'if\s*\(!settingsChild\s*&&\s*selectionMode\s*==\s*null\)\s*DriftNavigationBar\(')
+        self.assertRegex(app, r'if\s*\(!settingsChild\s*&&\s*selectionMode\s*==\s*null\s*&&\s*!imeVisible\)\s*DriftNavigationBar\(')
         self.assertIn('contentPadding = padding', app)
 
     def test_only_real_actions_get_a_surface(self):
@@ -75,9 +75,13 @@ class PageHeaderTests(unittest.TestCase):
         self.assertIn('content = actions', source)
         actions = app.split('actions = when {', 1)[1].split('private fun ApplyOutputDeduplication', 1)[0]
         self.assertIn('selectionMode != null ->', actions)
-        self.assertIn('HeaderTextAction("取消"', actions)
-        self.assertIn('CatalogSelectAllAction(selectionMode, selectionTowerId', actions)
-        self.assertIn('onSelection(emptySet())', actions)
+        self.assertIn('CatalogSelectionTopToolbar(', actions)
+        self.assertIn('onCancel = onCancelSelection, onSelectAll = onSelectAll', actions)
+        toolbar = (UI / 'CatalogSelection.kt').read_text()
+        top_toolbar = toolbar.split('internal fun CatalogSelectionTopToolbar(', 1)[1]
+        self.assertIn('FloatingToolbar(', top_toolbar)
+        self.assertIn('SelectionToolbarAction(true, "取消"', top_toolbar)
+        self.assertIn('selectAllLabel', top_toolbar)
         for page in ('NodeLibrary', 'Subscriptions'):
             self.assertIn(f'destination == AppDestination.{page} ->', actions)
         self.assertIn('mirrorPage ->', actions)
