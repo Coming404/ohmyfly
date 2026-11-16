@@ -54,5 +54,11 @@ internal class CatalogPages {
                 listOfNotNull(metric.latest, metric.valid).sumOf { 160 + 2 * (it.reason.length + it.status.length + it.kind.length) }
             } + value.platforms.sumOf { 128 + 2 * (it.platform.length + it.status.length + it.region.length) }
 
-    fun clear() { entries.clear(); bytes = 0; visible = null }
+    // 筛选只使对应列表失效，切换标签时继续复用另一列表的有界窗口。
+    fun clear(kind: String? = null) {
+        entries.keys.filter { kind == null || it.kind == kind }.forEach {
+            bytes -= entries.remove(it)!!.bytes
+        }
+        if (kind == null || visible?.kind == kind) visible = null
+    }
 }

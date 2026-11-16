@@ -28,7 +28,7 @@ class SubscriptionFailuresTest {
             val result = importer.importSubscription("https://sub.example/p", SubscriptionSettings())
             assertEquals("HTTP 404", result.failure)
             assertEquals(emptyList(), result.nodes)
-            assertEquals(4, requests)
+            assertEquals(3, requests)
         } finally { client.close() }
     }
 
@@ -46,7 +46,7 @@ class SubscriptionFailuresTest {
             assertNull(result.failure)
             assertEquals(listOf("good"), result.nodes.map { it.name })
             assertEquals(1, parsed)
-            assertEquals(4, requests)
+            assertEquals(3, requests)
         } finally { client.close() }
     }
 

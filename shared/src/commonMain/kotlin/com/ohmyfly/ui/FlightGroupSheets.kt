@@ -30,7 +30,7 @@ internal fun FlightGroupEditor(group: CatalogGroup?, groups: List<CatalogGroup>,
     }
     OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(), title = if (group == null) "新建分组" else "管理分组",
         onDismissRequest = { if (!busy) onClose() }) {
-        Column(Modifier.fillMaxWidth().imePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             TextField(value = name, textStyle = catalogInputStyle(), onValueChange = { name = it; failure = null }, label = "分组名称",
                 singleLine = true, enabled = !busy)
             failure?.let { CatalogNotice(it) }

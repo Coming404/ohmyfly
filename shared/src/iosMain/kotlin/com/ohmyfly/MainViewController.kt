@@ -2,6 +2,7 @@ package com.ohmyfly
 
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.window.ComposeUIViewController
+import androidx.compose.ui.uikit.OnFocusBehavior
 import com.ohmyfly.network.requestStartupNetworkAccess
 import com.ohmyfly.logging.initializeAppLogging
 import com.ohmyfly.settings.iosSettingsPath
@@ -18,7 +19,9 @@ fun MainViewController(
     val build = bundle.objectForInfoDictionaryKey("CFBundleVersion") as? String ?: "?"
     lateinit var controller: platform.UIKit.UIViewController
     val filePicker = com.ohmyfly.subscription.IosSubscriptionFilePicker { controller }
-    controller = ComposeUIViewController {
+    controller = ComposeUIViewController(
+        configure = { onFocusBehavior = OnFocusBehavior.DoNothing },
+    ) {
         LaunchedEffect(Unit) { requestStartupNetworkAccess() }
         App(dynamicColorSeed = null, settingsPath = path, version = "$name ($build) · iOS", filePicker = filePicker, onThemeChanged = onThemeChanged)
     }

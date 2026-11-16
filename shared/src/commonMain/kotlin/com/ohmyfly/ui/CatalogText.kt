@@ -7,7 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,10 +26,10 @@ internal object CatalogTextSizing {
     val Body = TextAutoSize.StepBased(13.sp, 15.sp, 0.5.sp)
 }
 
-// Miuix 抽屉默认底部边距为零；使用实际安全区，避免按钮与 iOS Home 指示条重叠。
+// 仅保留 Home 指示条等系统栏安全区；键盘高度由 OverlayBottomSheet 默认 imePadding 消费一次。
 @Composable
 internal fun catalogSheetMargin(): DpSize = DpSize(
-    16.dp, WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding() + 12.dp,
+    16.dp, WindowInsets.systemBars.asPaddingValues().calculateBottomPadding() + 12.dp,
 )
 
 @Composable
@@ -44,7 +44,9 @@ internal fun CatalogTextButton(
     enabled: Boolean = true,
     colors: ButtonColors = ButtonDefaults.buttonColors(),
 ) {
-    Button(onClick = onClick, modifier = modifier, enabled = enabled, colors = colors) {
+    Button(onClick = onClick, modifier = modifier, enabled = enabled, colors = colors,
+        minWidth = 0.dp, minHeight = 44.dp,
+        insideMargin = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 10.dp)) {
         Text(text, style = MiuixTheme.textStyles.button, autoSize = CatalogTextSizing.Button,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
     }

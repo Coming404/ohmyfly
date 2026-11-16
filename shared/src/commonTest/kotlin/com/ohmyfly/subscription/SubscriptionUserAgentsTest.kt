@@ -22,10 +22,9 @@ class SubscriptionUserAgentsTest {
             val importer = SubscriptionImporter(SubscriptionFetcher(client), { parsed++; testSnapshot(testNode()) })
             assertNull(importer.importSubscription("https://sub.example/p", SubscriptionSettings()).failure)
             assertEquals(listOf<String?>(
-                "v2rayN/7.20.4", "mihomo/1.19.24", "clash-verge/v2.5.2",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "mihomo/1.19.33", "v2rayN/7.20.4", "clash-verge/v2.5.2",
             ), agents)
-            assertEquals(4, parsed)
+            assertEquals(3, parsed)
         } finally { client.close() }
     }
 
@@ -90,7 +89,7 @@ class SubscriptionUserAgentsTest {
         try {
             val importer = SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) })
             importer.importSubscription("https://raw.githubusercontent.com.evil.example/p", SubscriptionSettings())
-            assertEquals(4, requests)
+            assertEquals(3, requests)
         } finally { client.close() }
     }
 
@@ -101,7 +100,7 @@ class SubscriptionUserAgentsTest {
         try {
             val importer = SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) })
             importer.importSubscription("https://sub.example/p", SubscriptionSettings(userAgent = " ||  | "))
-            assertEquals(4, requests)
+            assertEquals(3, requests)
         } finally { client.close() }
     }
 }

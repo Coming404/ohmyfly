@@ -38,6 +38,8 @@ internal class CatalogBatchRunner(
     private val mirrors: SubscriptionMirrorSettings,
     private val fetcher: SubscriptionFetcher,
     private val request: CatalogRequest,
+    private val changed: suspend () -> Unit = {},
+    private val finished: () -> Unit = {},
     private val update: ((CatalogState) -> CatalogState) -> Unit,
 ) {
     private val parses = Semaphore(settings.parseConcurrency)
@@ -58,6 +60,8 @@ internal class CatalogBatchRunner(
                 }
                 val sources = catalogJson.decodeFromJsonElement<List<CatalogSource>>(result.getValue("sources"))
                 if (merge) parent = sources.first().parentId
+                // 来源落库后立即发布卡片，不等下载、解析和整批事务结束。
+                publish()
                 sources.zip(chunk.inputs).forEach { (source, input) -> enqueue(queue, Work(source, input.read)) }
             }
         }
@@ -98,8 +102,15 @@ internal class CatalogBatchRunner(
         val workers = List(settings.towerConcurrency) {
             launch { for (work in queue) process(work) }
         }
-        try { producer.join(); workers.joinAll() }
+        try { producer.join(); workers.joinAll(); finished() }
         finally { queue.cancel(); update { it.copy(sourceTasks = emptyMap()) } }
+    }
+
+    // 网络结果与卡片重读分别报告，避免把已经提交的同步误判为失败。
+    private suspend fun publish() {
+        try { changed() }
+        catch (e: CancellationException) { throw e }
+        catch (e: Exception) { logCatalogFailure("刷新塔台卡片", e) }
     }
 
     private suspend fun process(work: Work) {
@@ -142,6 +153,7 @@ internal class CatalogBatchRunner(
         } finally {
             update { it.copy(taskCompleted = it.taskCompleted + 1, taskFailed = it.taskFailed + if (failed) 1 else 0,
                 sourceTasks = it.sourceTasks - source.id) }
+            publish()
         }
     }
 

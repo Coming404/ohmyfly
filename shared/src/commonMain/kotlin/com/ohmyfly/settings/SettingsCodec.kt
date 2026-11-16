@@ -180,7 +180,8 @@ internal object SettingsCodec {
                     .inOr(SettingsLimits.subscriptionRetries, subscription.retries),
                 maxMiB = preferences.read(subMaxMiB, subscription.maxMiB)
                     .inOr(SettingsLimits.subscriptionMaxMiB, subscription.maxMiB),
-                userAgent = SettingsLimits.userAgentOr(preferences.readOrNull(subUserAgent) ?: subscription.userAgent),
+                userAgent = SettingsLimits.userAgentOr(preferences.readOrNull(subUserAgent) ?: subscription.userAgent)
+                    .ifBlank { subscription.userAgent },
                 includePattern = SettingsLimits.patternOr(preferences.readOrNull(subInclude) ?: subscription.includePattern),
                 excludePattern = SettingsLimits.patternOr(preferences.readOrNull(subExclude) ?: subscription.excludePattern),
                 outputDeduplication = outputDeduplicationOr(preferences.readOrNull(subOutputDedup), subscription.outputDeduplication),

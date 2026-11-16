@@ -20,17 +20,20 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal enum class CatalogNoticeKind { Error, Warning, Success }
 
-// Miuix没有多行提示胶囊组件，错误使用官方配色，警告与成功使用应用语义配色。
+// 多行反馈使用明确的红、琥珀、绿语义配色，浅深色均保留可见对比。
 @Composable
 internal fun CatalogNotice(text: String, kind: CatalogNoticeKind = CatalogNoticeKind.Error) {
     val scheme = MiuixTheme.colorScheme
     val dark = scheme.background.luminance() < 0.5f
     val foreground = when (kind) {
-        CatalogNoticeKind.Error -> scheme.onErrorContainer
+        CatalogNoticeKind.Error -> if (dark) Color(0xFFFF8A8A) else Color(0xFFC62828)
         CatalogNoticeKind.Warning -> if (dark) Color(0xFFFFD54F) else Color(0xFF8A5A00)
         CatalogNoticeKind.Success -> if (dark) Color(0xFF81C784) else Color(0xFF2E7D32)
     }
-    val background = if (kind == CatalogNoticeKind.Error) scheme.errorContainer else foreground.copy(alpha = 0.12f)
+    val background = when (kind) {
+        CatalogNoticeKind.Error -> if (dark) Color(0xFF54272B) else Color(0xFFFFE2E2)
+        else -> foreground.copy(alpha = 0.12f)
+    }
     Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
         .background(background, RoundedCornerShape(24.dp)).padding(horizontal = 14.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {

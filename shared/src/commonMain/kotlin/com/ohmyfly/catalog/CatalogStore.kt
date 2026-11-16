@@ -1,8 +1,10 @@
 package com.ohmyfly.catalog
 
 import com.ohmyfly.settings.SubscriptionSettings
+import com.ohmyfly.logging.logger
 import com.ohmyfly.subscription.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -38,9 +40,17 @@ internal class CatalogStore(
     private var filterSequence = 0L
     private var reloadSequence = 0L
     private var measurementsSequence = 0L
+    internal val syncResults = Channel<Pair<Int, Int>>(Channel.BUFFERED)
     private val fetcher = SubscriptionFetcher(createSubscriptionClient())
     private fun batch(settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) =
-        CatalogBatchRunner(settings, mirrors, fetcher, ::call) { change -> mutableState.update(change) }
+        CatalogBatchRunner(settings, mirrors, fetcher, ::call,
+            changed = { withContext(Dispatchers.Main) { reload(); pageJob?.join() } },
+            finished = {
+                val result = state.value
+                logger.info { "[塔台航班] 批次结束：${result.taskCompleted} 个来源，${result.taskFailed} 个失败；当前 ${result.summary.towers} 个塔台，${result.summary.flights} 个航班" }
+                syncResults.trySend(result.taskCompleted to result.taskFailed)
+            },
+        ) { change -> mutableState.update(change) }
 
     fun start() {
         if (initialization?.isActive == true) return
@@ -86,9 +96,9 @@ internal class CatalogStore(
         val revision = state.value.summary.revision
         val filter = state.value.appliedFilter
         if (active == "flights") { pageJob?.cancel(); epoch++ }
-        pages.clear()
+        pages.clear("flights")
         positions["flights"] = Position()
-        mutableState.update { it.copy(flights = emptyList(), flightWindow = emptyMap(), towers = emptyList(), towerWindow = emptyMap(), flightPage = 0, filterToken = 0,
+        mutableState.update { it.copy(flights = emptyList(), flightWindow = emptyMap(), flightPage = 0, filterToken = 0,
             matchCount = null, flightLoading = true, filterRevision = sequence) }
         if (!opened || !foreground || !state.value.ready) return
         filterJob = scope.launch {
@@ -115,22 +125,22 @@ internal class CatalogStore(
         active = kind
         pageJob?.cancel()
         epoch++
-        mutableState.update { it.copy(towers = emptyList(), flights = emptyList(), towerWindow = emptyMap(), flightWindow = emptyMap()) }
-        pages.trim()
+        // 正常切页保留两边的窗口；预算淘汰与系统内存压力才回收缓存。
         if (!opened) { start(); return }
+        if (kind == "flights" && state.value.filterToken == 0L && filterJob?.isActive != true) queryFlights()
         if (kind != null) page(kind, if (kind == "towers") state.value.towerPage else state.value.flightPage)
     }
 
     fun updateTowerSearch(query: String) {
         mutableState.update { it.copy(towerSearch = query, towerMatchCount = null, towers = emptyList(),
-            towerWindow = emptyMap(), flights = emptyList(), flightWindow = emptyMap(), towerPage = 0, towerLoading = true) }
+            towerWindow = emptyMap(), towerPage = 0, towerLoading = true) }
         positions["towers"] = Position()
-        pages.clear()
+        pages.clear("towers")
         page("towers", 0)
     }
 
     fun page(kind: String, index: Int) {
-        if (!opened || !state.value.ready || !foreground || index < 0) return
+        if (active != kind || !opened || !state.value.ready || !foreground || index < 0) return
         if (kind == "flights" && state.value.filterToken == 0L) return
         val current = positions.getValue(kind)
         val target = when {
@@ -153,11 +163,14 @@ internal class CatalogStore(
             positions[kind] = Position(index = index, anchor = (first - 1).coerceAtLeast(0), first = first,
                 last = if (kind == "towers") value.towers.lastOrNull()?.id ?: 0 else value.flights.lastOrNull()?.id ?: 0)
             mutableState.update {
-                if (kind == "towers") it.copy(towers = value.towers, towerPage = index, failure = null,
-                    towerMatchCount = if (countTowers) value.matchCount else it.towerMatchCount, towerLoading = false,
-                    towerWindow = pages.window(kind).mapValues { it.value.towers })
-                else it.copy(flights = value.flights, flightPage = index, failure = null,
-                    flightWindow = pages.window(kind).mapValues { it.value.flights },
+                // 状态只引用 LRU 仍保留的页，另一标签被预算淘汰时同步释放其旧引用。
+                val retained = it.copy(towerWindow = pages.window("towers").mapValues { page -> page.value.towers },
+                    flightWindow = pages.window("flights").mapValues { page -> page.value.flights },
+                    towers = pages.window("towers")[it.towerPage]?.towers.orEmpty(),
+                    flights = pages.window("flights")[it.flightPage]?.flights.orEmpty())
+                if (kind == "towers") retained.copy(towers = value.towers, towerPage = index, failure = null,
+                    towerMatchCount = if (countTowers) value.matchCount else it.towerMatchCount, towerLoading = false)
+                else retained.copy(flights = value.flights, flightPage = index, failure = null,
                     matchCount = value.matchCount, flightLoading = false)
             }
             if (kind == "flights" && (state.value.measurementsPending ||
@@ -271,6 +284,7 @@ internal class CatalogStore(
         val current = state.value
         if (current.ready && current.summary.revision == summary.revision) {
             mutableState.update { it.copy(summary = summary, ready = true, failure = null) }
+            if (current.filterToken == 0L && filterJob?.isActive != true) queryFlights()
             active?.let { kind -> page(kind, if (kind == "towers") current.towerPage else current.flightPage) }
             return
         }
@@ -383,7 +397,7 @@ internal class CatalogStore(
     fun cancelOperation() { operations.cancelAll() }
 
     suspend fun syncAll(settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) = withContext(Dispatchers.Main) {
-        runOperation {
+        runOperation("sync:all") {
             batch(settings, mirrors).sync(listOf(0L)) { state.value.pendingRemoval }
             check(state.value.taskFailed == 0) { "${state.value.taskFailed} 个来源同步失败，已保留上次成功数据" }
         }.await()
@@ -408,7 +422,7 @@ internal class CatalogStore(
         refreshTowers(setOf(id), settings, mirrors)
 
     // 批量任务由目录队列持有；UI 只提交一次，不按卡片生命周期逐个等待。
-    fun refreshTowers(ids: Set<Long>, settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) = runOperation {
+    fun refreshTowers(ids: Set<Long>, settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) = runOperation("sync:${ids.sorted().joinToString(",")}") {
         batch(settings, mirrors).sync(ids) { state.value.pendingRemoval }
         check(state.value.taskFailed == 0) { "${state.value.taskFailed} 个来源同步失败，已保留上次成功数据" }
     }
@@ -452,9 +466,9 @@ internal class CatalogStore(
         } catch (_: Exception) { onResult(false, "塔台已删除，列表重读失败，请下拉重新读取") }
     }
 
-    private fun runOperation(block: suspend () -> Unit): Deferred<Unit> {
+    private fun runOperation(key: String? = null, block: suspend () -> Unit): Deferred<Unit> {
         check(opened && state.value.ready) { "塔台与航班数据尚未准备好，请稍后再试" }
-        return operations.submit(block)
+        return operations.submit(key, block)
     }
 
     fun release(background: Boolean) {

@@ -3,6 +3,8 @@ package com.ohmyfly.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -23,7 +25,7 @@ internal fun TowerEditSheet(tower: CatalogTower, store: CatalogStore, onClose: (
     var saving by remember(tower.id) { mutableStateOf(false) }
     OverlayBottomSheet(show = true, title = "编辑塔台", insideMargin = catalogSheetMargin(),
         onDismissRequest = { if (!saving) onClose() }) {
-        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("塔台名称", style = catalogInputStyle())
             TextField(value = name, onValueChange = { name = it; failure = null },
                 textStyle = catalogInputStyle(), singleLine = true, enabled = !saving)

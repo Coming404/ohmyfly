@@ -1,11 +1,14 @@
 package com.ohmyfly.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ohmyfly.catalog.CatalogTower
 import com.ohmyfly.settings.SubscriptionSettings
 import com.ohmyfly.subscription.*
@@ -31,41 +34,53 @@ internal fun TowerImportPanel(
     onSubmit: (List<com.ohmyfly.catalog.CatalogImportSource>, String, Boolean, Long?) -> kotlinx.coroutines.Deferred<Unit>, onClose: () -> Unit,
 ) {
     val draft = remember(target?.id) { TowerImportDraft(target) }
-    var expandedSources by remember(target?.id) { mutableStateOf(setOf(draft.mode)) }
+    // 添加面板按原型先展示三种来源入口，展开后填写，收起保留草稿。
+    var expandedSources by remember(target?.id) { mutableStateOf(emptySet<String>()) }
     val focus = LocalFocusManager.current
     val messages = LocalAppMessages.current
-    OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(), title = if (target == null) "添加塔台" else "重新导入",
+    OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(),
+        startAction = { Text(if (target == null) "添加塔台" else "重新导入", fontSize = 20.sp,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold) },
         onDismissRequest = { if (!draft.reading) onClose() }, backgroundColor = MiuixTheme.colorScheme.background,
-        endAction = { IconButton(onClick = hapticClick(onClose), enabled = !draft.reading) { Icon(DriftIcons.Clear, "关闭") } }) {
-        Column(Modifier.fillMaxWidth().heightIn(max = LocalWindowInfo.current.containerDpSize.height * 0.72f)
-            .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (target == null) TowerImportSources(draft, settings, expandedSources,
-                onExpanded = { value -> expandedSources = if (value in expandedSources) expandedSources - value else expandedSources + value })
-            else TowerImportInput(draft, settings, draft.mode, replacing = true)
-            Text("塔台名称", style = catalogInputStyle())
-            TextField(value = draft.name, textStyle = catalogInputStyle(), onValueChange = { draft.name = it },
-                insideMargin = androidx.compose.ui.unit.DpSize(12.dp, 12.dp), singleLine = true,
-                label = "自动命名", useLabelAsPlaceholder = true)
-            if (target == null) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("合并为一个塔台", Modifier.weight(1f), style = catalogInputStyle())
-                Switch(checked = draft.merge, onCheckedChange = { draft.merge = it }, enabled = !draft.reading)
-            }
-            draft.failure?.let { CatalogNotice(it) }
-            if (draft.reading) LinearProgressIndicator()
-            Button(onClick = hapticClick {
-                try {
-                    onSubmit(draft.inputs(settings, target), draft.name.trim(), draft.merge && target == null, target?.id)
-                    focus.clearFocus()
-                    messages.show(AppMessageKind.Success,
-                        if (target == null) "已添加塔台并开始同步" else "已加入重新导入队列")
-                    onClose()
-                } catch (e: Exception) {
-                    draft.failure = e.message ?: "导入未开始，请检查来源"
+        endAction = { IconButton(onClick = hapticClick(onClose), enabled = !draft.reading,
+            modifier = Modifier.size(44.dp).background(MiuixTheme.colorScheme.surfaceContainer, CircleShape)) {
+            Icon(DriftIcons.Clear, "关闭", Modifier.size(22.dp))
+        } }) {
+        Column(Modifier.fillMaxWidth().heightIn(max = LocalWindowInfo.current.containerDpSize.height * 0.76f)) {
+            // 正文可滚动，提交区固定在抽屉底部；IME 高度只由 Miuix 处理。
+            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (target == null) TowerImportSources(draft, settings, expandedSources,
+                    onExpanded = { value -> expandedSources = if (value in expandedSources) expandedSources - value else expandedSources + value })
+                else TowerImportInput(draft, settings, draft.mode, replacing = true)
+                TextField(value = draft.name, textStyle = catalogInputStyle(), onValueChange = { draft.name = it },
+                    insideMargin = androidx.compose.ui.unit.DpSize(12.dp, 12.dp), singleLine = true,
+                    label = "塔台名称（可选）", useLabelAsPlaceholder = true)
+                if (target == null) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("合并为一个塔台", Modifier.weight(1f), style = catalogInputStyle())
+                    Switch(checked = draft.merge, onCheckedChange = { draft.merge = it }, enabled = !draft.reading)
                 }
-            }, modifier = Modifier.fillMaxWidth(), minHeight = 52.dp,
-                enabled = ready && !draft.reading && draft.hasInput, colors = ButtonDefaults.buttonColorsPrimary()) {
-                Text(if (target == null) "添加塔台" else "重新导入", autoSize = CatalogTextSizing.Button,
-                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Spacer(Modifier.height(4.dp))
+            }
+            HorizontalDivider()
+            Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                draft.failure?.let { CatalogNotice(it) }
+                if (draft.reading) LinearProgressIndicator()
+                Button(onClick = hapticClick {
+                    try {
+                        onSubmit(draft.inputs(settings, target), draft.name.trim(), draft.merge && target == null, target?.id)
+                        focus.clearFocus()
+                        messages.show(AppMessageKind.Success,
+                            if (target == null) "已添加塔台并开始同步" else "已加入重新导入队列")
+                        onClose()
+                    } catch (e: Exception) { draft.failure = e.message ?: "导入未开始，请检查来源" }
+                }, modifier = Modifier.fillMaxWidth(), minHeight = 52.dp,
+                    enabled = ready && !draft.reading && draft.hasInput, colors = ButtonDefaults.buttonColorsPrimary()) {
+                    Icon(MirrorIcons.Add, null, Modifier.size(22.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (target == null) "添加塔台" else "重新导入", autoSize = CatalogTextSizing.Button,
+                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                }
             }
         }
     }
@@ -73,59 +88,52 @@ internal fun TowerImportPanel(
 
 @Composable
 private fun TowerImportSources(
-    draft: TowerImportDraft,
-    settings: SubscriptionSettings,
-    expanded: Set<String>,
-    onExpanded: (String) -> Unit,
+    draft: TowerImportDraft, settings: SubscriptionSettings, expanded: Set<String>, onExpanded: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        TowerImportSection("url", "链接", MirrorIcons.Link, expanded, onExpanded) {
-            TowerImportInput(draft, settings, "url", replacing = false)
-        }
-        TowerImportSection("text", "文本", SettingsIcons.File, expanded, onExpanded) {
-            TowerImportInput(draft, settings, "text", replacing = false)
-        }
-        TowerImportSection("file", "文件", SettingsIcons.File, expanded, onExpanded) {
-            TowerImportInput(draft, settings, "file", replacing = false)
-        }
-        Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 14.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(SettingsIcons.Search, "全网抓取", Modifier.size(22.dp), tint = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-            Text("全网抓取", modifier = Modifier.weight(1f), style = catalogInputStyle(),
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+    Card(Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
+        TowerImportSection("url", "订阅地址 · 协议链接 · YAML 正文", "多行粘贴 · 自动识别内容",
+            MirrorIcons.Link, expanded, onExpanded) { TowerImportInput(draft, settings, "url", replacing = false) }
+        HorizontalDivider()
+        TowerImportSection("file", "Mihomo YAML 文件", ".yaml / .yml · 多选导入",
+            SettingsIcons.File, expanded, onExpanded) { TowerImportInput(draft, settings, "file", replacing = false) }
+        HorizontalDivider()
+        TowerImportSection("crawl", "全网打野", "暂未开放", MirrorIcons.Globe, expanded, onExpanded) {
             Text("暂未开放", style = catalogInputStyle(), color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
         }
     }
 }
 
+// 同组来源行独立展开；关闭某一行保留输入，不把整张来源卡分割成多张卡片。
 @Composable
 private fun TowerImportSection(
-    key: String,
-    title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    expanded: Set<String>,
-    onExpanded: (String) -> Unit,
-    content: @Composable () -> Unit,
+    key: String, title: String, subtitle: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
+    expanded: Set<String>, onExpanded: (String) -> Unit, content: @Composable () -> Unit,
 ) {
     val open = key in expanded
-    Card(Modifier.fillMaxWidth(), cornerRadius = 20.dp) {
-        Column(Modifier.fillMaxWidth()) {
-            Button(onClick = hapticClick { onExpanded(key) }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                insideMargin = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                colors = ButtonDefaults.buttonColors(color = Color.Transparent, disabledColor = Color.Transparent,
-                    contentColor = MiuixTheme.colorScheme.onSurface)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Icon(icon, null, Modifier.size(20.dp), tint = MiuixTheme.colorScheme.primary)
-                    Text(title, modifier = Modifier.weight(1f), style = catalogInputStyle())
-                    Icon(MiuixIcons.Basic.ArrowRight, null, Modifier.size(18.dp).rotate(if (open) 90f else 0f),
-                        tint = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+    Column(Modifier.fillMaxWidth()) {
+        Button(onClick = hapticClick { onExpanded(key) }, modifier = Modifier.fillMaxWidth().heightIn(min = 76.dp),
+            insideMargin = PaddingValues(horizontal = 14.dp, vertical = 14.dp),
+            colors = ButtonDefaults.buttonColors(color = Color.Transparent, disabledColor = Color.Transparent,
+                contentColor = MiuixTheme.colorScheme.onSurface)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                CatalogTile(icon, 38, color = when (key) {
+                    "file" -> MiuixTheme.colorScheme.onSurfaceVariantSummary
+                    "crawl" -> Color(0xFF237C45)
+                    else -> MiuixTheme.colorScheme.primary
+                })
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text(title, style = catalogInputStyle(), fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                    Text(subtitle, fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                 }
+                Icon(MiuixIcons.Basic.ArrowRight, if (open) "收起$title" else "展开$title",
+                    Modifier.size(18.dp).rotate(if (open) 90f else 0f),
+                    tint = if (open) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurfaceVariantSummary)
             }
-            CatalogExpansion(open) {
-                Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)) { content() }
-            }
+        }
+        CatalogExpansion(open) {
+            Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)) { content() }
         }
     }
 }
@@ -148,9 +156,14 @@ private fun TowerImportInput(draft: TowerImportDraft, settings: SubscriptionSett
             } }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = !draft.reading,
                 insideMargin = PaddingValues(horizontal = 12.dp, vertical = 10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(SettingsIcons.File, null, Modifier.size(20.dp))
+                    Icon(MirrorIcons.Add, null, Modifier.size(20.dp))
                     Text("选择 YAML 文件", autoSize = CatalogTextSizing.Body)
                 }
+            }
+            if (draft.files.isEmpty()) Row(Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(SettingsIcons.File, null, Modifier.size(18.dp), tint = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+                Text("尚未选择文件", fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
             }
             draft.files.forEachIndexed { index, file ->
                 Row(Modifier.fillMaxWidth().heightIn(min = 52.dp), verticalAlignment = Alignment.CenterVertically,
@@ -168,7 +181,7 @@ private fun TowerImportInput(draft: TowerImportDraft, settings: SubscriptionSett
         else -> {
             val value = if (mode == "url") draft.urls else draft.text
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(if (mode == "url") "订阅地址或节点链接" else "YAML 正文或节点链接",
+                Text(if (mode == "url") "订阅地址、协议链接或 YAML 正文" else "YAML 正文或节点链接",
                     modifier = Modifier.weight(1f), style = catalogInputStyle())
                 CatalogTextButton("粘贴", onClick = hapticClick {
                     readCatalogText()?.let { pasted ->

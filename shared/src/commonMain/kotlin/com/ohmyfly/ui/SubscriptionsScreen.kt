@@ -75,6 +75,7 @@ internal fun SubscriptionsScreen(
             if (tower == null) CatalogLoading()
             else if (tower.id in catalog.pendingRemoval) SettingsHint("等待删除确认，可在底部撤销")
             else TowerCard(tower, catalog.sourceTasks.values.any { it.parentId == tower.id }, importReady && catalog.ready,
+                phase = catalog.sourceTasks.values.firstOrNull { it.parentId == tower.id }?.phase,
                 selected = tower.id in selectedTowerIds, selectionMode = selectionMode == CatalogSelectionMode.Towers,
                 onSelect = { if (selectionMode != CatalogSelectionMode.Towers) onEnterSelection();
                     onTowerSelection(toggleLongSelection(selectedTowerIds, tower.id)) },

@@ -28,14 +28,14 @@ private fun TowerFlightWindow(id: Long, revision: Long, expectedCount: Long, sel
     var pages by remember { mutableStateOf<Map<Int, CatalogPage>>(emptyMap()) }
     var target by remember { mutableStateOf(0) }
     var count by remember { mutableStateOf<Long?>(null) }
-    var failure by remember { mutableStateOf(false) }
+    var failure by remember { mutableStateOf<String?>(null) }
     var mismatch by remember { mutableStateOf(false) }
     var retry by remember { mutableIntStateOf(0) }
     // 内嵌航班详情沿用原型的多项展开行为，不互相关闭。
     var expanded by remember { mutableStateOf<Set<Long>>(emptySet()) }
     LaunchedEffect(target, retry) {
         if (target in pages) return@LaunchedEffect
-        failure = false
+        failure = null
         mismatch = false
         try {
             val cached = pages.entries.filter { it.key < target }.maxByOrNull { it.key }
@@ -58,15 +58,15 @@ private fun TowerFlightWindow(id: Long, revision: Long, expectedCount: Long, sel
                 batch++
             }
         } catch (e: CancellationException) { throw e
-        } catch (_: Exception) { failure = true }
+        } catch (error: Exception) { failure = logCatalogFailure("读取塔台 $id 航班（修订 $revision，批次 $target）", error) }
     }
-    CatalogViewport(list, 0, target, pages.keys, count ?: 0L, failure) { target = it }
+    CatalogViewport(list, 0, target, pages.keys, count ?: 0L, failure != null) { target = it }
     val reload = {
         count = null
         mismatch = false
         pages = emptyMap()
         target = 0
-        failure = false
+        failure = null
         retry = retry + 1
     }
     val hasFlights = pages.values.any { it.flights.isNotEmpty() }
@@ -74,8 +74,8 @@ private fun TowerFlightWindow(id: Long, revision: Long, expectedCount: Long, sel
         value.flights.size < 100 && page * 100L + value.flights.size < count!!
     }
     when {
-        failure && !hasFlights -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            CatalogNotice("航班读取失败")
+        failure != null && !hasFlights -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            CatalogNotice("航班读取失败：$failure")
             CatalogTextButton("重试", onClick = reload)
         }
         count == null -> CatalogLoading()
@@ -85,8 +85,8 @@ private fun TowerFlightWindow(id: Long, revision: Long, expectedCount: Long, sel
         }
         count == 0L -> CatalogEmpty("暂无航班", "")
         else -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (failure) {
-                CatalogNotice("后续航班读取失败，已保留当前列表")
+            if (failure != null) {
+                CatalogNotice("后续航班读取失败，已保留当前列表：$failure")
                 CatalogTextButton("重试", onClick = reload)
             } else if (mismatch) {
                 CatalogNotice("塔台数据刚刚更新，已显示最新航班列表", CatalogNoticeKind.Warning)

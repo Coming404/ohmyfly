@@ -45,10 +45,10 @@ class SubscriptionLoggingTest {
     }
 
     @Test
-    fun effectiveCustomHeaderIsIdentifiableWithoutItsOriginalValue() = runTest {
+    fun effectiveCustomHeaderShowsAgentAndRedactsCredentialAssignments() = runTest {
         val logs = mutableListOf<String>()
         val saved = captureLogs(logs)
-        val custom = "private-agent-secret"
+        val custom = "custom-client/2.0 token=private-agent-secret"
         val client = subscriptionClient { request ->
             assertEquals(listOf(custom), request.headers.getAll(HttpHeaders.UserAgent))
             respondOk("profile")
@@ -60,8 +60,9 @@ class SubscriptionLoggingTest {
             )
             val text = logs.joinToString("\n")
             assertTrue(text.contains(subscriptionUserAgentDescription(custom)))
-            assertTrue(text.contains("SHA-256 前 12 位"))
-            assertFalse(text.contains(custom))
+            assertTrue(text.contains("custom-client/2.0"))
+            assertTrue(text.contains("token=[已隐藏]"))
+            assertFalse(text.contains("private-agent-secret"))
             assertFalse(text.contains("内置 UA"))
             assertFalse(subscriptionUserAgentDescription(custom) == subscriptionUserAgentDescription("other-agent-secret"))
         } finally {

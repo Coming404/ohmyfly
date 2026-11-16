@@ -35,7 +35,7 @@ internal fun SubscriptionSettingsPage(padding: PaddingValues) {
                     current, n -> current.withSubscription { it.copy(maxMiB = n) }
                 }
                 TextSetting("User-Agent", { it.subscription.userAgent }, SettingsIcons.Haptic,
-                    hint = "留空使用内置 4 个；填写后只用这里的值，多个用 | 分隔并按顺序选优。", validate = ::validateUserAgent) {
+                    hint = "多个 UA 用 | 分隔，按填写顺序比较结果。", validate = ::validateUserAgent) {
                     current, value -> current.withSubscription { it.copy(userAgent = value) }
                 }
             }

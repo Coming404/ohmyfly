@@ -8,11 +8,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import top.yukonga.miuix.kmp.basic.*
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import kotlin.time.Clock
 
@@ -20,6 +23,7 @@ import kotlin.time.Clock
 internal fun CatalogAction(text: String, icon: ImageVector, modifier: Modifier = Modifier,
     enabled: Boolean = true, destructive: Boolean = false,
     contentColor: Color = if (destructive) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.primary,
+    expanded: Boolean? = null,
     onClick: () -> Unit) {
     Button(onClick = hapticClick(onClick), modifier = modifier, enabled = enabled,
         minWidth = 0.dp, minHeight = 44.dp, insideMargin = PaddingValues(horizontal = 4.dp),
@@ -29,14 +33,25 @@ internal fun CatalogAction(text: String, icon: ImageVector, modifier: Modifier =
         Spacer(Modifier.width(5.dp))
         Text(text, modifier = Modifier.weight(1f, fill = false), autoSize = CatalogTextSizing.CompactButton,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
+        expanded?.let {
+            Spacer(Modifier.width(4.dp))
+            CatalogExpansionArrow(it, if (enabled) contentColor else MiuixTheme.colorScheme.disabledOnSurface)
+        }
     }
 }
 
+// 展开图标单独布局，避免文本字符基线影响垂直居中。
 @Composable
-internal fun CatalogTile(icon: ImageVector, size: Int = 40) {
-    Box(Modifier.size(size.dp).background(MiuixTheme.colorScheme.primary.copy(alpha = 0.1f),
+internal fun CatalogExpansionArrow(expanded: Boolean, color: Color = MiuixTheme.colorScheme.onSurfaceVariantSummary) {
+    Icon(MiuixIcons.Basic.ArrowRight, if (expanded) "收起" else "展开",
+        Modifier.size(16.dp).rotate(if (expanded) -90f else 90f), tint = color)
+}
+
+@Composable
+internal fun CatalogTile(icon: ImageVector, size: Int = 40, color: Color = MiuixTheme.colorScheme.primary) {
+    Box(Modifier.size(size.dp).background(color.copy(alpha = 0.1f),
         RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-        Icon(icon, null, Modifier.size((size * 0.56f).dp), tint = MiuixTheme.colorScheme.primary)
+        Icon(icon, null, Modifier.size((size * 0.56f).dp), tint = color)
     }
 }
 

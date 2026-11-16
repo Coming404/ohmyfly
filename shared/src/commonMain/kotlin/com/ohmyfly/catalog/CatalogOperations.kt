@@ -12,6 +12,7 @@ internal class CatalogOperations(
 ) {
     private data class Pending(val block: suspend () -> Unit, val done: CompletableDeferred<Unit>)
     private val queue = Channel<Pending>(8)
+    private val keyed = mutableMapOf<String, Deferred<Unit>>()
     private var active: Job? = null
 
     init {
@@ -25,9 +26,16 @@ internal class CatalogOperations(
         }
     }
 
-    fun submit(block: suspend () -> Unit): Deferred<Unit> {
+    fun submit(key: String? = null, block: suspend () -> Unit): Deferred<Unit> {
+        // 同一同步尚未完成时直接返回原任务，避免连点生成多次网络请求。
+        key?.let {
+            val existing = if (it.startsWith("sync:")) keyed["sync:all"] ?: keyed[it] else keyed[it]
+            existing?.takeUnless { job -> job.isCompleted }?.let { job -> return job }
+        }
         val pending = Pending(block, CompletableDeferred())
         check(queue.trySend(pending).isSuccess) { "等待批次已满，请稍后再添加" }
+        if (key != null) keyed[key] = pending.done
+        pending.done.invokeOnCompletion { if (key != null && keyed[key] === pending.done) keyed.remove(key) }
         update { it.copy(busy = true, queuedBatches = it.queuedBatches + 1) }
         return pending.done
     }

@@ -1,12 +1,13 @@
-// 将受控原因码翻译为可读说明，自定义请求头只保留可关联的标识。
+// UA 保留可读标识，敏感赋值脱敏；受控失败与跳过原因翻译为中文。
 package com.ohmyfly.subscription
 
-import okio.ByteString.Companion.encodeUtf8
+import com.ohmyfly.logging.catalogDiagnostic
 
 internal fun subscriptionUserAgentDescription(value: String?): String = when (value) {
     null -> "不设置 User-Agent 请求头"
+    MozillaSubscriptionUserAgent -> "浏览器 UA「$value」"
     in BuiltInSubscriptionUserAgents -> "内置 UA「$value」"
-    else -> "自定义 UA（原文已隐藏，${value.length} 个字符，SHA-256 前 12 位 ${value.encodeUtf8().sha256().hex().take(12)}）"
+    else -> "自定义 UA「${catalogDiagnostic(value)}」"
 }
 
 internal fun subscriptionFailureDescription(reason: String): String = when (reason) {

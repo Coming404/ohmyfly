@@ -8,7 +8,8 @@ import (
 
 // TowerFlights 按需读取一个来源的已通过导入过滤的节点，不改变全局航班筛选。
 func (s *Store) TowerFlights(ctx context.Context, towerID, anchor, revision int64) (Page, error) {
-	result := Page{Flights: []FlightSummary{}}
+	// 两个集合都输出空数组，保持与共享层非空分页契约一致。
+	result := Page{Towers: []TowerSummary{}, Flights: []FlightSummary{}}
 	if towerID <= 0 || anchor < 0 {
 		return result, errors.New("invalid tower page cursor")
 	}

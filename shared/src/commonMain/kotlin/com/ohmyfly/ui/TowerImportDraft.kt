@@ -24,9 +24,17 @@ internal class TowerImportDraft(target: CatalogTower?) {
         val title = name.trim()
         require(title.length <= 256) { "名称最多 256 字符" }
         if (urls.isNotBlank()) {
-            val lines = urls.lineSequence().map(String::trim).filter(String::isNotEmpty).distinct().toList()
-            require(lines.size <= settings.addressLimit) { "每批最多 ${settings.addressLimit} 个地址" }
-            val (subscriptions, links) = lines.partition {
+            val lines = urls.lineSequence().map(String::trim).filter { it.isNotEmpty() && !it.startsWith("#") }.distinct().toList()
+            // 组合输入只在边界区分正文与地址，正文原样交给现有 Go 解析器。
+            val yaml = Regex("(?m)^\\s*(proxies|proxy-providers)\\s*:").containsMatchIn(urls) ||
+                urls.trimStart().startsWith("{") || urls.trimStart().startsWith("[")
+            if (yaml) {
+                val content = urls
+                validateSubscriptionBody(content, settings.maxMiB)
+                result += CatalogImportSource(newBodyAddress("text"), "YAML 配置") { SubscriptionBody("YAML 配置", content, "text") }
+            }
+            require(yaml || lines.size <= settings.addressLimit) { "每批最多 ${settings.addressLimit} 个地址" }
+            val (subscriptions, links) = (if (yaml) emptyList() else lines).partition {
                 it.startsWith("https://", ignoreCase = true) || it.startsWith("http://", ignoreCase = true)
             }
             if (subscriptions.isNotEmpty()) subscriptionAddresses(subscriptions.joinToString("\n"), settings.addressLimit).forEach {

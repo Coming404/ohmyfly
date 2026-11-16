@@ -26,13 +26,13 @@ private class SubscriptionRedirect(val location: String) : Exception()
 /** 一个平台一个进程级客户端；跟随重定向，不安装日志、Cookie 等插件。 */
 internal expect fun createSubscriptionClient(): HttpClient
 
-// GitHub 静态订阅只使用浏览器 UA；普通订阅仍按客户端 UA 择优。
+// GitHub 静态订阅固定浏览器 UA；普通订阅默认使用客户端 UA，自定义值按设置使用。
 internal const val MozillaSubscriptionUserAgent =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
         "Chrome/120.0.0.0 Safari/537.36"
 
 internal const val DefaultSubscriptionUserAgents =
-    "v2rayN/7.20.4|mihomo/1.19.24|clash-verge/v2.5.2|" + MozillaSubscriptionUserAgent
+    "mihomo/1.19.33|v2rayN/7.20.4|clash-verge/v2.5.2"
 
 internal val BuiltInSubscriptionUserAgents = DefaultSubscriptionUserAgents.split('|').distinct().take(4)
 
@@ -99,7 +99,7 @@ internal class SubscriptionFetcher(
         val maxBytes = settings.maxMiB.toLong() * 1024 * 1024
         val actualAgents = requestHeaders.entries.firstOrNull { it.key.equals(HttpHeaders.UserAgent, ignoreCase = true) }
             ?.value ?: listOf(userAgent)
-        logger.debug { "[订阅 $operation] 向 ${logTarget(url)} 发送 GET 请求，最多等待 ${timeoutMillis} 毫秒，最多下载 ${maxBytes} 字节，附加 ${requestHeaders.size} 个请求头；实际使用：${actualAgents.joinToString("、", transform = ::subscriptionUserAgentDescription)}" }
+        logger.info { "[订阅 $operation] 向 ${logTarget(url)} 发送 GET 请求，最多等待 ${timeoutMillis} 毫秒，最多下载 ${maxBytes} 字节，附加 ${requestHeaders.size} 个请求头；实际使用：${actualAgents.joinToString("、", transform = ::subscriptionUserAgentDescription)}" }
         return withTimeoutOrNull(timeoutMillis) {
             requestClient.prepareGet(url) {
                 headers.append(HttpHeaders.CacheControl, "no-cache")
@@ -110,7 +110,7 @@ internal class SubscriptionFetcher(
                 }
             }.execute { response ->
                 val status = response.status.value
-                logger.debug { "[订阅 $operation] 响应 HTTP $status，最终目标 ${logTarget(response.call.request.url.toString())}，耗时 ${started.elapsedNow().inWholeMilliseconds}ms" }
+                logger.info { "[订阅 $operation] 响应 HTTP $status，最终目标 ${logTarget(response.call.request.url.toString())}，耗时 ${started.elapsedNow().inWholeMilliseconds}ms" }
                 if (redirect && status in setOf(301, 302, 303, 307, 308)) {
                     val location = response.headers[HttpHeaders.Location]
                         ?: throw SubscriptionFetchException("重定向目标不被允许", false)
@@ -123,7 +123,7 @@ internal class SubscriptionFetcher(
                 if (declared != null && declared > maxBytes) throw SubscriptionFetchException("订阅超过大小上限", false)
                 val bytes = response.bodyAsChannel().readRemaining(maxBytes + 1).readByteArray()
                 if (bytes.size > maxBytes) throw SubscriptionFetchException("订阅超过大小上限", false)
-                logger.debug { "[订阅 $operation] 下载完成：服务器${declared?.let { "声明 $it 字节" } ?: "未声明内容长度"}，实际下载 ${bytes.size} 字节，总耗时 ${started.elapsedNow().inWholeMilliseconds} 毫秒" }
+                logger.info { "[订阅 $operation] 下载完成：服务器${declared?.let { "声明 $it 字节" } ?: "未声明内容长度"}，实际下载 ${bytes.size} 字节，总耗时 ${started.elapsedNow().inWholeMilliseconds} 毫秒" }
                 SubscriptionResponse(
                     bytes.decodeToString(), parseSubscriptionUserInfo(response.headers[SubscriptionUsageHeader]),
                     if (resolveName) parseSubscriptionName(
