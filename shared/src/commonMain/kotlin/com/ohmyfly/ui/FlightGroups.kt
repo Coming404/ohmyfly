@@ -25,8 +25,9 @@ internal fun FlightGroups(catalog: CatalogState) {
     var editing by remember { mutableStateOf<CatalogGroup?>(null) }
     var creating by remember { mutableStateOf(false) }
     val filter = catalog.flightFilter
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        // 分组独立横向滚动；分隔线与添加按钮固定在右侧。
+        Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             listOf("all" to "全部", "succeeded" to "起飞成功", "failed" to "起飞失败", "none" to "未起飞").forEach { (status, title) ->
                 GroupChip(title, catalog.groups.counts[status], filter.groupId == -1L && filter.status == status) {
@@ -39,9 +40,10 @@ internal fun FlightGroups(catalog: CatalogState) {
                     else appCatalog.updateFlightFilter(filter.copy(groupId = group.id, status = "all"))
                 }
             }
-            IconButton(onClick = hapticClick { creating = true }, enabled = catalog.ready, modifier = Modifier.size(44.dp)) {
-                Icon(MirrorIcons.Add, "新建分组")
-            }
+        }
+        VerticalDivider(Modifier.padding(horizontal = 8.dp).height(24.dp))
+        IconButton(onClick = hapticClick { creating = true }, enabled = catalog.ready) {
+            Icon(MirrorIcons.Add, "新建分组")
         }
     }
 
@@ -54,7 +56,7 @@ internal fun FlightGroups(catalog: CatalogState) {
 @Composable
 private fun GroupChip(title: String, count: Long?, active: Boolean, onClick: () -> Unit) {
     val colors = MiuixTheme.colorScheme
-    Row(Modifier.clip(RoundedCornerShape(24.dp))
+    Row(Modifier.clip(RoundedCornerShape(50))
         .background(if (active) colors.primary.copy(alpha = 0.12f) else colors.surface)
         .clickable(role = Role.Tab, onClick = hapticClick(onClick)).semantics { selected = active }
         .heightIn(min = 44.dp).padding(horizontal = 14.dp, vertical = 8.dp),

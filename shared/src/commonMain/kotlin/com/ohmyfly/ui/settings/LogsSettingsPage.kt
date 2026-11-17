@@ -38,7 +38,8 @@ internal fun LogsSettingsPage(
         if (storage.ready && !state.clearing && storage.failure == null) state.refresh(invalidate = true)
     }
     LogClearAction(state, storage, onClearActionChange)
-    com.ohmyfly.ui.PageRefresh(padding, { check(state.refresh(invalidate = true)) { "日志读取失败" } }) {
+    com.ohmyfly.ui.PageRefresh(padding, { check(state.refresh(invalidate = true)) { "日志读取失败" } },
+        refreshingText = "正在重新获取日志") {
     SettingsList(padding) {
         item("title") { SettingsPageIntro("日志") }
         item("policy") { LogPolicyCard(settings, onChange) }

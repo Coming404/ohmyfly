@@ -83,9 +83,9 @@ internal fun SettingsScreen(
                     if (page == SettingsPage.Logs) pageContent()
                     else PageRefresh(contentPadding, {
                         if (page in listOf(SettingsPage.Privacy, SettingsPage.About, SettingsPage.Sponsor)) {
-                            messages.show(AppMessageKind.Uncertain, "此页为静态说明，无需刷新")
+                            messages.show(AppMessageKind.Default, "此页为静态说明，无需刷新")
                         } else refreshSettings()
-                    }, pageContent)
+                    }, refreshingText = "正在刷新${page.title}", content = pageContent)
                 }
             }
         }

@@ -26,31 +26,36 @@ internal fun NodesScreen(
     onEnterSelection: () -> Unit = {},
     onSubscriptions: () -> Unit = {},
 ) {
-    // 原型允许多个航班详情同时展开；进入选择模式时统一收起详情。
-    var expanded by remember { mutableStateOf<Set<Long>>(emptySet()) }
-    val inSelection = selectionMode == CatalogSelectionMode.Nodes
-    LaunchedEffect(selectionMode) {
-        if (selectionMode == CatalogSelectionMode.Nodes) expanded = emptySet()
-    }
-    val count = catalog.matchCount ?: 0
-    CatalogViewport(listState, 2, catalog.flightPage, catalog.flightWindow.keys, count,
-        catalog.failure != null, onPage)
-    LaunchedEffect(catalog.filterRevision) { listState.scrollToItem(0) }
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(), state = listState,
-        contentPadding = contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        item("search") {
-            CatalogSearch(catalog.flightFilter.search, "搜索航班", "航班", count,
-                expandedState = searchOpen, onExpandedChange = onSearchOpenChange, onQuery = {
+    // 标题由 Scaffold 固定；分组紧接顶栏，关闭的搜索区不占据列表位置。
+    Column(Modifier.fillMaxSize().padding(contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp)),
+        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (searchOpen) CatalogSearch(catalog.flightFilter.search, "搜索航班", "航班", catalog.matchCount ?: 0,
+            expandedState = true, onExpandedChange = onSearchOpenChange, onQuery = {
                 appCatalog.updateFlightFilter(catalog.flightFilter.copy(search = it), debounce = true)
             })
-        }
-        item("status") {
-            FlightGroups(catalog)
+        FlightGroups(catalog)
+        FlightLibraryList(listState, catalog, selectedIds, onSelection, selectionMode, onEnterSelection,
+            onPage, onSubscriptions, onSearchOpenChange, Modifier.weight(1f))
+    }
+}
+
+// 列表独占分组下方的可用空间，空状态在该空间内居中。
+@Composable
+private fun FlightLibraryList(listState: LazyListState, catalog: CatalogState, selectedIds: Set<String>,
+    onSelection: (Set<String>) -> Unit, selectionMode: CatalogSelectionMode?, onEnterSelection: () -> Unit,
+    onPage: (Int) -> Unit, onSubscriptions: () -> Unit, onSearchOpenChange: (Boolean) -> Unit, modifier: Modifier) {
+    var expanded by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    val inSelection = selectionMode == CatalogSelectionMode.Nodes
+    LaunchedEffect(selectionMode) { if (inSelection) expanded = emptySet() }
+    LaunchedEffect(catalog.filterRevision) { listState.scrollToItem(0) }
+    val count = catalog.matchCount ?: 0
+    val hasStatus = catalog.failure != null || !catalog.ready || catalog.matchCount == null || count == 0L || catalog.measurementsFailure != null
+    CatalogViewport(listState, if (hasStatus) 1 else 0, catalog.flightPage, catalog.flightWindow.keys, count,
+        catalog.failure != null, onPage)
+    LazyColumn(modifier.fillMaxSize(), state = listState, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (hasStatus) item("status") {
             when {
-                catalog.failure != null -> Column {
+                catalog.failure != null -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     CatalogNotice(catalog.failure)
                     SettingsButton("重试", SettingsIcons.Retry) {
                         if (!catalog.ready) appCatalog.start()
@@ -65,20 +70,19 @@ internal fun NodesScreen(
                     val noFlights = catalog.summary.flights == 0L
                     CatalogEmpty(
                         title = if (noFlights) "还没有航班" else "没有匹配的航班",
-                        onAction = if (noFlights) onSubscriptions else {
-                            {
-                                appCatalog.updateFlightFilter(FlightFilter())
-                                onSearchOpenChange(false)
-                            }
-                        },
+                        hint = if (noFlights) "添加并同步塔台后，航班会显示在这里。" else "调整分组、搜索或筛选条件，查看其他航班。",
+                        onAction = if (noFlights) onSubscriptions else ({
+                            appCatalog.updateFlightFilter(FlightFilter()); onSearchOpenChange(false)
+                        }),
                         actionLabel = if (noFlights) "前往塔台" else "清除筛选",
                         icon = if (noFlights) DriftIcons.Nodes else SettingsIcons.Search,
+                        modifier = Modifier.fillParentMaxSize(),
                     )
                 }
             }
             catalog.measurementsFailure?.let { CatalogNotice(it) }
         }
-        items(count.coerceAtMost(Int.MAX_VALUE.toLong() - 2).toInt(), key = { "flight-slot:$it" }) { index ->
+        items(count.coerceAtMost(Int.MAX_VALUE.toLong() - 1).toInt(), key = { "flight-slot:$it" }) { index ->
             val flight = catalog.flightWindow[index / 100]?.getOrNull(index % 100)
             if (flight == null) CatalogLoading()
             else FlightCard(flight, flight.id.toString() in selectedIds,

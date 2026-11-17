@@ -271,8 +271,7 @@ private fun AppFrame(
                     com.ohmyfly.ui.CatalogSelectionHost(mode,
                         selectedIds.mapNotNull { it.toLongOrNull() }.toSet(), selectedTowerIds,
                         settingsSession.state.confirmedSettings ?: settings,
-                        toolbarModifier = Modifier.chromeMaterial(backdrop, glassEnabled, dark,
-                            settings.materialMode, com.ohmyfly.ui.glass.GlassShape(50.dp)),
+                        toolbarModifier = Modifier,
                         onDone = { onSelectionMode(null); onSelection(emptySet()); onTowerSelection(emptySet()) })
                 }
             }
@@ -356,8 +355,7 @@ private fun AppTopBar(
             selectionMode != null -> {
                 {
                     com.ohmyfly.ui.CatalogSelectionTopToolbar(
-                        modifier = Modifier.chromeMaterial(backdrop, glassEnabled, dark, settings.materialMode,
-                            com.ohmyfly.ui.glass.GlassShape(50.dp)),
+                        modifier = Modifier,
                         selecting = selectingAll, selectAllLabel = selectionAllLabel,
                         onCancel = onCancelSelection, onSelectAll = onSelectAll,
                     )
@@ -488,13 +486,12 @@ private fun AppPager(
         }
         }
         if (AppDestination.entries[page] in listOf(AppDestination.Speed, AppDestination.Settings)) pageContent()
-        else com.ohmyfly.ui.PageRefresh(padding, {
-            if (AppDestination.entries[page] == AppDestination.Subscriptions) {
-                val confirmed = checkNotNull(settingsSession.state.confirmedSettings) { "设置尚未读取完成" }
-                check(!settingsSession.state.readFailed) { "设置读取失败，请先重试" }
-                subscriptionTowerStore.syncAll(confirmed.subscription,
-                    com.ohmyfly.subscription.SubscriptionMirrorSettings(confirmed.mirrorEnabled, confirmed.mirrors, confirmed.selectedMirrorId))
-            } else subscriptionTowerStore.refreshView()
-        }, pageContent)
+        else com.ohmyfly.ui.PageRefresh(padding,
+            onRefresh = { subscriptionTowerStore.refreshView(invalidate = true) },
+            refreshingText = when (AppDestination.entries[page]) {
+                AppDestination.Subscriptions -> "正在刷新塔台"
+                AppDestination.NodeLibrary -> "正在重新获取航班"
+                else -> "正在刷新概览"
+            }, content = pageContent)
     }
 }

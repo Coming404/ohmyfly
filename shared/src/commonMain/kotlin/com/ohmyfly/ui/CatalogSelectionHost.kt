@@ -32,7 +32,7 @@ internal fun CatalogSelectionHost(
         else failure = text
     }
     CatalogSelectionToolbar(mode, modifier = toolbarModifier, enabled = count > 0 && !busy,
-        onSpeed = { messages.show(AppMessageKind.Uncertain, "测速功能尚未开放") },
+        onSpeed = { messages.show(AppMessageKind.Default, "测速功能尚未开放") },
         onToggle = { sheet = "toggle"; failure = null }, onMove = { sheet = "move" },
         onShare = { sheet = "share" }, onDelete = { sheet = "delete"; failure = null },
         onSync = {

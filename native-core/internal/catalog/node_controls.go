@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 )
 
 const nodeControlSchema = `CREATE TABLE IF NOT EXISTS node_controls (
@@ -38,6 +39,10 @@ func (s *Store) ChangeNodes(ctx context.Context, ids []int64, action string) err
 		return ErrStale
 	}
 	if action == "delete" {
+		// 来源关联没有节点删除级联，先在同一事务解除所有来源，再删除节点及级联元数据。
+		if _, err = tx.ExecContext(ctx, "DELETE FROM tower_nodes WHERE node_id IN (SELECT value FROM json_each(?))", string(raw)); err != nil {
+			return fmt.Errorf("remove selected node sources: %w", err)
+		}
 		_, err = tx.ExecContext(ctx, "DELETE FROM nodes WHERE id IN (SELECT value FROM json_each(?))", string(raw))
 	} else {
 		_, err = tx.ExecContext(ctx, `INSERT INTO node_controls(node_id,enabled)

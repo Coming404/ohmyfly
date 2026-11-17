@@ -3,14 +3,10 @@ package com.ohmyfly.ui
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.ui.graphics.Color
-
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.ui.settings.MirrorIcons
 import com.ohmyfly.ui.settings.SettingsIcons
@@ -33,10 +29,8 @@ internal fun CatalogSelectionToolbar(
     onDelete: () -> Unit,
     onSync: () -> Unit,
 ) {
-    FloatingToolbar(modifier = modifier, color = Color.Transparent,
-        outSidePadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)) {
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp, vertical = 5.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    FloatingToolbar(modifier = modifier) {
+        Row(Modifier.horizontalScroll(rememberScrollState())) {
             if (mode == CatalogSelectionMode.Nodes) {
                 SelectionToolbarAction(enabled, "测速", DriftIcons.Speed, onSpeed)
                 SelectionToolbarAction(enabled, "启停", MirrorIcons.Power, onToggle)
@@ -59,10 +53,8 @@ internal fun CatalogSelectionTopToolbar(
     onCancel: () -> Unit,
     onSelectAll: () -> Unit,
 ) {
-    FloatingToolbar(modifier = modifier, color = Color.Transparent,
-        outSidePadding = PaddingValues(0.dp, 4.dp)) {
-        Row(Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    FloatingToolbar(modifier = modifier) {
+        Row {
             SelectionToolbarAction(true, "取消", DriftIcons.Clear, onCancel)
             SelectionToolbarAction(!selecting, if (selecting) "读取中" else selectAllLabel,
                 DriftIcons.Check, onSelectAll)
@@ -78,11 +70,11 @@ private fun SelectionToolbarAction(
     onClick: () -> Unit,
     tint: androidx.compose.ui.graphics.Color = MiuixTheme.colorScheme.onSurface,
 ) {
-    top.yukonga.miuix.kmp.basic.IconButton(onClick = hapticClick(onClick), enabled = enabled,
-        modifier = Modifier.width(56.dp).heightIn(min = 56.dp)) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Icon(icon, label, Modifier.size(22.dp), tint = tint)
-            Text(label, color = tint, fontSize = 11.sp, maxLines = 1)
+    top.yukonga.miuix.kmp.basic.IconButton(onClick = hapticClick(onClick), enabled = enabled) {
+        val color = if (enabled) tint else MiuixTheme.colorScheme.disabledOnSurface
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, label, tint = color)
+            Text(label, color = color, fontSize = 11.sp, maxLines = 1)
         }
     }
 }

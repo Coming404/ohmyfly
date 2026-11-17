@@ -1,7 +1,6 @@
 package com.ohmyfly.ui
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.runtime.*
@@ -43,72 +42,27 @@ internal fun SubscriptionsScreen(
     LaunchedEffect(importing) { onImportOpenChange(importing) }
     var target by remember { mutableStateOf<CatalogTower?>(null) }
     var editing by remember { mutableStateOf<CatalogTower?>(null) }
-    // 原型允许同时展开多个塔台，集合状态不会因打开新卡片而关闭旧卡片。
-    var expanded by remember { mutableStateOf<Set<Long>>(emptySet()) }
-    val count = catalog.towerMatchCount ?: 0
     LaunchedEffect(catalog.towerSearch) { listState.scrollToItem(0) }
     LaunchedEffect(catalog.failure) { catalog.failure?.let { messages.show(AppMessageKind.Failure, it) } }
-    CatalogViewport(listState, 3, catalog.towerPage, catalog.towerWindow.keys, count,
-        catalog.failure != null) { store.page("towers", it) }
-    LazyColumn(Modifier.fillMaxSize().imePadding(), state = listState,
-        contentPadding = contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp),
+    Column(Modifier.fillMaxSize().padding(contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp)),
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item("search") {
-            CatalogSearch(catalog.towerSearch, "按塔台名称搜索", "塔台", catalog.summary.towers,
-                onAdd = { target = null; importing = true }, addEnabled = importReady && catalog.ready,
-                expandedState = searchOpen, onExpandedChange = onSearchOpenChange,
-                onQuery = store::updateTowerSearch)
-        }
-        item("control") {
-            if (catalog.summary.towers > 0 || catalog.busy) TowerControl(catalog, importReady,
-                onCancel = store::cancelOperation, onSync = {
-                    scope.launch {
-                        try { store.syncAll(settings.subscription, mirrors) }
-                        catch (e: CancellationException) { throw e }
-                        catch (_: Exception) { messages.show(AppMessageKind.Failure, "同步未全部完成，请查看塔台状态") }
-                    }
-                })
-        }
-        item("status") { TowerListStatus(catalog, count, store) { target = null; importing = true } }
-        items(count.coerceAtMost(Int.MAX_VALUE.toLong() - 3).toInt(), key = { "tower-slot:$it" }) { index ->
-            val tower = catalog.towerWindow[index / 100]?.getOrNull(index % 100)
-            if (tower == null) CatalogLoading()
-            else if (tower.id in catalog.pendingRemoval) SettingsHint("等待删除确认，可在底部撤销")
-            else TowerCard(tower, catalog.sourceTasks.values.any { it.parentId == tower.id }, importReady && catalog.ready,
-                phase = catalog.sourceTasks.values.firstOrNull { it.parentId == tower.id }?.phase,
-                selected = tower.id in selectedTowerIds, selectionMode = selectionMode == CatalogSelectionMode.Towers,
-                onSelect = { if (selectionMode != CatalogSelectionMode.Towers) onEnterSelection();
-                    onTowerSelection(toggleLongSelection(selectedTowerIds, tower.id)) },
-                // 不同塔台的选择集合隔离，切换来源后全选与已选始终属于同一范围。
-                selectedNodeIds = if (selectionTowerId == tower.id) selectedNodeIds else emptySet(),
-                nodeSelectionMode = selectionMode == CatalogSelectionMode.Nodes,
-                onNodeSelection = { onEnterNodeSelection(tower.id); onNodeSelection(it) },
-                onSourceImport = { source ->
-                    target = CatalogTower(source.id, source.name, 0, source.failure, source.kind, address = source.address)
-                    importing = true
-                },
-                onEdit = { editing = tower },
-                expanded = tower.id in expanded, revision = catalog.summary.revision,
-                onExpand = { expanded = if (tower.id in expanded) expanded - tower.id else expanded + tower.id },
-                onRefresh = {
-                    if (tower.sourceKind == "http" || tower.sourceKind == "merged") {
-                        try { store.refresh(tower.id, settings.subscription, mirrors) }
-                        catch (e: Exception) { messages.show(AppMessageKind.Failure, e.message ?: "同步未加入队列") }
-                    } else { target = tower; importing = true }
-                },
-                onRemove = {
-                    store.postponeRemoval(tower.id)
-                    messages.show(AppMessage(AppMessageKind.Uncertain, "待删除 ${tower.name}", "撤销",
-                        onAction = {
-                            store.cancelRemoval(tower.id)
-                            messages.show(AppMessageKind.Success, "已撤销删除")
-                        }, onDismiss = {
-                            store.remove(tower.id) { success, text ->
-                                messages.show(if (success) AppMessageKind.Success else AppMessageKind.Failure, text)
-                            }
-                        }))
-                })
-        }
+        if (searchOpen) CatalogSearch(catalog.towerSearch, "按塔台名称搜索", "塔台", catalog.summary.towers,
+            expandedState = true, onExpandedChange = onSearchOpenChange, onQuery = store::updateTowerSearch)
+        if (catalog.summary.towers > 0 || catalog.busy) TowerControl(catalog, importReady,
+            onCancel = store::cancelOperation, onSync = {
+                scope.launch {
+                    try { store.syncAll(settings.subscription, mirrors) }
+                    catch (e: CancellationException) { throw e }
+                    catch (_: Exception) { messages.show(AppMessageKind.Failure, "同步未全部完成，请查看塔台状态") }
+                }
+            })
+        TowerLibraryList(listState, catalog, store, settings, importReady, selectedTowerIds, onTowerSelection,
+            selectionMode, selectionTowerId, onEnterSelection, selectedNodeIds, onNodeSelection, onEnterNodeSelection,
+            onAdd = { target = null; importing = true }, onEdit = { editing = it },
+            onSourceImport = { source ->
+                target = CatalogTower(source.id, source.name, 0, source.failure, source.kind, address = source.address)
+                importing = true
+            }, onReimport = { target = it; importing = true }, modifier = Modifier.weight(1f))
     }
     if (importing) TowerImportPanel(importReady && catalog.ready, settings.subscription, target,
         onSubmit = { inputs, name, merge, id -> store.importSources(inputs, name, merge, settings.subscription, mirrors, id) },
@@ -117,7 +71,7 @@ internal fun SubscriptionsScreen(
 }
 
 @Composable
-private fun TowerListStatus(catalog: CatalogState, count: Long, store: CatalogStore, onAdd: () -> Unit) {
+internal fun TowerListStatus(catalog: CatalogState, count: Long, store: CatalogStore, modifier: Modifier, onAdd: () -> Unit) {
     when {
         catalog.failure != null -> Column {
             CatalogNotice(catalog.failure)
@@ -130,6 +84,8 @@ private fun TowerListStatus(catalog: CatalogState, count: Long, store: CatalogSt
             val searching = catalog.towerSearch.isNotBlank()
             CatalogEmpty(
                 title = if (searching) "没有匹配的塔台" else "还没有塔台",
+                hint = if (searching) "换个名称搜索，或清除条件查看全部塔台。" else "添加订阅地址、协议链接或 YAML 文件，开始接收航班。",
+                modifier = modifier,
                 onAction = if (searching) ({ store.updateTowerSearch("") }) else onAdd,
                 actionLabel = if (searching) "清除搜索" else "添加塔台",
                 icon = if (searching) SettingsIcons.Search else DriftIcons.Nodes,

@@ -4,6 +4,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import com.ohmyfly.ui.glass.GlassShape
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
@@ -30,7 +32,8 @@ import kotlin.math.roundToLong
 @Composable
 internal fun FlightCard(flight: CatalogFlight, selected: Boolean, selectionMode: Boolean,
     onSelect: () -> Unit, onDetails: () -> Unit, expanded: Boolean, revision: Long) {
-    Card(Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
+    // 卡片外轮廓再次裁剪内部行的按压指示，长按覆盖层与连续圆角保持一致。
+    Card(Modifier.fillMaxWidth().clip(GlassShape(24.dp)), cornerRadius = 24.dp) {
         FlightRow(flight, selected, selectionMode, onSelect, onDetails, expanded)
         CatalogExpansion(expanded && !selectionMode) {
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

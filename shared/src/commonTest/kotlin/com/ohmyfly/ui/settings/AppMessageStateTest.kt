@@ -19,6 +19,7 @@ class AppMessageStateTest {
         val second = com.ohmyfly.ui.AppMessage(AppMessageKind.Uncertain, "二", "撤销",
             onAction = { restored++ }, onDismiss = { removed++ })
         messages.show(first)
+        assertEquals(4_000L, first.durationMillis)
         messages.show(second)
         messages.show(AppMessageKind.Success, "普通消息")
         assertSame(first, messages.current)
@@ -56,7 +57,7 @@ class AppMessageStateTest {
         assertNotSame(first, messages.current)
         assertEquals(3_000L, messages.current?.durationMillis)
         messages.show(AppMessageKind.Error, "设置无效")
-        assertEquals(8_000L, messages.current?.durationMillis)
+        assertEquals(3_000L, messages.current?.durationMillis)
         assertEquals(true, messages.current?.dismissible)
         messages.dismiss()
         assertNull(messages.current)

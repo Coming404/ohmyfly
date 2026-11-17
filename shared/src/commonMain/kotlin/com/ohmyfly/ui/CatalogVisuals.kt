@@ -69,13 +69,15 @@ internal fun CatalogEmpty(
     onAction: (() -> Unit)? = null,
     actionLabel: String = "添加塔台",
     icon: ImageVector = DriftIcons.Nodes,
+    modifier: Modifier = Modifier,
 ) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 36.dp, horizontal = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        CatalogTile(icon, 48)
-        Text(title, fontSize = 16.sp)
+    Column(modifier.fillMaxWidth().padding(vertical = 32.dp, horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)) {
+        CatalogTile(icon, 72)
+        Text(title, fontSize = 24.sp, fontWeight = FontWeight.SemiBold,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         if (hint.isNotBlank()) Text(hint, color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            autoSize = CatalogTextSizing.Notice)
+            fontSize = 15.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         onAction?.let { CatalogTextButton(actionLabel, onClick = hapticClick(it),
             colors = ButtonDefaults.buttonColorsPrimary()) }
     }

@@ -54,7 +54,7 @@ internal fun FlightDetails(flight: CatalogFlight, revision: Long) {
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CatalogAction("测速", DriftIcons.Speed, Modifier.weight(1f)) {
-                    messages.show(AppMessageKind.Uncertain, "测速入口已保留，执行器尚未接入")
+                    messages.show(AppMessageKind.Default, "测速入口已保留，执行器尚未接入")
                 }
                 CatalogAction(if (flight.enabled) "停用" else "启用", com.ohmyfly.ui.settings.MirrorIcons.Power, Modifier.weight(1f)) {
                     appCatalog.changeNodes(setOf(flight.id), if (flight.enabled) "disable" else "enable") { ok, text ->
@@ -82,7 +82,7 @@ internal fun FlightDetails(flight: CatalogFlight, revision: Long) {
             }
     }
     if (sharing) CatalogShareSheet(setOf(flight.id), onClose = { sharing = false })
-    if (moving) FlightGroupMove(setOf(flight.id), onMoved = { moving = false; retry++ }, onClose = { moving = false })
+    if (moving) FlightGroupMove(setOf(flight.id), onMoved = { moving = false; config = null; retry++ }, onClose = { moving = false })
 }
 
 @Composable

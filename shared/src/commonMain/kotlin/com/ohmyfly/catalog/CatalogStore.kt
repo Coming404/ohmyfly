@@ -34,7 +34,7 @@ internal class CatalogStore(
     private var foreground = true
     private var pageJob: Job? = null
     private var initialization: Job? = null
-    private val operations = CatalogOperations(scope, worker, { change -> mutableState.update(change) }, ::reload)
+    private val operations = CatalogOperations(scope, worker, { change -> mutableState.update(change) }) { reload() }
     private var epoch = 0L
     private var filterJob: Job? = null
     private var filterSequence = 0L
@@ -275,14 +275,14 @@ internal class CatalogStore(
         }
     }
 
-    private suspend fun reload() {
+    private suspend fun reload(invalidate: Boolean = false) {
         val token = ++reloadSequence
         val summary = withContext(worker) {
             catalogJson.decodeFromJsonElement<CatalogSummary>(call("summary"))
         }
         if (token != reloadSequence || summary.revision < state.value.summary.revision) return
         val current = state.value
-        if (current.ready && current.summary.revision == summary.revision) {
+        if (!invalidate && current.ready && current.summary.revision == summary.revision) {
             mutableState.update { it.copy(summary = summary, ready = true, failure = null) }
             if (current.filterToken == 0L && filterJob?.isActive != true) queryFlights()
             active?.let { kind -> page(kind, if (kind == "towers") current.towerPage else current.flightPage) }
@@ -345,13 +345,19 @@ internal class CatalogStore(
                 }
             }
         } catch (e: CancellationException) { throw e
-        } catch (_: Exception) {
-            onResult(false, "分组操作未确认，请刷新塔台与航班数据")
+        } catch (e: Exception) {
+            onResult(false, "分组操作未确认：${logCatalogFailure("变更分组 $action", e)}")
             return@launch
         }
         if (action == "groupDelete" && state.value.flightFilter.groupId == id) {
             mutableState.update { it.copy(flightFilter = it.flightFilter.copy(groupId = -1),
                 appliedFilter = it.appliedFilter.copy(groupId = -1)) }
+        }
+        try { refreshView(invalidate = true)
+        } catch (e: CancellationException) { throw e
+        } catch (e: Exception) {
+            val reason = logCatalogFailure("分组保存后刷新列表", e)
+            mutableState.update { it.copy(failure = "分组已保存，列表重读失败：$reason") }
         }
         onResult(true, when (action) {
             "groupCreate" -> "分组已添加"
@@ -359,11 +365,6 @@ internal class CatalogStore(
             "groupDelete" -> "分组已删除，节点已移至未分组"
             else -> "节点已移动"
         })
-        try { reload()
-        } catch (e: CancellationException) { throw e
-        } catch (_: Exception) {
-            mutableState.update { it.copy(failure = "分组已保存，列表重读失败，请下拉重试") }
-        }
     }
 
     // 写入确认与目录重读分别报告，不把刷新失败误报成写入失败。
@@ -373,11 +374,11 @@ internal class CatalogStore(
                 put("nodeIds", JsonArray(ids.map { JsonPrimitive(it) })); put("mode", mode)
             } }
         } catch (e: CancellationException) { throw e
-        } catch (_: Exception) { onResult(false, "操作未确认，请刷新塔台与航班数据"); return@launch }
-        onResult(true, when (mode) { "enable" -> "已启用"; "disable" -> "已停用"; else -> "已删除" })
-        try { reload()
+        } catch (e: Exception) { onResult(false, "操作未确认：${logCatalogFailure("变更节点 $mode", e)}"); return@launch }
+        try { refreshView(invalidate = true)
         } catch (e: CancellationException) { throw e
-        } catch (_: Exception) { mutableState.update { it.copy(failure = "操作已保存，列表重读失败") } }
+        } catch (e: Exception) { mutableState.update { it.copy(failure = "操作已保存，列表重读失败：${logCatalogFailure("节点变更后刷新", e)}") } }
+        onResult(true, when (mode) { "enable" -> "已启用"; "disable" -> "已停用"; else -> "已删除" })
     }
 
     // 批量删除结束后仅重读一次，失败保留未完成选择供重试。
@@ -435,8 +436,8 @@ internal class CatalogStore(
         mutableState.update { it.copy(pendingRemoval = it.pendingRemoval - id) }
     }
 
-    suspend fun refreshView() = withContext(Dispatchers.Main) {
-        if (!opened) { start(); initialization?.join() } else reload()
+    suspend fun refreshView(invalidate: Boolean = false) = withContext(Dispatchers.Main) {
+        if (!opened) { start(); initialization?.join() } else reload(invalidate)
         filterJob?.join()
         pageJob?.join()
         state.value.failure?.let { error(it) }
