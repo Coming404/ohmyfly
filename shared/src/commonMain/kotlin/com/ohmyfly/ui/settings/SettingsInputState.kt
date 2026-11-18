@@ -46,7 +46,8 @@ internal class SettingsEdits(val session: SettingsSession, private val scope: Co
         val candidate = draft.begin(reason) ?: return
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             try {
-                draft.complete(session.changeConfirmed(name = draft.name, reportErrors = false) { current -> draft.write(current, candidate) })
+                draft.complete(session.changeConfirmed(name = draft.name, reportErrors = false,
+                    successText = "${draft.name}已修改为$candidate") { current -> draft.write(current, candidate) })
             } finally {
                 draft.saving = false
                 session.state.confirmedSettings?.let { draft.sync(draft.read(it)) }

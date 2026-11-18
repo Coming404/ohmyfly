@@ -2,54 +2,66 @@
 package catalog
 
 import (
+	"cmp"
+	"slices"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
 type regionAlias struct {
 	label, code string
-	chinese     bool
+	word        bool
+	length      int
 }
 
 var regionNameAliases = buildRegionAliases()
 
-// buildRegionAliases 预先规范化名称，不在逐节点识别时重复转换整个目录。
+// buildRegionAliases 统一去重并按最长名称排序，避免每个节点重复计算别名长度。
 func buildRegionAliases() []regionAlias {
 	aliases := make([]regionAlias, 0, len(regionCatalogRows)*2)
+	seen := make(map[string]bool)
+	add := func(label, code string) {
+		label = strings.ToLower(label)
+		if seen[label] {
+			return
+		}
+		seen[label] = true
+		aliases = append(aliases, regionAlias{
+			label: label, code: code,
+			word:   !strings.ContainsFunc(label, func(r rune) bool { return unicode.Is(unicode.Han, r) }),
+			length: utf8.RuneCountInString(label),
+		})
+	}
 	for _, row := range regionCatalogRows {
-		aliases = append(aliases, regionAlias{strings.ToLower(row.English), row.Code, false}, regionAlias{row.Name, row.Code, true})
+		add(row.English, row.Code)
+		add(row.Name, row.Code)
 	}
-	for _, row := range []struct{ label, code string }{
-		{"Hong Kong", "HK"}, {"Macau", "MO"}, {"Macao", "MO"},
-		{"Myanmar", "MM"}, {"Burma", "MM"}, {"North Macedonia", "MK"},
-		{"Eswatini", "SZ"}, {"Czechia", "CZ"}, {"Türkiye", "TR"},
-	} {
-		aliases = append(aliases, regionAlias{strings.ToLower(row.label), row.code, false})
+	for _, row := range regionExtraAliases {
+		for label := range strings.SplitSeq(row.names, "|") {
+			add(label, row.code)
+		}
 	}
+	slices.SortStableFunc(aliases, func(a, b regionAlias) int { return cmp.Compare(b.length, a.length) })
 	return aliases
 }
 
-// regionFromName 对英文全名和代码忽略大小写，中文直接匹配；最长全名先于两字母代码。
+// regionFromName 名称及城市别名优先于国旗标记和短代码；输出始终是图标库使用的地区代码。
 func regionFromName(name string) string {
 	lower := strings.ToLower(strings.Join(strings.Fields(name), " "))
-	best, length := "", 0
 	for _, alias := range regionNameAliases {
-		size := utf8.RuneCountInString(alias.label)
-		if size <= length {
-			continue
-		}
 		matched := strings.Contains(lower, alias.label)
-		if !alias.chinese {
+		if alias.word {
 			matched = containsRegionWord(lower, alias.label)
 		}
 		if matched {
-			best, length = alias.code, size
+			return alias.code
 		}
 	}
-	if best != "" {
-		return best
+	if code := regionFromFlag(name); code != "" {
+		return code
 	}
-	// 用户约定 cf 表示 CloudFlare；中非仍以中文或英文全名识别。
+	// 用户约定 cf 表示 CloudFlare；中非仍以全名或国旗标记识别。
 	if containsRegionWord(lower, "cf") {
 		return "cloudflare"
 	}
@@ -57,6 +69,29 @@ func regionFromName(name string) string {
 		if row.Code != "CF" && containsRegionWord(lower, strings.ToLower(row.Code)) {
 			return row.Code
 		}
+	}
+	return ""
+}
+
+// regionFromFlag 仅解读输入中的成对区域指示符，不生成显示用 Emoji，也不接收目录外代码。
+func regionFromFlag(name string) string {
+	var previous rune
+	for _, r := range name {
+		if r < 0x1F1E6 || r > 0x1F1FF {
+			previous = 0
+			continue
+		}
+		if previous == 0 {
+			previous = r
+			continue
+		}
+		code := string([]rune{'A' + previous - 0x1F1E6, 'A' + r - 0x1F1E6})
+		for _, row := range regionCatalogRows {
+			if row.Code == code {
+				return code
+			}
+		}
+		previous = 0
 	}
 	return ""
 }

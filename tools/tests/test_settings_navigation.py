@@ -16,7 +16,7 @@ class SettingsNavigationTests(unittest.TestCase):
         self.assertIn('val settingsPage = settingsStack.last() as SettingsPage', app)
         self.assertNotIn('mutableStateOf(SettingsPage.', app)
         self.assertIn('backStack = settingsStack', app)
-        self.assertIn('onDestination = { destination = it }', app)
+        self.assertIn('onDestination = navigate', app)
         self.assertIn('Saver<AppDestination, String>', app)
         self.assertIn('save = { it.name }', app)
         self.assertIn('@Serializable', routes)

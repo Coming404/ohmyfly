@@ -13,6 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import com.ohmyfly.ui.*
 import com.ohmyfly.catalog.selectionIds
@@ -113,10 +115,33 @@ private fun AppContent(
     var selectedTowerIds by remember { mutableStateOf(emptySet<Long>()) }
     var selectionTowerId by remember { mutableStateOf(0L) }
     var selectionMode by remember { mutableStateOf<CatalogSelectionMode?>(null) }
-    var towerSearchOpen by remember { mutableStateOf(false) }
-    var flightSearchOpen by remember { mutableStateOf(false) }
+    val towerSearch = remember { CatalogSearchState() }
+    val flightSearch = remember { CatalogSearchState() }
     var towerImportOpen by remember { mutableStateOf(false) }
     val catalog by subscriptionTowerStore.state.collectAsState()
+    val focus = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    // 导航开始前取消聚焦请求，避免分页动画中的离屏页面重新唤起键盘。
+    val navigate: (AppDestination) -> Unit = { next ->
+        if (next != destination) {
+            val current = subscriptionTowerStore.state.value
+            towerSearch.leave(current.towerSearch)
+            flightSearch.leave(current.flightFilter.search)
+            focus.clearFocus(force = true)
+            keyboard?.hide()
+            destination = next
+        }
+    }
+    val toggleSearch: () -> Unit = {
+        val search = if (destination == AppDestination.Subscriptions) towerSearch else flightSearch
+        if (search.expanded) {
+            focus.clearFocus(force = true)
+            keyboard?.hide()
+            search.close()
+            if (destination == AppDestination.Subscriptions) subscriptionTowerStore.updateTowerSearch("")
+            else subscriptionTowerStore.updateFlightFilter(subscriptionTowerStore.state.value.flightFilter.copy(search = ""))
+        } else search.open()
+    }
     val appMessages = LocalAppMessages.current
     var selectingAll by remember { mutableStateOf(false) }
     val selectedNodeIds = selectedIds.mapNotNullTo(linkedSetOf()) { it.toLongOrNull() }
@@ -184,16 +209,13 @@ private fun AppContent(
             selectionAllLabel = selectionAllLabel, selectingAll = selectingAll,
             onCancelSelection = cancelSelection, onSelectAll = selectAll,
             onSelectionMode = { selectionMode = it }, onTowerSelection = { selectedTowerIds = it },
-            onDestination = { destination = it },
-            onCatalogSearch = {
-                if (destination == AppDestination.Subscriptions) towerSearchOpen = !towerSearchOpen
-                else flightSearchOpen = !flightSearchOpen
-            },
+            onDestination = navigate,
+            onCatalogSearch = toggleSearch,
             onTowerAdd = { towerImportOpen = true },
             towerCount = catalog.summary.towers,
         ) { padding ->
             AppPager(
-                pagerState, settings, onChange, version, settingsSession, mirrorRunner, settingsStack,
+                pagerState, destination, settings, onChange, version, settingsSession, mirrorRunner, settingsStack,
                 nodes, selectedIds, onSelection = { selectedIds = it },
                 selectionMode = selectionMode, selectionTowerId = selectionTowerId, selectedTowerIds = selectedTowerIds,
                 onTowerSelection = { selectedTowerIds = it },
@@ -206,12 +228,11 @@ private fun AppContent(
                 onEnterTowerSelection = {
                     selectedIds = emptySet(); selectionTowerId = 0L; selectionMode = CatalogSelectionMode.Towers
                 },
-                onDestination = { destination = it }, onSubscriptions = { destination = AppDestination.Subscriptions }, editorBackActive = mirrorEditorBack != null,
+                onDestination = navigate, onSubscriptions = { navigate(AppDestination.Subscriptions) }, editorBackActive = mirrorEditorBack != null,
                 onEditorBackChange = { mirrorEditorBack = it }, onMirrorAddChange = { mirrorAdd = it },
                 onLogClearChange = { logClear = it },
                 overviewState = overviewState, subscriptionsState = subscriptionsState, speedState = speedState,
-                towerSearchOpen = towerSearchOpen, onTowerSearch = { towerSearchOpen = it },
-                flightSearchOpen = flightSearchOpen, onFlightSearch = { flightSearchOpen = it },
+                towerSearch = towerSearch, flightSearch = flightSearch,
                 towerImportOpen = towerImportOpen, onTowerImport = { towerImportOpen = it },
                 nodesState = nodesState, settingsState = settingsState, padding = padding,
             )
@@ -264,9 +285,6 @@ private fun AppFrame(
     val glassEnabled = glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)
     Box(Modifier.fillMaxSize()) {
     Scaffold(
-        floatingActionButton = {
-            if (destination == AppDestination.NodeLibrary && selectionMode == null) com.ohmyfly.ui.FlightFilterAction { filterOpen = true }
-        },
         floatingToolbar = {
             selectionMode?.let { mode ->
                 key(mode, selectionTowerId) {
@@ -285,7 +303,8 @@ private fun AppFrame(
                 selectedIds, selectedTowerIds, selectionMode,
                 selectionAllLabel, selectingAll, onCancelSelection, onSelectAll,
                 backdrop, glassEnabled, dark, settings, settingsSession,
-                onCatalogSearch = onCatalogSearch, onTowerAdd = onTowerAdd, towerCount = towerCount)
+                onCatalogSearch = onCatalogSearch, onTowerAdd = onTowerAdd,
+                onFlightFilter = { filterOpen = true }, towerCount = towerCount)
         },
         bottomBar = {
             if (!settingsChild && selectionMode == null && !imeVisible) DriftNavigationBar(
@@ -335,6 +354,7 @@ private fun ApplyOutputDeduplication(ready: Boolean, session: SettingsSession) {
 @Composable
 private fun AppPager(
     pagerState: PagerState,
+    destination: AppDestination,
     settings: AppSettings,
     onChange: (String, (AppSettings) -> AppSettings) -> Unit,
     version: String,
@@ -358,8 +378,7 @@ private fun AppPager(
     onMirrorAddChange: ((() -> Unit)?) -> Unit,
     onLogClearChange: ((() -> Unit)?) -> Unit,
     overviewState: LazyListState, subscriptionsState: LazyListState, speedState: LazyListState,
-    towerSearchOpen: Boolean, onTowerSearch: (Boolean) -> Unit,
-    flightSearchOpen: Boolean, onFlightSearch: (Boolean) -> Unit,
+    towerSearch: CatalogSearchState, flightSearch: CatalogSearchState,
     towerImportOpen: Boolean, onTowerImport: (Boolean) -> Unit,
     nodesState: LazyListState, settingsState: LazyListState,
     padding: PaddingValues,
@@ -370,6 +389,8 @@ private fun AppPager(
         modifier = Modifier.fillMaxSize(),
         userScrollEnabled = false,
     ) { page ->
+        val searchActive = AppDestination.entries[page] == destination &&
+            pagerState.settledPage == page && !pagerState.isScrollInProgress
         val pageContent: @Composable () -> Unit = {
         when (AppDestination.entries[page]) {
             AppDestination.Overview -> OverviewScreen(
@@ -390,7 +411,7 @@ private fun AppPager(
                 selectionTowerId = selectionTowerId, onEnterSelection = onEnterTowerSelection,
                 onTowerSelection = onTowerSelection, selectedNodeIds = selectedIds,
                 onNodeSelection = onSelection, onEnterNodeSelection = onEnterNodeSelection,
-                searchOpen = towerSearchOpen, onSearchOpenChange = onTowerSearch,
+                searchState = towerSearch, searchActive = searchActive,
                 importOpen = towerImportOpen, onImportOpenChange = onTowerImport,
                 contentPadding = padding,
             )
@@ -404,7 +425,7 @@ private fun AppPager(
                 onSelection = onSelection, contentPadding = padding,
                 catalog = catalog, onPage = { subscriptionTowerStore.page("flights", it) },
                 selectionMode = selectionMode, onEnterSelection = onEnterSelection,
-                searchOpen = flightSearchOpen, onSearchOpenChange = onFlightSearch,
+                searchState = flightSearch, searchActive = searchActive,
                 onSubscriptions = onSubscriptions,
             )
             AppDestination.Settings -> SettingsScreen(

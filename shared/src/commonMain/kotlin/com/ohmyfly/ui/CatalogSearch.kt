@@ -1,63 +1,49 @@
+// 搜索框只在显式打开时请求焦点，页面切换与列表重建仅恢复查询内容。
 package com.ohmyfly.ui
 
-import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.ohmyfly.ui.settings.MirrorIcons
-import com.ohmyfly.ui.settings.SettingsIcons
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.theme.MiuixTheme
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import top.yukonga.miuix.kmp.basic.InputField
-import top.yukonga.miuix.kmp.basic.SearchBar
+import top.yukonga.miuix.kmp.basic.SearchBarDefaults
 
 @Composable
-internal fun CatalogSearch(query: String, label: String, title: String, count: Long,
-    onAdd: (() -> Unit)? = null, addEnabled: Boolean = true, onQuery: (String) -> Unit,
-    expandedState: Boolean? = null, onExpandedChange: ((Boolean) -> Unit)? = null) {
-    var localExpanded by rememberSaveable { mutableStateOf(false) }
-    val expanded = expandedState ?: localExpanded
+internal fun CatalogSearch(
+    query: String,
+    label: String,
+    state: CatalogSearchState,
+    active: Boolean,
+    onQuery: (String) -> Unit,
+) {
     val focus = LocalFocusManager.current
-    val collapse: (Boolean) -> Unit = { value ->
-        if (expandedState == null) localExpanded = value else onExpandedChange?.invoke(value)
-        if (!value) { onQuery(""); focus.clearFocus() }
-    }
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (expandedState == null) Row(Modifier.fillMaxWidth().padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Spacer(Modifier.weight(1f))
-            IconButton(onClick = hapticClick { collapse(!expanded) }, modifier = Modifier.size(44.dp)) {
-                Icon(SettingsIcons.Search, "搜索$title", tint = MiuixTheme.colorScheme.onSurface)
-            }
-            onAdd?.let { add ->
-                IconButton(onClick = hapticClick(add), enabled = addEnabled, modifier = Modifier.size(44.dp)) {
-                    Icon(MirrorIcons.Add, "添加塔台", tint = MiuixTheme.colorScheme.onSurface)
-                }
-            }
-        }
-        if (expandedState == null) Row(Modifier.fillMaxWidth().padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(title, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-            CatalogBadge(count.toString())
-        }
-        CatalogExpansion(expanded) {
-        SearchBar(
-            modifier = Modifier.fillMaxWidth(),
-            expanded = expanded,
-            onExpandedChange = collapse,
-            inputField = {
-                InputField(query = query, onQueryChange = onQuery, label = label,
-                    onSearch = { focus.clearFocus() }, expanded = expanded, onExpandedChange = collapse)
-            },
-            outsideEndAction = { CatalogTextButton("取消", onClick = hapticClick { collapse(false) }) },
-        ) {}
+    val keyboard = LocalSoftwareKeyboardController.current
+    val requester = remember { FocusRequester() }
+    InputField(
+        query = query,
+        onQueryChange = onQuery,
+        label = label,
+        onSearch = { focus.clearFocus(); keyboard?.hide() },
+        // Miuix 0.9.4 的 expanded 会主动聚焦，收起时还会清空查询；此处仅复用可编辑输入框。
+        expanded = false,
+        onExpandedChange = {},
+        enabled = active,
+        modifier = Modifier.fillMaxWidth()
+            .padding(horizontal = SearchBarDefaults.InsideMargin.width, vertical = SearchBarDefaults.InsideMargin.height)
+            .focusProperties { canFocus = active }
+            .focusRequester(requester),
+    )
+    LaunchedEffect(state.focusRequested, active) {
+        if (state.focusRequested && active) {
+            requester.requestFocus()
+            state.consumeFocusRequest()
         }
     }
 }

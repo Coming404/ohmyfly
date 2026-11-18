@@ -45,6 +45,12 @@ MCP版本/目标信息不足以证明许可证或持续维护；缺失字段查�
 - 行为参考：[Clash Verge Rev 官方 URL scheme 指南](https://www.clashverge.dev/guide/url_schemes.html)、[Hiddify 官方 profile parser](https://github.com/hiddify/hiddify-app/blob/956177a3/lib/features/profile/data/profile_parser.dart)、[RFC 6266](https://www.rfc-editor.org/rfc/rfc6266.html) 与 [RFC 8187](https://www.rfc-editor.org/rfc/rfc8187.html)。`profile-title` 与 `Content-Disposition` 之间的优先级是本项目约定；`filename*` 优先于 `filename` 来自 RFC 6266。未复制 Hiddify 实现。
 - API 依据：[Ktor 3.6.0 ContentDisposition](https://github.com/ktorio/ktor/blob/3.6.0/ktor-http/common/src/io/ktor/http/ContentDisposition.kt)、[Ktor 3.6.0 参数解析](https://github.com/ktorio/ktor/blob/3.6.0/ktor-http/common/src/io/ktor/http/HttpHeaderValueParser.kt)、[Kotlin 2.4.20 Base64](https://github.com/JetBrains/kotlin/blob/v2.4.20/libraries/stdlib/src/kotlin/io/encoding/Base64.kt)。
 
+## 航班国家名称识别
+
+- 补充别名来自 [sublinkPro 默认国家规则](https://github.com/ZeroDeng01/sublinkPro/blob/a4565b05f7b37f363575bea5ea6ba745e1f0789f/models/db_migrate.go#L1233)，固定提交 `a4565b05f7b37f363575bea5ea6ba745e1f0789f`，MIT，Copyright (c) 2025 ZeroDeng；沿用 [完整许可](../third-party/licenses/sublinkPro-MIT.txt)。
+- `region_catalog.go` 维护现有 248 项国家／地区名称及 CloudFlare 标签；`region_aliases.go` 收纳去重后的城市、别称和非标准缩写；`region_match.go` 使用 Go 标准库进行最长文本及边界匹配。上游预置表达式的有效内容是关键词并列和字母边界，因此不需要新增正则依赖、可编辑规则表或服务端缓存。
+- 保留 `LA` 的老挝代码含义，不采用上游的洛杉矶缩写；从输入国旗标记读取原始国家代码，不进行地区重映射。匹配结果通过现有 `CountryFlag` 使用 kmp-flagkit 显示。识别优先级与数据库 v2 升级约定见 [节点地区](towers-flights.md#节点地区)。
+
 ## Miuix
 
 - [官方文档](https://compose-miuix-ui.github.io/miuix/)；[中文文档](https://compose-miuix-ui.github.io/miuix/zh_CN/)。

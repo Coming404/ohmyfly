@@ -230,7 +230,7 @@ internal class SettingsSession(
                 }
                 state = state.copy(confirmedSettings = settled, pendingWrites = pending.size)
                 logger.info { "[设置] 已保存并读回确认：${settingsLogChange(before, settled, change.name ?: "设置")}" }
-                onMessage(AppMessageKind.Success, change.successText ?: "${change.name ?: "设置"}已保存")
+                onMessage(AppMessageKind.Success, change.successText ?: "${change.name ?: "设置"}已修改")
                 // 只有事务已提交且读回磁盘值，才把这次操作标记为已确认。
                 change.done?.complete(SettingsWriteResult.Confirmed(settled))
                 // 较早完成不发布 UI；所有点击的即时值持续有效直到队列排空。

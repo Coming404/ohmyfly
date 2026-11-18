@@ -29,7 +29,7 @@ private fun SpeedTargets(settings: AppSettings, onChange: (String, (AppSettings)
     SettingsCard {
         ChoiceSetting("默认模式", settings.speed.mode.name,
             listOf("Latency" to "仅延迟", "Download" to "延迟＋下载", "Full" to "延迟＋下载＋上传"), SettingsIcons.Tune) { selected ->
-            onChange("默认模式") { current -> current.withSpeed { it.copy(mode = SpeedMode.valueOf(selected)) } }
+            onChange("默认模式已修改为${listOf("Latency" to "仅延迟", "Download" to "延迟＋下载", "Full" to "延迟＋下载＋上传").first { it.first == selected }.second}") { current -> current.withSpeed { it.copy(mode = SpeedMode.valueOf(selected)) } }
         }
         TextSetting("延迟目标网址", { it.speed.latencyUrl }, MirrorIcons.Globe,
             keyboard = KeyboardType.Uri, validate = ::validateTargetUrl) { current, url -> current.withSpeed { it.copy(latencyUrl = url) } }
@@ -68,7 +68,7 @@ private fun SpeedTransfer(settings: AppSettings, onChange: (String, (AppSettings
             current, n -> current.withSpeed { it.copy(transferTimeoutSeconds = n) }
         }
         ToggleSetting("蜂窝流量确认", "开始大流量航班测试前询问。", settings.speed.cellularConfirm, SettingsIcons.Haptic) {
-            checked -> onChange("蜂窝流量确认") { current -> current.withSpeed { it.copy(cellularConfirm = checked) } }
+            checked -> onChange("蜂窝流量确认已${if (checked) "开启" else "关闭"}") { current -> current.withSpeed { it.copy(cellularConfirm = checked) } }
         }
     }
 }
@@ -88,7 +88,7 @@ private fun SpeedCriteria(settings: AppSettings, onChange: (String, (AppSettings
         NumberSetting("达标后停止数量", { it.speed.stopAfter }, 0..100000, MirrorIcons.Stop,
             "0 表示测完全部；未测航班不标记失败。") { current, n -> current.withSpeed { it.copy(stopAfter = n) } }
         ToggleSetting("导出时重命名", "仅影响导出名称，不改变航班身份和历史。", settings.speed.renameExport, SettingsIcons.Rename) {
-            checked -> onChange("导出时重命名") { current -> current.withSpeed { it.copy(renameExport = checked) } }
+            checked -> onChange("导出时重命名已${if (checked) "开启" else "关闭"}") { current -> current.withSpeed { it.copy(renameExport = checked) } }
         }
     }
 }

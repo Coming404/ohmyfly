@@ -63,7 +63,7 @@ func (s *Store) migrate(ctx context.Context) error {
 	if err := tx.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 		return err
 	}
-	if version > 1 {
+	if version > 2 {
 		return fmt.Errorf("unsupported catalog version %d", version)
 	}
 	if version == 0 {
@@ -91,7 +91,7 @@ func (s *Store) migrate(ctx context.Context) error {
 	if _, err := tx.ExecContext(ctx, towerImportSchema); err != nil {
 		return err
 	}
-	if err := initRegions(ctx, tx); err != nil {
+	if err := initRegions(ctx, tx, version); err != nil {
 		return err
 	}
 	if err := interruptTasks(ctx, tx); err != nil {
@@ -100,6 +100,12 @@ func (s *Store) migrate(ctx context.Context) error {
 	// 暂存从未成为目录事实；进程重启后丢弃未提交的刷新。
 	if _, err := tx.ExecContext(ctx, "DELETE FROM parse_sessions; DELETE FROM refresh_nodes; DELETE FROM filter_results; DELETE FROM filter_work; UPDATE towers SET generation=generation+1"); err != nil {
 		return err
+	}
+	// 版本标记与地区重识别同事务提交；任一步失败均保留旧版本和旧数据。
+	if version < 2 {
+		if _, err := tx.ExecContext(ctx, "PRAGMA user_version=2"); err != nil {
+			return err
+		}
 	}
 	return tx.Commit()
 }
@@ -152,8 +158,7 @@ CREATE TABLE filter_work (id INTEGER PRIMARY KEY CHECK(id=1), token INTEGER NOT 
  revision INTEGER NOT NULL, ready INTEGER NOT NULL, match_count INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE filter_results (node_id INTEGER PRIMARY KEY REFERENCES nodes(id) ON DELETE CASCADE,
  eligible INTEGER NOT NULL);
-` + resultSchema + `
-PRAGMA user_version=1;`
+` + resultSchema
 
 func bump(ctx context.Context, tx *sql.Tx) error {
 	_, err := tx.ExecContext(ctx, "UPDATE catalog_meta SET revision=revision+1 WHERE id=1")

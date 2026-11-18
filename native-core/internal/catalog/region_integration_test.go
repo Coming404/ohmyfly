@@ -15,8 +15,9 @@ import (
 func TestNodeRegionsImportAndPages(t *testing.T) {
 	ctx := context.Background()
 	s := reviewStore(t)
-	names := []string{"Hong Kong", "HK", "香港", "cloudflare", "cf", "未识别线路"}
-	want := []string{"香港", "香港", "香港", "CloudFlare", "CloudFlare", "未知"}
+	names := []string{"Hong Kong", "HK", "香港", "cloudflare", "cf", "未识别线路", "Tokyo", "狮城", "🇯🇵节点"}
+	want := []string{"香港", "香港", "香港", "CloudFlare", "CloudFlare", "未知", "日本", "新加坡", "日本"}
+	codes := []string{"HK", "HK", "HK", "cloudflare", "cloudflare", "", "JP", "SG", "JP"}
 	nodes := make([]Node, len(names))
 	for i, name := range names {
 		nodes[i] = reviewParse(t, fmt.Sprintf("proxies: [{name: '%s', type: trojan, server: node%d.example, port: 443, password: fixture}]", name, i))[0]
@@ -46,14 +47,7 @@ func TestNodeRegionsImportAndPages(t *testing.T) {
 			if index < 0 || node.Region != want[index] {
 				t.Fatalf("unexpected region: %+v", node)
 			}
-			code := "HK"
-			if index == 3 || index == 4 {
-				code = "cloudflare"
-			}
-			if index == 5 {
-				code = ""
-			}
-			if node.RegionCode != code {
+			if node.RegionCode != codes[index] {
 				t.Fatalf("unexpected icon code: %+v", node)
 			}
 			var config string

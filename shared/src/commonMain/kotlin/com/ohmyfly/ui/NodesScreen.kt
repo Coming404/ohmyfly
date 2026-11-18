@@ -20,8 +20,8 @@ internal fun NodesScreen(
     contentPadding: PaddingValues = PaddingValues(),
     catalog: CatalogState,
     onPage: (Int) -> Unit,
-    searchOpen: Boolean = false,
-    onSearchOpenChange: (Boolean) -> Unit = {},
+    searchState: CatalogSearchState,
+    searchActive: Boolean,
     selectionMode: CatalogSelectionMode? = null,
     onEnterSelection: () -> Unit = {},
     onSubscriptions: () -> Unit = {},
@@ -29,13 +29,13 @@ internal fun NodesScreen(
     // 标题由 Scaffold 固定；分组紧接顶栏，关闭的搜索区不占据列表位置。
     Column(Modifier.fillMaxSize().padding(contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp)),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (searchOpen) CatalogSearch(catalog.flightFilter.search, "搜索航班", "航班", catalog.matchCount ?: 0,
-            expandedState = true, onExpandedChange = onSearchOpenChange, onQuery = {
+        if (searchState.expanded) CatalogSearch(catalog.flightFilter.search, "搜索航班",
+            state = searchState, active = searchActive, onQuery = {
                 appCatalog.updateFlightFilter(catalog.flightFilter.copy(search = it), debounce = true)
             })
         FlightGroups(catalog)
         FlightLibraryList(listState, catalog, selectedIds, onSelection, selectionMode, onEnterSelection,
-            onPage, onSubscriptions, onSearchOpenChange, Modifier.weight(1f))
+            onPage, onSubscriptions, searchState::close, Modifier.weight(1f))
     }
 }
 
@@ -43,7 +43,7 @@ internal fun NodesScreen(
 @Composable
 private fun FlightLibraryList(listState: LazyListState, catalog: CatalogState, selectedIds: Set<String>,
     onSelection: (Set<String>) -> Unit, selectionMode: CatalogSelectionMode?, onEnterSelection: () -> Unit,
-    onPage: (Int) -> Unit, onSubscriptions: () -> Unit, onSearchOpenChange: (Boolean) -> Unit, modifier: Modifier) {
+    onPage: (Int) -> Unit, onSubscriptions: () -> Unit, onCloseSearch: () -> Unit, modifier: Modifier) {
     var expanded by remember { mutableStateOf<Set<Long>>(emptySet()) }
     val inSelection = selectionMode == CatalogSelectionMode.Nodes
     LaunchedEffect(selectionMode) { if (inSelection) expanded = emptySet() }
@@ -74,7 +74,7 @@ private fun FlightLibraryList(listState: LazyListState, catalog: CatalogState, s
                         hint = if (noFlights) "添加并同步塔台后，航班会显示在这里。"
                             else if (emptyGroup) "切换其他分组，或将航班移动到这里。" else "调整分组、搜索或筛选条件，查看其他航班。",
                         onAction = if (emptyGroup) null else if (noFlights) onSubscriptions else ({
-                            appCatalog.updateFlightFilter(FlightFilter()); onSearchOpenChange(false)
+                            appCatalog.updateFlightFilter(FlightFilter()); onCloseSearch()
                         }),
                         actionLabel = if (noFlights) "前往塔台" else "清除筛选",
                         icon = if (noFlights) DriftIcons.Nodes else SettingsIcons.Search,

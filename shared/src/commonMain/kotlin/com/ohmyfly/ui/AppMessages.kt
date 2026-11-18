@@ -31,11 +31,11 @@ internal enum class AppMessageKind { Default, Success, Failure, Error, Uncertain
 internal class AppMessage(
     val kind: AppMessageKind,
     val text: String,
-    val actionLabel: String = "关闭",
+    val actionLabel: String? = null,
     val onAction: () -> Unit = {},
     val onDismiss: () -> Unit = {},
 ) {
-    val dismissible get() = kind != AppMessageKind.Success
+    val dismissible get() = true
     val undo get() = actionLabel == "撤销"
     val durationMillis get() = if (undo) 4_000L else 3_000L
 }
@@ -86,6 +86,7 @@ internal fun AppMessageHost(blocked: Boolean, modifier: Modifier = Modifier) {
         val result = host.showSnackbar(
             message = message.text,
             actionLabel = message.actionLabel,
+            withDismissAction = message.dismissible,
             duration = SnackbarDuration.Custom(message.durationMillis),
         )
         if (result == SnackbarResult.ActionPerformed) messages.perform(message)
@@ -106,7 +107,7 @@ private fun StaticAppSnackbar(message: AppMessage, messages: AppMessageState) {
     val accessibility = androidx.compose.ui.platform.LocalAccessibilityManager.current
     val data = remember(message) {
         object : SnackbarData {
-            override val visuals = SnackbarVisuals(message.text, message.actionLabel, false,
+            override val visuals = SnackbarVisuals(message.text, message.actionLabel, message.dismissible,
                 SnackbarDuration.Custom(message.durationMillis))
             override suspend fun dismiss() { messages.dismiss(message) }
             override suspend fun performAction() { messages.perform(message) }
@@ -174,6 +175,11 @@ private fun AppSnackbar(data: SnackbarData, kind: AppMessageKind) {
                         contentColor = if (kind == AppMessageKind.Default) colors.actionContentColor else foreground)) {
                     Text(action, autoSize = CatalogTextSizing.CompactButton,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            if (data.visuals.withDismissAction) {
+                IconButton(onClick = { scope.launch { data.dismiss() } }, minWidth = 40.dp, minHeight = 40.dp) {
+                    Icon(DriftIcons.Clear, contentDescription = "关闭通知", tint = foreground)
                 }
             }
         }

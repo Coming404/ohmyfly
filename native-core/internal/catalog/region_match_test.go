@@ -38,6 +38,15 @@ func TestRegionNameBoundaries(t *testing.T) {
 		{"赤道几内亚", "GQ"}, {"几内亚比绍", "GW"}, {"South Sudan", "SS"},
 		{"HK 香港", "HK"}, {"Hong Kong (China)", "HK"}, {"Macau (China)", "MO"},
 		{"brush", ""}, {"shk", ""}, {"trafficflow", ""}, {"未知节点", ""},
+		{"东京专线01", "JP"}, {"Osaka-02", "JP"}, {"狮城03", "SG"},
+		{"Los  Angeles 01", "US"}, {"纽约", "US"}, {"NYC-01", "US"}, {"USA01", "US"},
+		{"UK-01", "GB"}, {"Dubai", "AE"}, {"臺灣", "TW"},
+		{"印度尼西亚", "ID"}, {"印尼", "ID"}, {"North Korea", "KP"},
+		{"LA01", "LA"}, {"la01", "LA"}, {"马里", "ML"}, {"索马里", "SO"},
+		{"🇯🇵节点01", "JP"}, {"🇭🇰", "HK"}, {"🇹🇼", "TW"}, {"🇨🇫", "CF"},
+		{"🇧🇹01", "BT"}, {"🇿🇿", ""}, {"🇯", ""}, {"🇯-🇵", ""},
+		{"🇿🇿🇯🇵", "JP"}, {"🇯🇵 US01", "JP"}, {"香港 🇯🇵", "HK"},
+		{"Tokyotower", ""}, {"brooklyn", ""}, {"usability", ""}, {"cloudflared", ""},
 	} {
 		if got := regionFromName(item.name); got != item.want {
 			t.Errorf("%q: got %q, want %q", item.name, got, item.want)

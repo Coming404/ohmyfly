@@ -19,8 +19,8 @@ CREATE TABLE IF NOT EXISTS node_regions (
 );
 `
 
-// initRegions 首次建表时分批补齐已有节点；后续启动仅更新中文目录。
-func initRegions(ctx context.Context, tx *sql.Tx) error {
+// initRegions 随目录 v2 升级同步内置名称并重识别旧节点，后续启动不重复写入目录。
+func initRegions(ctx context.Context, tx *sql.Tx, version int) error {
 	if _, err := tx.ExecContext(ctx, nodeRegionSchema); err != nil {
 		return err
 	}
@@ -28,15 +28,15 @@ func initRegions(ctx context.Context, tx *sql.Tx) error {
 	if err := tx.QueryRowContext(ctx, "SELECT count(*) FROM region_catalog").Scan(&count); err != nil {
 		return err
 	}
+	if version >= 2 && count > 0 {
+		return nil
+	}
 	for _, row := range regionCatalogRows {
 		if _, err := tx.ExecContext(ctx, "INSERT INTO region_catalog(code,name) VALUES(?,?) ON CONFLICT(code) DO UPDATE SET name=excluded.name", row.Code, row.Name); err != nil {
 			return err
 		}
 	}
-	if count == 0 {
-		return applyNameRegions(ctx, tx, 0)
-	}
-	return nil
+	return applyNameRegions(ctx, tx, 0)
 }
 
 // applyNameRegions 有界读取完整名称；名称结果与手动值分别保存，避免覆盖手动值。

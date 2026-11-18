@@ -4,7 +4,7 @@
 
 `native-core/internal/catalog` 的 SQLite 是目录、任务和结果的事实源，`mobile.Catalog` 以 JSON 暴露 API，共享层 `CatalogResults` 调用并解码。结果持久化属于数据库第1步；任务列表恢复、网络执行与后台调度留在第3步。
 
-当前 `PRAGMA user_version=1`，首版 schema 合并包含：
+当前 `PRAGMA user_version=2`；v1 至 v2 在事务内更新国家名称识别结果，保留节点身份、手动地区及测量历史，详见[节点地区](towers-flights.md#节点地区)。任务与测量 schema 包含：
 
 | 表 | 内容与关联 |
 | --- | --- |
@@ -15,7 +15,7 @@
 
 `node_runs_history(node_id,id DESC)` 与 `node_runs_task(task_id,id)` 支持按节点历史或任务成员读取。每次任务创建新的 run；同一次 run 的阶段只允许由 `running` 更新为终态，已终结阶段不可覆盖。重新测量创建新任务，历史不被摘要覆盖。
 
-旧开发 v1 如果缺少 `catalog_meta.metrics_revision`，打开会返回 `catalog v1 schema is incomplete; explicit upgrade decision required`。现有文件保留，不删除、不自动迁移。版本大于1同样拒开。若设备存在旧开发库，必须先确定保留数据的升级方案。
+旧开发 v1 如果缺少 `catalog_meta.metrics_revision`，打开会返回 `catalog v1 schema is incomplete; explicit upgrade decision required`，文件保持不变。结构完整的 v1 自动升级至 v2，版本大于2拒绝打开。缺少结果表结构的早期开发库仍须另行确定保留数据的升级方案。
 
 ## 时间、数值和快照
 

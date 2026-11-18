@@ -50,15 +50,15 @@ internal fun SettingsHome(
         item(key = "appearance") {
             SettingsCard {
                 ChoiceSetting("明暗模式", settings.themeMode.name, ThemeMode.entries.map { it.name to it.label }, SettingsIcons.Appearance) { name ->
-                    onChange("明暗模式") { it.copy(themeMode = ThemeMode.valueOf(name)) }
+                    onChange("明暗模式已修改为${ThemeMode.valueOf(name).label}") { it.copy(themeMode = ThemeMode.valueOf(name)) }
                 }
                 ChoiceSetting("界面材质", settings.materialMode.name, MaterialMode.entries.map { it.name to it.label }, SettingsIcons.Material) { name ->
-                    onChange("界面材质") { it.copy(materialMode = MaterialMode.valueOf(name)) }
+                    onChange("界面材质已修改为${MaterialMode.valueOf(name).label}") { it.copy(materialMode = MaterialMode.valueOf(name)) }
                 }
                 ToggleSetting("减少透明效果", value = settings.reduceTransparency, leadingIcon = SettingsIcons.Transparency,
-                    onChange = { enabled -> onChange("减少透明效果") { it.copy(reduceTransparency = enabled) } })
+                    onChange = { enabled -> onChange("减少透明效果已${if (enabled) "开启" else "关闭"}") { it.copy(reduceTransparency = enabled) } })
                 ToggleSetting("减少动态效果", value = settings.reduceMotion, leadingIcon = SettingsIcons.Motion,
-                    onChange = { enabled -> onChange("减少动态效果") { it.copy(reduceMotion = enabled) } })
+                    onChange = { enabled -> onChange("减少动态效果已${if (enabled) "开启" else "关闭"}") { it.copy(reduceMotion = enabled) } })
                 HapticSetting(settings, onChange)
             }
         }

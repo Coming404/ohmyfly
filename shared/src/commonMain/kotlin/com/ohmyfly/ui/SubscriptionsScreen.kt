@@ -26,8 +26,8 @@ internal fun SubscriptionsScreen(
     selectedNodeIds: Set<String> = emptySet(),
     onNodeSelection: (Set<String>) -> Unit = {},
     onEnterNodeSelection: (Long) -> Unit = {},
-    searchOpen: Boolean = false,
-    onSearchOpenChange: (Boolean) -> Unit = {},
+    searchState: CatalogSearchState,
+    searchActive: Boolean,
     importOpen: Boolean = false,
     onImportOpenChange: (Boolean) -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(),
@@ -45,7 +45,7 @@ internal fun SubscriptionsScreen(
     LaunchedEffect(catalog.failure) { catalog.failure?.let { messages.show(AppMessageKind.Failure, it) } }
     TowerLibraryList(listState, catalog, store, settings, importReady, selectedTowerIds, onTowerSelection,
         selectionMode, selectionTowerId, onEnterSelection, selectedNodeIds, onNodeSelection, onEnterNodeSelection,
-        contentPadding = contentPadding, searchOpen = searchOpen, onSearchOpenChange = onSearchOpenChange,
+        contentPadding = contentPadding, searchState = searchState, searchActive = searchActive,
         onSync = {
             scope.launch {
                 try { store.syncAll(settings.subscription, mirrors) }

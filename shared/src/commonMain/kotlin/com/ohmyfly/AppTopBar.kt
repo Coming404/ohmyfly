@@ -20,7 +20,7 @@ internal fun AppTopBar(
     selectionAllLabel: String, selectingAll: Boolean, onCancelSelection: () -> Unit, onSelectAll: () -> Unit,
     backdrop: Backdrop, glassEnabled: Boolean, dark: Boolean, settings: AppSettings,
     settingsSession: SettingsSession, onCatalogSearch: () -> Unit, onTowerAdd: () -> Unit,
-    towerCount: Long,
+    onFlightFilter: () -> Unit, towerCount: Long,
 ) {
     DriftTopBar(
         title = if (selectionMode != null) "已选 ${if (selectionMode == CatalogSelectionMode.Nodes) selectedIds.size else selectedTowerIds.size}"
@@ -39,13 +39,20 @@ internal fun AppTopBar(
                 }
             }
             destination == AppDestination.NodeLibrary -> {
-                { HeaderAction("搜索航班", SettingsIcons.Search, onClick = onCatalogSearch) }
+                {
+                    CatalogActionToolbar(Modifier.chromeMaterial(backdrop, glassEnabled, dark, settings.materialMode)) {
+                        CatalogToolbarAction("搜索航班", SettingsIcons.Search, onClick = onCatalogSearch)
+                        FlightFilterAction(onClick = onFlightFilter)
+                    }
+                }
             }
             destination == AppDestination.Subscriptions -> {
                 {
-                    HeaderAction("搜索塔台", SettingsIcons.Search, onClick = onCatalogSearch)
-                    HeaderAction("添加塔台", MirrorIcons.Add, onClick = onTowerAdd,
-                        enabled = !settingsSession.state.readFailed)
+                    CatalogActionToolbar(Modifier.chromeMaterial(backdrop, glassEnabled, dark, settings.materialMode)) {
+                        CatalogToolbarAction("搜索塔台", SettingsIcons.Search, onClick = onCatalogSearch)
+                        CatalogToolbarAction("添加塔台", MirrorIcons.Add, onClick = onTowerAdd,
+                            enabled = !settingsSession.state.readFailed)
+                    }
                 }
             }
             mirrorPage -> {
