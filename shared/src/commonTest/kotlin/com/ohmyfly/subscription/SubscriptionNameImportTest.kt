@@ -48,6 +48,25 @@ class SubscriptionNameImportTest {
     }
 
     @Test
+    fun base64BodyRemarksSuppliesNameFromTheSameGet() = runTest {
+        var requests = 0
+        val client = subscriptionClient {
+            requests++
+            respond("UkVNQVJLUz1HbGFET1MKc3M6Ly9leGFtcGxl", headers = headersOf(
+                SubscriptionUsageHeader to listOf("total=42"),
+            ))
+        }
+        try {
+            val importer = SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) })
+            val result = importer.importSubscription("https://sub.example/profile", SubscriptionSettings(userAgent = "one"))
+            assertNull(result.failure)
+            assertEquals("GlaDOS", result.name)
+            assertEquals(SubscriptionUsage(total = 42), result.usage)
+            assertEquals(1, requests)
+        } finally { client.close() }
+    }
+
+    @Test
     fun selectedSnapshotKeepsItsOwnNameIncludingMissingMetadata() = runTest {
         for (selectedName in listOf(null, "Winner")) {
             var requests = 0

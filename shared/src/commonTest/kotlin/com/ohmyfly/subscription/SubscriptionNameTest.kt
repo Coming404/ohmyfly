@@ -52,6 +52,21 @@ class SubscriptionNameTest {
     }
 
     @Test
+    fun base64SubscriptionRemarksSuppliesNameWhenHeadersAreMissing() {
+        assertEquals("GlaDOS", parseSubscriptionName(null, null,
+            "UkVNQVJLUz1HbGFET1MKc3M6Ly9leGFtcGxl"))
+        assertEquals("GlaDOS", parseSubscriptionName(null, null, "REMARKS=GlaDOS\nss://example"))
+        assertEquals("GlaDOS", parseSubscriptionName(null, null, "REMARKS=GlaDOS\r\nss://example"))
+        assertEquals("Header", parseSubscriptionName("Header", null, "REMARKS=Body"))
+    }
+
+    @Test
+    fun nodeRemarksDoNotBecomeSubscriptionName() {
+        assertNull(parseSubscriptionName(null, null, "ss://YWVzOnBhc3M@example.com:443#GlaDOS"))
+        assertNull(parseSubscriptionName(null, null, "proxies:\n  - name: GlaDOS\n    type: ss"))
+    }
+
+    @Test
     fun controlCharactersAndReplacementCharactersAreRejected() {
         for (title in listOf("bad\nname", "bad\u0000name", "bad\u007Fname", "bad\u0085name", "bad\uFFFDname")) {
             assertNull(parseSubscriptionName(title, null))

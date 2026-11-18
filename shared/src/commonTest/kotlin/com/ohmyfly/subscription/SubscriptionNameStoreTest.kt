@@ -90,6 +90,27 @@ class SubscriptionNameStoreTest {
         }
     }
 
+
+    @Test
+    fun base64BodyRemarksNamesNewTowerAndRemainsEligibleForNameResolution() = runTest {
+        val remarks = "UkVNQVJLUz1HbGFET1MKc3M6Ly9leGFtcGxl"
+        var body = remarks
+        var requests = 0
+        val client = subscriptionClient {
+            requests++
+            respond(body)
+        }
+        try {
+            val store = TestCatalogStore(SubscriptionImporter(SubscriptionFetcher(client), { testSnapshot(testNode()) }))
+            store.add("https://update.example/subscribe", settings)
+            assertEquals("GlaDOS", store.towers.value.single().name)
+            body = "UkVNQVJLUz1TZWNvbmQKc3M6Ly9leGFtcGxl"
+            store.refresh("https://update.example/subscribe", settings)
+            assertEquals("GlaDOS", store.towers.value.single().name)
+            assertEquals(2, requests)
+        } finally { client.close() }
+    }
+
     @Test
     fun failedRefreshKeepsNameNodesAndUsageTogether() = runTest {
         var status = HttpStatusCode.OK

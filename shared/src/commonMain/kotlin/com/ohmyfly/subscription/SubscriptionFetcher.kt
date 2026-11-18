@@ -31,10 +31,8 @@ internal const val MozillaSubscriptionUserAgent =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
         "Chrome/120.0.0.0 Safari/537.36"
 
-internal const val DefaultSubscriptionUserAgents =
-    "mihomo/1.19.33|v2rayN/7.20.4|clash-verge/v2.5.2"
-
-internal val BuiltInSubscriptionUserAgents = DefaultSubscriptionUserAgents.split('|').distinct().take(4)
+// 空设置仍需有稳定兜底，具体默认值由设置模型统一维护。
+internal val BuiltInSubscriptionUserAgents = SubscriptionSettings().userAgent.split('|').distinct().take(4)
 
 internal fun subscriptionUserAgents(url: String, custom: String): List<String?> {
     val host = parseUrl(url)?.host
@@ -128,6 +126,7 @@ internal class SubscriptionFetcher(
                     bytes.decodeToString(), parseSubscriptionUserInfo(response.headers[SubscriptionUsageHeader]),
                     if (resolveName) parseSubscriptionName(
                         response.headers["profile-title"], response.headers[HttpHeaders.ContentDisposition],
+                        bytes.decodeToString(),
                     ) else null,
                 )
             }
