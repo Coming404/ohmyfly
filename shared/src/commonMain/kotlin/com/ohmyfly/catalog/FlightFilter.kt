@@ -1,7 +1,8 @@
 package com.ohmyfly.catalog
 
 internal data class FlightFilter(
-    val groupId: Long = -1,
+    // 0 是默认“全部”分组；正数属于自定义组，-1 只用于跨组运行状态筛选。
+    val groupId: Long = 0,
     val status: String = "all",
     val enabled: Boolean = true,
     val search: String = "",

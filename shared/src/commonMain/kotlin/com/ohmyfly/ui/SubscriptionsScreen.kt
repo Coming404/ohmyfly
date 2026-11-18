@@ -2,7 +2,6 @@ package com.ohmyfly.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -44,26 +43,20 @@ internal fun SubscriptionsScreen(
     var editing by remember { mutableStateOf<CatalogTower?>(null) }
     LaunchedEffect(catalog.towerSearch) { listState.scrollToItem(0) }
     LaunchedEffect(catalog.failure) { catalog.failure?.let { messages.show(AppMessageKind.Failure, it) } }
-    Column(Modifier.fillMaxSize().padding(contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp)),
-        verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        if (searchOpen) CatalogSearch(catalog.towerSearch, "按塔台名称搜索", "塔台", catalog.summary.towers,
-            expandedState = true, onExpandedChange = onSearchOpenChange, onQuery = store::updateTowerSearch)
-        if (catalog.summary.towers > 0 || catalog.busy) TowerControl(catalog, importReady,
-            onCancel = store::cancelOperation, onSync = {
-                scope.launch {
-                    try { store.syncAll(settings.subscription, mirrors) }
-                    catch (e: CancellationException) { throw e }
-                    catch (_: Exception) { messages.show(AppMessageKind.Failure, "同步未全部完成，请查看塔台状态") }
-                }
-            })
-        TowerLibraryList(listState, catalog, store, settings, importReady, selectedTowerIds, onTowerSelection,
-            selectionMode, selectionTowerId, onEnterSelection, selectedNodeIds, onNodeSelection, onEnterNodeSelection,
-            onAdd = { target = null; importing = true }, onEdit = { editing = it },
-            onSourceImport = { source ->
-                target = CatalogTower(source.id, source.name, 0, source.failure, source.kind, address = source.address)
-                importing = true
-            }, onReimport = { target = it; importing = true }, modifier = Modifier.weight(1f))
-    }
+    TowerLibraryList(listState, catalog, store, settings, importReady, selectedTowerIds, onTowerSelection,
+        selectionMode, selectionTowerId, onEnterSelection, selectedNodeIds, onNodeSelection, onEnterNodeSelection,
+        contentPadding = contentPadding, searchOpen = searchOpen, onSearchOpenChange = onSearchOpenChange,
+        onSync = {
+            scope.launch {
+                try { store.syncAll(settings.subscription, mirrors) }
+                catch (e: CancellationException) { throw e }
+                catch (_: Exception) { messages.show(AppMessageKind.Failure, "同步未全部完成，请查看塔台状态") }
+            }
+        }, onAdd = { target = null; importing = true }, onEdit = { editing = it },
+        onSourceImport = { source ->
+            target = CatalogTower(source.id, source.name, 0, source.failure, source.kind, address = source.address)
+            importing = true
+        }, onReimport = { target = it; importing = true }, modifier = Modifier.fillMaxSize())
     if (importing) TowerImportPanel(importReady && catalog.ready, settings.subscription, target,
         onSubmit = { inputs, name, merge, id -> store.importSources(inputs, name, merge, settings.subscription, mirrors, id) },
         onClose = { importing = false; target = null })

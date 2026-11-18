@@ -32,7 +32,7 @@ internal fun FlightSummary(flight: CatalogFlight, config: JsonObject?) {
         }
     }
     DetailStatus("所属分组", if (config == null) "正在读取" else
-        (config["group"] as? JsonObject)?.getValue("name")?.jsonPrimitive?.content ?: "未分组", DriftIcons.Nodes)
+        (config["group"] as? JsonObject)?.getValue("name")?.jsonPrimitive?.content ?: "全部", DriftIcons.Nodes)
     val sources = config?.get("sources") as? JsonArray
     DetailStatus("所属塔台", sources?.map { it.jsonObject.getValue("towerName").jsonPrimitive.content }
         ?.distinct()?.joinToString("、")?.ifBlank { "暂无来源" } ?: "正在读取", DriftIcons.Subscriptions)
@@ -61,7 +61,7 @@ internal fun FlightSummary(flight: CatalogFlight, config: JsonObject?) {
     val last = flight.measurements.latestRun
     if (!last?.reason.isNullOrBlank()) CatalogNotice(last!!.reason, if (last.status == "failed") CatalogNoticeKind.Error else CatalogNoticeKind.Warning)
     val measuredAt = last?.finishedAt ?: last?.startedAt
-    DetailStatus("最近测试", last?.let { resultStatus(it.status) + (measuredAt?.let { time -> " · ${catalogAge(time)}" } ?: "") } ?: "未测试",
+    DetailStatus("最近测试", last?.let { resultStatus(it.status) + (measuredAt?.let { time -> " ${catalogAge(time)}" } ?: "") } ?: "未测试",
         SettingsIcons.Retry)
 }
 

@@ -19,6 +19,72 @@ import top.yukonga.miuix.kmp.menu.OverlayIconDropdownMenu
 import top.yukonga.miuix.kmp.overlay.OverlayBottomSheet
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
+/** 头部来源和时间放在同一胶囊内，选择框按整个头部居中。 */
+@Composable
+internal fun TowerIdentity(tower: CatalogTower, loading: Boolean, selected: Boolean, selectionMode: Boolean, statusColor: Color) {
+    val colors = MiuixTheme.colorScheme
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+        if (selectionMode) CatalogSelectionCheck(selected, Modifier.align(Alignment.CenterVertically))
+        CatalogTile(if (tower.sourceKind == "http") MirrorIcons.Link else SettingsIcons.File,
+            color = when {
+                loading -> if (colors.background.luminance() < 0.5f) Color(0xFFFFD180) else Color(0xFF996000)
+                tower.failure.isNotBlank() -> statusColor
+                else -> colors.primary
+            })
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(tower.name.ifBlank { "塔台 ${tower.id}" }, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            val source = if (tower.sourceKind == "merged") "${tower.sourceCount} 个来源" else sourceLabel(tower.sourceKind)
+            Text(if (loading) "正在同步" else "$source ${catalogAge(tower.lastSuccessAt)}",
+                modifier = Modifier.background(colors.surfaceVariant, RoundedCornerShape(50))
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                fontSize = 11.sp, color = colors.onSurfaceVariantSummary,
+                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        }
+        TowerStatusBadge(tower, loading)
+    }
+}
+
+/** 三个操作平分可用宽度，共用图标、字号、高度和内容居中规则。 */
+@Composable
+internal fun TowerFooter(tower: CatalogTower, loading: Boolean, ready: Boolean, flightsEnabled: Boolean,
+    expanded: Boolean, revision: Long, syncColor: Color, onExpand: () -> Unit, onRefresh: () -> Unit,
+    onEdit: () -> Unit, onRemove: () -> Unit, onSourceImport: (CatalogSource) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {
+        TowerFooterAction("航班 ${tower.nodeCount}", DriftIcons.Nodes, Modifier.weight(1f), flightsEnabled,
+            MiuixTheme.colorScheme.primary, expanded, onExpand)
+        TowerFooterAction(if (tower.sourceKind == "http" || tower.sourceKind == "merged") "同步" else "重导入",
+            SettingsIcons.Retry, Modifier.weight(1f), ready && !loading, syncColor, onClick = onRefresh)
+        TowerMoreMenu(tower, loading, revision, Modifier.weight(1f), onEdit, onRemove, onSourceImport)
+    }
+}
+
+/** 操作按钮只提供点击行为，视觉内容与菜单锚点共用。 */
+@Composable
+private fun TowerFooterAction(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier, enabled: Boolean, color: Color, expanded: Boolean? = null, onClick: () -> Unit) {
+    Button(onClick = hapticClick(onClick), modifier = modifier, enabled = enabled, minWidth = 0.dp,
+        minHeight = 44.dp, insideMargin = PaddingValues(0.dp),
+        colors = ButtonDefaults.buttonColors(color = Color.Transparent, disabledColor = Color.Transparent,
+            contentColor = color, disabledContentColor = MiuixTheme.colorScheme.disabledOnSurface)) {
+        TowerFooterLabel(text, icon, if (enabled) color else MiuixTheme.colorScheme.disabledOnSurface, expanded)
+    }
+}
+
+/** 固定字号避免长标签改变同一操作栏的视觉尺寸。 */
+@Composable
+private fun TowerFooterLabel(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
+    color: Color, expanded: Boolean? = null) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally)) {
+        Icon(icon, null, Modifier.size(18.dp), tint = color)
+        Text(text, modifier = Modifier.weight(1f, fill = false), color = color, fontSize = 14.sp,
+            fontWeight = FontWeight.Medium, maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        expanded?.let { CatalogExpansionArrow(it, color) }
+    }
+}
+
 /** 状态独立配色，正常使用绿色对勾，同步中使用琥珀色刷新标记。 */
 @Composable
 internal fun TowerStatusBadge(tower: CatalogTower, loading: Boolean) {
@@ -70,11 +136,8 @@ internal fun TowerMoreMenu(tower: CatalogTower, loading: Boolean, revision: Long
             icon = { Icon(DriftIcons.Subscriptions, null, it) }))
         add(DropdownItem(text = "删除塔台", enabled = !loading, onClick = { panel = "delete" },
             icon = { Icon(MirrorIcons.Trash, null, it, tint = MiuixTheme.colorScheme.error) }))
-    }), modifier = modifier, minWidth = 0.dp, minHeight = 44.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            Icon(MirrorIcons.More, null, Modifier.size(19.dp), tint = MiuixTheme.colorScheme.primary)
-            Text("更多", color = MiuixTheme.colorScheme.primary, autoSize = CatalogTextSizing.CompactButton, maxLines = 1)
-        }
+    }), modifier = modifier, minWidth = 0.dp, minHeight = 44.dp, backgroundColor = Color.Transparent) {
+        TowerFooterLabel("更多", MirrorIcons.More, MiuixTheme.colorScheme.primary)
     }
     if (panel == "result") TowerImportResultSheet(tower) { panel = "" }
     if (panel == "sources") OverlayBottomSheet(show = true, title = "管理来源", insideMargin = catalogSheetMargin(),

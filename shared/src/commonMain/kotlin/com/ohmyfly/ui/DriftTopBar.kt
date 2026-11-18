@@ -56,6 +56,7 @@ internal fun DriftTopBar(
     glassEnabled: Boolean,
     dark: Boolean,
     materialMode: MaterialMode,
+    titleCount: Long? = null,
     onBack: (() -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
 ) {
@@ -88,15 +89,16 @@ internal fun DriftTopBar(
                     iconModifier = Modifier.graphicsLayer { scaleX = if (rtl) 1f else -1f },
                 )
             }
-            if (title.isNotEmpty()) Text(
-                title,
-                modifier = Modifier.weight(1f).semantics { heading() },
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MiuixTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            ) else Spacer(Modifier.weight(1f))
+            if (title.isNotEmpty()) Box(Modifier.weight(1f)) {
+                if (titleCount != null) Row(Modifier.then(surface()).heightIn(min = 44.dp)
+                    .padding(horizontal = 14.dp, vertical = 8.dp).semantics { heading() },
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(title, fontSize = 20.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+                    Text(titleCount.toString(), fontSize = 20.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                } else Text(title, modifier = Modifier.semantics { heading() }, fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold, color = MiuixTheme.colorScheme.onSurface,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+            } else Spacer(Modifier.weight(1f))
             if (actions != null) {
                 Row(verticalAlignment = Alignment.CenterVertically, content = actions)
             }

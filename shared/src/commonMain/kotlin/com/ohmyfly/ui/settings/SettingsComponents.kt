@@ -53,7 +53,7 @@ internal fun SettingsSectionTitle(text: String, icon: ImageVector) {
 internal fun SettingsPageIntro(title: String, hint: String = "") {
     // Large title aligned with SettingsSectionTitle text; the top bar on sub pages carries no title.
     Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(title, fontSize = 30.sp, lineHeight = 36.sp, fontWeight = FontWeight.Bold,
+        Text(title, fontSize = 32.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold,
             color = MiuixTheme.colorScheme.onSurface, modifier = Modifier.semantics { heading() })
         if (hint.isNotBlank()) {
             Text(hint, fontSize = 13.sp, lineHeight = 18.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)

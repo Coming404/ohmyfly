@@ -45,7 +45,7 @@ internal fun FlightGroupEditor(group: CatalogGroup?, groups: List<CatalogGroup>,
                     }
                 })
             if (group != null) {
-                if (deleting) CatalogNotice("删除“${group.name}”后，节点移至未分组。", CatalogNoticeKind.Warning)
+                if (deleting) CatalogNotice("删除“${group.name}”后，节点移至“全部”分组。", CatalogNoticeKind.Warning)
                 CatalogAction(if (deleting) "确认删除分组" else "删除分组", MirrorIcons.Trash,
                     destructive = true, enabled = !busy) {
                     if (deleting) submit("groupDelete") else deleting = true
@@ -76,7 +76,7 @@ internal fun FlightGroupMove(nodeIds: Set<Long>, onMoved: () -> Unit, onClose: (
             .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             failure?.let { CatalogNotice(it) }
             if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-            CatalogAction("未分组", DriftIcons.Nodes, Modifier.fillMaxWidth(), enabled = !busy) { move(0) }
+            CatalogAction("全部", DriftIcons.Nodes, Modifier.fillMaxWidth(), enabled = !busy) { move(0) }
             state.groups.groups.forEach { group ->
                 CatalogAction(group.name, DriftIcons.Nodes, Modifier.fillMaxWidth(), enabled = !busy) { move(group.id) }
             }

@@ -190,6 +190,7 @@ private fun AppContent(
                 else flightSearchOpen = !flightSearchOpen
             },
             onTowerAdd = { towerImportOpen = true },
+            towerCount = catalog.summary.towers,
         ) { padding ->
             AppPager(
                 pagerState, settings, onChange, version, settingsSession, mirrorRunner, settingsStack,
@@ -245,6 +246,7 @@ private fun AppFrame(
     onDestination: (AppDestination) -> Unit,
     onCatalogSearch: () -> Unit,
     onTowerAdd: () -> Unit,
+    towerCount: Long,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     var filterOpen by remember { mutableStateOf(false) }
@@ -271,7 +273,7 @@ private fun AppFrame(
                     com.ohmyfly.ui.CatalogSelectionHost(mode,
                         selectedIds.mapNotNull { it.toLongOrNull() }.toSet(), selectedTowerIds,
                         settingsSession.state.confirmedSettings ?: settings,
-                        toolbarModifier = Modifier,
+                        toolbarModifier = Modifier.chromeMaterial(backdrop, glassEnabled, dark, settings.materialMode),
                         onDone = { onSelectionMode(null); onSelection(emptySet()); onTowerSelection(emptySet()) })
                 }
             }
@@ -283,7 +285,7 @@ private fun AppFrame(
                 selectedIds, selectedTowerIds, selectionMode,
                 selectionAllLabel, selectingAll, onCancelSelection, onSelectAll,
                 backdrop, glassEnabled, dark, settings, settingsSession,
-                onCatalogSearch = onCatalogSearch, onTowerAdd = onTowerAdd)
+                onCatalogSearch = onCatalogSearch, onTowerAdd = onTowerAdd, towerCount = towerCount)
         },
         bottomBar = {
             if (!settingsChild && selectionMode == null && !imeVisible) DriftNavigationBar(
@@ -318,73 +320,6 @@ private fun AppFrame(
     AppMessageHost(blocked = settingsSession.state.readFailed,
         modifier = Modifier.align(Alignment.TopCenter))
     }
-}
-
-@Composable
-private fun AppTopBar(
-    destination: AppDestination,
-    settingsChild: Boolean,
-    settingsBack: (() -> Unit)?,
-    mirrorPage: Boolean,
-    mirrorAdd: (() -> Unit)?,
-    logsPage: Boolean,
-    logClear: (() -> Unit)?,
-    selectedIds: Set<String>,
-    selectedTowerIds: Set<Long>,
-    selectionMode: CatalogSelectionMode?,
-    selectionAllLabel: String,
-    selectingAll: Boolean,
-    onCancelSelection: () -> Unit,
-    onSelectAll: () -> Unit,
-    backdrop: Backdrop,
-    glassEnabled: Boolean,
-    dark: Boolean,
-    settings: AppSettings,
-    settingsSession: SettingsSession,
-    onCatalogSearch: () -> Unit,
-    onTowerAdd: () -> Unit,
-) {
-    DriftTopBar(
-        title = if (selectionMode != null) "已选 ${if (selectionMode == CatalogSelectionMode.Nodes) selectedIds.size else selectedTowerIds.size}" else if (settingsChild || destination == AppDestination.Settings) "" else destination.label,
-        backdrop = backdrop,
-        glassEnabled = glassEnabled,
-        dark = dark,
-        materialMode = settings.materialMode,
-        onBack = settingsBack,
-        actions = when {
-            selectionMode != null -> {
-                {
-                    com.ohmyfly.ui.CatalogSelectionTopToolbar(
-                        modifier = Modifier,
-                        selecting = selectingAll, selectAllLabel = selectionAllLabel,
-                        onCancel = onCancelSelection, onSelectAll = onSelectAll,
-                    )
-                }
-            }
-            destination == AppDestination.NodeLibrary -> {
-                {
-                    HeaderAction("搜索航班", com.ohmyfly.ui.settings.SettingsIcons.Search, onClick = onCatalogSearch)
-                }
-            }
-            destination == AppDestination.Subscriptions -> {
-                {
-                    HeaderAction("搜索塔台", com.ohmyfly.ui.settings.SettingsIcons.Search, onClick = onCatalogSearch)
-                    HeaderAction("添加塔台", MirrorIcons.Add, onClick = onTowerAdd,
-                        enabled = !settingsSession.state.readFailed)
-                }
-            }
-            mirrorPage -> {
-                { HeaderAction("添加镜像", MirrorIcons.Add, onClick = { mirrorAdd?.invoke() },
-                    enabled = mirrorAdd != null && settings.mirrorEnabled && !settingsSession.state.readFailed) }
-            }
-            logsPage -> {
-                { HeaderAction("清理全部日志", MirrorIcons.Trash, onClick = { logClear?.invoke() },
-                    enabled = logClear != null && !settingsSession.state.readFailed,
-                    tint = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.error) }
-            }
-            else -> null
-        },
-    )
 }
 
 @Composable

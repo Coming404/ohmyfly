@@ -116,7 +116,8 @@ private fun TowerFlightList(
     onExpanded: (Long) -> Unit,
     onNodeSelection: (Set<String>) -> Unit,
 ) {
-    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 420.dp), state = list) {
+    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 420.dp), state = list,
+        verticalArrangement = Arrangement.spacedBy(6.dp)) {
         items(count.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(), key = { "tower-flight:$it" }) { index ->
             val flight = pages[index / 100]?.flights?.getOrNull(index % 100)
             if (flight == null) CatalogLoading()

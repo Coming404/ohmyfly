@@ -17,11 +17,11 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import com.ohmyfly.catalog.CatalogFlight
 import com.ohmyfly.catalog.CatalogMetric
 import com.ohmyfly.catalog.CatalogMetricSummary
@@ -34,7 +34,7 @@ internal fun FlightCard(flight: CatalogFlight, selected: Boolean, selectionMode:
     onSelect: () -> Unit, onDetails: () -> Unit, expanded: Boolean, revision: Long) {
     // 卡片外轮廓再次裁剪内部行的按压指示，长按覆盖层与连续圆角保持一致。
     Card(Modifier.fillMaxWidth().clip(GlassShape(24.dp)), cornerRadius = 24.dp) {
-        FlightRow(flight, selected, selectionMode, onSelect, onDetails, expanded)
+        FlightRow(flight, selected, selectionMode, onSelect, onDetails, expanded, cornerRadius = 24.dp)
         CatalogExpansion(expanded && !selectionMode) {
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 HorizontalDivider()
@@ -46,10 +46,9 @@ internal fun FlightCard(flight: CatalogFlight, selected: Boolean, selectionMode:
 
 @Composable
 internal fun FlightRow(flight: CatalogFlight, selected: Boolean = false, selectionMode: Boolean = false,
-    onSelect: (() -> Unit)? = null, onDetails: () -> Unit, expanded: Boolean = false) {
+    onSelect: (() -> Unit)? = null, onDetails: () -> Unit, expanded: Boolean = false, cornerRadius: Dp = 18.dp) {
     val select = onSelect?.let { hapticClick(it) }
-    Row(Modifier.fillMaxWidth()
-        .background(if (selected) MiuixTheme.colorScheme.primary.copy(alpha = 0.10f) else Color.Transparent)
+    Row(Modifier.fillMaxWidth().catalogSelectionSurface(selected, cornerRadius)
         .alpha(if (flight.enabled) 1f else 0.5f).combinedClickable(
         onClick = hapticClick { if (selectionMode) onSelect?.invoke() else onDetails() }, onLongClick = select,
         role = Role.Button, onLongClickLabel = if (selected) "取消选择" else "选择航班")
@@ -57,7 +56,7 @@ internal fun FlightRow(flight: CatalogFlight, selected: Boolean = false, selecti
             if (selected) "取消选择" else "选择航班") { select?.invoke(); true }) }
         .padding(horizontal = 12.dp, vertical = 10.dp).heightIn(min = 44.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (selectionMode) CatalogSelectionCheck(selected)
+        if (selectionMode) CatalogSelectionCheck(selected, Modifier.align(Alignment.CenterVertically))
         if (flight.regionCode.isNotBlank()) {
             Box(Modifier.size(36.dp).background(MiuixTheme.colorScheme.surfaceVariant, RoundedCornerShape(11.dp)),
                 contentAlignment = Alignment.Center) { CountryFlag(flight.regionCode, Modifier.size(24.dp)) }
@@ -92,7 +91,7 @@ internal fun compactMetric(summary: CatalogMetricSummary?, missing: String): Str
     if (summary == null) return missing
     val shown = summary.valid ?: summary.latest ?: return missing
     val previous = summary.valid != null && summary.latest?.status != "succeeded"
-    return metricText(shown) + if (previous) " · 上次成功" else ""
+    return metricText(shown) + if (previous) " 上次成功" else ""
 }
 
 internal fun metricText(metric: CatalogMetric): String {

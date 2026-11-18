@@ -68,10 +68,12 @@ private fun FlightLibraryList(listState: LazyListState, catalog: CatalogState, s
                 }
                 count == 0L -> {
                     val noFlights = catalog.summary.flights == 0L
+                    val emptyGroup = !noFlights && catalog.appliedFilter.let { it.groupId >= 0 && it.search.isBlank() && !it.active }
                     CatalogEmpty(
-                        title = if (noFlights) "还没有航班" else "没有匹配的航班",
-                        hint = if (noFlights) "添加并同步塔台后，航班会显示在这里。" else "调整分组、搜索或筛选条件，查看其他航班。",
-                        onAction = if (noFlights) onSubscriptions else ({
+                        title = if (noFlights) "还没有航班" else if (emptyGroup) "此分组暂无航班" else "没有匹配的航班",
+                        hint = if (noFlights) "添加并同步塔台后，航班会显示在这里。"
+                            else if (emptyGroup) "切换其他分组，或将航班移动到这里。" else "调整分组、搜索或筛选条件，查看其他航班。",
+                        onAction = if (emptyGroup) null else if (noFlights) onSubscriptions else ({
                             appCatalog.updateFlightFilter(FlightFilter()); onSearchOpenChange(false)
                         }),
                         actionLabel = if (noFlights) "前往塔台" else "清除筛选",

@@ -69,7 +69,7 @@ class LogFilesTests(unittest.TestCase):
         self.assertIn('selected = level == value', menu)
         self.assertIn('LogLevelMenu(content.level', text)
         self.assertFalse((COMMON / 'ui/settings/LogLevelSegments.kt').exists())
-        app = (COMMON / 'App.kt').read_text()
+        app = (COMMON / 'AppTopBar.kt').read_text()
         self.assertIn('MirrorDialog(', actions)
         self.assertIn('if (state.clear()) confirming = false', actions)
         self.assertIn('LocalAppMessages.current', text)

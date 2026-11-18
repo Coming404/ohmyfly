@@ -1,4 +1,4 @@
-// 塔台列表独占总控下方视口；删除待撤销时隐藏卡片，不插入描述性占位。
+// 总控与塔台卡片共用一个滚动列表；删除待撤销时隐藏卡片，不插入描述性占位。
 package com.ohmyfly.ui
 
 import androidx.compose.foundation.layout.*
@@ -6,17 +6,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import com.ohmyfly.catalog.*
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.subscription.SubscriptionMirrorSettings
 
-/** 卡片展开和列表滚动独立于固定的顶部总控。 */
+/** 搜索、总控和卡片统一消费列表内边距，只有 Scaffold 顶栏固定。 */
 @Composable
 internal fun TowerLibraryList(listState: LazyListState, catalog: CatalogState, store: CatalogStore,
     settings: AppSettings, importReady: Boolean, selectedTowerIds: Set<Long>, onTowerSelection: (Set<Long>) -> Unit,
     selectionMode: CatalogSelectionMode?, selectionTowerId: Long, onEnterSelection: () -> Unit,
     selectedNodeIds: Set<String>, onNodeSelection: (Set<String>) -> Unit, onEnterNodeSelection: (Long) -> Unit,
+    contentPadding: PaddingValues, searchOpen: Boolean, onSearchOpenChange: (Boolean) -> Unit, onSync: () -> Unit,
     onAdd: () -> Unit, onEdit: (CatalogTower) -> Unit, onSourceImport: (CatalogSource) -> Unit,
     onReimport: (CatalogTower) -> Unit, modifier: Modifier,
 ) {
@@ -25,9 +27,20 @@ internal fun TowerLibraryList(listState: LazyListState, catalog: CatalogState, s
     val mirrors = SubscriptionMirrorSettings(settings.mirrorEnabled, settings.mirrors, settings.selectedMirrorId)
     val count = catalog.towerMatchCount ?: 0
     val hasStatus = catalog.failure != null || catalog.towerMatchCount == null || count == 0L
-    CatalogViewport(listState, if (hasStatus) 1 else 0, catalog.towerPage, catalog.towerWindow.keys, count,
+    val hasControl = catalog.summary.towers > 0 || catalog.busy
+    val headerCount = (if (searchOpen) 1 else 0) + (if (hasControl) 1 else 0) + (if (hasStatus) 1 else 0)
+    CatalogViewport(listState, headerCount, catalog.towerPage, catalog.towerWindow.keys, count,
         catalog.failure != null) { store.page("towers", it) }
-    LazyColumn(modifier.fillMaxSize(), state = listState, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(modifier.fillMaxSize(), state = listState,
+        contentPadding = contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (searchOpen) item("search") {
+            CatalogSearch(catalog.towerSearch, "按塔台名称搜索", "塔台", catalog.summary.towers,
+                expandedState = true, onExpandedChange = onSearchOpenChange, onQuery = store::updateTowerSearch)
+        }
+        if (hasControl) item("control") {
+            TowerControl(catalog, importReady, onCancel = store::cancelOperation, onSync = onSync)
+        }
         if (hasStatus) item("status") {
             TowerListStatus(catalog, count, store, Modifier.fillParentMaxSize(), onAdd)
         }

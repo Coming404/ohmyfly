@@ -4,6 +4,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <application
         android:allowBackup="false"
+        android:icon="@mipmap/ic_ohmyfly"
+        android:roundIcon="@mipmap/ic_ohmyfly"
         android:usesCleartextTraffic="true"
         android:label="OhMyFly"
         android:supportsRtl="true"

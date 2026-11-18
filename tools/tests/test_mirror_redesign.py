@@ -82,7 +82,7 @@ class MirrorRedesignTests(unittest.TestCase):
 
     def test_disabled_controls_and_empty_list_enable(self):
         page = (UI / 'MirrorSettingsPage.kt').read_text()
-        app = (SOURCE / 'commonMain/kotlin/com/ohmyfly/App.kt').read_text()
+        app = (SOURCE / 'commonMain/kotlin/com/ohmyfly/AppTopBar.kt').read_text()
         codec = (SOURCE / 'commonMain/kotlin/com/ohmyfly/settings/MirrorCodec.kt').read_text()
         actions = (UI / 'MirrorPageActions.kt').read_text()
         self.assertIn('enabled = !session.state.readFailed', page)
@@ -91,7 +91,7 @@ class MirrorRedesignTests(unittest.TestCase):
         self.assertIn('enabled = settings.mirrorEnabled && !session.state.readFailed', page)
         self.assertNotIn('enabled && mirrors.isNotEmpty()', codec)
         self.assertNotIn('MirrorIcons.Sort', page)
-        self.assertIn('fontSize = 18.sp, fontWeight = FontWeight.SemiBold', page)
+        self.assertIn('fontSize = 20.sp, fontWeight = FontWeight.SemiBold', page)
         self.assertNotIn('重试失败项', actions)
         self.assertIn('Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)', actions)
 

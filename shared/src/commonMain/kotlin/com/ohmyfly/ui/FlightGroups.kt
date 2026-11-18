@@ -1,6 +1,9 @@
 // 固定状态与自定义分组共用全库筛选，重复点击已选自定义组进入管理。
 package com.ohmyfly.ui
 
+import androidx.compose.foundation.border
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -25,12 +28,16 @@ internal fun FlightGroups(catalog: CatalogState) {
     var editing by remember { mutableStateOf<CatalogGroup?>(null) }
     var creating by remember { mutableStateOf(false) }
     val filter = catalog.flightFilter
+    // 标题由 Scaffold 固定，默认分组移动后不再保留在原组。
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         // 分组独立横向滚动；分隔线与添加按钮固定在右侧。
         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            listOf("all" to "全部", "succeeded" to "起飞成功", "failed" to "起飞失败", "none" to "未起飞").forEach { (status, title) ->
-                GroupChip(title, catalog.groups.counts[status], filter.groupId == -1L && filter.status == status) {
+            GroupChip("全部", catalog.groups.counts["default"] ?: 0, filter.groupId == 0L && filter.status == "all") {
+                appCatalog.updateFlightFilter(filter.copy(groupId = 0, status = "all"))
+            }
+            listOf("succeeded" to "起飞成功", "failed" to "起飞失败", "none" to "未起飞").forEach { (status, title) ->
+                GroupChip(title, catalog.groups.counts[status] ?: 0, filter.groupId == -1L && filter.status == status) {
                     appCatalog.updateFlightFilter(filter.copy(groupId = -1, status = status))
                 }
             }
@@ -54,14 +61,17 @@ internal fun FlightGroups(catalog: CatalogState) {
 }
 
 @Composable
-private fun GroupChip(title: String, count: Long?, active: Boolean, onClick: () -> Unit) {
+private fun GroupChip(title: String, count: Long, active: Boolean, onClick: () -> Unit) {
     val colors = MiuixTheme.colorScheme
-    Row(Modifier.clip(RoundedCornerShape(50))
-        .background(if (active) colors.primary.copy(alpha = 0.12f) else colors.surface)
+    val shape = RoundedCornerShape(50)
+    Row(Modifier.clip(shape)
+        .background(if (active) colors.primary.copy(alpha = 0.10f) else colors.surfaceContainer)
+        .border(0.5.dp, if (active) colors.primary.copy(alpha = 0.5f) else colors.outline, shape)
         .clickable(role = Role.Tab, onClick = hapticClick(onClick)).semantics { selected = active }
-        .heightIn(min = 44.dp).padding(horizontal = 14.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, color = if (active) colors.primary else colors.onSurface, style = catalogInputStyle())
-        count?.let { Text(it.toString(), color = colors.onSurfaceVariantSummary, style = catalogInputStyle()) }
+        .heightIn(min = 36.dp).padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(title, color = if (active) colors.primary else colors.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Text(count.toString(), color = if (active) colors.primary else colors.onSurfaceVariantSummary,
+            fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
     }
 }

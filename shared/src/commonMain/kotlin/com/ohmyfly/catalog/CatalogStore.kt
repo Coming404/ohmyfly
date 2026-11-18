@@ -350,8 +350,8 @@ internal class CatalogStore(
             return@launch
         }
         if (action == "groupDelete" && state.value.flightFilter.groupId == id) {
-            mutableState.update { it.copy(flightFilter = it.flightFilter.copy(groupId = -1),
-                appliedFilter = it.appliedFilter.copy(groupId = -1)) }
+            mutableState.update { it.copy(flightFilter = it.flightFilter.copy(groupId = 0),
+                appliedFilter = it.appliedFilter.copy(groupId = 0)) }
         }
         try { refreshView(invalidate = true)
         } catch (e: CancellationException) { throw e
@@ -362,7 +362,7 @@ internal class CatalogStore(
         onResult(true, when (action) {
             "groupCreate" -> "分组已添加"
             "groupRename" -> "分组已重命名"
-            "groupDelete" -> "分组已删除，节点已移至未分组"
+            "groupDelete" -> "分组已删除，航班已移至全部"
             else -> "节点已移动"
         })
     }

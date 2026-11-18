@@ -112,7 +112,7 @@ internal fun MirrorSettingsPage(
                 Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     Icon(MirrorIcons.Github, null, Modifier.size(24.dp))
-                    Text("GitHub 镜像", fontSize = 18.sp, fontWeight = FontWeight.SemiBold,
+                    Text("GitHub 镜像", fontSize = 20.sp, fontWeight = FontWeight.SemiBold,
                         color = MiuixTheme.colorScheme.onSurface, modifier = Modifier.semantics { heading() })
                 }
             }

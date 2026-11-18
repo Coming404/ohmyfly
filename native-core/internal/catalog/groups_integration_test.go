@@ -69,7 +69,7 @@ func TestFlightGroupPersistenceAndPaging(t *testing.T) {
 	requireResult(t, s.DeleteGroup(ctx, group.ID))
 	groups, err = s.Groups(ctx, nil)
 	requireResult(t, err)
-	if len(groups.Groups) != 0 || groups.Counts["ungrouped"] != 205 || reviewCount(t, s, "nodes") != 205 {
+	if len(groups.Groups) != 0 || groups.Counts["default"] != 205 || reviewCount(t, s, "nodes") != 205 {
 		t.Fatal("deleting group deleted nodes", groups)
 	}
 }
@@ -142,7 +142,7 @@ func TestFlightGroupCollapse(t *testing.T) {
 	requireResult(t, s.MoveGroup(ctx, 0, []int64{resultNode(t, s)}))
 	groups, err = s.Groups(ctx, nil)
 	requireResult(t, err)
-	if groups.Counts["ungrouped"] != 1 {
+	if groups.Counts["default"] != 1 {
 		t.Fatal("ungroup failed", groups)
 	}
 }

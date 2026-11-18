@@ -37,7 +37,7 @@ internal fun SettingsHome(
                 Text(
                     SettingsPage.Home.title,
                     modifier = Modifier.semantics { heading() },
-                    fontSize = 18.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MiuixTheme.colorScheme.onSurface,
                     maxLines = 1,

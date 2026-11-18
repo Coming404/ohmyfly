@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS filter_scope (
  group_id INTEGER NOT NULL, status TEXT NOT NULL, metrics_revision INTEGER NOT NULL
 );`
 
-// FlightScope中的-1表示全部分组，0表示未分组，正值为用户分组ID。
+// FlightScope中0为默认“全部”分组，正值为自定义组；-1仅用于跨组查询。
 type FlightScope struct {
 	GroupID int64  `json:"groupId"`
 	Status  string `json:"status"`
@@ -172,7 +172,7 @@ func (s *Store) MoveGroup(ctx context.Context, groupID int64, ids []int64) error
 	if count != len(ids) {
 		return ErrStale
 	}
-	// NULL表示用户显式移回未分组，仍保留操作顺序供同内容合并时判定。
+	// NULL表示用户显式移回默认“全部”分组，仍保留操作顺序供同内容合并时判定。
 	_, err = tx.ExecContext(ctx, `INSERT INTO node_groups(node_id,group_id,changed_revision)
  SELECT value,nullif(?,0),(SELECT revision+1 FROM catalog_meta WHERE id=1) FROM json_each(?) WHERE true
  ON CONFLICT(node_id) DO UPDATE SET group_id=excluded.group_id,changed_revision=excluded.changed_revision`, groupID, string(encoded))
@@ -187,7 +187,7 @@ func (s *Store) MoveGroup(ctx context.Context, groupID int64, ids []int64) error
 
 // Groups返回当前有效节点的全库计数；有筛选票据时按搜索/正则结果统计。
 func (s *Store) Groups(ctx context.Context, ticket *FilterTicket) (GroupSummary, error) {
-	result := GroupSummary{Groups: []FlightGroup{}, Counts: map[string]int64{}}
+	result := GroupSummary{Groups: []FlightGroup{}, Counts: map[string]int64{"succeeded": 0, "failed": 0, "none": 0}}
 	tx, err := s.readDB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return result, err
@@ -201,13 +201,16 @@ func (s *Store) Groups(ctx context.Context, ticket *FilterTicket) (GroupSummary,
 	if err = tx.QueryRowContext(ctx, "SELECT revision FROM catalog_meta WHERE id=1").Scan(&result.Revision); err != nil {
 		return result, err
 	}
-	query, err := candidateQuery(ctx, tx, ticket != nil)
+	query, err := candidateQuery(ctx, tx, false)
 	if err != nil {
 		return result, err
 	}
 	base := "candidates"
 	if ticket != nil {
-		base = "matched"
+		// 名称和协议筛选影响所有计数；当前点击的分组和运行状态不截断其他分组。
+		query += `, group_candidates AS (SELECT c.id FROM candidates c
+ JOIN filter_results r ON r.node_id=c.id WHERE r.eligible=1) `
+		base = "group_candidates"
 	}
 	rows, err := tx.QueryContext(ctx, query+`SELECT g.id,g.name,count(b.id) FROM flight_groups g
  LEFT JOIN node_groups m ON m.group_id=g.id LEFT JOIN `+base+` b ON b.id=m.node_id GROUP BY g.id ORDER BY g.id`)
@@ -252,10 +255,10 @@ func (s *Store) Groups(ctx context.Context, ticket *FilterTicket) (GroupSummary,
 	if err != nil {
 		return result, err
 	}
-	var ungrouped int64
-	if err = tx.QueryRowContext(ctx, query+"SELECT count(*) FROM "+base+" b WHERE NOT EXISTS(SELECT 1 FROM node_groups m WHERE m.node_id=b.id AND m.group_id IS NOT NULL)").Scan(&ungrouped); err != nil {
+	var defaultCount int64
+	if err = tx.QueryRowContext(ctx, query+"SELECT count(*) FROM "+base+" b WHERE NOT EXISTS(SELECT 1 FROM node_groups m WHERE m.node_id=b.id AND m.group_id IS NOT NULL)").Scan(&defaultCount); err != nil {
 		return result, err
 	}
-	result.Counts["ungrouped"] = ungrouped
+	result.Counts["default"] = defaultCount
 	return result, tx.Commit()
 }

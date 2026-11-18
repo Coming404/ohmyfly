@@ -1,9 +1,10 @@
 package com.ohmyfly.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.draw.clip
+import com.ohmyfly.ui.glass.GlassShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
@@ -44,7 +45,7 @@ internal fun TowerControl(state: CatalogState, ready: Boolean, onCancel: () -> U
         HorizontalDivider(Modifier.padding(horizontal = 16.dp))
         Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             TowerStatistic(state.summary.towers.toString(), "塔台", Modifier.weight(1f))
-            TowerStatistic("${state.summary.availableFlights}/${state.summary.flights}", "航班", Modifier.weight(1f))
+            TowerStatistic(state.summary.flights.toString(), "航班", Modifier.weight(1f))
             TowerStatistic(formatTraffic(state.summary.usedTrafficBytes), "流量", Modifier.weight(1f))
         }
     }
@@ -93,52 +94,33 @@ internal fun TowerCard(
     val select = if (nodeSelectionMode) null else hapticClick(onSelect)
     val flightsEnabled = !loading && tower.failure.isBlank() && tower.lastSuccessAt != null
     // 交互放入 Card 的连续圆角表面内，长按遮罩和卡片共用相同裁剪。
-    Card(Modifier.fillMaxWidth(), cornerRadius = 24.dp, showIndication = true,
+    Card(Modifier.fillMaxWidth().clip(GlassShape(24.dp)), cornerRadius = 24.dp, showIndication = true,
         onClick = hapticClick { if (selectionMode) onSelect() else if (flightsEnabled) onExpand() },
         onLongPress = select,
     ) {
-        Column(Modifier.fillMaxWidth().background(if (selected) MiuixTheme.colorScheme.primary.copy(alpha = 0.10f) else Color.Transparent)
-            .padding(14.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.Top) {
-                if (selectionMode) CatalogSelectionCheck(selected)
-                CatalogTile(if (tower.sourceKind == "http") MirrorIcons.Link else SettingsIcons.File,
-                    color = when {
-                        loading -> if (dark) Color(0xFFFFD180) else Color(0xFF996000)
-                        tower.failure.isNotBlank() -> syncColor
-                        else -> MiuixTheme.colorScheme.primary
-                    })
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(tower.name.ifBlank { "塔台 ${tower.id}" }, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(if (loading) "正在同步" else "${if (tower.sourceKind == "merged") "${tower.sourceCount} 个来源" else sourceLabel(tower.sourceKind)} · ${catalogAge(tower.lastSuccessAt)}",
-                        fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary, maxLines = 1)
+        Column(Modifier.fillMaxWidth().catalogSelectionSurface(selected, 24.dp)) {
+            Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 14.dp)) {
+                TowerIdentity(tower, loading, selected, selectionMode, syncColor)
+                if (loading) Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                    Text(phase ?: "正在同步", fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                 }
-                TowerStatusBadge(tower, loading)
+                if (!loading) TowerUsage(tower)
+                if (!loading && tower.failure.isNotBlank()) {
+                    Spacer(Modifier.height(12.dp))
+                    CatalogNotice(tower.failure)
+                }
+                tower.warnings.forEach {
+                    Spacer(Modifier.height(8.dp))
+                    CatalogNotice(it.jsonPrimitive.content, CatalogNoticeKind.Warning)
+                }
+                Spacer(Modifier.height(10.dp))
+                if (!selectionMode && !nodeSelectionMode) HorizontalDivider()
             }
-            if (loading) Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                LinearProgressIndicator(Modifier.fillMaxWidth())
-                Text(phase ?: "正在同步", fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-            }
-            if (!loading) TowerUsage(tower)
-            if (!loading && tower.failure.isNotBlank()) {
-                Spacer(Modifier.height(12.dp))
-                CatalogNotice(tower.failure)
-            }
-            tower.warnings.forEach {
-                Spacer(Modifier.height(8.dp))
-                CatalogNotice(it.jsonPrimitive.content, CatalogNoticeKind.Warning)
-            }
-            Spacer(Modifier.height(10.dp))
-            if (!selectionMode && !nodeSelectionMode) HorizontalDivider()
-            if (!selectionMode && !nodeSelectionMode) Row(Modifier.fillMaxWidth()) {
-                CatalogAction("航班 ${tower.availableNodeCount}/${tower.nodeCount}", DriftIcons.Nodes,
-                    Modifier.weight(1.2f), enabled = flightsEnabled, expanded = expanded, onClick = onExpand)
-                CatalogAction(if (tower.sourceKind == "http" || tower.sourceKind == "merged") "同步" else "重导入", SettingsIcons.Retry,
-                    Modifier.weight(1f), enabled = ready && !loading, contentColor = syncColor, onClick = onRefresh)
-                TowerMoreMenu(tower, loading, revision, Modifier.weight(1f), onEdit, onRemove, onSourceImport)
-            }
+            if (!selectionMode && !nodeSelectionMode) TowerFooter(tower, loading, ready, flightsEnabled,
+                expanded, revision, syncColor, onExpand, onRefresh, onEdit, onRemove, onSourceImport)
             CatalogExpansion(expanded && flightsEnabled && !selectionMode) {
-                Column(Modifier.padding(top = 12.dp)) {
+                Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
                     TowerFlights(tower.id, revision, tower.nodeCount, selectedNodeIds, onNodeSelection, nodeSelectionMode)
                 }
             }
@@ -161,7 +143,19 @@ private fun TowerUsage(tower: CatalogTower) {
             }
             // 仅服务端给出总量时绘制比例，同步过程不伪造百分比。
             usage.total?.takeIf { it > 0 && used != null }?.let { total ->
-                LinearProgressIndicator(progress = (used!!.toDouble() / total).toFloat().coerceIn(0f, 1f), height = 6.dp)
+                val consumed = used!!.toDouble() / total
+                val remaining = 1.0 - consumed
+                val dark = MiuixTheme.colorScheme.background.luminance() < 0.5f
+                // 原型阈值：剩余超过20%为绿，20%以内为橙，耗尽或到期为红。
+                val color = when {
+                    remaining <= 0 || usage.expireEpochSeconds?.let(::subscriptionExpired) == true ->
+                        if (dark) Color(0xFFFF6B6B) else Color(0xFFCF2E2E)
+                    remaining <= 0.20 -> if (dark) Color(0xFFF5A524) else Color(0xFFE8900C)
+                    else -> if (dark) Color(0xFF3CCB7F) else Color(0xFF237C45)
+                }
+                LinearProgressIndicator(progress = consumed.toFloat().coerceIn(0f, 1f), height = 6.dp,
+                    colors = ProgressIndicatorDefaults.progressIndicatorColors(
+                        foregroundColor = color, backgroundColor = color.copy(alpha = 0.12f)))
             }
         }
     }
@@ -174,7 +168,7 @@ private fun subscriptionExpiryLabel(epochSeconds: Long): String =
     if (subscriptionExpired(epochSeconds)) "已过期"
     else "到期 ${Instant.fromEpochSeconds(epochSeconds).toString().take(10)}"
 
-private fun sourceLabel(kind: String) = when (kind) { "file" -> "本地文件"; "text" -> "粘贴正文"; else -> "网络订阅" }
+internal fun sourceLabel(kind: String) = when (kind) { "file" -> "本地文件"; "text" -> "粘贴正文"; else -> "网络订阅" }
 
 internal fun formatUsage(bytes: Long?): String {
     if (bytes == null) return "未知"

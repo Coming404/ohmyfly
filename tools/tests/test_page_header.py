@@ -11,7 +11,7 @@ class PageHeaderTests(unittest.TestCase):
     def test_one_compact_title_without_brand_or_large_title(self):
         source = (UI / 'DriftTopBar.kt').read_text()
         header = source.split('internal fun HeaderAction(', 1)[0]
-        self.assertIn('fontSize = 18.sp', header)
+        self.assertIn('fontSize = 20.sp', header)
         self.assertIn('fontWeight = FontWeight.SemiBold', header)
         self.assertIn('semantics { heading() }', header)
         self.assertIn('maxLines = 1', header)
@@ -43,8 +43,9 @@ class PageHeaderTests(unittest.TestCase):
 
     def test_titles_and_back_share_the_existing_navigation_state(self):
         app = (COMMON / 'App.kt').read_text()
+        topbar = (COMMON / 'AppTopBar.kt').read_text()
         screen = (UI / 'SettingsScreen.kt').read_text()
-        title = app.split('DriftTopBar(', 1)[1].split('backdrop = backdrop', 1)[0]
+        title = topbar.split('DriftTopBar(', 1)[1].split('backdrop = backdrop', 1)[0]
         self.assertIn('title = if (selectionMode != null)', title)
         self.assertIn('selectedIds.size else selectedTowerIds.size', title)
         self.assertIn('settingsChild || destination == AppDestination.Settings', title)
@@ -55,10 +56,10 @@ class PageHeaderTests(unittest.TestCase):
         title_item = home.split('SettingsList(padding, state) {', 1)[1].split('item(key = "identity")', 1)[0]
         self.assertIn('item(key = "title")', title_item)
         self.assertIn('SettingsPage.Home.title', title_item)
-        self.assertIn('fontSize = 18.sp', title_item)
+        self.assertIn('fontSize = 20.sp', title_item)
         self.assertNotIn('stickyHeader', home)
-        self.assertIn('if (title.isNotEmpty()) Text(', (UI / 'DriftTopBar.kt').read_text())
-        self.assertIn('onBack = settingsBack', app)
+        self.assertIn('if (title.isNotEmpty()) Box(', (UI / 'DriftTopBar.kt').read_text())
+        self.assertIn('onBack = settingsBack', topbar)
         self.assertIn('val settingsPage = settingsStack.last() as SettingsPage', app)
         self.assertIn('mirrorEditorBack?.invoke() ?: settingsStack.popSettingsPage()', app)
         self.assertIn('NavDisplay(', screen)
@@ -73,14 +74,14 @@ class PageHeaderTests(unittest.TestCase):
         self.assertIn('actions: (@Composable RowScope.() -> Unit)? = null', source)
         self.assertIn('if (actions != null)', source)
         self.assertIn('content = actions', source)
-        actions = app.split('actions = when {', 1)[1].split('private fun ApplyOutputDeduplication', 1)[0]
+        actions = (COMMON / 'AppTopBar.kt').read_text().split('actions = when {', 1)[1]
         self.assertIn('selectionMode != null ->', actions)
         self.assertIn('CatalogSelectionTopToolbar(', actions)
         self.assertIn('onCancel = onCancelSelection, onSelectAll = onSelectAll', actions)
         toolbar = (UI / 'CatalogSelection.kt').read_text()
         top_toolbar = toolbar.split('internal fun CatalogSelectionTopToolbar(', 1)[1]
         self.assertIn('FloatingToolbar(', top_toolbar)
-        self.assertIn('SelectionToolbarAction(true, "取消"', top_toolbar)
+        self.assertIn('SelectionTopAction(true, "取消"', top_toolbar)
         self.assertIn('selectAllLabel', top_toolbar)
         for page in ('NodeLibrary', 'Subscriptions'):
             self.assertIn(f'destination == AppDestination.{page} ->', actions)
