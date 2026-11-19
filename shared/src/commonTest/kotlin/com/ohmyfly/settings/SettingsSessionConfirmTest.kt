@@ -51,7 +51,7 @@ class SettingsSessionConfirmTest {
         assertEquals(ThemeMode.Dark, settled.settings.themeMode)
         assertEquals(settled.settings, session.state.settings)
         assertEquals(settled.settings, session.state.confirmedSettings)
-        assertEquals("设置已保存", messages.current?.text)
+        assertEquals("设置已修改", messages.current?.text)
         assertEquals(0, session.state.pendingWrites)
     }
 

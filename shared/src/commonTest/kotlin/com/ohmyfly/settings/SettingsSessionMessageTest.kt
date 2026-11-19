@@ -46,7 +46,7 @@ class SettingsSessionMessageTest {
         assertEquals(1, session.state.pendingWrites)
         readGate.complete(Unit)
         runCurrent()
-        assertEquals(listOf(AppMessageKind.Success to "明暗模式已保存"), notices)
+        assertEquals(listOf(AppMessageKind.Success to "明暗模式已修改"), notices)
     }
 
     @Test
@@ -126,7 +126,7 @@ class SettingsSessionMessageTest {
         fail = false
         val transform: (AppSettings) -> AppSettings = { it.copy(speed = it.speed.copy(latencyConcurrency = 4)) }
         assertIs<SettingsWriteResult.Confirmed>(session.changeConfirmed(transform))
-        assertEquals(listOf(AppMessageKind.Success to "设置已保存"), notices)
+        assertEquals(listOf(AppMessageKind.Success to "设置已修改"), notices)
     }
 
     @Test
