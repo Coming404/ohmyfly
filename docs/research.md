@@ -62,6 +62,12 @@ https://kmp.jetbrains.com/
 - UI沿用Miuix0.9.4全部正式模块与完整图标，8模块均显式声明。miuix-nav不自动改写现有五个目的地的路由，不新增平行Material页面。底栏/控件签名按固定tag核对；具体行为见[UI实现](ui-showcase.md)。
 - 当前已移除全局Crossfade与展开体验，删除不再直接使用的Compose animation目录别名和声明；Miuix自身需要的传递动画依赖不因此被排除。不引入第三方动效库。
 
+### Kyant Backdrop 2.0.1：液态玻璃
+
+- `commonMain` 固定使用 `io.github.kyant0:backdrop:2.0.1`（Apache-2.0）。Klibs `getLatestVersion` 返回稳定版 2.0.1、Kotlin 2.4.10；带平台过滤的项目名检索未命中，目标以[固定版本构建文件](https://github.com/Kyant0/AndroidLiquidGlass/blob/2.0.1/backdrop/build.gradle.kts)与[发布变体](https://repo.maven.apache.org/maven2/io/github/kyant0/backdrop/2.0.1/backdrop-2.0.1.module)为准：Android、iosArm64、iosSimulatorArm64。
+- Android AAR 要求 compileSdk 37，运行时折射需要 API 33；当前工程均满足。iOS 使用 Skia，无需 iOS 26 原生材质；iOS 16 真机与双端链接待验证。
+- 设置为液态玻璃时，页面录制、顶部及选择工具栏、底栏面板与选中透镜使用同一个 Kyant 渲染后端；另外三种材质仍使用 Miuix。减少透明效果时使用实色，减少动态效果时关闭动态高光与形变。Miuix UI 继续提供控件、颜色与交互语义。
+
 ### miuix-blur 0.9.4 接入核验
 
 - Klibs MCP `searchProjects("miuix")` / `getLatestVersion(top.yukonga.miuix.kmp:miuix-blur)` 返回0.9.4，`latestStableVersion=null`仍只表示索引未报告稳定版；项目级目标包含 AndroidJvm、ios_arm64、ios_simulator_arm64。

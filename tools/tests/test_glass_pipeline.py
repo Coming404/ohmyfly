@@ -63,8 +63,8 @@ class GlassPipelineTests(unittest.TestCase):
         self.assertTrue((ROOT / 'third-party/licenses/glass-Apache-2.0.txt').is_file())
         self.assertIn('49ee06a', combined + (GLASS / 'GlassEffects.kt').read_text())
         for file in GLASS.glob('*.kt'):
-            if file.name == 'GlassPresetAnimation.kt':
-                continue  # Original application policy, not an upstream-derived rendering file.
+            if file.name in {'GlassPresetAnimation.kt', 'ChromeBackdrop.kt', 'LiquidSurface.kt'}:
+                continue  # Original application policy and public API integration.
             header = file.read_text()[:800]
             self.assertTrue('SPDX-License-Identifier' in header or 'Derived from' in header, file.name)
 

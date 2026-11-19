@@ -21,60 +21,6 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 
 @Composable
-internal fun TowerControl(state: CatalogState, ready: Boolean, onCancel: () -> Unit, onSync: () -> Unit) {
-    val syncing = state.sourceTasks.values.filter { it.phase != "排队" }.map { it.parentId }.distinct().size
-    val status = when {
-        state.busy -> if (syncing > 0) "$syncing 个塔台同步中" else "等待同步"
-        state.summary.failedTowers > 0 -> "${state.summary.failedTowers} 个塔台异常"
-        else -> "全部正常"
-    }
-    val statusColor = when {
-        state.busy -> MiuixTheme.colorScheme.primary
-        state.summary.failedTowers > 0 -> MiuixTheme.colorScheme.error
-        else -> MiuixTheme.colorScheme.onSurface
-    }
-    Card(Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            Text(status, modifier = Modifier.weight(1f), fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
-                color = statusColor)
-            CatalogAction(if (state.busy) "同步中" else "全部同步",
-                if (state.busy) DriftIcons.Clear else SettingsIcons.Retry,
-                enabled = state.busy || state.ready && ready, onClick = if (state.busy) onCancel else onSync)
-        }
-        HorizontalDivider(Modifier.padding(horizontal = 16.dp))
-        Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            TowerStatistic(state.summary.towers.toString(), "塔台", Modifier.weight(1f))
-            TowerStatistic(state.summary.flights.toString(), "航班", Modifier.weight(1f))
-            TowerStatistic(formatTraffic(state.summary.usedTrafficBytes), "流量", Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
-private fun TowerStatistic(value: String, label: String, modifier: Modifier) {
-    Row(modifier, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-        Text(value, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.width(5.dp))
-        Text(label, fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-    }
-}
-
-private fun formatTraffic(bytes: Long): String {
-    if (bytes <= 0) return "—"
-    val units = listOf("B", "KB", "MB", "GB", "TB")
-    var value = bytes.toDouble()
-    var unit = 0
-    while (value >= 1000.0 && unit < units.lastIndex) {
-        value /= 1000.0
-        unit++
-    }
-    val rounded = if (value >= 100) value.toLong().toString()
-        else ((value * 10).toLong() / 10.0).toString()
-    return "$rounded ${units[unit]}"
-}
-
-@Composable
 internal fun TowerCard(
     tower: CatalogTower, loading: Boolean, ready: Boolean, expanded: Boolean, revision: Long,
     onExpand: () -> Unit, onRefresh: () -> Unit, onRemove: () -> Unit,
@@ -170,11 +116,4 @@ private fun subscriptionExpiryLabel(epochSeconds: Long): String =
 
 internal fun sourceLabel(kind: String) = when (kind) { "file" -> "本地文件"; "text" -> "粘贴正文"; else -> "网络订阅" }
 
-internal fun formatUsage(bytes: Long?): String {
-    if (bytes == null) return "未知"
-    val units = listOf("B", "KB", "MB", "GB", "TB")
-    var value = bytes.toDouble()
-    var unit = 0
-    while (value >= 1000 && unit < units.lastIndex) { value /= 1000; unit++ }
-    return "${(value * 10).toLong() / 10.0} ${units[unit]}"
-}
+internal fun formatUsage(bytes: Long?): String = bytes?.let(::controlBytes) ?: "未知"

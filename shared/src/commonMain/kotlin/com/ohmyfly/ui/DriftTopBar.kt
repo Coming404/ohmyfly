@@ -42,7 +42,7 @@ import com.ohmyfly.settings.MaterialMode
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TooltipBox
-import top.yukonga.miuix.kmp.blur.Backdrop
+import com.ohmyfly.ui.glass.ChromeBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -52,7 +52,7 @@ private val LocalHeaderSurface = staticCompositionLocalOf<@Composable () -> Modi
 @Composable
 internal fun DriftTopBar(
     title: String,
-    backdrop: Backdrop,
+    backdrop: ChromeBackdrop,
     glassEnabled: Boolean,
     dark: Boolean,
     materialMode: MaterialMode,

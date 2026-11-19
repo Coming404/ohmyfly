@@ -28,9 +28,7 @@ import com.ohmyfly.ui.glass.glassEffectsEnabled
 import com.ohmyfly.ui.glass.glassShaderSupported
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.blur.Backdrop
-import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import com.ohmyfly.ui.glass.rememberChromeRecording
 import top.yukonga.miuix.kmp.nav.core.NavBackStack
 import top.yukonga.miuix.kmp.nav.core.rememberNavBackStack
 import top.yukonga.miuix.kmp.utils.springAnimateToPage
@@ -278,10 +276,11 @@ private fun AppFrame(
     val background = LocalAppSurfaceColors.current.page
     val reduceTransparency = settings.reduceTransparency
     val systemReduceTransparency by rememberSystemReduceTransparency()
-    val backdrop = rememberLayerBackdrop {
+    val recording = rememberChromeRecording(settings.materialMode) {
         drawRect(background)
         drawContent()
     }
+    val backdrop = recording.backdrop
     val glassEnabled = glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)
     Box(Modifier.fillMaxSize()) {
     Scaffold(
@@ -319,7 +318,7 @@ private fun AppFrame(
     ) { padding ->
         Box(
             modifier = Modifier.fillMaxSize().consumeWindowInsets(padding)
-                .then(if (glassEnabled) Modifier.layerBackdrop(backdrop) else Modifier)
+                .then(if (glassEnabled) recording.record else Modifier)
                 .background(background),
             contentAlignment = Alignment.TopCenter,
         ) {

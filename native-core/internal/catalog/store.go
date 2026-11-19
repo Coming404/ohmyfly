@@ -63,7 +63,7 @@ func (s *Store) migrate(ctx context.Context) error {
 	if err := tx.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 		return err
 	}
-	if version > 2 {
+	if version > 3 {
 		return fmt.Errorf("unsupported catalog version %d", version)
 	}
 	if version == 0 {
@@ -102,8 +102,11 @@ func (s *Store) migrate(ctx context.Context) error {
 		return err
 	}
 	// 版本标记与地区重识别同事务提交；任一步失败均保留旧版本和旧数据。
-	if version < 2 {
-		if _, err := tx.ExecContext(ctx, "PRAGMA user_version=2"); err != nil {
+	if version < 3 {
+		if _, err := tx.ExecContext(ctx, trendSchema); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, "PRAGMA user_version=3"); err != nil {
 			return err
 		}
 	}

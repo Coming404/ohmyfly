@@ -29,7 +29,12 @@ internal class CatalogStaleException : Exception("塔台与航班数据已更新
 @Serializable
 internal data class CatalogSummary(val revision: Long = 0, val towers: Long = 0, val flights: Long = 0,
     val metricsRevision: Long = 0, val availableFlights: Long = 0,
-    val failedTowers: Long = 0, val usedTrafficBytes: Long = 0)
+    val failedTowers: Long = 0, val usedTrafficBytes: Long = 0,
+    val syncableTowers: Long = 0, val fuelReported: Boolean = false,
+    val trend: List<CatalogDay> = emptyList())
+
+@Serializable
+internal data class CatalogDay(val day: String, val flights: Long? = null, val fuelBytes: Long? = null)
 
 @Serializable
 internal data class CatalogImportResult(
@@ -73,7 +78,7 @@ internal data class CatalogState(
     val towerSearch: String = "", val towerMatchCount: Long? = null, val towerLoading: Boolean = true,
     val sourceTasks: Map<Long, CatalogSourceTask> = emptyMap(),
     val taskTotal: Int = 0, val taskCompleted: Int = 0, val taskFailed: Int = 0,
-    val queuedBatches: Int = 0,
+    val queuedBatches: Int = 0, val stopping: Boolean = false, val stopped: Boolean = false,
     val pendingRemoval: Set<Long> = emptySet(),
     val groups: CatalogGroups = CatalogGroups(),
     val flightFilter: FlightFilter = FlightFilter(), val filterError: String? = null,

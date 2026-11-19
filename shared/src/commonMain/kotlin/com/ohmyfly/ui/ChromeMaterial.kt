@@ -17,9 +17,10 @@ import com.ohmyfly.ui.glass.InteractiveHighlight
 import com.ohmyfly.ui.glass.rememberAnimatedGlassPreset
 import com.ohmyfly.ui.glass.glassSurface
 import com.ohmyfly.ui.glass.glassTint
-import com.ohmyfly.ui.glass.rememberGlassHighlight
+import com.ohmyfly.ui.glass.surfaceShape
+import androidx.compose.ui.graphics.graphicsLayer
 import com.ohmyfly.ui.LocalAppMotionAllowed
-import top.yukonga.miuix.kmp.blur.Backdrop
+import com.ohmyfly.ui.glass.ChromeBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal val ChromeCornerRadius = 50.dp
@@ -28,7 +29,7 @@ private val ChromeShape = GlassShape(ChromeCornerRadius)
 /** The same preset/effect policy as the navigation shell, on actual back/action surfaces. */
 @Composable
 internal fun Modifier.chromeMaterial(
-    backdrop: Backdrop,
+    backdrop: ChromeBackdrop,
     enabled: Boolean,
     dark: Boolean,
     materialMode: MaterialMode,
@@ -37,21 +38,25 @@ internal fun Modifier.chromeMaterial(
     val surface = MiuixTheme.colorScheme.surface
     val motion = LocalAppMotionAllowed.current
     val preset = rememberAnimatedGlassPreset(materialMode, dark, enabled, motion)
-    val highlight = rememberGlassHighlight(enabled, motion, preset)
+    val outline = remember(backdrop is ChromeBackdrop.Liquid, shape) { backdrop.surfaceShape(shape) }
     val spot = if (enabled && preset.liquidResponse && motion) {
         val scope = rememberCoroutineScope()
         remember(scope) { InteractiveHighlight(scope) }
     } else null
-    val base = this
-        .dropShadow(shape = shape, shadow = Shadow(radius = 8.dp, color = Color.Black, alpha = 0.12f))
-        .clip(shape)
+    val base = this.then(if (spot == null) Modifier else Modifier.graphicsLayer {
+        val press = spot.pressProgress
+        scaleX = 1f + 0.025f * press
+        scaleY = 1f - 0.025f * press
+    })
+        .dropShadow(shape = outline, shadow = Shadow(radius = 8.dp, color = Color.Black, alpha = 0.12f))
+        .clip(outline)
     val material = if (enabled) {
         base.glassSurface(
-            backdrop, shape, preset, glassTint(surface, dark), highlight,
+            backdrop, shape, preset, glassTint(surface, dark), motion,
             pressProgress = { spot?.pressProgress ?: 0f },
         ).then(spot?.modifier ?: Modifier).then(spot?.trackingGestureModifier ?: Modifier)
     } else {
         base.background(surface)
     }
-    return material.border(0.5.dp, MiuixTheme.colorScheme.onSurface.copy(alpha = 0.10f), shape)
+    return material.border(0.5.dp, MiuixTheme.colorScheme.onSurface.copy(alpha = 0.10f), outline)
 }

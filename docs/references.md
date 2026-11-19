@@ -84,7 +84,9 @@ MCP版本/目标信息不足以证明许可证或持续维护；缺失字段查�
 - [官方组织仓库](https://github.com/orgs/compose-miuix-ui/repositories)：本次未找到独立官方应用模板仓库；以后可能变化，应再次核对。
 - [Miuix许可证](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/LICENSE)。
 
-## Melox 液态玻璃移植基线（6.3源码已接入）
+## 玻璃材质实现来源
+
+液态玻璃使用 [Kyant Backdrop 2.0.1](https://github.com/Kyant0/AndroidLiquidGlass/tree/2.0.1) 的公共录制、折射和高光接口；平台要求见[依赖选型](research.md)。以下 Melox 基线保留用于既有手势、导航结构及另外三种 Miuix 材质。
 
 - [固定版底栏](https://github.com/Inefy-03/Melox/blob/49ee06aa1f01a67eb5ea1d5cc7307ddfd571a534/app/src/main/java/com/melox/player/ui/component/liquid/LiquidGlassNavigationBar.kt)与[Lens](https://github.com/Inefy-03/Melox/blob/49ee06aa1f01a67eb5ea1d5cc7307ddfd571a534/app/src/main/java/com/melox/player/ui/component/liquid/Lens.kt)：6.3照搬图文录制/CombinedBackdrop、边缘折射/色散、BloomStroke、玻璃选中胶囊与弹簧交互；Melox本身仅Android，图文字形采样结论尚待运行验证。
 - [Miuix Skia着色器](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-shader/src/skikoMain/kotlin/top/yukonga/miuix/kmp/shader/RuntimeShader.skiko.kt)与[图层适配](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-blur/src/skikoMain/kotlin/top/yukonga/miuix/kmp/blur/internal/RenderEffectCompat.skiko.kt)：iOS可复用RuntimeEffect及ImageFilter.makeRuntimeShader，不因Android AGSL名称预设另写Metal或实体降级。[非Android倾斜接口](https://github.com/compose-miuix-ui/miuix/blob/39c40f99844227b853f0049a0933b1f3ae6c00ba/miuix-blur/src/skikoMain/kotlin/top/yukonga/miuix/kmp/blur/sensor/DeviceTilt.skiko.kt)当前返回Zero，后续补iOS Core Motion适配及生命周期。

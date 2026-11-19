@@ -104,7 +104,7 @@ class PageHeaderTests(unittest.TestCase):
         self.assertNotIn('pageColor', source)
         self.assertIn('Modifier.chromeMaterial(backdrop, glassEnabled, dark, materialMode)', source)
         self.assertIn('.consumeWindowInsets(padding)', app)
-        self.assertIn('Modifier.layerBackdrop(backdrop)', app)
+        self.assertIn('if (glassEnabled) recording.record else Modifier', app)
         self.assertIn('val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl', source)
         self.assertNotIn('animate', source.casefold())
 

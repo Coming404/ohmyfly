@@ -15,13 +15,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ohmyfly.settings.MaterialMode
 import com.ohmyfly.ui.glass.GlassNavigationSurface
-import top.yukonga.miuix.kmp.blur.Backdrop
+import com.ohmyfly.ui.glass.ChromeBackdrop
 
 @Composable
 internal fun DriftNavigationBar(
     destination: AppDestination,
     onDestination: (AppDestination) -> Unit,
-    backdrop: Backdrop,
+    backdrop: ChromeBackdrop,
     glassEnabled: Boolean,
     dark: Boolean,
     materialMode: MaterialMode,

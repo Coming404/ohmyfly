@@ -27,9 +27,8 @@ internal fun TowerLibraryList(listState: LazyListState, catalog: CatalogState, s
     val mirrors = SubscriptionMirrorSettings(settings.mirrorEnabled, settings.mirrors, settings.selectedMirrorId)
     val count = catalog.towerMatchCount ?: 0
     val hasStatus = catalog.failure != null || catalog.towerMatchCount == null || count == 0L
-    val hasControl = catalog.summary.towers > 0 || catalog.busy
     val searchOpen = searchState.expanded
-    val headerCount = (if (searchOpen) 1 else 0) + (if (hasControl) 1 else 0) + (if (hasStatus) 1 else 0)
+    val headerCount = 1 + (if (searchOpen) 1 else 0) + (if (hasStatus) 1 else 0)
     // 用户打开搜索时滚回输入框；恢复页面或滚动重建搜索项不再请求焦点。
     LaunchedEffect(searchState.focusRequested, searchActive) {
         if (searchState.focusRequested && searchActive) listState.scrollToItem(0)
@@ -43,7 +42,7 @@ internal fun TowerLibraryList(listState: LazyListState, catalog: CatalogState, s
             CatalogSearch(catalog.towerSearch, "按塔台名称搜索",
                 state = searchState, active = searchActive, onQuery = store::updateTowerSearch)
         }
-        if (hasControl) item("control") {
+        item("control") {
             TowerControl(catalog, importReady, onCancel = store::cancelOperation, onSync = onSync)
         }
         if (hasStatus) item("status") {

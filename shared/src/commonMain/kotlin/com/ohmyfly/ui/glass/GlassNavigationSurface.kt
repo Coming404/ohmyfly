@@ -38,15 +38,14 @@ import com.ohmyfly.ui.NavigationBarShape
 import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.blur.drawBackdrop
 import top.yukonga.miuix.kmp.blur.highlight.Highlight
-import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import androidx.compose.ui.graphics.GraphicsLayerScope
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 internal fun GlassNavigationSurface(
     destination: AppDestination,
     onDestination: (AppDestination) -> Unit,
-    backdrop: Backdrop,
+    backdrop: ChromeBackdrop,
     enabled: Boolean,
     dark: Boolean,
     materialMode: MaterialMode,
@@ -63,13 +62,10 @@ internal fun GlassNavigationSurface(
         motionAllowed = motion,
         onSelect = { onDestination(AppDestination.entries[it]) },
     )
-    val highlight = rememberGlassHighlight(enabled, motion, preset)
-    val capsuleHighlight = rememberGlassHighlight(enabled, motion, preset, extraDegrees = 90f)
     val surface = MiuixTheme.colorScheme.surface
     val tint = glassTint(surface, dark)
     val spot = if (enabled && preset.liquidResponse && motion) response.spot else null
-    val tabsBackdrop = rememberLayerBackdrop()
-    val combined = rememberCombinedBackdrop(backdrop, tabsBackdrop)
+    val tabs = if (enabled) rememberTabRecording(backdrop) else null
     Box(
         modifier = modifier
             .onSizeChanged { response.width = it.width.toFloat() }
@@ -81,7 +77,8 @@ internal fun GlassNavigationSurface(
         Box(
             Modifier.matchParentSize().then(
                 if (enabled) Modifier.glassSurface(
-                    backdrop, NavigationBarShape, preset, tint, highlight,
+                    backdrop, NavigationBarShape, preset, tint, motion,
+                    pressProgress = { response.drag.pressProgress },
                     layerBlock = {
                         val scale = 1f + 16.dp.toPx() / size.width.coerceAtLeast(1f) * response.drag.pressProgress
                         scaleX = scale; scaleY = scale
@@ -101,14 +98,15 @@ internal fun GlassNavigationSurface(
                 },
             )
         }
-        if (enabled) {
+        if (tabs != null) {
             // Alpha belongs OUTSIDE layerBackdrop: record real accent glyphs, but never draw the
             // duplicate directly. It has no focus, pointer or accessibility actions.
             Row(
                 modifier = Modifier.matchParentSize().clearAndSetSemantics {}
                     .graphicsLayer { alpha = 0f }
-                    .layerBackdrop(tabsBackdrop)
-                    .glassSurface(backdrop, NavigationBarShape, preset, tint, highlight)
+                    .then(tabs.record)
+                    .glassSurface(backdrop, NavigationBarShape, preset, tint, motion,
+                        pressProgress = { response.drag.pressProgress })
                     .clip(NavigationBarShape).then(spot?.modifier ?: Modifier)
                     .padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -118,7 +116,7 @@ internal fun GlassNavigationSurface(
                 }
             }
         }
-        GlassNavigationSelection(response, focusedIndex, enabled, combined, capsuleHighlight, dark)
+        GlassNavigationSelection(response, focusedIndex, tabs?.backdrop, preset, motion, dark)
     }
 }
 
@@ -126,9 +124,9 @@ internal fun GlassNavigationSurface(
 private fun BoxScope.GlassNavigationSelection(
     response: GlassNavigationGesture,
     focusedIndex: Int,
-    enabled: Boolean,
-    backdrop: Backdrop,
-    highlight: State<Highlight>,
+    backdrop: ChromeBackdrop?,
+    preset: GlassPreset,
+    motion: Boolean,
     dark: Boolean,
 ) {
     if (response.tabWidth <= 0f) return
@@ -139,8 +137,13 @@ private fun BoxScope.GlassNavigationSelection(
             translationX = glassTabOffset(response.drag.value, response.tabWidth, response.ltr)
         }
         Box(
-            if (enabled) capsule.glassNavigationCapsule(backdrop, capsuleShape, response, highlight, dark)
-            else capsule.background(MiuixTheme.colorScheme.primary.copy(alpha = 0.15f), capsuleShape),
+            when (backdrop) {
+                is ChromeBackdrop.Liquid -> capsule.liquidCapsule(backdrop.source, response, preset, motion,
+                    transform = { capsuleTransform(response) }, dark = dark)
+                is ChromeBackdrop.Standard -> capsule.glassNavigationCapsule(backdrop.source, capsuleShape, response,
+                    rememberGlassHighlight(true, motion, preset, extraDegrees = 90f), dark)
+                null -> capsule.background(MiuixTheme.colorScheme.primary.copy(alpha = 0.15f), capsuleShape)
+            },
         )
     }
     // Draw after the lens so the selected capsule cannot obscure keyboard focus.
@@ -171,11 +174,7 @@ private fun Modifier.glassNavigationCapsule(
         lens(10.dp.toPx() * press, 14.dp.toPx() * press, depthEffect = true, chromaticAberration = 0.5f * press)
     },
     highlight = { highlight.value.copy(alpha = highlight.value.alpha * response.drag.pressProgress) },
-    layerBlock = {
-        val velocity = response.drag.velocity / 10f
-        scaleX = response.drag.scaleX / (1f - (velocity * 0.75f).coerceIn(-0.2f, 0.2f))
-        scaleY = response.drag.scaleY * (1f - (velocity * 0.25f).coerceIn(-0.2f, 0.2f))
-    },
+    layerBlock = { capsuleTransform(response) },
     onDrawSurface = {
         val press = response.drag.pressProgress
         drawRect((if (dark) Color.White else Color.Black).copy(alpha = 0.1f * (1f - press)))
@@ -183,4 +182,10 @@ private fun Modifier.glassNavigationCapsule(
     },
 ).innerShadow(shape) {
     InnerShadow(radius = 8.dp * response.drag.pressProgress, color = Color.Black.copy(alpha = 0.15f), alpha = response.drag.pressProgress)
+}
+
+private fun GraphicsLayerScope.capsuleTransform(response: GlassNavigationGesture) {
+    val velocity = response.drag.velocity / 10f
+    scaleX = response.drag.scaleX / (1f - (velocity * 0.75f).coerceIn(-0.2f, 0.2f))
+    scaleY = response.drag.scaleY * (1f - (velocity * 0.25f).coerceIn(-0.2f, 0.2f))
 }

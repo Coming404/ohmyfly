@@ -75,7 +75,7 @@ class BottomNavigationTests(unittest.TestCase):
         self.assertIn('Modifier.widthIn(max = 420.dp).fillMaxWidth()', nav)
         self.assertLess(nav.index('.windowInsetsPadding('), nav.index('GlassNavigationSurface('))
         self.assertIn('.consumeWindowInsets(padding)', app)
-        self.assertIn('Modifier.layerBackdrop(backdrop)', app)
+        self.assertIn('if (glassEnabled) recording.record else Modifier', app)
         self.assertIn('glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)', app)
 
     def test_tabs_and_capsule_share_one_smooth_boundary(self):
@@ -91,8 +91,11 @@ class BottomNavigationTests(unittest.TestCase):
         self.assertIn('p - clamp(p, -extent, extent)', shape)
         self.assertIn('glassSurface(', surface)
         self.assertIn('glassNavigationCapsule(', surface)
-        self.assertIn('rememberCombinedBackdrop(backdrop, tabsBackdrop)', surface)
-        self.assertIn('layerBackdrop(tabsBackdrop)', surface)
+        layers = (GLASS / 'ChromeBackdrop.kt').read_text()
+        self.assertIn('rememberTabRecording(backdrop)', surface)
+        self.assertIn('combineLiquid(page.source, tabs)', layers)
+        self.assertIn('rememberCombinedBackdrop(page.source, tabs)', layers)
+        self.assertIn('.then(tabs.record)', surface)
         self.assertIn('rememberGlassHighlight(', surface)
         self.assertIn('rememberGlassNavigationGesture(', surface)
         self.assertIn('InteractiveHighlight', ch + (GLASS / 'InteractiveHighlight.kt').read_text())
@@ -100,7 +103,7 @@ class BottomNavigationTests(unittest.TestCase):
         self.assertIn('Outline.Generic(Path().apply {', shape)
         self.assertIn('addSquircleRect(size.width, size.height', shape)
         self.assertIn('fun tile(', shape)
-        for shared in ('rememberAnimatedGlassPreset(materialMode, dark, enabled, motion)', 'glassSurface(', 'rememberGlassHighlight('):
+        for shared in ('rememberAnimatedGlassPreset(materialMode, dark, enabled, motion)', 'glassSurface(', 'backdrop.surfaceShape(shape)'):
             with self.subTest(shared=shared):
                 self.assertIn(shared, ch)
         self.assertNotIn('textureBlur(', ch)

@@ -6,16 +6,20 @@ import (
 	"encoding/json"
 	"errors"
 	"slices"
+	"time"
 )
 
 type Summary struct {
-	MetricsRevision  int64 `json:"metricsRevision"`
-	Revision         int64 `json:"revision"`
-	Towers           int64 `json:"towers"`
-	Flights          int64 `json:"flights"`
-	AvailableFlights int64 `json:"availableFlights"`
-	FailedTowers     int64 `json:"failedTowers"`
-	UsedTrafficBytes int64 `json:"usedTrafficBytes"`
+	FuelReported     bool           `json:"fuelReported"`
+	SyncableTowers   int64          `json:"syncableTowers"`
+	Trend            []DailySummary `json:"trend"`
+	MetricsRevision  int64          `json:"metricsRevision"`
+	Revision         int64          `json:"revision"`
+	Towers           int64          `json:"towers"`
+	Flights          int64          `json:"flights"`
+	AvailableFlights int64          `json:"availableFlights"`
+	FailedTowers     int64          `json:"failedTowers"`
+	UsedTrafficBytes int64          `json:"usedTrafficBytes"`
 }
 
 type TowerSummary struct {
@@ -78,13 +82,27 @@ func (s *Store) Summary(ctx context.Context) (Summary, error) {
    WHERE s.parent_id=t.id AND child.failure<>'')))),
  (SELECT coalesce(sum(coalesce(json_extract(usage,'$.upload'),0)+coalesce(json_extract(usage,'$.download'),0)),0)
   FROM towers WHERE id NOT IN (SELECT source_id FROM tower_sources) AND json_valid(usage))
+ ,EXISTS(SELECT 1 FROM towers WHERE id NOT IN (SELECT source_id FROM tower_sources) AND json_valid(usage)
+ AND (json_extract(usage,'$.upload') IS NOT NULL OR json_extract(usage,'$.download') IS NOT NULL)),
+ (SELECT count(DISTINCT coalesce(s.parent_id,t.id)) FROM towers t LEFT JOIN tower_sources s ON s.source_id=t.id
+ WHERE coalesce(s.address,t.address) NOT LIKE 'local:%')
  FROM catalog_meta WHERE id=1`).Scan(
 		&result.Revision, &result.MetricsRevision, &result.Towers, &result.Flights,
-		&result.AvailableFlights, &result.FailedTowers, &result.UsedTrafficBytes)
+		&result.AvailableFlights, &result.FailedTowers, &result.UsedTrafficBytes, &result.FuelReported, &result.SyncableTowers)
 	if err != nil {
 		return result, err
 	}
-	return result, tx.Commit()
+	changed, err := s.readTrend(ctx, tx, time.Now(), &result)
+	if err != nil {
+		return result, err
+	}
+	if err = tx.Commit(); err != nil {
+		return result, err
+	}
+	if changed {
+		err = s.saveTrend(ctx, result)
+	}
+	return result, err
 }
 
 func (s *Store) Page(ctx context.Context, kind string, anchor int64, backwards bool, revision, filterToken int64) (Page, error) {

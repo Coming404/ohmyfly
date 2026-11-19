@@ -3,9 +3,9 @@
 package com.ohmyfly.ui.glass
 
 import com.ohmyfly.settings.MaterialMode
-import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
+import com.kyant.backdrop.isRuntimeShaderSupported
 
-/** All presets use the same recording/effect path; radii and lens distances are dp. */
+/** 材质共享设置参数，半径和折射距离均为 dp。 */
 internal data class GlassPreset(
     val blur: Float,
     val saturation: Float,

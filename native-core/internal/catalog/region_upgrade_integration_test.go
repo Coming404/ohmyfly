@@ -28,7 +28,7 @@ func TestRegionRulesUpgrade(t *testing.T) {
 	requireResult(t, s.db.QueryRowContext(ctx,
 		"SELECT count(*) FROM node_regions WHERE name_region='JP' AND manual_region='SG'",
 	).Scan(&count))
-	if version != 2 || count != len(nodes) {
+	if version != 3 || count != len(nodes) {
 		t.Fatalf("version=%d, preserved and identified=%d", version, count)
 	}
 	// 第二次初始化不应重新写规则目录或重识别节点，触发器会将误写暴露为错误。
