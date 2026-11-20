@@ -62,7 +62,7 @@ kotlin {
             implementation(libs.miuix.blur)
             implementation(libs.kyant.backdrop)
             implementation(libs.miuix.shader)
-            implementation(libs.miuix.squircle)
+            implementation(project(":miuix-squircle"))
             implementation(libs.miuix.nav)
             implementation(libs.androidx.lifecycle.runtime.compose)
             implementation(libs.kotlinx.serialization.json)

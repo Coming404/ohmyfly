@@ -1,6 +1,8 @@
 // 使用 Miuix 状态式输入；文字变化交由目录会话防抖，重置由外部条件同步。
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -45,7 +47,7 @@ internal fun FlightFilterInput(
             lineLimits = TextFieldLineLimits.SingleLine,
             keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, imeAction = ImeAction.Done),
             modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) onFocus() }
-                .semantics { contentDescription = title },
+                .semantics { contentDescription = title }, cornerRadius = AppCorners.Input,
         )
     }
     }

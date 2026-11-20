@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package com.ohmyfly.ui.glass
 
-// Melox/Kyant0 light preset; Miuix BloomStroke adapted only for its smooth cubic boundary.
+// 保留既有光照参数，光学边界与真胶囊轮廓一致。
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf

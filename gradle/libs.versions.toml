@@ -3,6 +3,7 @@ kotlin = "2.4.20"
 compose = "1.12.0"
 miuix = "0.9.4"
 backdrop = "2.0.1"
+kyantShapes = "1.2.1"
 agp = "9.4.1"
 activity = "1.13.0"
 datastore = "1.2.1"
@@ -19,6 +20,7 @@ android-minSdk = "33"
 
 [libraries]
 kyant-backdrop = { module = "io.github.kyant0:backdrop", version.ref = "backdrop" }
+kyant-shapes = { module = "io.github.kyant0:shapes", version.ref = "kyantShapes" }
 flagkit = { module = "dev.carlsen.flagkit:flagkit", version = "1.1.0" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }

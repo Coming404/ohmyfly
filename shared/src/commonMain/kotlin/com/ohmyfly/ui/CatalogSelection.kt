@@ -1,6 +1,8 @@
 // 顶部保留取消与全选；底部浮动工具栏只承载当前选择的批量操作。
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
@@ -31,7 +33,7 @@ internal fun CatalogSelectionToolbar(
     onSync: () -> Unit,
 ) {
     // 材质只绘制在内容表面，FloatingToolbar 保留定位和默认外边距，避免双层背景遮住玻璃。
-    FloatingToolbar(color = Color.Transparent, shadowElevation = 0.dp) {
+    FloatingToolbar(color = Color.Transparent, shadowElevation = 0.dp, cornerRadius = AppCorners.Toolbar) {
         Row(modifier.width(ChromeMetrics.SelectionWidth).heightIn(min = ChromeMetrics.SelectionHeight).padding(6.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
             if (mode == CatalogSelectionMode.Nodes) {
@@ -73,7 +75,7 @@ private fun RowScope.SelectionToolbarAction(
 ) {
     IconButton(onClick = hapticClick(onClick), enabled = enabled,
         modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-        backgroundColor = Color.Transparent, cornerRadius = 16.dp) {
+        backgroundColor = Color.Transparent, cornerRadius = AppCorners.Control) {
         val color = if (enabled) tint else MiuixTheme.colorScheme.disabledOnSurface
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Icon(icon, null, Modifier.size(20.dp), tint = color)
@@ -89,7 +91,7 @@ private fun SelectionTopAction(enabled: Boolean, label: String,
     val color = if (enabled) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.disabledOnSurface
     IconButton(onClick = hapticClick(onClick), enabled = enabled,
         minWidth = ChromeMetrics.ControlSize, minHeight = ChromeMetrics.ControlSize,
-        backgroundColor = Color.Transparent, cornerRadius = 18.dp) {
+        backgroundColor = Color.Transparent, cornerRadius = AppCorners.Selection) {
         Row(Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Icon(icon, null, Modifier.size(ChromeMetrics.IconSize), tint = color)

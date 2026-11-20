@@ -1,10 +1,11 @@
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.draw.clip
-import com.ohmyfly.ui.glass.GlassShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
@@ -40,11 +41,11 @@ internal fun TowerCard(
     val select = if (nodeSelectionMode) null else hapticClick(onSelect)
     val flightsEnabled = !loading && tower.failure.isBlank() && tower.lastSuccessAt != null
     // 交互放入 Card 的连续圆角表面内，长按遮罩和卡片共用相同裁剪。
-    Card(Modifier.fillMaxWidth().clip(GlassShape(24.dp)), cornerRadius = 24.dp, showIndication = true,
+    Card(Modifier.fillMaxWidth().clip(AppCorners.shape(AppCorners.Card)), cornerRadius = AppCorners.Card, showIndication = true,
         onClick = hapticClick { if (selectionMode) onSelect() else if (flightsEnabled) onExpand() },
         onLongPress = select,
     ) {
-        Column(Modifier.fillMaxWidth().catalogSelectionSurface(selected, 24.dp)) {
+        Column(Modifier.fillMaxWidth().catalogSelectionSurface(selected, AppCorners.Card)) {
             Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 14.dp)) {
                 TowerIdentity(tower, loading, selected, selectionMode, syncColor)
                 if (loading) Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

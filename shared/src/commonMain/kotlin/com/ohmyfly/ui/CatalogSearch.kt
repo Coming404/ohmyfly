@@ -1,6 +1,8 @@
 // 搜索框只在显式打开时请求焦点，页面切换与列表重建仅恢复查询内容。
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -39,7 +41,7 @@ internal fun CatalogSearch(
                 onClick = hapticClick { state.close(); onQuery(""); focus.clearFocus(); keyboard?.hide() },
                 enabled = active,
                 modifier = Modifier.size(ChromeMetrics.ControlSize),
-                backgroundColor = androidx.compose.ui.graphics.Color.Transparent,
+                backgroundColor = androidx.compose.ui.graphics.Color.Transparent, cornerRadius = AppCorners.Toolbar,
             ) {
                 top.yukonga.miuix.kmp.basic.Icon(DriftIcons.Clear, "关闭搜索框",
                     modifier = Modifier.size(ChromeMetrics.IconSize))

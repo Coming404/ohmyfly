@@ -1,6 +1,8 @@
 // 列表内独立按钮复用导航材质，但只采样纯背景，避免录制图层包含自身。
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -41,7 +43,7 @@ internal fun InlineChromeIconButton(
             IconButton(onClick = hapticClick(onClick), enabled = enabled,
                 modifier = Modifier.size(ChromeMetrics.ControlSize)
                     .chromeMaterial(recording.backdrop, style.enabled, style.dark, style.mode),
-                backgroundColor = Color.Transparent,
+                backgroundColor = Color.Transparent, cornerRadius = AppCorners.Toolbar,
             ) {
                 if (busy && LocalAppMotionAllowed.current) CircularProgressIndicator(
                     size = 18.dp, modifier = Modifier.semantics { contentDescription = label },

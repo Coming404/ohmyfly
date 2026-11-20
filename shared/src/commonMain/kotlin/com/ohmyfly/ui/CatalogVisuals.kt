@@ -1,8 +1,9 @@
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,7 +29,7 @@ internal fun CatalogAction(text: String, icon: ImageVector, modifier: Modifier =
     Button(onClick = hapticClick(onClick), modifier = modifier, enabled = enabled,
         minWidth = 0.dp, minHeight = 44.dp, insideMargin = PaddingValues(horizontal = 4.dp),
         colors = ButtonDefaults.buttonColors(color = Color.Transparent, disabledColor = Color.Transparent,
-            contentColor = contentColor, disabledContentColor = MiuixTheme.colorScheme.onSurfaceVariantSummary)) {
+            contentColor = contentColor, disabledContentColor = MiuixTheme.colorScheme.onSurfaceVariantSummary), cornerRadius = AppCorners.Control) {
         Icon(icon, null, Modifier.size(19.dp))
         Spacer(Modifier.width(5.dp))
         Text(text, modifier = Modifier.weight(1f, fill = false), autoSize = CatalogTextSizing.CompactButton,
@@ -50,7 +51,7 @@ internal fun CatalogExpansionArrow(expanded: Boolean, color: Color = MiuixTheme.
 @Composable
 internal fun CatalogTile(icon: ImageVector, size: Int = 40, color: Color = MiuixTheme.colorScheme.primary) {
     Box(Modifier.size(size.dp).background(color.copy(alpha = 0.1f),
-        RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+        AppCorners.tile(size.dp)), contentAlignment = Alignment.Center) {
         Icon(icon, null, Modifier.size((size * 0.56f).dp), tint = color)
     }
 }
@@ -58,7 +59,7 @@ internal fun CatalogTile(icon: ImageVector, size: Int = 40, color: Color = Miuix
 @Composable
 internal fun CatalogBadge(text: String, failed: Boolean = false) {
     val color = if (failed) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.primary
-    Text(text, modifier = Modifier.background(color.copy(alpha = 0.1f), RoundedCornerShape(24.dp))
+    Text(text, modifier = Modifier.background(color.copy(alpha = 0.1f), AppCorners.shape(AppCorners.Card))
         .padding(horizontal = 9.dp, vertical = 4.dp), color = color, fontSize = 12.sp, fontWeight = FontWeight.Medium)
 }
 

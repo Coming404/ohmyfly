@@ -28,6 +28,11 @@ The port maps normalized Mihomo fields to upstream Go field names and scalar typ
 
 适配时保留 OhMyFly 的国家目录，移除重复的标准名称、代码和国旗表达式，按现有最长名称与字母边界规则匹配。`LA` 保持老挝代码含义；展示继续使用 kmp-flagkit 图标。地区同步及旧节点重识别接入本项目 SQLite 升级事务。
 
+## 鸣谢：连续曲率
+
+- [Kyant Shapes 1.2.1](https://github.com/Kyant0/Shapes/tree/1.2.1)，Apache-2.0：`ui-shapes` 直接依赖的 G2 几何实现。
+- [Miuix 0.9.4](https://github.com/compose-miuix-ui/miuix/tree/39c40f99844227b853f0049a0933b1f3ae6c00ba)，Copyright 2026, compose-miuix-ui contributors，Apache-2.0：形状适配保留公开 ABI，描边沿用内缩约定，改由矢量连续曲线统一填充和裁剪。许可见 [glass-Apache-2.0](licenses/glass-Apache-2.0.txt)，接口说明见 [ui-shapes](../ui-shapes/README.md)。
+
 ## Melox liquid-glass reference
 
 `shared/src/commonMain/kotlin/dev/ohmydrift/ui/glass/` adapts the glass navigation from [Inefy-03/Melox](https://github.com/Inefy-03/Melox), commit `49ee06aa1f01a67eb5ea1d5cc7307ddfd571a534`. Files carrying a per-file `Copyright 2026, compose-miuix-ui contributors / SPDX-License-Identifier: Apache-2.0` header and a Kyant0/AndroidLiquidGlass attribution are used under Apache-2.0; their notice is in [licenses/glass-Apache-2.0.txt](licenses/glass-Apache-2.0.txt). Files derived from Melox code without such a header (the container blur/preset policy) are treated conservatively as GPL-3.0; the Melox tree license is in [licenses/Melox-GPL-3.0.txt](licenses/Melox-GPL-3.0.txt), and the per-file mapping is in [Melox-NOTICE.md](Melox-NOTICE.md).

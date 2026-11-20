@@ -1,8 +1,6 @@
 // 液态材质使用 Kyant 的圆角轮廓、原生折射与高光，交互状态沿用应用的手势策略。
 package com.ohmyfly.ui.glass
 
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
@@ -20,16 +18,11 @@ import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.highlight.HighlightStyle
 import com.kyant.backdrop.shadow.InnerShadow
-import com.ohmyfly.ui.NavigationBarShape
 import com.ohmyfly.ui.glass.sensor.rememberGlassGravity
 import kotlin.math.PI
 
-/** Kyant 的折射需要能读取圆角半径的 Shape，不能传入旧着色器的 Generic Outline。 */
-internal fun ChromeBackdrop.surfaceShape(shape: GlassShape): Shape = when {
-    this !is ChromeBackdrop.Liquid -> shape
-    shape === NavigationBarShape -> CircleShape
-    else -> RoundedCornerShape(shape.radius)
-}
+/** 向 Kyant 传入实际胶囊 Shape，透镜可直接读取半径，背景与描边不另建轮廓。 */
+internal fun ChromeBackdrop.surfaceShape(shape: GlassShape): Shape = shape.surface
 
 @Composable
 private fun rememberLiquidHighlight(preset: GlassPreset, motion: Boolean, offset: Float): State<Highlight> {
@@ -77,7 +70,7 @@ internal fun Modifier.liquidCapsule(
     transform: GraphicsLayerScope.() -> Unit, dark: Boolean,
 ): Modifier {
     val light = rememberLiquidHighlight(preset, motion, 90f)
-    return drawBackdrop(backdrop = source, shape = { CircleShape }, effects = {
+    return drawBackdrop(backdrop = source, shape = { com.ohmyfly.shapes.AppCorners.Capsule }, effects = {
         val press = response.drag.pressProgress
         lens(10.dp.toPx() * press, 14.dp.toPx() * press, depthEffect = true, chromaticAberration = press > 0f)
     }, highlight = { light.value.copy(alpha = light.value.alpha * response.drag.pressProgress) },

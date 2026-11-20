@@ -62,6 +62,13 @@ https://kmp.jetbrains.com/
 - UI沿用Miuix0.9.4全部正式模块与完整图标，8模块均显式声明。miuix-nav不自动改写现有五个目的地的路由，不新增平行Material页面。底栏/控件签名按固定tag核对；具体行为见[UI实现](ui-showcase.md)。
 - 当前已移除全局Crossfade与展开体验，删除不再直接使用的Compose animation目录别名和声明；Miuix自身需要的传递动画依赖不因此被排除。不引入第三方动效库。
 
+### 统一连续曲率：Shapes 1.2.1
+
+- 2026-11-20 核验 Klibs `getLatestVersion`：`io.github.kyant0:shapes` 最新稳定版 1.2.1，Kotlin 2.4.10；按项目名和平台过滤的搜索未返回 Kyant 项目，双端目标由 Maven 1.2.1 `.module` 的 Android、iosArm64、iosSimulatorArm64 变体交叉确认。许可为 Apache-2.0。
+- Backdrop 2.0.1 已使用该版本，本次提升为形状层直接依赖。未选择其他 squircle 库，避免引入重复几何。Miuix 原单段三次曲线仅切线连续；新的非胶囊表面使用 Shapes 的 G2 连续曲率。
+- Miuix 0.9.4 未提供全局 Shape 注入接口。`ui-shapes` 保留其 squircle 公开 ABI 和模块身份，通过依赖替换覆盖内部填充、裁剪及边框，具体配置和调用约定见 [统一圆角模块](../ui-shapes/README.md)。原版本 iOS KLIB 的 `unique_name` 为 `top.yukonga.miuix.kmp:miuix-squircle`，新模块沿用相同 group 和项目名。
+- 玻璃控制表面继续使用真圆／真胶囊，移除旧三次曲线距离场；背景、裁剪、描边与光学边界统一。苹果未公开其私有曲线控制参数，此处实现跨平台 G2 连续曲率与同心设计风格。
+
 ### Kyant Backdrop 2.0.1：液态玻璃
 
 - `commonMain` 固定使用 `io.github.kyant0:backdrop:2.0.1`（Apache-2.0）。Klibs `getLatestVersion` 返回稳定版 2.0.1、Kotlin 2.4.10；带平台过滤的项目名检索未命中，目标以[固定版本构建文件](https://github.com/Kyant0/AndroidLiquidGlass/blob/2.0.1/backdrop/build.gradle.kts)与[发布变体](https://repo.maven.apache.org/maven2/io/github/kyant0/backdrop/2.0.1/backdrop-2.0.1.module)为准：Android、iosArm64、iosSimulatorArm64。

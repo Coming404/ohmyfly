@@ -1,5 +1,7 @@
 package com.ohmyfly.ui.settings
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -63,7 +64,7 @@ internal fun MirrorEditor(
                 textStyle = top.yukonga.miuix.kmp.theme.MiuixTheme.textStyles.main.copy(fontSize = 14.sp),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(onNext = { focus.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) }),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).semantics { contentDescription = "名称" },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).semantics { contentDescription = "名称" }, cornerRadius = AppCorners.Input,
             )
         }
         MirrorPrefixRow()
@@ -79,7 +80,7 @@ internal fun MirrorEditor(
                 textStyle = top.yukonga.miuix.kmp.theme.MiuixTheme.textStyles.main.copy(fontSize = 14.sp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, autoCorrectEnabled = false, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { focus.clearFocus() }),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).semantics { contentDescription = "地址"; validation?.let { error(it) } },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).semantics { contentDescription = "地址"; validation?.let { error(it) } }, cornerRadius = AppCorners.Input,
             )
         }
         if (validation != null) {
@@ -91,7 +92,7 @@ internal fun MirrorEditor(
                     if (entry.address.isBlank() || mirrorDraftError(entry, siblings) != null) "" else mirrorUrlPreview(entry, MirrorProbeTarget.url),
                     fontSize = 12.sp,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)
-                        .background(inputColors.backgroundColor, RoundedCornerShape(12.dp))
+                        .background(inputColors.backgroundColor, AppCorners.shape(AppCorners.Content))
                         .padding(12.dp),
                 )
             }
@@ -116,7 +117,7 @@ internal fun MirrorEditorSave(
         },
         enabled = draft.saving == 0 && !draft.composing,
         colors = ButtonDefaults.textButtonColorsPrimary(),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).heightIn(min = 48.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).heightIn(min = 48.dp), cornerRadius = AppCorners.Control,
     )
 }
 
@@ -153,7 +154,7 @@ private fun EditorLabel(text: String, icon: ImageVector) {
 internal fun MirrorEditorFeedback(text: String) {
     Row(
         Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }
-            .background(top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
+            .background(top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.surfaceContainer, AppCorners.shape(AppCorners.Content))
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,

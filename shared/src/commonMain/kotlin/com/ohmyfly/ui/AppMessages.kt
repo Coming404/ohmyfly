@@ -1,5 +1,7 @@
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -135,6 +137,6 @@ private fun AppSnackbar(data: SnackbarData, kind: AppMessageKind) {
             actionContainerColor = if (kind == AppMessageKind.Default) colors.actionContainerColor else foreground.copy(alpha = 0.12f),
             actionContentColor = if (kind == AppMessageKind.Default) colors.actionContentColor else foreground,
             dismissActionContentColor = foreground,
-        ),
+        ), cornerRadius = AppCorners.Notification,
     )
 }

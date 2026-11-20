@@ -1,6 +1,8 @@
 // 页面外壳统一持有设置子页动作，日志清理保留独立悬浮入口。
 package com.ohmyfly
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -334,7 +336,7 @@ private fun AppFrame(
             dismissible = false,
             onDismiss = {},
             onDismissFinished = {},
-            footer = { TextButton(text = "重试", onClick = hapticClick(onRetryRead)) },
+            footer = { TextButton(text = "重试", onClick = hapticClick(onRetryRead), cornerRadius = AppCorners.Control) },
         ) { Text(if (settingsSession.state.writeUncertain) "已提交，但未能读回" else "未更改本地数据") }
     }
     AppMessageHost(blocked = settingsSession.state.readFailed,

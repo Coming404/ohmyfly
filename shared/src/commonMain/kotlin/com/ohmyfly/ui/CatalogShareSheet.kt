@@ -1,6 +1,8 @@
 // 单节点与多节点共享同一个 YAML 导出抽屉，成功反馈保留在抽屉内。
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -30,7 +32,7 @@ internal fun CatalogShareSheet(ids: Set<Long>, onClose: () -> Unit) {
             } finally { busy = false }
         }
     }
-    OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(), title = "分享 ${ids.size} 个航班", onDismissRequest = { if (!busy) onClose() }) {
+    OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(), title = "分享 ${ids.size} 个航班", onDismissRequest = { if (!busy) onClose() }, cornerRadius = AppCorners.Sheet) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             notice?.let { CatalogNotice(it, if (failed) CatalogNoticeKind.Error else CatalogNoticeKind.Success) }
             if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())

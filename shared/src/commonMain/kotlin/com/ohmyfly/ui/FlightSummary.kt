@@ -1,8 +1,9 @@
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,7 +22,7 @@ internal fun FlightSummary(flight: CatalogFlight, config: JsonObject?) {
     val metrics = flight.measurements.metrics
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf("latency" to "延迟", "download" to "下载", "upload" to "上传").forEach { (kind, label) ->
-            Row(Modifier.weight(1f).background(MiuixTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+            Row(Modifier.weight(1f).background(MiuixTheme.colorScheme.surfaceVariant, AppCorners.shape(AppCorners.inset(AppCorners.Card, 14.dp)))
                 .padding(vertical = 12.dp, horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(when (kind) { "download" -> SettingsIcons.Download; "upload" -> SettingsIcons.Upload; else -> SettingsIcons.Timer },
@@ -36,7 +37,7 @@ internal fun FlightSummary(flight: CatalogFlight, config: JsonObject?) {
     val sources = config?.get("sources") as? JsonArray
     DetailStatus("所属塔台", sources?.map { it.jsonObject.getValue("towerName").jsonPrimitive.content }
         ?.distinct()?.joinToString("、")?.ifBlank { "暂无来源" } ?: "正在读取", DriftIcons.Subscriptions)
-    Row(Modifier.fillMaxWidth().background(MiuixTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+    Row(Modifier.fillMaxWidth().background(MiuixTheme.colorScheme.surfaceVariant, AppCorners.shape(AppCorners.inset(AppCorners.Card, 14.dp)))
         .padding(12.dp), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         CatalogTile(MirrorIcons.Globe, 32)
@@ -67,7 +68,7 @@ internal fun FlightSummary(flight: CatalogFlight, config: JsonObject?) {
 
 @Composable
 private fun DetailStatus(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    Row(Modifier.fillMaxWidth().background(MiuixTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+    Row(Modifier.fillMaxWidth().background(MiuixTheme.colorScheme.surfaceVariant, AppCorners.shape(AppCorners.inset(AppCorners.Card, 14.dp)))
         .padding(12.dp), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         CatalogTile(icon, 32)

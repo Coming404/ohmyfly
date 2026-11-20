@@ -1,6 +1,8 @@
 // 固定状态与自定义分组共用全库筛选，重复点击已选自定义组进入管理。
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.background
@@ -8,7 +10,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,7 +62,7 @@ internal fun FlightGroups(catalog: CatalogState) {
 @Composable
 private fun GroupChip(title: String, count: Long, active: Boolean, onClick: () -> Unit) {
     val colors = MiuixTheme.colorScheme
-    val shape = RoundedCornerShape(50)
+    val shape = AppCorners.Capsule
     val duration = if (LocalAppMotionAllowed.current) 160 else 0
     val background by androidx.compose.animation.animateColorAsState(
         if (active) colors.primary.copy(alpha = 0.10f) else colors.surfaceContainer.copy(alpha = 0.55f),

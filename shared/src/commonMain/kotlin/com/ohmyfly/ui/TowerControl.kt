@@ -1,12 +1,12 @@
 // 总控只展示目录汇总；过滤塔台名称或翻页不会改变全库读数。
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -35,7 +35,7 @@ internal fun TowerControl(state: CatalogState, ready: Boolean, onCancel: () -> U
     val summary = state.summary
     val colors = MiuixTheme.colorScheme
     Card(Modifier.fillMaxWidth().clickable(role = Role.Button,
-        onClick = hapticClick { expanded = !expanded }), cornerRadius = 24.dp) {
+        onClick = hapticClick { expanded = !expanded }), cornerRadius = AppCorners.Card) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 ControlTowerMark(colors.primary)
@@ -69,7 +69,7 @@ internal fun TowerControl(state: CatalogState, ready: Boolean, onCancel: () -> U
 @Composable
 private fun ControlTowerMark(color: Color) {
     val path = remember { PathParser().parsePathString("M5 4H19L17 10H7Z M9 10V14H15V10 M10 14L8 21 M14 14L16 21 M6 21H18 M12 1V4").toPath() }
-    Canvas(Modifier.size(28.dp).background(color.copy(alpha = 0.10f), RoundedCornerShape(9.dp)).padding(5.dp)) {
+    Canvas(Modifier.size(28.dp).background(color.copy(alpha = 0.10f), AppCorners.tile(28.dp)).padding(5.dp)) {
         withTransform({ scale(size.width / 24f, size.height / 24f, androidx.compose.ui.geometry.Offset.Zero) }) {
             drawPath(path, color, style = Stroke(width = 1.7f))
         }
@@ -113,11 +113,11 @@ private fun SyncControl(busy: Boolean, enabled: Boolean, action: () -> Unit) {
     val colors = MiuixTheme.colorScheme
     val background = if (busy) colors.error else if (enabled) colors.primary else colors.surfaceContainer
     val content = if (busy) colors.onError else if (enabled) colors.onPrimary else colors.disabledOnSurface
-    Box(Modifier.heightIn(min = 44.dp).clip(CircleShape).clickable(enabled = enabled,
+    Box(Modifier.heightIn(min = 44.dp).clip(AppCorners.Capsule).clickable(enabled = enabled,
         role = Role.Button, onClick = hapticClick(action)), contentAlignment = Alignment.Center) {
-        Row(Modifier.background(background, CircleShape).heightIn(min = 30.dp).padding(horizontal = 11.dp),
+        Row(Modifier.background(background, AppCorners.Capsule).heightIn(min = 30.dp).padding(horizontal = 11.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            if (busy) Box(Modifier.size(11.dp).background(content, RoundedCornerShape(2.dp)))
+            if (busy) Box(Modifier.size(11.dp).background(content, AppCorners.shape(AppCorners.StopMark)))
             else Icon(SettingsIcons.Retry, null, Modifier.size(14.dp), tint = content)
             Text(if (busy) "全部停止" else "全部同步", fontSize = 12.sp, color = content)
         }

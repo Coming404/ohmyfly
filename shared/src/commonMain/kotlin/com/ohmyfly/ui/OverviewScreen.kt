@@ -1,5 +1,7 @@
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -45,7 +47,7 @@ internal fun OverviewScreen(
         item {
             Column {
                 SmallTitle("概况")
-                Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
+                Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth(), cornerRadius = AppCorners.SettingsCard) {
                     catalogFailure?.let { BasicComponent(title = "塔台与航班读取失败", summary = it) }
                     BasicComponent(title = "塔台来源", endActions = { Text(subscriptionCount.toString()) })
                     BasicComponent(title = "航班总数", endActions = { Text(flightCount.toString()) })
@@ -56,7 +58,7 @@ internal fun OverviewScreen(
         item {
             Column {
                 SmallTitle("最近起飞")
-                Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
+                Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth(), cornerRadius = AppCorners.SettingsCard) {
                     BasicComponent(title = "暂无起飞记录")
                 }
             }
@@ -64,7 +66,7 @@ internal fun OverviewScreen(
         item {
             Column {
                 SmallTitle("快捷入口")
-                Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
+                Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth(), cornerRadius = AppCorners.SettingsCard) {
                     BasicComponent(
                         title = "塔台",
                         startAction = { OverviewIcon(DriftIcons.Subscriptions) },

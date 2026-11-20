@@ -1,6 +1,8 @@
 // 塔台与航班的普通顶栏动作共用横排胶囊，材质由页面传入。
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -27,7 +29,7 @@ internal fun CatalogActionToolbar(
     FloatingToolbar(
         color = Color.Transparent,
         shadowElevation = 0.dp,
-        outSidePadding = PaddingValues(0.dp),
+        outSidePadding = PaddingValues(0.dp), cornerRadius = AppCorners.Toolbar,
     ) {
         Row(
             modifier = modifier,
@@ -51,7 +53,7 @@ internal fun CatalogToolbarAction(
             onClick = hapticClick(onClick),
             enabled = enabled,
             modifier = Modifier.size(ChromeMetrics.ControlSize),
-            backgroundColor = Color.Transparent,
+            backgroundColor = Color.Transparent, cornerRadius = AppCorners.Toolbar,
         ) {
             Icon(
                 imageVector = icon,

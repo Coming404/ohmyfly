@@ -1,6 +1,8 @@
 // 在固定七日横轴上绘制真实观测。缺少快照的日期断线，不补零或连到下一次记录。
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -8,7 +10,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -47,13 +48,13 @@ internal fun TowerTrend(days: List<CatalogDay>, fuel: Boolean, onMetric: (Boolea
     var day by rememberSaveable(days.lastOrNull()?.day) { mutableIntStateOf(days.lastIndex.coerceAtLeast(0)) }
     fun format(value: Long) = if (fuel) controlBytes(value) else "$value 个"
     fun label(i: Int) = days.getOrNull(i)?.day?.takeLast(5)?.replace('-', '/') ?: "—"
-    Column(Modifier.fillMaxWidth().background(colors.surfaceContainer, RoundedCornerShape(14.dp)).padding(10.dp)) {
+    Column(Modifier.fillMaxWidth().background(colors.surfaceContainer, AppCorners.shape(AppCorners.Content)).padding(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("近 7 日趋势", Modifier.weight(1f), fontSize = 13.sp, fontWeight = FontWeight.Medium)
             Row(Modifier.selectableGroup(), verticalAlignment = Alignment.CenterVertically) {
                 listOf(false, true).forEach { metric ->
                     val selected = metric == fuel
-                    Box(Modifier.clip(RoundedCornerShape(8.dp))
+                    Box(Modifier.clip(AppCorners.shape(AppCorners.Compact))
                         .background(if (selected) colors.surface else Color.Transparent)
                         .selectable(selected, role = Role.Tab, onClick = hapticClick { onMetric(metric) })
                         .heightIn(min = 32.dp).padding(horizontal = 9.dp), contentAlignment = Alignment.Center) {

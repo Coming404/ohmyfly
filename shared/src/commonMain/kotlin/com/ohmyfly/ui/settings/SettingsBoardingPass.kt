@@ -1,5 +1,7 @@
 package com.ohmyfly.ui.settings
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,7 +28,6 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
-import top.yukonga.miuix.kmp.squircle.squircleBackground
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** App icon blue; the brand tile stays fixed while the rest of the UI follows the theme. */
@@ -61,7 +61,7 @@ internal fun SettingsBoardingPass(version: String, onSponsor: () -> Unit) {
 
 @Composable
 private fun BrandTile() {
-    Box(Modifier.size(52.dp).squircleBackground(BrandBlue, 13.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(52.dp).background(BrandBlue, AppCorners.tile(52.dp)), contentAlignment = Alignment.Center) {
         Icon(DriftIcons.BrandMark, contentDescription = null, modifier = Modifier.size(30.dp), tint = Color.White)
     }
 }
@@ -70,7 +70,7 @@ private fun BrandTile() {
 private fun SponsorChip() {
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     Row(
-        Modifier.height(30.dp).background(SponsorPink.copy(alpha = 0.14f), RoundedCornerShape(15.dp))
+        Modifier.height(30.dp).background(SponsorPink.copy(alpha = 0.14f), AppCorners.Capsule)
             .padding(start = 12.dp, end = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,

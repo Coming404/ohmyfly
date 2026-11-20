@@ -1,5 +1,7 @@
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,7 +21,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 internal fun TowerImportResultSheet(tower: CatalogTower, onClose: () -> Unit) {
     val result = tower.importResult
-    OverlayBottomSheet(show = true, title = "导入结果", insideMargin = catalogSheetMargin(), onDismissRequest = onClose) {
+    OverlayBottomSheet(show = true, title = "导入结果", insideMargin = catalogSheetMargin(), onDismissRequest = onClose, cornerRadius = AppCorners.Sheet) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ImportCount(result.added, "新增", Modifier.weight(1f))

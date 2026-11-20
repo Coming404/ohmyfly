@@ -1,11 +1,11 @@
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import com.ohmyfly.ui.glass.GlassShape
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
@@ -33,8 +33,8 @@ import kotlin.math.roundToLong
 internal fun FlightCard(flight: CatalogFlight, selected: Boolean, selectionMode: Boolean,
     onSelect: () -> Unit, onDetails: () -> Unit, expanded: Boolean, revision: Long) {
     // 卡片外轮廓再次裁剪内部行的按压指示，长按覆盖层与连续圆角保持一致。
-    Card(Modifier.fillMaxWidth().clip(GlassShape(24.dp)), cornerRadius = 24.dp) {
-        FlightRow(flight, selected, selectionMode, onSelect, onDetails, expanded, cornerRadius = 24.dp)
+    Card(Modifier.fillMaxWidth().clip(AppCorners.shape(AppCorners.Card)), cornerRadius = AppCorners.Card) {
+        FlightRow(flight, selected, selectionMode, onSelect, onDetails, expanded, cornerRadius = AppCorners.Card)
         CatalogExpansion(expanded && !selectionMode) {
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 HorizontalDivider()
@@ -46,7 +46,7 @@ internal fun FlightCard(flight: CatalogFlight, selected: Boolean, selectionMode:
 
 @Composable
 internal fun FlightRow(flight: CatalogFlight, selected: Boolean = false, selectionMode: Boolean = false,
-    onSelect: (() -> Unit)? = null, onDetails: () -> Unit, expanded: Boolean = false, cornerRadius: Dp = 18.dp) {
+    onSelect: (() -> Unit)? = null, onDetails: () -> Unit, expanded: Boolean = false, cornerRadius: Dp = AppCorners.Selection) {
     val select = onSelect?.let { hapticClick(it) }
     Row(Modifier.fillMaxWidth().catalogSelectionSurface(selected, cornerRadius)
         .alpha(if (flight.enabled) 1f else 0.5f).combinedClickable(
@@ -58,7 +58,7 @@ internal fun FlightRow(flight: CatalogFlight, selected: Boolean = false, selecti
         horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
         if (selectionMode) CatalogSelectionCheck(selected, Modifier.align(Alignment.CenterVertically))
         if (flight.regionCode.isNotBlank()) {
-            Box(Modifier.size(36.dp).background(MiuixTheme.colorScheme.surfaceVariant, RoundedCornerShape(11.dp)),
+            Box(Modifier.size(36.dp).background(MiuixTheme.colorScheme.surfaceVariant, AppCorners.tile(36.dp)),
                 contentAlignment = Alignment.Center) { CountryFlag(flight.regionCode, Modifier.size(24.dp)) }
         } else CatalogTile(com.ohmyfly.ui.settings.MirrorIcons.Globe, 36)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {

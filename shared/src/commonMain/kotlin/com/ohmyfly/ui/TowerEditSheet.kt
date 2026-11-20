@@ -1,5 +1,7 @@
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,15 +26,15 @@ internal fun TowerEditSheet(tower: CatalogTower, store: CatalogStore, onClose: (
     var failure by remember(tower.id) { mutableStateOf<String?>(null) }
     var saving by remember(tower.id) { mutableStateOf(false) }
     OverlayBottomSheet(show = true, title = "编辑塔台", insideMargin = catalogSheetMargin(),
-        onDismissRequest = { if (!saving) onClose() }) {
+        onDismissRequest = { if (!saving) onClose() }, cornerRadius = AppCorners.Sheet) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("塔台名称", style = catalogInputStyle())
             TextField(value = name, onValueChange = { name = it; failure = null },
-                textStyle = catalogInputStyle(), singleLine = true, enabled = !saving)
+                textStyle = catalogInputStyle(), singleLine = true, enabled = !saving, cornerRadius = AppCorners.Input)
             if (tower.sourceKind == "http") {
                 Text("订阅地址", style = catalogInputStyle())
                 TextField(value = address, onValueChange = { address = it; failure = null },
-                    textStyle = catalogInputStyle(), singleLine = true, enabled = !saving)
+                    textStyle = catalogInputStyle(), singleLine = true, enabled = !saving, cornerRadius = AppCorners.Input)
             }
             failure?.let { CatalogNotice(it) }
             CatalogTextButton(

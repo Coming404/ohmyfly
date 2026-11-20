@@ -23,8 +23,7 @@ import com.ohmyfly.ui.LocalAppMotionAllowed
 import com.ohmyfly.ui.glass.ChromeBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-internal val ChromeCornerRadius = 50.dp
-private val ChromeShape = GlassShape(ChromeCornerRadius)
+private val ChromeShape = NavigationBarShape
 
 /** The same preset/effect policy as the navigation shell, on actual back/action surfaces. */
 @Composable

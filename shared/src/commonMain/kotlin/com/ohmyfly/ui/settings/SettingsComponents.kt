@@ -1,5 +1,7 @@
 package com.ohmyfly.ui.settings
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -112,7 +114,7 @@ internal fun SettingsButton(
         color = MiuixTheme.colorScheme.error, contentColor = MiuixTheme.colorScheme.onError,
     ) else ButtonDefaults.buttonColorsPrimary()
     Button(onClick = com.ohmyfly.ui.hapticClick(onClick), modifier = modifier,
-        enabled = enabled, colors = colors, minHeight = 48.dp) {
+        enabled = enabled, colors = colors, minHeight = 48.dp, cornerRadius = AppCorners.Control) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
             // 图标保留原尺寸，文字只在剩余宽度内缩放。

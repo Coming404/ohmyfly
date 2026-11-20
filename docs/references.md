@@ -53,6 +53,8 @@ MCP版本/目标信息不足以证明许可证或持续维护；缺失字段查�
 
 ## Miuix
 
+- [统一连续曲率模块](../ui-shapes/README.md)：集中半径、形状和 Miuix 0.9.4 适配方式。几何复用 [Kyant Shapes 1.2.1](https://github.com/Kyant0/Shapes/tree/1.2.1)，设计依据为 Apple [continuous](https://developer.apple.com/documentation/swiftui/roundedcornerstyle/continuous) 与 [同心圆角](https://developer.apple.com/documentation/swiftui/concentricrectangle)。
+
 - [官方文档](https://compose-miuix-ui.github.io/miuix/)；[中文文档](https://compose-miuix-ui.github.io/miuix/zh_CN/)。
 - [官方中文快速开始](https://compose-miuix-ui.github.io/miuix/zh_CN/guide/getting-started)；[英文入门](https://compose-miuix-ui.github.io/miuix/guide/getting-started.html)。
 - [Scaffold](https://compose-miuix-ui.github.io/miuix/components/scaffold.html)：页面容器、insets和弹层宿主，不是工程模板。

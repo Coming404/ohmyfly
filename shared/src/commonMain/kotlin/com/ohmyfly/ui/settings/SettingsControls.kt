@@ -1,5 +1,7 @@
 package com.ohmyfly.ui.settings
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -66,8 +68,9 @@ internal fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
         modifier = Modifier.fillMaxWidth().squircleBorder(
             width = 0.5.dp,
             color = surfaces.cardOutline,
-            cornerRadius = CardDefaults.CornerRadius,
+            cornerRadius = com.ohmyfly.shapes.AppCorners.SettingsCard,
         ),
+        cornerRadius = com.ohmyfly.shapes.AppCorners.SettingsCard,
         colors = CardDefaults.defaultColors(color = surfaces.card, contentColor = surfaces.onCard),
         content = content,
     )
@@ -135,7 +138,7 @@ internal fun TextSetting(
                     keyboardActions = KeyboardActions(onDone = {
                         edits.finish(draft, SettingFinish.Done)
                         focus.clearFocus()
-                    }),
+                    }), cornerRadius = AppCorners.Input,
                 )
             }
             if (hint.isNotEmpty()) SettingsHint(hint)

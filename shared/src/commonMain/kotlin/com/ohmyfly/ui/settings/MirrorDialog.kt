@@ -1,5 +1,7 @@
 package com.ohmyfly.ui.settings
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +15,6 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -39,7 +40,7 @@ import top.yukonga.miuix.kmp.nav.gesture.PredictiveBackHandler
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-private val DialogCornerRadius = 28.dp
+private val DialogCornerRadius = AppCorners.Dialog
 private val DialogOutsideMargin = 16.dp
 
 /** One Miuix dialog shell for add/edit and delete confirmation. */
@@ -61,7 +62,7 @@ internal fun MirrorDialog(
     val maxDialogHeight = (containerHeight - imeHeight - DialogOutsideMargin * 2).coerceAtLeast(200.dp)
     OverlayDialog(
         show = show,
-        modifier = Modifier.shadow(18.dp, RoundedCornerShape(DialogCornerRadius), clip = false),
+        modifier = Modifier.shadow(18.dp, AppCorners.shape(AppCorners.Dialog), clip = false),
         enableWindowDim = true,
         onDismissRequest = { if (dismissible) onDismiss() },
         onDismissFinished = onDismissFinished,
@@ -102,7 +103,7 @@ internal fun MirrorDialog(
                     IconButton(
                         onClick = hapticClick(onDismiss),
                         minWidth = 44.dp,
-                        minHeight = 44.dp,
+                        minHeight = 44.dp, cornerRadius = AppCorners.Toolbar,
                     ) {
                         Icon(
                             imageVector = DriftIcons.Clear,

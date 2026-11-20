@@ -1,5 +1,7 @@
 package com.ohmyfly.ui.settings
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -132,7 +134,7 @@ internal fun MirrorSettingsPage(
                                 text = "${draft.name.text.ifBlank { "新增镜像" }} · 草稿",
                                 enabled = settings.mirrorEnabled && !session.state.readFailed,
                                 onClick = hapticClick { page.show(MirrorPageState.Panel.Edit(draft)) },
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth(), cornerRadius = AppCorners.Control,
                             )
                         } }
                     }

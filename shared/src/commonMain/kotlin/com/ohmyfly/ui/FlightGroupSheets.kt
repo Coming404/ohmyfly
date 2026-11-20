@@ -1,6 +1,8 @@
 // 分组编辑和移动在提交确认前保持输入；删除分组不删除节点。
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -29,10 +31,10 @@ internal fun FlightGroupEditor(group: CatalogGroup?, groups: List<CatalogGroup>,
         }
     }
     OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(), title = if (group == null) "新建分组" else "管理分组",
-        onDismissRequest = { if (!busy) onClose() }) {
+        onDismissRequest = { if (!busy) onClose() }, cornerRadius = AppCorners.Sheet) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             TextField(value = name, textStyle = catalogInputStyle(), onValueChange = { name = it; failure = null }, label = "分组名称",
-                singleLine = true, enabled = !busy)
+                singleLine = true, enabled = !busy, cornerRadius = AppCorners.Input)
             failure?.let { CatalogNotice(it) }
             if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             CatalogTextButton(if (group == null) "添加" else "保存名称", enabled = !busy,
@@ -71,7 +73,7 @@ internal fun FlightGroupMove(nodeIds: Set<Long>, onMoved: () -> Unit, onClose: (
         }
     }
     OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(), title = "移动 ${nodeIds.size} 个航班",
-        onDismissRequest = { if (!busy) onClose() }) {
+        onDismissRequest = { if (!busy) onClose() }, cornerRadius = AppCorners.Sheet) {
         Column(Modifier.fillMaxWidth().heightIn(max = LocalWindowInfo.current.containerDpSize.height * 0.65f)
             .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             failure?.let { CatalogNotice(it) }

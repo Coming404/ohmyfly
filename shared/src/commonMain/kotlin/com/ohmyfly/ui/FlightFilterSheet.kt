@@ -1,6 +1,8 @@
 // 航班筛选由目录会话持有，抽屉关闭不改变条件，设置页导入规则保持独立。
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
@@ -41,7 +43,7 @@ internal fun FlightFilterSheet(show: Boolean, onClose: () -> Unit) {
     OverlayBottomSheet(
         show = show, title = "航班筛选", onDismissRequest = onClose, insideMargin = catalogSheetMargin(),
         startAction = { CatalogTextButton(text = "重置", onClick = hapticClick { appCatalog.updateFlightFilter(FlightFilter()) }) },
-        endAction = { CatalogTextButton(text = "关闭", onClick = hapticClick(onClose)) },
+        endAction = { CatalogTextButton(text = "关闭", onClick = hapticClick(onClose)) }, cornerRadius = AppCorners.Sheet,
     ) {
         Column(Modifier.fillMaxWidth().height(height * if (expanded) 0.72f else 0.42f)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

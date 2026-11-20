@@ -1,6 +1,8 @@
 // 目录固定按钮和正文使用有界自动字号，长正文保留换行及内容高度。
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -46,7 +48,7 @@ internal fun CatalogTextButton(
 ) {
     Button(onClick = onClick, modifier = modifier, enabled = enabled, colors = colors,
         minWidth = 0.dp, minHeight = 44.dp,
-        insideMargin = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 10.dp)) {
+        insideMargin = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 10.dp), cornerRadius = AppCorners.Control) {
         Text(text, style = MiuixTheme.textStyles.button, autoSize = CatalogTextSizing.Button,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
     }

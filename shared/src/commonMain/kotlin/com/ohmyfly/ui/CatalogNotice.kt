@@ -1,9 +1,10 @@
 // 塔台与航班的就地反馈胶囊；长信息可换行，容器不固定高度。
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,7 +36,7 @@ internal fun CatalogNotice(text: String, kind: CatalogNoticeKind = CatalogNotice
         else -> foreground.copy(alpha = 0.12f)
     }
     Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
-        .background(background, RoundedCornerShape(24.dp)).padding(horizontal = 14.dp, vertical = 10.dp),
+        .background(background, AppCorners.shape(AppCorners.Card)).padding(horizontal = 14.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
         Icon(if (kind == CatalogNoticeKind.Success) DriftIcons.Check else MirrorIcons.Alert,
             contentDescription = when (kind) {

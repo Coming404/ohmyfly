@@ -1,7 +1,8 @@
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -38,12 +39,12 @@ internal fun TowerImportPanel(
     var expandedSources by remember(target?.id) { mutableStateOf(emptySet<String>()) }
     val focus = LocalFocusManager.current
     val messages = LocalAppMessages.current
-    OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(),
+    OverlayBottomSheet(show = true, cornerRadius = AppCorners.Sheet, insideMargin = catalogSheetMargin(),
         startAction = { Text(if (target == null) "添加塔台" else "重新导入", fontSize = 20.sp,
             fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold) },
         onDismissRequest = { if (!draft.reading) onClose() }, backgroundColor = MiuixTheme.colorScheme.background,
         endAction = { IconButton(onClick = hapticClick(onClose), enabled = !draft.reading,
-            modifier = Modifier.size(44.dp).background(MiuixTheme.colorScheme.surfaceContainer, CircleShape)) {
+            modifier = Modifier.size(44.dp).background(MiuixTheme.colorScheme.surfaceContainer, AppCorners.Capsule), cornerRadius = AppCorners.Toolbar) {
             Icon(DriftIcons.Clear, "关闭", Modifier.size(22.dp))
         } }) {
         Column(Modifier.fillMaxWidth().heightIn(max = LocalWindowInfo.current.containerDpSize.height * 0.76f)) {
@@ -55,7 +56,7 @@ internal fun TowerImportPanel(
                 else TowerImportInput(draft, settings, draft.mode, replacing = true)
                 TextField(value = draft.name, textStyle = catalogInputStyle(), onValueChange = { draft.name = it },
                     insideMargin = androidx.compose.ui.unit.DpSize(12.dp, 12.dp), singleLine = true,
-                    label = "塔台名称（可选）", useLabelAsPlaceholder = true)
+                    label = "塔台名称（可选）", useLabelAsPlaceholder = true, cornerRadius = AppCorners.Input)
                 if (target == null) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("合并为一个塔台", Modifier.weight(1f), style = catalogInputStyle())
                     Switch(checked = draft.merge, onCheckedChange = { draft.merge = it }, enabled = !draft.reading)
@@ -75,7 +76,7 @@ internal fun TowerImportPanel(
                         onClose()
                     } catch (e: Exception) { draft.failure = e.message ?: "导入未开始，请检查来源" }
                 }, modifier = Modifier.fillMaxWidth(), minHeight = 52.dp,
-                    enabled = ready && !draft.reading && draft.hasInput, colors = ButtonDefaults.buttonColorsPrimary()) {
+                    enabled = ready && !draft.reading && draft.hasInput, colors = ButtonDefaults.buttonColorsPrimary(), cornerRadius = AppCorners.Control) {
                     Icon(MirrorIcons.Add, null, Modifier.size(22.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(if (target == null) "添加塔台" else "重新导入", autoSize = CatalogTextSizing.Button,
@@ -90,7 +91,7 @@ internal fun TowerImportPanel(
 private fun TowerImportSources(
     draft: TowerImportDraft, settings: SubscriptionSettings, expanded: Set<String>, onExpanded: (String) -> Unit,
 ) {
-    Card(Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
+    Card(Modifier.fillMaxWidth(), cornerRadius = AppCorners.Card) {
         TowerImportSection("url", "订阅地址 · 协议链接 · YAML 正文", "多行粘贴 · 自动识别内容",
             MirrorIcons.Link, expanded, onExpanded) { TowerImportInput(draft, settings, "url", replacing = false) }
         HorizontalDivider()
@@ -114,7 +115,7 @@ private fun TowerImportSection(
         Button(onClick = hapticClick { onExpanded(key) }, modifier = Modifier.fillMaxWidth().heightIn(min = 76.dp),
             insideMargin = PaddingValues(horizontal = 14.dp, vertical = 14.dp),
             colors = ButtonDefaults.buttonColors(color = Color.Transparent, disabledColor = Color.Transparent,
-                contentColor = MiuixTheme.colorScheme.onSurface)) {
+                contentColor = MiuixTheme.colorScheme.onSurface), cornerRadius = AppCorners.Control) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 CatalogTile(icon, 38, color = when (key) {
@@ -154,7 +155,7 @@ private fun TowerImportInput(draft: TowerImportDraft, settings: SubscriptionSett
                     draft.failure = e.message ?: "文件选择失败"
                 } finally { draft.reading = false }
             } }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = !draft.reading,
-                insideMargin = PaddingValues(horizontal = 12.dp, vertical = 10.dp)) {
+                insideMargin = PaddingValues(horizontal = 12.dp, vertical = 10.dp), cornerRadius = AppCorners.Control) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(MirrorIcons.Add, null, Modifier.size(20.dp))
                     Text("选择 YAML 文件", autoSize = CatalogTextSizing.Body)
@@ -172,7 +173,7 @@ private fun TowerImportInput(draft: TowerImportDraft, settings: SubscriptionSett
                     Text(file.name, Modifier.weight(1f), maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     IconButton(onClick = hapticClick { draft.files = draft.files.filterIndexed { i, _ -> i != index } },
-                        modifier = Modifier.size(44.dp), enabled = !draft.reading) {
+                        modifier = Modifier.size(44.dp), enabled = !draft.reading, cornerRadius = AppCorners.Toolbar) {
                         Icon(MirrorIcons.Trash, "移除 ${file.name}", tint = MiuixTheme.colorScheme.error)
                     }
                 }
@@ -193,7 +194,7 @@ private fun TowerImportInput(draft: TowerImportDraft, settings: SubscriptionSett
             TextField(value = value,
                 onValueChange = { if (mode == "url") draft.urls = it else draft.text = it; draft.failure = null },
                 textStyle = catalogInputStyle(), insideMargin = androidx.compose.ui.unit.DpSize(12.dp, 12.dp),
-                singleLine = false, minLines = 3, modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp))
+                singleLine = false, minLines = 3, modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp), cornerRadius = AppCorners.Input)
             if (value.isNotEmpty()) Text("${value.lineSequence().count()} 行 · ${value.length} 字符",
                 style = catalogInputStyle(), color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
         }

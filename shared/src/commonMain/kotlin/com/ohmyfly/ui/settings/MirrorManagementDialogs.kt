@@ -1,5 +1,7 @@
 package com.ohmyfly.ui.settings
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,9 +43,9 @@ internal fun MirrorDeleteContent(
         }, fontSize = 14.sp)
         if (error != null) MirrorEditorFeedback(error)
         if (readFailed) {
-            TextButton(text = "重试读取", onClick = hapticClick(onRetryRead), modifier = Modifier.fillMaxWidth())
+            TextButton(text = "重试读取", onClick = hapticClick(onRetryRead), modifier = Modifier.fillMaxWidth(), cornerRadius = AppCorners.Control)
         } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            val shape = RoundedCornerShape(16.dp)
+            val shape = AppCorners.shape(AppCorners.Control)
             Row(
                 Modifier.weight(1f).heightIn(min = 48.dp).clip(shape)
                     .background(MiuixTheme.colorScheme.surfaceContainer)

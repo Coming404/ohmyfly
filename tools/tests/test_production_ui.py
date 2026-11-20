@@ -72,7 +72,7 @@ class ProductionUiTests(unittest.TestCase):
         self.assertIn('CardDefaults.defaultColors(color = surfaces.card, contentColor = surfaces.onCard)', controls)
         self.assertIn('.squircleBorder(', controls)
         self.assertIn('width = 0.5.dp', controls)
-        self.assertIn('cornerRadius = CardDefaults.CornerRadius', controls)
+        self.assertEqual(2, controls.count('cornerRadius = com.ohmyfly.shapes.AppCorners.SettingsCard'))
         for path in self.sources:
             is_settings = path.parent == shared / 'ui/settings' or path.name == 'SettingsScreen.kt'
             if not is_settings or path.name == 'SettingsControls.kt':

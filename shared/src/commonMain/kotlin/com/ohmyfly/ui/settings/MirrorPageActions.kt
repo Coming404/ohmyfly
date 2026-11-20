@@ -1,5 +1,7 @@
 package com.ohmyfly.ui.settings
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -97,7 +99,7 @@ internal fun MirrorProbeBar(
                         liveRegion = LiveRegionMode.Polite
                         stateDescription = "已完成 ${runner.completed}，共 ${runner.total}"
                     }
-                },
+                }, cornerRadius = AppCorners.Control,
             ) {
                 Row(
                     Modifier.fillMaxWidth(),

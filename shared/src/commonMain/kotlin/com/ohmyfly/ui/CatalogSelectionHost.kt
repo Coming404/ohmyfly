@@ -1,6 +1,8 @@
 // 底部工具栏只持有批量操作；顶部取消与全选由页面顶栏持有。
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -46,7 +48,7 @@ internal fun CatalogSelectionHost(
     if (sheet == "move") FlightGroupMove(nodeIds, onMoved = { sheet = ""; onDone() }, onClose = { sheet = "" })
     if (sheet == "toggle" || sheet == "delete") OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(),
         title = if (sheet == "toggle") "启停 $count 个航班" else "删除 $count 个${if (mode == CatalogSelectionMode.Nodes) "航班" else "塔台"}",
-        onDismissRequest = { if (!busy) sheet = "" }) {
+        onDismissRequest = { if (!busy) sheet = "" }, cornerRadius = AppCorners.Sheet) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             failure?.let { CatalogNotice(it) }
             if (sheet == "toggle") {

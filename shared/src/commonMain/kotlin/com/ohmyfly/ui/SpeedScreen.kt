@@ -1,5 +1,7 @@
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,7 +36,7 @@ internal fun SpeedScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
+            Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth(), cornerRadius = AppCorners.SettingsCard) {
                 BasicComponent(
                     title = "测试范围",
                     summary = if (selected.isEmpty()) "未选择航班" else "已选择 ${selected.size} 个航班",
@@ -48,7 +50,7 @@ internal fun SpeedScreen(
             item { BasicComponent(title = "暂无待起飞航班") }
         }
         items(selected, key = { it.id }) { node ->
-            Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
+            Card(Modifier.padding(horizontal = 12.dp).fillMaxWidth(), cornerRadius = AppCorners.SettingsCard) {
                 BasicComponent(title = node.name, summary = "${node.region} · ${node.protocol}")
             }
         }
@@ -57,7 +59,7 @@ internal fun SpeedScreen(
                 text = "开始起飞",
                 enabled = false,
                 onClick = {},
-                modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth(),
+                modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth(), cornerRadius = AppCorners.Control,
             )
         }
     }

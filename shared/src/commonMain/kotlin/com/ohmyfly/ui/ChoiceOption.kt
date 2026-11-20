@@ -1,12 +1,13 @@
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,7 +29,7 @@ internal fun ChoiceOption(
 ) {
     Row(
         modifier = modifier.heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(AppCorners.shape(AppCorners.Content))
             .background(
                 if (selected) MiuixTheme.colorScheme.primary.copy(alpha = 0.12f)
                 else MiuixTheme.colorScheme.secondaryVariant,

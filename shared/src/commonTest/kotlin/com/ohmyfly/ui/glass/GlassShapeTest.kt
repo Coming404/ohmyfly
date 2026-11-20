@@ -1,7 +1,6 @@
 package com.ohmyfly.ui.glass
 
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.geometry.Size
@@ -11,49 +10,30 @@ import com.ohmyfly.ui.NavigationBarShape
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertTrue
 
 class GlassShapeTest {
     @Test
-    fun cubicCornerHasTheSameAxisEndpointsAsTheClip() {
-        assertEquals(Offset(1f, 0f), glassCornerPoint(0f))
-        assertEquals(Offset(0f, 1f), glassCornerPoint(1f))
-    }
-
-    @Test
-    fun cubicCornerIsMonotoneAndStaysInsideItsTile() {
-        var previous = glassCornerPoint(0f)
-        for (step in 1..100) {
-            val point = glassCornerPoint(step / 100f)
-            assertTrue(point.x in 0f..1.000001f && point.y in 0f..1.000001f)
-            assertTrue(point.x <= previous.x + 0.000001f && point.y >= previous.y - 0.000001f)
-            previous = point
+    fun contentCornersUseContinuousPathsWithoutChangingBounds() {
+        val shape = com.ohmyfly.shapes.AppCorners.shape(16.dp)
+        for (density in listOf(Density(1f), Density(2f))) {
+            val size = Size(200f, 160f)
+            val outline = assertIs<Outline.Generic>(shape.createOutline(size, LayoutDirection.Ltr, density))
+            val bounds = outline.path.getBounds()
+            assertEquals(0f, bounds.left, 0.0001f)
+            assertEquals(0f, bounds.top, 0.0001f)
+            assertEquals(size.width, bounds.right, 0.0001f)
+            assertEquals(size.height, bounds.bottom, 0.0001f)
         }
     }
 
     @Test
-    fun cubicUsesTheMiuixControlRatherThanACircularProxy() {
-        val midpoint = glassCornerPoint(0.5f)
-        assertEquals(0.741125f, midpoint.x, 0.000001f)
-        assertEquals(midpoint.x, midpoint.y, 0.000001f)
-    }
-
-    @Test
-    fun cubicIsSymmetricUnderAxisExchange() {
-        for (step in 0..20) {
-            val forward = glassCornerPoint(step / 20f)
-            val reverse = glassCornerPoint(1f - step / 20f)
-            assertEquals(forward.x, reverse.y, 0.000001f)
-            assertEquals(forward.y, reverse.x, 0.000001f)
-        }
-    }
-
-    @Test
-    fun shaderTileUsesTheClipExtensionAndClampsAtHalfTheShortEdge() {
-        val shape = GlassShape(24.dp)
-        assertEquals(26.4f, shape.tile(Size(100f, 64f), Density(1f)), 0.0001f)
-        assertEquals(52.8f, shape.tile(Size(200f, 128f), Density(2f)), 0.0001f)
-        assertEquals(10f, shape.tile(Size(100f, 20f), Density(1f)))
+    fun saturatedRadiusKeepsCircleAndCapsuleGeometry() {
+        val size = Size(92f, 44f)
+        val density = Density(1f)
+        val expected = assertIs<Outline.Rounded>(CircleShape.createOutline(size, LayoutDirection.Ltr, density))
+        val actual = assertIs<Outline.Rounded>(com.ohmyfly.shapes.AppCorners.shape(50.dp)
+            .createOutline(size, LayoutDirection.Ltr, density))
+        assertEquals(expected.roundRect, actual.roundRect)
     }
 
     @Test

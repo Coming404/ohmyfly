@@ -1,9 +1,10 @@
 // 塔台状态与单选操作菜单；复杂操作通过各自的 Miuix 抽屉继续。
 package com.ohmyfly.ui
 
+import com.ohmyfly.shapes.AppCorners
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,7 +65,7 @@ private fun TowerFooterAction(text: String, icon: androidx.compose.ui.graphics.v
     Button(onClick = hapticClick(onClick), modifier = modifier, enabled = enabled, minWidth = 0.dp,
         minHeight = 44.dp, insideMargin = PaddingValues(0.dp),
         colors = ButtonDefaults.buttonColors(color = Color.Transparent, disabledColor = Color.Transparent,
-            contentColor = color, disabledContentColor = MiuixTheme.colorScheme.disabledOnSurface)) {
+            contentColor = color, disabledContentColor = MiuixTheme.colorScheme.disabledOnSurface), cornerRadius = AppCorners.Control) {
         TowerFooterLabel(text, icon, if (enabled) color else MiuixTheme.colorScheme.disabledOnSurface, expanded)
     }
 }
@@ -105,7 +106,7 @@ internal fun TowerStatusBadge(tower: CatalogTower, loading: Boolean) {
         tower.lastSuccessAt != null -> DriftIcons.Check
         else -> SettingsIcons.Timer
     }
-    Row(Modifier.background(color.copy(alpha = if (dark) 0.22f else 0.13f), RoundedCornerShape(24.dp))
+    Row(Modifier.background(color.copy(alpha = if (dark) 0.22f else 0.13f), AppCorners.shape(AppCorners.Card))
         .padding(horizontal = 9.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Icon(icon, null, Modifier.size(14.dp), tint = color)
@@ -139,11 +140,11 @@ internal fun TowerMoreMenu(tower: CatalogTower, loading: Boolean, revision: Long
     }
     if (panel == "result") TowerImportResultSheet(tower) { panel = "" }
     if (panel == "sources") OverlayBottomSheet(show = true, title = "管理来源", insideMargin = catalogSheetMargin(),
-        onDismissRequest = { panel = "" }) {
+        onDismissRequest = { panel = "" }, cornerRadius = AppCorners.Sheet) {
         TowerSources(tower.id, revision) { source -> panel = ""; onSourceImport(source) }
     }
     if (panel == "delete") OverlayBottomSheet(show = true, title = "删除塔台", insideMargin = catalogSheetMargin(),
-        onDismissRequest = { panel = "" }) {
+        onDismissRequest = { panel = "" }, cornerRadius = AppCorners.Sheet) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(tower.name, style = catalogInputStyle())
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
