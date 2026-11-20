@@ -58,5 +58,6 @@ internal fun Modifier.chromeMaterial(
     } else {
         base.background(surface)
     }
-    return material.border(0.5.dp, MiuixTheme.colorScheme.onSurface.copy(alpha = 0.10f), outline)
+    return material.border(ChromeMetrics.OutlineWidth,
+        MiuixTheme.colorScheme.onSurface.copy(alpha = ChromeMetrics.OutlineAlpha), outline)
 }

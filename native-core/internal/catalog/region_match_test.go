@@ -32,6 +32,7 @@ func TestRegionCatalogAliases(t *testing.T) {
 func TestRegionNameBoundaries(t *testing.T) {
 	for _, item := range []struct{ name, want string }{
 		{"Hong Kong 01", "HK"}, {"hOnG kOnG", "HK"}, {"HK01", "HK"}, {"香港专线", "HK"},
+		{"hongkong", "HK"}, {"HoNgKoNg01", "HK"}, {"hongkonger", ""},
 		{"cloudflare", "cloudflare"}, {"CF优选", "cloudflare"}, {"cF-01", "cloudflare"},
 		{"Central African Republic", "CF"}, {"中非共和国", "CF"},
 		{"Papua New Guinea", "PG"}, {"Equatorial Guinea", "GQ"}, {"Guinea-Bissau", "GW"},

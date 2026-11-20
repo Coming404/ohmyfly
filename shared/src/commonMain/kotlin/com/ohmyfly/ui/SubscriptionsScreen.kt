@@ -43,6 +43,9 @@ internal fun SubscriptionsScreen(
     var editing by remember { mutableStateOf<CatalogTower?>(null) }
     LaunchedEffect(catalog.towerSearch) { listState.scrollToItem(0) }
     LaunchedEffect(catalog.failure) { catalog.failure?.let { messages.show(AppMessageKind.Failure, it) } }
+    LaunchedEffect(catalog.operationFailure) {
+        if (catalog.taskFailed == 0) catalog.operationFailure?.let { messages.show(AppMessageKind.Failure, it) }
+    }
     TowerLibraryList(listState, catalog, store, settings, importReady, selectedTowerIds, onTowerSelection,
         selectionMode, selectionTowerId, onEnterSelection, selectedNodeIds, onNodeSelection, onEnterNodeSelection,
         contentPadding = contentPadding, searchState = searchState, searchActive = searchActive,

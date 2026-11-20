@@ -28,7 +28,7 @@ func initRegions(ctx context.Context, tx *sql.Tx, version int) error {
 	if err := tx.QueryRowContext(ctx, "SELECT count(*) FROM region_catalog").Scan(&count); err != nil {
 		return err
 	}
-	if version >= 2 && count > 0 {
+	if version >= 4 && count > 0 {
 		return nil
 	}
 	for _, row := range regionCatalogRows {

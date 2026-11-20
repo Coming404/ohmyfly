@@ -78,6 +78,7 @@ internal data class CatalogState(
     val towerSearch: String = "", val towerMatchCount: Long? = null, val towerLoading: Boolean = true,
     val sourceTasks: Map<Long, CatalogSourceTask> = emptyMap(),
     val taskTotal: Int = 0, val taskCompleted: Int = 0, val taskFailed: Int = 0,
+    val operationFailure: String? = null,
     val queuedBatches: Int = 0, val stopping: Boolean = false, val stopped: Boolean = false,
     val pendingRemoval: Set<Long> = emptySet(),
     val groups: CatalogGroups = CatalogGroups(),

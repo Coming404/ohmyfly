@@ -34,13 +34,14 @@ internal fun TowerControl(state: CatalogState, ready: Boolean, onCancel: () -> U
     var fuel by rememberSaveable { mutableStateOf(false) }
     val summary = state.summary
     val colors = MiuixTheme.colorScheme
-    Card(Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
+    Card(Modifier.fillMaxWidth().clickable(role = Role.Button,
+        onClick = hapticClick { expanded = !expanded }), cornerRadius = 24.dp) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 ControlTowerMark(colors.primary)
                 Text("总控", Modifier.weight(1f).padding(start = 8.dp).semantics { heading() },
                     fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                IconButton(onClick = hapticClick { expanded = !expanded }, modifier = Modifier.size(44.dp)) {
+                Box(Modifier.size(ChromeMetrics.ControlSize), contentAlignment = Alignment.Center) {
                     CatalogExpansionArrow(expanded)
                 }
             }
@@ -79,7 +80,7 @@ private fun ControlTowerMark(color: Color) {
 private fun RowScope.ControlMetric(label: String, value: String) {
     Row(Modifier.weight(1f).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-        Text(value, Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 16.sp,
+        Text(value, Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 18.sp,
             fontWeight = FontWeight.SemiBold, maxLines = 2)
     }
 }
@@ -94,8 +95,9 @@ internal fun controlStatus(state: CatalogState, ready: Boolean): String = when {
     state.busy && state.taskTotal > 0 && state.taskCompleted >= state.taskTotal -> "正在刷新目录…"
     state.busy && state.queuedBatches > 0 -> "等待处理 ${state.queuedBatches} 个批次"
     state.busy -> "正在准备任务…"
-    state.failure != null && state.taskFailed > 0 -> "${state.taskFailed} 个来源处理失败"
     state.failure != null -> state.failure
+    state.operationFailure != null && state.taskFailed > 0 -> "${state.taskFailed} 个来源处理失败"
+    state.operationFailure != null -> state.operationFailure
     state.stopped -> "已停止，已提交的数据保留"
     !state.ready -> "正在读取目录…"
     !ready -> "同步设置未就绪"

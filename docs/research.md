@@ -66,6 +66,8 @@ https://kmp.jetbrains.com/
 
 - `commonMain` 固定使用 `io.github.kyant0:backdrop:2.0.1`（Apache-2.0）。Klibs `getLatestVersion` 返回稳定版 2.0.1、Kotlin 2.4.10；带平台过滤的项目名检索未命中，目标以[固定版本构建文件](https://github.com/Kyant0/AndroidLiquidGlass/blob/2.0.1/backdrop/build.gradle.kts)与[发布变体](https://repo.maven.apache.org/maven2/io/github/kyant0/backdrop/2.0.1/backdrop-2.0.1.module)为准：Android、iosArm64、iosSimulatorArm64。
 - Android AAR 要求 compileSdk 37，运行时折射需要 API 33；当前工程均满足。iOS 使用 Skia，无需 iOS 26 原生材质；iOS 16 真机与双端链接待验证。
+- 静止高光对照 Kyant 官方 2.0.1 [LiquidBottomTabs 示例](https://github.com/Kyant0/AndroidLiquidGlass/blob/2.0.1/app/src/commonMain/kotlin/com/kyant/backdrop/catalog/components/LiquidBottomTabs.kt#L166)：外层面板省略 `highlight`，继承 `drawBackdrop` 的 `Highlight.Default`。该库默认高光为 `width=0.5dp`、`blurRadius=0.25dp`、`alpha=1`；Default 样式为白色 `alpha=0.5`、Plus 混合、`angle=45°`、`falloff=1`（[2.0.1 定义](https://github.com/Kyant0/AndroidLiquidGlass/blob/2.0.1/backdrop/src/commonMain/kotlin/com/kyant/backdrop/highlight/Highlight.kt#L10)、[样式](https://github.com/Kyant0/AndroidLiquidGlass/blob/2.0.1/backdrop/src/commonMain/kotlin/com/kyant/backdrop/highlight/HighlightStyle.kt#L39)）。示例选中透镜高光另按按压进度淡入，不是静止面板默认值。原项目静止基线使用 `width=1dp`、`blurRadius=2dp`、`alpha=0.75`，并以重力感应旋转方向；2dp 模糊是官方默认的 8 倍，造成光边过宽过散且更暗。当前调整为 `0.5dp`、`0.25dp`、`1`，仍保留重力角度变化。示例面板同时继承 `Shadow.Default`（24dp、y 偏移 4dp、黑色 alpha 0.1）；项目在 Kyant 调用中使用 `shadow=null`，外投影由 Compose 绘制。液态底栏额外复用顶部的 0.5dp、10% 主题前景色细轮廓，与随重力变化的方向高光分开，静止时保持上下边缘可辨。背景模糊保留项目的 4dp，官方底栏示例为 8dp；折射高度和距离均为 24dp。
+
 - 设置为液态玻璃时，页面录制、顶部及选择工具栏、底栏面板与选中透镜使用同一个 Kyant 渲染后端；另外三种材质仍使用 Miuix。减少透明效果时使用实色，减少动态效果时关闭动态高光与形变。Miuix UI 继续提供控件、颜色与交互语义。
 
 ### miuix-blur 0.9.4 接入核验

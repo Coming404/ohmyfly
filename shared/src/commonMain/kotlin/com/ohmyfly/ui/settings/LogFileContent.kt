@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -32,7 +31,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -44,15 +42,11 @@ import com.ohmyfly.logging.copyLogText
 import com.ohmyfly.ui.AppMessageKind
 import com.ohmyfly.ui.LocalAppMessages
 import com.ohmyfly.ui.LocalAppMotionAllowed
-import com.ohmyfly.ui.hapticClick
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private data class LogContentSnapshot(
@@ -152,7 +146,8 @@ private fun LogTextWindow(state: LogPageState, content: LogContentSnapshot, acti
 private fun LogCopyButton(state: LogPageState, entries: List<LogEntry>, active: Boolean) {
     val messages = LocalAppMessages.current
     LogIconButton("复制已加载文本", SettingsIcons.Copy,
-        enabled = active && !state.clearing && entries.isNotEmpty()) {
+        enabled = active && !state.clearing && entries.isNotEmpty(),
+        background = com.ohmyfly.ui.LocalAppSurfaceColors.current.card) {
         // 点击时立即写入系统剪贴板；切到其他应用不必等待下一帧或页面协程。
         try {
             val text = logText(entries)
@@ -166,17 +161,12 @@ private fun LogCopyButton(state: LogPageState, entries: List<LogEntry>, active: 
 
 @Composable
 internal fun LogIconButton(
-    label: String, icon: ImageVector, enabled: Boolean = true, busy: Boolean = false, onClick: () -> Unit,
+    label: String, icon: ImageVector, enabled: Boolean = true, busy: Boolean = false,
+    background: androidx.compose.ui.graphics.Color = com.ohmyfly.ui.LocalAppSurfaceColors.current.page,
+    onClick: () -> Unit,
 ) {
-    TooltipBox(text = label) {
-        IconButton(onClick = hapticClick(onClick), enabled = enabled, minWidth = 44.dp, minHeight = 44.dp) {
-            if (busy && LocalAppMotionAllowed.current) CircularProgressIndicator(
-                size = 18.dp, modifier = Modifier.semantics { contentDescription = label },
-            )
-            else Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp),
-                tint = MiuixTheme.colorScheme.onSurfaceVariantActions)
-        }
-    }
+    com.ohmyfly.ui.InlineChromeIconButton(label, icon, onClick, enabled = enabled, busy = busy,
+        background = background, tint = MiuixTheme.colorScheme.onSurfaceVariantActions)
 }
 
 @Composable

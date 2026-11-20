@@ -11,6 +11,9 @@ import (
 	"github.com/Coming404/ohmyfly/native-core/internal/sqlite"
 )
 
+// 当前目录版本包含 Hongkong 别名的一次性重识别。
+const catalogVersion = 4
+
 type Store struct {
 	db     *sql.DB
 	readDB *sql.DB
@@ -63,7 +66,7 @@ func (s *Store) migrate(ctx context.Context) error {
 	if err := tx.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 		return err
 	}
-	if version > 3 {
+	if version > catalogVersion {
 		return fmt.Errorf("unsupported catalog version %d", version)
 	}
 	if version == 0 {
@@ -106,7 +109,9 @@ func (s *Store) migrate(ctx context.Context) error {
 		if _, err := tx.ExecContext(ctx, trendSchema); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, "PRAGMA user_version=3"); err != nil {
+	}
+	if version < catalogVersion {
+		if _, err := tx.ExecContext(ctx, fmt.Sprintf("PRAGMA user_version=%d", catalogVersion)); err != nil {
 			return err
 		}
 	}

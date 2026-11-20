@@ -71,6 +71,12 @@ internal fun GlassNavigationSurface(
             .onSizeChanged { response.width = it.width.toFloat() }
             .graphicsLayer { translationX = response.panelOffset }
             .dropShadow(NavigationBarShape, Shadow(radius = 10.dp, color = Color.Black, alpha = if (dark) 0.2f else 0.1f))
+            // 方向高光随重力移动，细轮廓始终保留，静止时也能从同色背景中分离。
+            .then(if (enabled && preset.liquidResponse) Modifier.border(
+                com.ohmyfly.ui.ChromeMetrics.OutlineWidth,
+                MiuixTheme.colorScheme.onSurface.copy(alpha = com.ohmyfly.ui.ChromeMetrics.OutlineAlpha),
+                backdrop.surfaceShape(NavigationBarShape),
+            ) else Modifier)
             .then(response.drag.modifier)
             .then(spot?.trackingGestureModifier ?: Modifier),
     ) {

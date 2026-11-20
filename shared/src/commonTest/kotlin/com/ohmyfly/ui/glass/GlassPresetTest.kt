@@ -16,8 +16,8 @@ class GlassPresetTest {
             assertEquals(if (dark) 0.10f else 0.30f, preset.surfaceAlpha)
             assertEquals(24f, preset.lensHeight)
             assertEquals(24f, preset.lensAmount)
-            assertEquals(0.75f, preset.highlightAlpha)
-            assertEquals(2f, preset.highlightBlur)
+            assertEquals(1f, preset.highlightAlpha)
+            assertEquals(0.25f, preset.highlightBlur)
             assertTrue(preset.liquidResponse)
         }
     }

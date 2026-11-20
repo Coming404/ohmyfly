@@ -57,6 +57,7 @@ internal fun DriftTopBar(
     dark: Boolean,
     materialMode: MaterialMode,
     titleCount: Long? = null,
+    titleCapsule: Boolean = false,
     onBack: (() -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
 ) {
@@ -90,12 +91,14 @@ internal fun DriftTopBar(
                 )
             }
             if (title.isNotEmpty()) Box(Modifier.weight(1f)) {
-                if (titleCount != null) Row(Modifier.then(surface()).heightIn(min = 44.dp)
-                    .padding(horizontal = 14.dp, vertical = 8.dp).semantics { heading() },
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(title, fontSize = 20.sp, fontWeight = FontWeight.Medium, maxLines = 1)
-                    Text(titleCount.toString(), fontSize = 20.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                } else Text(title, modifier = Modifier.semantics { heading() }, fontSize = 20.sp,
+                if (titleCapsule || titleCount != null) Row(Modifier.then(surface()).heightIn(min = ChromeMetrics.ControlSize)
+                    .padding(horizontal = ChromeMetrics.TitleInset, vertical = 8.dp).semantics { heading() },
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(title, Modifier.weight(1f, fill = false), fontSize = ChromeMetrics.TitleSize,
+                        fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    titleCount?.let { Text(it.toString(), fontSize = ChromeMetrics.TitleSize,
+                        fontWeight = FontWeight.Bold, maxLines = 1) }
+                } else Text(title, modifier = Modifier.semantics { heading() }, fontSize = ChromeMetrics.TitleSize,
                     fontWeight = FontWeight.SemiBold, color = MiuixTheme.colorScheme.onSurface,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             } else Spacer(Modifier.weight(1f))
@@ -118,9 +121,9 @@ internal fun HeaderAction(
     val surface = LocalHeaderSurface.current
     val interaction = remember { MutableInteractionSource() }
     TooltipBox(text = label) {
-        // The 44dp target takes the click; the press overlay stays inside the 38dp glass clip.
+        // 可见玻璃面与点击区一致，独立按钮不再套用更小的内圆。
         Box(
-            Modifier.defaultMinSize(minWidth = 44.dp, minHeight = 44.dp).clickable(
+            Modifier.defaultMinSize(minWidth = ChromeMetrics.ControlSize, minHeight = ChromeMetrics.ControlSize).clickable(
                 interactionSource = interaction,
                 indication = null,
                 enabled = enabled,
@@ -130,14 +133,14 @@ internal fun HeaderAction(
             contentAlignment = Alignment.Center,
         ) {
             Box(
-                Modifier.size(38.dp).then(surface()).indication(interaction, LocalIndication.current),
+                Modifier.size(ChromeMetrics.ControlSize).then(surface()).indication(interaction, LocalIndication.current),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     icon,
                     contentDescription = label,
                     tint = if (enabled) tint else tint.copy(alpha = 0.38f),
-                    modifier = Modifier.size(22.dp).then(iconModifier),
+                    modifier = Modifier.size(ChromeMetrics.IconSize).then(iconModifier),
                 )
             }
         }
@@ -160,11 +163,11 @@ internal fun HeaderTextAction(
                 role = Role.Button, onClick = hapticClick(onClick)),
         contentAlignment = Alignment.Center,
     ) {
-        Row(Modifier.heightIn(min = 38.dp).then(surface()).indication(interaction, LocalIndication.current)
+        Row(Modifier.heightIn(min = ChromeMetrics.ControlSize).then(surface()).indication(interaction, LocalIndication.current)
             .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Icon(icon, label, Modifier.size(18.dp), tint = if (enabled) tint else tint.copy(alpha = 0.38f))
-            Text(label, color = if (enabled) tint else tint.copy(alpha = 0.38f), fontSize = 14.sp,
+            Icon(icon, label, Modifier.size(ChromeMetrics.IconSize), tint = if (enabled) tint else tint.copy(alpha = 0.38f))
+            Text(label, color = if (enabled) tint else tint.copy(alpha = 0.38f), fontSize = ChromeMetrics.ActionTextSize,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }

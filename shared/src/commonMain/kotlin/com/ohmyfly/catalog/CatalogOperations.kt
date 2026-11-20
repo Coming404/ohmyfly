@@ -25,7 +25,7 @@ internal class CatalogOperations(
                     update { it.copy(queuedBatches = it.queuedBatches - 1, busy = it.queuedBatches > 1) }
                     continue
                 }
-                update { it.copy(queuedBatches = it.queuedBatches - 1, failure = null,
+                update { it.copy(queuedBatches = it.queuedBatches - 1, operationFailure = null,
                     stopped = false, taskTotal = 0, taskCompleted = 0, taskFailed = 0) }
                 active = scope.launch(start = CoroutineStart.UNDISPATCHED) { execute(pending) }
                 active!!.join()
@@ -71,15 +71,16 @@ internal class CatalogOperations(
             failure = e; message = logCatalogFailure("批次处理", e)
         } finally {
             withContext(NonCancellable) {
+                var reloadFailure: String? = null
                 try { reload() }
                 catch (e: Exception) {
                     val reason = logCatalogFailure("同步后刷新列表", e)
-                    if (failure == null || failure is CancellationException) {
-                        failure = e
-                        message = "列表重读失败：$reason"
-                    }
+                    reloadFailure = "列表重读失败：$reason"
+                    if (failure == null || failure is CancellationException) failure = e
                 }
-                update { it.copy(busy = it.queuedBatches > 0, sourceTasks = emptyMap(), failure = message,
+                // 来源同步失败在塔台卡片与批次通知展示；只有目录读取失败才触发列表重试。
+                update { it.copy(busy = it.queuedBatches > 0, sourceTasks = emptyMap(),
+                    operationFailure = message, failure = reloadFailure ?: it.failure,
                     stopped = it.stopping, stopping = false) }
                 val error = failure
                 if (error == null) pending.done.complete(Unit) else pending.done.completeExceptionally(error)

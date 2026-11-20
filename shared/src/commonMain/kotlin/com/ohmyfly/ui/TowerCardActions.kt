@@ -36,8 +36,6 @@ internal fun TowerIdentity(tower: CatalogTower, loading: Boolean, selected: Bool
                 maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             val source = if (tower.sourceKind == "merged") "${tower.sourceCount} 个来源" else sourceLabel(tower.sourceKind)
             Text(if (loading) "正在同步" else "$source ${catalogAge(tower.lastSuccessAt)}",
-                modifier = Modifier.background(colors.surfaceVariant, RoundedCornerShape(50))
-                    .padding(horizontal = 8.dp, vertical = 3.dp),
                 fontSize = 11.sp, color = colors.onSurfaceVariantSummary,
                 maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }

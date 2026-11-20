@@ -26,33 +26,37 @@ internal fun NodesScreen(
     onEnterSelection: () -> Unit = {},
     onSubscriptions: () -> Unit = {},
 ) {
-    // 标题由 Scaffold 固定；分组紧接顶栏，关闭的搜索区不占据列表位置。
-    Column(Modifier.fillMaxSize().padding(contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp)),
-        verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (searchState.expanded) CatalogSearch(catalog.flightFilter.search, "搜索航班",
-            state = searchState, active = searchActive, onQuery = {
-                appCatalog.updateFlightFilter(catalog.flightFilter.copy(search = it), debounce = true)
-            })
-        FlightGroups(catalog)
-        FlightLibraryList(listState, catalog, selectedIds, onSelection, selectionMode, onEnterSelection,
-            onPage, onSubscriptions, searchState::close, Modifier.weight(1f))
-    }
+    FlightLibraryList(listState, catalog, selectedIds, onSelection, selectionMode, onEnterSelection,
+        onPage, onSubscriptions, contentPadding, searchState, searchActive)
 }
 
-// 列表独占分组下方的可用空间，空状态在该空间内居中。
+// 搜索和分组随列表滚动；安全区作为内容留白，使卡片可从浮动导航栏下方经过。
 @Composable
 private fun FlightLibraryList(listState: LazyListState, catalog: CatalogState, selectedIds: Set<String>,
     onSelection: (Set<String>) -> Unit, selectionMode: CatalogSelectionMode?, onEnterSelection: () -> Unit,
-    onPage: (Int) -> Unit, onSubscriptions: () -> Unit, onCloseSearch: () -> Unit, modifier: Modifier) {
+    onPage: (Int) -> Unit, onSubscriptions: () -> Unit, contentPadding: PaddingValues,
+    searchState: CatalogSearchState, searchActive: Boolean) {
     var expanded by remember { mutableStateOf<Set<Long>>(emptySet()) }
     val inSelection = selectionMode == CatalogSelectionMode.Nodes
     LaunchedEffect(selectionMode) { if (inSelection) expanded = emptySet() }
     LaunchedEffect(catalog.filterRevision) { listState.scrollToItem(0) }
     val count = catalog.matchCount ?: 0
     val hasStatus = catalog.failure != null || !catalog.ready || catalog.matchCount == null || count == 0L || catalog.measurementsFailure != null
-    CatalogViewport(listState, if (hasStatus) 1 else 0, catalog.flightPage, catalog.flightWindow.keys, count,
+    val headerCount = 1 + (if (searchState.expanded) 1 else 0) + (if (hasStatus) 1 else 0)
+    LaunchedEffect(searchState.focusRequested, searchActive) {
+        if (searchState.focusRequested && searchActive) listState.scrollToItem(0)
+    }
+    CatalogViewport(listState, headerCount, catalog.flightPage, catalog.flightWindow.keys, count,
         catalog.failure != null, onPage)
-    LazyColumn(modifier.fillMaxSize(), state = listState, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), state = listState,
+        contentPadding = contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (searchState.expanded) item("search") {
+            CatalogSearch(catalog.flightFilter.search, "搜索航班", searchState, searchActive) {
+                appCatalog.updateFlightFilter(catalog.flightFilter.copy(search = it), debounce = true)
+            }
+        }
+        item("groups") { FlightGroups(catalog) }
         if (hasStatus) item("status") {
             when {
                 catalog.failure != null -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -74,7 +78,7 @@ private fun FlightLibraryList(listState: LazyListState, catalog: CatalogState, s
                         hint = if (noFlights) "添加并同步塔台后，航班会显示在这里。"
                             else if (emptyGroup) "切换其他分组，或将航班移动到这里。" else "调整分组、搜索或筛选条件，查看其他航班。",
                         onAction = if (emptyGroup) null else if (noFlights) onSubscriptions else ({
-                            appCatalog.updateFlightFilter(FlightFilter()); onCloseSearch()
+                            appCatalog.updateFlightFilter(FlightFilter()); searchState.close()
                         }),
                         actionLabel = if (noFlights) "前往塔台" else "清除筛选",
                         icon = if (noFlights) DriftIcons.Nodes else SettingsIcons.Search,

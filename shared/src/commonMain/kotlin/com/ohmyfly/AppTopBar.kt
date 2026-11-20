@@ -23,9 +23,15 @@ internal fun AppTopBar(
     onFlightFilter: () -> Unit, towerCount: Long,
 ) {
     DriftTopBar(
-        title = if (selectionMode != null) "已选 ${if (selectionMode == CatalogSelectionMode.Nodes) selectedIds.size else selectedTowerIds.size}"
+        title = if (selectionMode != null) "已选"
             else if (settingsChild || destination == AppDestination.Settings) "" else destination.label,
-        titleCount = if (destination == AppDestination.Subscriptions && selectionMode == null) towerCount else null,
+        titleCount = when {
+            selectionMode == CatalogSelectionMode.Nodes -> selectedIds.size.toLong()
+            selectionMode == CatalogSelectionMode.Towers -> selectedTowerIds.size.toLong()
+            destination == AppDestination.Subscriptions -> towerCount
+            else -> null
+        },
+        titleCapsule = selectionMode != null || destination == AppDestination.Subscriptions || destination == AppDestination.NodeLibrary,
         backdrop = backdrop, glassEnabled = glassEnabled, dark = dark,
         materialMode = settings.materialMode, onBack = settingsBack,
         actions = when {

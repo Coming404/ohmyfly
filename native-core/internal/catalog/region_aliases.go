@@ -23,7 +23,7 @@ var regionExtraAliases = []struct{ code, names string }{
 	{code: "FR", names: "巴黎|Paris"},
 	{code: "GB", names: "伦敦|London|UK"},
 	{code: "GR", names: "雅典|Athens"},
-	{code: "HK", names: "Hong Kong"},
+	{code: "HK", names: "Hong Kong|Hongkong"},
 	{code: "HR", names: "萨格勒布|Zagreb"},
 	{code: "HU", names: "布达佩斯|Budapest"},
 	{code: "ID", names: "印尼|雅加达|Jakarta"},

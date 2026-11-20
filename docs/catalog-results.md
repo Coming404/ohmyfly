@@ -4,7 +4,7 @@
 
 `native-core/internal/catalog` 的 SQLite 是目录、任务和结果的事实源，`mobile.Catalog` 以 JSON 暴露 API，共享层 `CatalogResults` 调用并解码。结果持久化属于数据库第1步；任务列表恢复、网络执行与后台调度留在第3步。
 
-当前 `PRAGMA user_version=3`。v2 升至 v3 时新增 `tower_daily_summary`，按日期保存全库航班数和可空的已用流量。重读目录时更新当天快照，返回最近七个自然日；只有真实观测才参与绘图。v1 至 v2 在事务内更新国家名称识别结果，保留节点身份、手动地区及测量历史，详见[节点地区](towers-flights.md#节点地区)。任务与测量 schema 包含：
+当前 `PRAGMA user_version=4`。v4 补充 `Hongkong` 连写别名，并在同一事务内重识别旧库名称地区。v2 升至 v3 时新增 `tower_daily_summary`，按日期保存全库航班数和可空的已用流量。重读目录时更新当天快照，返回最近七个自然日；只有真实观测才参与绘图。v1 至 v2 在事务内更新国家名称识别结果，保留节点身份、手动地区及测量历史，详见[节点地区](towers-flights.md#节点地区)。任务与测量 schema 包含：
 
 | 表 | 内容与关联 |
 | --- | --- |
@@ -15,7 +15,7 @@
 
 `node_runs_history(node_id,id DESC)` 与 `node_runs_task(task_id,id)` 支持按节点历史或任务成员读取。每次任务创建新的 run；同一次 run 的阶段只允许由 `running` 更新为终态，已终结阶段不可覆盖。重新测量创建新任务，历史不被摘要覆盖。
 
-旧开发 v1 如果缺少 `catalog_meta.metrics_revision`，打开会返回 `catalog v1 schema is incomplete; explicit upgrade decision required`，文件保持不变。结构完整的 v1 会先更新地区识别，再升级至 v3；v2 仅新增每日汇总表。版本大于3拒绝打开。缺少结果表结构的早期开发库仍须另行确定保留数据的升级方案。
+旧开发 v1 如果缺少 `catalog_meta.metrics_revision`，打开会返回 `catalog v1 schema is incomplete; explicit upgrade decision required`，文件保持不变。结构完整的 v1/v2 会补齐每日汇总表，v1/v2/v3 均重识别名称地区并升级至 v4。版本大于4拒绝打开。缺少结果表结构的早期开发库仍须另行确定保留数据的升级方案。
 
 ## 时间、数值和快照
 

@@ -37,7 +37,7 @@ private fun rememberLiquidHighlight(preset: GlassPreset, motion: Boolean, offset
     return remember(preset, gravity, offset) {
         derivedStateOf {
             val angle = -quantizedGravityAngle(gravity.value) * (180f / PI.toFloat()) + offset
-            Highlight(width = 1.dp, blurRadius = preset.highlightBlur.dp, alpha = preset.highlightAlpha,
+            Highlight(width = 0.5.dp, blurRadius = preset.highlightBlur.dp, alpha = preset.highlightAlpha,
                 style = HighlightStyle.Default(angle = angle))
         }
     }

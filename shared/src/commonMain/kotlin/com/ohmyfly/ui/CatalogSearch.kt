@@ -2,7 +2,7 @@
 package com.ohmyfly.ui
 
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -13,7 +13,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import top.yukonga.miuix.kmp.basic.InputField
-import top.yukonga.miuix.kmp.basic.SearchBarDefaults
 
 @Composable
 internal fun CatalogSearch(
@@ -35,8 +34,18 @@ internal fun CatalogSearch(
         expanded = false,
         onExpandedChange = {},
         enabled = active,
+        trailingIcon = {
+            top.yukonga.miuix.kmp.basic.IconButton(
+                onClick = hapticClick { state.close(); onQuery(""); focus.clearFocus(); keyboard?.hide() },
+                enabled = active,
+                modifier = Modifier.size(ChromeMetrics.ControlSize),
+                backgroundColor = androidx.compose.ui.graphics.Color.Transparent,
+            ) {
+                top.yukonga.miuix.kmp.basic.Icon(DriftIcons.Clear, "关闭搜索框",
+                    modifier = Modifier.size(ChromeMetrics.IconSize))
+            }
+        },
         modifier = Modifier.fillMaxWidth()
-            .padding(horizontal = SearchBarDefaults.InsideMargin.width, vertical = SearchBarDefaults.InsideMargin.height)
             .focusProperties { canFocus = active }
             .focusRequester(requester),
     )

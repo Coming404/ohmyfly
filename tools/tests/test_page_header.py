@@ -11,7 +11,10 @@ class PageHeaderTests(unittest.TestCase):
     def test_one_compact_title_without_brand_or_large_title(self):
         source = (UI / 'DriftTopBar.kt').read_text()
         header = source.split('internal fun HeaderAction(', 1)[0]
-        self.assertIn('fontSize = 20.sp', header)
+        self.assertIn('fontSize = ChromeMetrics.TitleSize', header)
+        metrics = (UI / 'ChromeMetrics.kt').read_text()
+        self.assertIn('TitleSize = 17.sp', metrics)
+        self.assertIn('ControlSize = 44.dp', metrics)
         self.assertIn('fontWeight = FontWeight.SemiBold', header)
         self.assertIn('semantics { heading() }', header)
         self.assertIn('maxLines = 1', header)
@@ -33,11 +36,11 @@ class PageHeaderTests(unittest.TestCase):
         self.assertIn('scaleX = if (rtl) 1f else -1f', source)
         self.assertIn('TooltipBox(text = label)', source)
         self.assertIn('contentDescription = label', source)
-        self.assertIn('defaultMinSize(minWidth = 44.dp, minHeight = 44.dp).clickable(', source)
+        self.assertIn('defaultMinSize(minWidth = ChromeMetrics.ControlSize, minHeight = ChromeMetrics.ControlSize).clickable(', source)
         self.assertIn('indication = null', source)
         self.assertIn('role = Role.Button', source)
-        self.assertIn('Modifier.size(22.dp).then(iconModifier)', source)
-        self.assertIn('Modifier.size(38.dp).then(surface()).indication(interaction, LocalIndication.current)', source)
+        self.assertIn('Modifier.size(ChromeMetrics.IconSize).then(iconModifier)', source)
+        self.assertIn('Modifier.size(ChromeMetrics.ControlSize).then(surface()).indication(interaction, LocalIndication.current)', source)
         self.assertIn('val surface = LocalHeaderSurface.current', source)
         self.assertNotIn('IconButton(', source)
 
@@ -47,7 +50,9 @@ class PageHeaderTests(unittest.TestCase):
         screen = (UI / 'SettingsScreen.kt').read_text()
         title = topbar.split('DriftTopBar(', 1)[1].split('backdrop = backdrop', 1)[0]
         self.assertIn('title = if (selectionMode != null)', title)
-        self.assertIn('selectedIds.size else selectedTowerIds.size', title)
+        self.assertIn('CatalogSelectionMode.Nodes -> selectedIds.size.toLong()', title)
+        self.assertIn('CatalogSelectionMode.Towers -> selectedTowerIds.size.toLong()', title)
+        self.assertIn('titleCapsule = selectionMode != null', title)
         self.assertIn('settingsChild || destination == AppDestination.Settings', title)
         self.assertNotIn('destination in listOf(', title)
         self.assertNotIn('34.sp', (UI / 'CatalogSearch.kt').read_text())
@@ -80,7 +85,8 @@ class PageHeaderTests(unittest.TestCase):
         self.assertIn('onCancel = onCancelSelection, onSelectAll = onSelectAll', actions)
         toolbar = (UI / 'CatalogSelection.kt').read_text()
         top_toolbar = toolbar.split('internal fun CatalogSelectionTopToolbar(', 1)[1]
-        self.assertIn('FloatingToolbar(', top_toolbar)
+        self.assertIn('CatalogActionToolbar(modifier)', top_toolbar)
+        self.assertIn('FloatingToolbar(', (UI / 'CatalogActionToolbar.kt').read_text())
         self.assertIn('SelectionTopAction(true, "取消"', top_toolbar)
         self.assertIn('selectAllLabel', top_toolbar)
         for page in ('NodeLibrary', 'Subscriptions'):

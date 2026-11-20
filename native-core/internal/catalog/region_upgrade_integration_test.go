@@ -9,26 +9,35 @@ import (
 	"testing"
 )
 
-// TestRegionRulesUpgrade 验证已有地区表的 v1 库升级，而非只覆盖首次建表。
+// TestRegionRulesUpgrade 验证已有地区表的各旧版本会重识别，并且升级后不再重复写入。
 func TestRegionRulesUpgrade(t *testing.T) {
+	for _, fromVersion := range []int{1, 2, 3} {
+		t.Run(fmt.Sprintf("v%d", fromVersion), func(t *testing.T) {
+			checkRegionRulesUpgrade(t, fromVersion)
+		})
+	}
+}
+
+func checkRegionRulesUpgrade(t *testing.T, fromVersion int) {
+	t.Helper()
 	ctx := context.Background()
 	s := reviewStore(t)
 	nodes := make([]Node, 103)
 	for i := range nodes {
 		nodes[i] = reviewParse(t, fmt.Sprintf(
-			"proxies: [{name: Tokyo%03d, type: trojan, server: node%d.example, port: 443, password: fixture}]", i, i,
+			"proxies: [{name: hongkong%03d, type: trojan, server: node%d.example, port: 443, password: fixture}]", i, i,
 		))[0]
 	}
 	reviewImport(t, s, "upgrade", nodes)
-	_, err := s.db.ExecContext(ctx, `UPDATE node_regions SET name_region='',manual_region='SG'; PRAGMA user_version=1`)
+	_, err := s.db.ExecContext(ctx, fmt.Sprintf(`UPDATE node_regions SET name_region='',manual_region='SG'; PRAGMA user_version=%d`, fromVersion))
 	requireResult(t, err)
 	requireResult(t, s.migrate(ctx))
 	var version, count int
 	requireResult(t, s.db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version))
 	requireResult(t, s.db.QueryRowContext(ctx,
-		"SELECT count(*) FROM node_regions WHERE name_region='JP' AND manual_region='SG'",
+		"SELECT count(*) FROM node_regions WHERE name_region='HK' AND manual_region='SG'",
 	).Scan(&count))
-	if version != 3 || count != len(nodes) {
+	if version != catalogVersion || count != len(nodes) {
 		t.Fatalf("version=%d, preserved and identified=%d", version, count)
 	}
 	// 第二次初始化不应重新写规则目录或重识别节点，触发器会将误写暴露为错误。

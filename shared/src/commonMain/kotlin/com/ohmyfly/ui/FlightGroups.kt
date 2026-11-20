@@ -1,7 +1,6 @@
 // 固定状态与自定义分组共用全库筛选，重复点击已选自定义组进入管理。
 package com.ohmyfly.ui
 
-import androidx.compose.foundation.border
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.background
@@ -28,9 +27,9 @@ internal fun FlightGroups(catalog: CatalogState) {
     var editing by remember { mutableStateOf<CatalogGroup?>(null) }
     var creating by remember { mutableStateOf(false) }
     val filter = catalog.flightFilter
-    // 标题由 Scaffold 固定，默认分组移动后不再保留在原组。
+    // 标题固定，分组随航班列表滚动；默认分组移动后不再保留在原组。
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        // 分组独立横向滚动；分隔线与添加按钮固定在右侧。
+        // 分组独立横向滚动，右侧添加按钮保持强调。
         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             GroupChip("全部", catalog.groups.counts["default"] ?: 0, filter.groupId == 0L && filter.status == "all") {
@@ -48,10 +47,9 @@ internal fun FlightGroups(catalog: CatalogState) {
                 }
             }
         }
-        VerticalDivider(Modifier.padding(horizontal = 8.dp).height(24.dp))
-        IconButton(onClick = hapticClick { creating = true }, enabled = catalog.ready) {
-            Icon(MirrorIcons.Add, "新建分组")
-        }
+        Spacer(Modifier.width(8.dp))
+        InlineChromeIconButton("新建分组", MirrorIcons.Add,
+            onClick = { creating = true }, enabled = catalog.ready, tint = MiuixTheme.colorScheme.primary)
     }
 
     if (creating || editing != null) FlightGroupEditor(editing, catalog.groups.groups) {
@@ -64,14 +62,24 @@ internal fun FlightGroups(catalog: CatalogState) {
 private fun GroupChip(title: String, count: Long, active: Boolean, onClick: () -> Unit) {
     val colors = MiuixTheme.colorScheme
     val shape = RoundedCornerShape(50)
-    Row(Modifier.clip(shape)
-        .background(if (active) colors.primary.copy(alpha = 0.10f) else colors.surfaceContainer)
-        .border(0.5.dp, if (active) colors.primary.copy(alpha = 0.5f) else colors.outline, shape)
-        .clickable(role = Role.Tab, onClick = hapticClick(onClick)).semantics { selected = active }
-        .heightIn(min = 36.dp).padding(horizontal = 12.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, color = if (active) colors.primary else colors.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-        Text(count.toString(), color = if (active) colors.primary else colors.onSurfaceVariantSummary,
-            fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+    val duration = if (LocalAppMotionAllowed.current) 160 else 0
+    val background by androidx.compose.animation.animateColorAsState(
+        if (active) colors.primary.copy(alpha = 0.10f) else colors.surfaceContainer.copy(alpha = 0.55f),
+        androidx.compose.animation.core.tween(duration), label = "分组背景")
+    val foreground by androidx.compose.animation.animateColorAsState(
+        if (active) colors.primary else colors.onSurfaceVariantSummary,
+        androidx.compose.animation.core.tween(duration), label = "分组文字")
+    // 缩小可见胶囊但保留 44 dp 触控高度；未选项不以粗体或边框抢占注意力。
+    Box(Modifier.heightIn(min = ChromeMetrics.ControlSize)
+        .clickable(role = Role.Tab, onClick = hapticClick(onClick)).semantics { selected = active },
+        contentAlignment = Alignment.Center) {
+        Row(Modifier.clip(shape).background(background)
+            .heightIn(min = 30.dp).padding(horizontal = 10.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(title, color = foreground, fontSize = 12.sp,
+                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal)
+            Text(count.toString(), color = foreground, fontSize = 11.sp,
+                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal)
+        }
     }
 }

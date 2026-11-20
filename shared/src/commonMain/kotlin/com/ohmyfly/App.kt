@@ -322,7 +322,9 @@ private fun AppFrame(
                 .background(background),
             contentAlignment = Alignment.TopCenter,
         ) {
-            Box(Modifier.widthIn(max = 760.dp).fillMaxSize()) { content(padding) }
+            CompositionLocalProvider(LocalChromeAppearance provides ChromeAppearance(glassEnabled, dark, settings.materialMode)) {
+                Box(Modifier.widthIn(max = 760.dp).fillMaxSize()) { content(padding) }
+            }
         }
         com.ohmyfly.ui.FlightFilterSheet(filterOpen, onClose = { filterOpen = false })
         MirrorDialog(

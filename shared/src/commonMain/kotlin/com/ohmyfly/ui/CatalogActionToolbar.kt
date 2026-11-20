@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,7 +18,7 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 材质只绘制一次；48 dp 点击区加两侧留白形成 52 dp 高的工具栏。 */
+/** 控件统一为 44 dp 点击区，工具栏宽度由动作数量自然撑开。 */
 @Composable
 internal fun CatalogActionToolbar(
     modifier: Modifier,
@@ -31,8 +30,8 @@ internal fun CatalogActionToolbar(
         outSidePadding = PaddingValues(0.dp),
     ) {
         Row(
-            modifier = modifier.padding(2.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = modifier,
+            horizontalArrangement = Arrangement.spacedBy(ChromeMetrics.ActionGap),
             verticalAlignment = Alignment.CenterVertically,
             content = content,
         )
@@ -51,13 +50,13 @@ internal fun CatalogToolbarAction(
         IconButton(
             onClick = hapticClick(onClick),
             enabled = enabled,
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(ChromeMetrics.ControlSize),
             backgroundColor = Color.Transparent,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(ChromeMetrics.IconSize),
                 tint = if (enabled) MiuixTheme.colorScheme.onSurface
                     else MiuixTheme.colorScheme.disabledOnSurface,
             )

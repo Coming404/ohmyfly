@@ -25,7 +25,7 @@ internal fun CatalogViewport(
     failed: Boolean,
     onPage: (Int) -> Unit,
 ) {
-    LaunchedEffect(list, currentPage, loaded, count, failed) {
+    LaunchedEffect(list, headerCount, currentPage, loaded, count, failed) {
         if (failed || count == 0L) return@LaunchedEffect
         snapshotFlow {
             list.layoutInfo.visibleItemsInfo.map { it.index - headerCount }
