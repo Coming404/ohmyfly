@@ -65,4 +65,3 @@ internal const val QUEUE_CAPACITY = 256
 
 @OptIn(ExperimentalUuidApi::class)
 internal fun newLogId(): String = Uuid.random().toString()
-)

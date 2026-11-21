@@ -170,10 +170,3 @@ internal fun LogBusyHint(text: String) {
         SettingsHint(text)
     }
 }
- }
-}
-text)
-    }
-}
- }
-}
