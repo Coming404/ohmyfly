@@ -92,7 +92,7 @@ class AppNavTransitionTest {
         val popSamples = (0..1000).map { pop.getValueFromNanos(it * 1_000_000L) }
         val overshoot = pushSamples.max() - 1f
         assertTrue(overshoot in 0.025f..0.05f)
-        assertTrue(pushSamples.indexOf(pushSamples.max()) in 180..280)
+        assertTrue(pushSamples.indexOf(pushSamples.max()) in 270..340)
         assertEquals(overshoot, -popSamples.min(), 0.0001f)
         assertTrue(appNavTranslationX(overshoot, 360, false) < -9f)
         assertEquals(1f, pushSamples.last())

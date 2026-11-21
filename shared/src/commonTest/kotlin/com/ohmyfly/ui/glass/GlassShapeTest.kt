@@ -13,17 +13,24 @@ import kotlin.test.assertIs
 
 class GlassShapeTest {
     @Test
-    fun contentCornersUseContinuousPathsWithoutChangingBounds() {
-        val shape = com.ohmyfly.shapes.AppCorners.shape(16.dp)
-        for (density in listOf(Density(1f), Density(2f))) {
-            val size = Size(200f, 160f)
-            val outline = assertIs<Outline.Generic>(shape.createOutline(size, LayoutDirection.Ltr, density))
-            val bounds = outline.path.getBounds()
-            assertEquals(0f, bounds.left, 0.0001f)
-            assertEquals(0f, bounds.top, 0.0001f)
-            assertEquals(size.width, bounds.right, 0.0001f)
-            assertEquals(size.height, bounds.bottom, 0.0001f)
+    fun contentCornerRadiiScaleByDensityAndClampToHalfBounds() {
+        val shape = com.ohmyfly.shapes.AppCorners.shape(16.dp) as com.ohmyfly.shapes.ContinuousShape
+        assertEquals(16.dp, shape.radius)
+        val rounded = com.kyant.shapes.RoundedRectangle(shape.radius, com.kyant.shapes.RoundedCornerStyle.Continuous)
+        val size = Size(200f, 160f)
+        for ((density, expected) in listOf(Density(1f) to 16f, Density(2f) to 32f)) {
+            val corners = rounded.corners(size, LayoutDirection.Ltr, density)
+            assertEquals(expected, corners.topLeft)
+            assertEquals(expected, corners.topRight)
+            assertEquals(expected, corners.bottomRight)
+            assertEquals(expected, corners.bottomLeft)
         }
+        val constrained = com.kyant.shapes.RoundedRectangle(100.dp, com.kyant.shapes.RoundedCornerStyle.Continuous)
+            .corners(size, LayoutDirection.Ltr, Density(2f))
+        assertEquals(80f, constrained.topLeft)
+        assertEquals(80f, constrained.topRight)
+        assertEquals(80f, constrained.bottomRight)
+        assertEquals(80f, constrained.bottomLeft)
     }
 
     @Test
