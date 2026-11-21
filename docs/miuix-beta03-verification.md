@@ -28,7 +28,15 @@
 - beta03发布metadata已核对Android、iosArm64、iosSimulatorArm64；两端预编译glass依赖公共miuix-material坐标，因此命中项目替换。
 - squircle13个公开函数与beta03匹配；原模块身份和4个JVM门面保留。
 - 现有Python接线检查91项通过（4.211s）；项目结构、文档链接及本轮限定差异格式检查通过。旧引擎专用断言随实现删除，设置读写、路由、无障碍与主题检查保留。
-- 当前尚未运行Kotlin/Gradle、Android/iOS云构建或真机shader与帧时间检查。新增源码生成模块、iOS Klib链接、AGSL/SkSL编译及实际性能由后续双端构建/设备验收确认。
+- 云端 Android 编译、415项共享测试、APK签名校验通过；iOS编译、静态框架链接、Release归档和IPA打包通过。运行时AGSL/SkSL、真实玻璃边界与帧时间仍待设备验收。
+
+## 云构建结果
+
+- `abd1634` 完整升级已提交推送；首轮 run 44927834914 暴露 compileSdk37.2要求与真机单目标缺少iosMain源集的问题。
+- `00de3c4` 对齐compileSdk37.2（minSdk33、targetSdk37不变），从统一版本目录安装SDK，并将Skiko源码连接实际Native目标。
+- [iOS成功作业](https://github.com/Coming404/ohmyfly/actions/runs/44929164764/job/136921781069)基于`00de3c4`。该run整体失败来自Android生成源码与profile扫描缺少任务依赖，iOS归档及IPA均成功。
+- `68b5b96`仅补Android profile任务对源码解包的依赖，没有改变产品Kotlin源码。[Android成功构建](https://github.com/Coming404/ohmyfly/actions/runs/44929949059)通过415项共享测试，无失败或跳过，并生成arm64-v8a、armeabi-v7a、x86_64三个签名APK。
+- [Project checks](https://github.com/Coming404/ohmyfly/actions/runs/44929940475)通过。未在本地运行Gradle/Xcode，未下载APK/IPA，产物保留GitHub Actions。
 
 ## 后续设备核验重点
 
@@ -37,4 +45,4 @@
 3. 折射边界、细高光和阴影在滚动及形变中是否贴合，检查GPU帧时间。
 4. Expressive两端配色、旧设置读取为新默认值、正常写入只保存新枚举。
 
-本轮没有提交或推送，也没有触发云构建。
+升级与构建修复均已按用户批准提交推送。安装包按用户要求留在GitHub Actions，不下载到本地。

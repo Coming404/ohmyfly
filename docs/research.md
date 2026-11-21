@@ -17,7 +17,7 @@ Klibs 查询确认 compose-miuix-ui/miuix 的 Android、ios_arm64、ios_simulato
 
 界面只有液态玻璃和 Expressive 两档，均使用 Miuix 控件。Expressive 是配色与不透明表面方案，不引入第二套 Material3 控件。官方圆角未满足现有 G2 契约，采用 ui-shapes 与 ui-material 本地模块替换，详细接口与补丁见各模块 README。
 
-该组合的 Kotlin 编译、iOS Klib 链接和真机 shader 验收尚未完成，历史0.9.4构建不算此次升级验收。iOS16/API33产品目标保持不变。
+该组合已通过Android编译、415项共享测试及iOS Klib链接/Release归档，记录见[beta03验证](miuix-beta03-verification.md)。Android compileSdk对齐37.2，iOS16/API33产品最低目标保持不变，运行时shader与最低系统真机表现待验收。
 
 ## 2. 项目脚手架
 

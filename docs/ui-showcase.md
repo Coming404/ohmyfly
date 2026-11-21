@@ -1,6 +1,6 @@
 # UI 实现与验收
 
-Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留概览、塔台、起飞、航班、设置五个入口。本轮源码迁移到Miuix0.9.5-beta03，使用液态玻璃／Expressive两档风格与Glass图标。此前e323e8e的双端Release已通过，本轮新增材质G2补丁及升级后的双端编译、真机渲染尚待验证；记录见[beta03验证](miuix-beta03-verification.md)。
+Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留概览、塔台、起飞、航班、设置五个入口。本轮源码迁移到Miuix0.9.5-beta03，使用液态玻璃／Expressive两档风格与Glass图标。本轮新增材质G2补丁及升级已通过Android编译、415项共享测试与iOS Release归档，真机shader渲染和帧时间待验收；记录见[beta03验证](miuix-beta03-verification.md)。
 
 ## 页面与状态
 
