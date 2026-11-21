@@ -25,6 +25,11 @@ val upstreamSources = tasks.register<Sync>("prepareUpstreamSources") {
     into(layout.buildDirectory.dir("generated/upstream"))
 }
 
+// AGP 会扫描生成源目录旁的 baselineProfiles，需要明确依赖源码解包任务。
+tasks.matching { it.name == "prepareAndroidMainArtProfile" }.configureEach {
+    dependsOn(upstreamSources)
+}
+
 kotlin {
     jvmToolchain(21)
     android {
