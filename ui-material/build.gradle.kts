@@ -1,5 +1,6 @@
 // 从固定官方源码生成材质模块，只替换统一 G2 轮廓所需的实现文件。
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -28,7 +29,7 @@ kotlin {
     jvmToolchain(21)
     android {
         namespace = "com.ohmyfly.material"
-        compileSdk { version = release(libs.versions.android.compileSdk.get().toInt()) }
+        compileSdk { version = release(libs.versions.android.compileSdk.get().toInt()) { minorApiLevel = libs.versions.android.compileSdkMinor.get().toInt() } }
         minSdk = libs.versions.android.minSdk.get().toInt()
         compilerOptions { jvmTarget.set(JvmTarget.JVM_21) }
     }
@@ -55,11 +56,14 @@ kotlin {
             dependencies { implementation(libs.androidx.lifecycle.runtime.compose) }
         }
         if (appleHost) {
-            val skikoMain by creating {
+            val skikoMain = create("skikoMain") {
                 dependsOn(commonMain.get())
                 kotlin.srcDir(upstreamSources.map { it.destinationDir.resolve("skikoMain") })
             }
-            getByName("iosMain").dependsOn(skikoMain)
+            // 真机单目标没有自动 iosMain，直接连接已注册目标的主源集。
+            targets.withType<KotlinNativeTarget>().configureEach {
+                compilations.getByName("main").defaultSourceSet.dependsOn(skikoMain)
+            }
         }
     }
 }
