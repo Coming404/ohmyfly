@@ -32,11 +32,9 @@ internal fun LogActions(state: LogPageState, storage: LogStorageState) {
     val messages = LocalAppMessages.current
     var configuring by remember { mutableStateOf(false) }
     Column {
-        Row(verticalAlignment = Alignment.Bottom) {
-            Column(Modifier.weight(1f)) {
-                SettingsSectionTitle("日志文件 ${storage.files} 个 ${logBytes(storage.bytes)}", SettingsIcons.File)
-                if (configuring) LogBusyHint("正在配置日志存储…")
-            }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SettingsSectionTitle("日志文件 ${storage.files} 个 ${logBytes(storage.bytes)}", SettingsIcons.File,
+                modifier = Modifier.weight(1f), topPadding = 0.dp)
             LogIconButton(if (state.busy || configuring) "正在刷新" else "刷新日志", SettingsIcons.Retry,
                 enabled = !state.busy && !configuring, busy = state.busy || configuring) {
                 scope.launch(start = CoroutineStart.UNDISPATCHED) {
@@ -58,6 +56,7 @@ internal fun LogActions(state: LogPageState, storage: LogStorageState) {
                 }
             }
         }
+        if (configuring) LogBusyHint("正在配置日志存储…")
     }
 }
 

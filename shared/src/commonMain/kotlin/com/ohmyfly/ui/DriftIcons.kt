@@ -14,14 +14,18 @@ import top.yukonga.miuix.kmp.icon.basic.Close
 import top.yukonga.miuix.kmp.icon.extended.Home
 import top.yukonga.miuix.kmp.icon.extended.Layers
 import top.yukonga.miuix.kmp.icon.extended.Link
+import top.yukonga.miuix.kmp.icon.extended.Merge
 import top.yukonga.miuix.kmp.icon.extended.Settings
+import top.yukonga.miuix.kmp.icon.extended.Send
 import top.yukonga.miuix.kmp.icon.extended.Stopwatch
 
 /** Shared Miuix icons from the complete library; only the BrandMark is original. */
 internal object DriftIcons {
     val Overview = MiuixIcons.Home
     val Nodes = MiuixIcons.Layers
+    val Flights = MiuixIcons.Send
     val Subscriptions = MiuixIcons.Link
+    val ContentHash = MiuixIcons.Merge
     val Settings = MiuixIcons.Settings
     val Speed = MiuixIcons.Stopwatch
     val Clear = MiuixIcons.Basic.Close

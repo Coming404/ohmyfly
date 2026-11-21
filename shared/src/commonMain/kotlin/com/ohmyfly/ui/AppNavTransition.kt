@@ -6,10 +6,12 @@ import top.yukonga.miuix.kmp.nav.transition.NavSettleSpec
 import top.yukonga.miuix.kmp.nav.transition.NavTransition
 import top.yukonga.miuix.kmp.nav.transition.navGraphicsTransition
 
-// About 4% full-step overshoot; subpage motion is independent of the root pager.
+private const val APP_NAV_BASE_STIFFNESS = 400f
+
+// 与主导航相同，时长约增加 35%；保留原有阻尼、过冲和速度响应。
 private val appNavSettleSpec = NavSettleSpec.Spring(
     dampingRatio = 0.72f,
-    stiffness = 400f,
+    stiffness = APP_NAV_BASE_STIFFNESS / (AppNavigationDurationMultiplier * AppNavigationDurationMultiplier),
     clampOvershoot = false,
 )
 

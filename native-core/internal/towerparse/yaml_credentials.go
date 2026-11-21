@@ -12,7 +12,7 @@ import (
 
 func yamlCredentialField(field string) bool {
 	switch field {
-	case "password", "username", "psk", "auth-str", "token", "private-key-passphrase", "obfs-password":
+	case "password", "username", "psk", "auth-str", "token", "auth-key", "private-key-passphrase", "obfs-password":
 		return true
 	}
 	return false

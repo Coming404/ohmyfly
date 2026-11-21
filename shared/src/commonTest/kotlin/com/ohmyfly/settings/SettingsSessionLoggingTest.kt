@@ -44,7 +44,7 @@ class SettingsSessionLoggingTest {
         } finally { logs.close() }
     }
 
-    @Test fun finalResultWaitsForReadbackAndSurvivesInformationLevel() = runTest {
+    @Test fun finalResultWaitsForReadbackAndSurvivesInfoLogEvent() = runTest {
         val logs = SettingsLogCapture()
         var disk = AppSettings(logging = com.ohmyfly.logging.LogPolicy(level = LogLevel.Detail))
         var reads = 0
@@ -58,7 +58,7 @@ class SettingsSessionLoggingTest {
         try {
             backgroundScope.launch { session.run() }
             runCurrent()
-            session.change("日志记录级别") { it.copy(logging = it.logging.copy(level = LogLevel.Info)) }
+            session.change("日志保留时间") { it.copy(logging = it.logging.copy(retentionDays = 8)) }
             runCurrent()
             assertFalse(logs.messages.any { it.contains("已保存并读回确认") })
             write.complete(Unit)
@@ -68,8 +68,8 @@ class SettingsSessionLoggingTest {
             read.complete(Unit)
             runCurrent()
             val results = logs.messages.filter { it.contains("已保存并读回确认") }
-            assertEquals(listOf("[设置] 已保存并读回确认：日志记录级别改为信息"), results)
-            assertEquals(LogLevel.Info, session.state.confirmedSettings!!.logging.level)
+            assertEquals(listOf("[设置] 已保存并读回确认：日志保留时间改为 8 天"), results)
+            assertEquals(8, session.state.confirmedSettings!!.logging.retentionDays)
         } finally { logs.close() }
     }
 

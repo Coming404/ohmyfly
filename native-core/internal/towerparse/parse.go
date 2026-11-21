@@ -102,7 +102,12 @@ func parseLinks(source io.Reader, emit func(flight.Flight) error, stats Stats) (
 			stats.skip("invalid " + protocol + " link")
 			continue
 		}
-		value, err := flight.Normalize(node)
+		var value flight.Flight
+		if protocol == "mieru" {
+			value, err = flight.NormalizeYAML(node)
+		} else {
+			value, err = flight.Normalize(node)
+		}
 		if err != nil {
 			stats.skip("invalid " + protocol + " link")
 			continue

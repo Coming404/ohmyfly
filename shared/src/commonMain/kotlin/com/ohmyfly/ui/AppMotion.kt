@@ -7,6 +7,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.MotionDurationScale
 
 internal const val AppTransitionDurationMillis = 180
+internal const val AppNavigationDurationMultiplier = 1.35f
 internal val LocalAppMotionAllowed = staticCompositionLocalOf { true }
 
 internal fun appMotionAllowed(reduceMotion: Boolean, systemScale: Float): Boolean =

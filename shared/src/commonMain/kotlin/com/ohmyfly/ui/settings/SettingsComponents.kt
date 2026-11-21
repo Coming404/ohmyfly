@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -42,8 +43,13 @@ internal fun SettingsName(text: String) {
 }
 
 @Composable
-internal fun SettingsSectionTitle(text: String, icon: ImageVector) {
-    Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 8.dp)
+internal fun SettingsSectionTitle(
+    text: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    topPadding: Dp = 8.dp,
+) {
+    Row(modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = topPadding)
         .semantics(mergeDescendants = true) { heading() },
         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, null, Modifier.size(18.dp), tint = MiuixTheme.colorScheme.onSurface)

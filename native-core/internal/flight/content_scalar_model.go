@@ -21,11 +21,14 @@ var proxyIntegerFields = map[string]bool{
 }
 
 var proxyBooleanFields = map[string]bool{
-	"tfo":                true,
-	"udp":                true,
-	"skip-cert-verify":   true,
-	"tls":                true,
-	"disable-sni":        true,
-	"mptcp":              true,
-	"remote-dns-resolve": true,
+	"tfo":                        true,
+	"udp":                        true,
+	"skip-cert-verify":           true,
+	"tls":                        true,
+	"disable-sni":                true,
+	"mptcp":                      true,
+	"remote-dns-resolve":         true,
+	"ephemeral":                  true,
+	"accept-routes":              true,
+	"exit-node-allow-lan-access": true,
 }

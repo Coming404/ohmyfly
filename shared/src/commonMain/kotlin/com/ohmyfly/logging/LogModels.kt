@@ -6,13 +6,13 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @Serializable
-internal enum class LogLevel(val label: String) { Info("信息"), Detail("详细") }
+internal enum class LogLevel(val label: String) { Info("信息"), Detail("详情") }
 
 internal data class LogPolicy(
     val fileMiB: Long = 8,
     val totalMiB: Long = 128,
     val retentionDays: Long = 7,
-    val level: LogLevel = LogLevel.Info,
+    val level: LogLevel = LogLevel.Detail,
 ) {
     fun validate() {
         if (fileMiB <= 0 || totalMiB < fileMiB || retentionDays <= 0 ||
@@ -65,3 +65,4 @@ internal const val QUEUE_CAPACITY = 256
 
 @OptIn(ExperimentalUuidApi::class)
 internal fun newLogId(): String = Uuid.random().toString()
+)

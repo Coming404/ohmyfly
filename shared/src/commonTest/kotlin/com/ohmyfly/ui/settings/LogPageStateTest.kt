@@ -61,12 +61,11 @@ class LogPageStateTest {
         assertNotNull(state.failure)
     }
 
-    @Test fun failureRemainsVisibleAndLevelSelectionReachesReader() = runTest {
-        var level = LogLevel.Detail
+    @Test fun failureRemainsVisibleAndReaderAlwaysRequestsDetail() = runTest {
+        var level = LogLevel.Info
         val state = LogPageState(read = { _, selected, _ -> level = selected; error("disk") })
         state.select(file)
-        state.changeLevel(LogLevel.Info)
-        assertEquals(LogLevel.Info, level)
+        assertEquals(LogLevel.Detail, level)
         assertNotNull(state.failure)
         assertFalse(state.busy)
     }
@@ -86,17 +85,15 @@ class LogPageStateTest {
         assertFalse(state.busy)
     }
 
-    @Test fun levelChangeRejectsEarlierLevelResult() = runTest {
-        val gate = CompletableDeferred<LogFilePage>()
-        val state = LogPageState(read = { _, level, _ ->
-            if (level == LogLevel.Detail) gate.await() else LogFilePage(listOf(row("info")))
+    @Test fun paginationAlwaysRequestsDetailLevel() = runTest {
+        val levels = mutableListOf<LogLevel>()
+        val state = LogPageState(read = { _, level, at ->
+            levels += level
+            page(at?.offset ?: 9)
         })
-        val old = launch { state.select(file) }
-        runCurrent()
-        state.changeLevel(LogLevel.Info)
-        gate.complete(LogFilePage(listOf(row("detail"))))
-        old.join()
-        assertEquals(listOf("info"), state.entries.map { it.id })
+        state.select(file)
+        state.more(false)
+        assertEquals(listOf(LogLevel.Detail, LogLevel.Detail), levels)
     }
 
     @Test fun clearFailureKeepsContentsAndReportsFailure() = runTest {

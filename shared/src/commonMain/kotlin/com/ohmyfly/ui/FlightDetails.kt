@@ -1,5 +1,6 @@
 package com.ohmyfly.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -15,6 +16,12 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.overlay.OverlayBottomSheet
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+@Composable
+internal fun FlightDetailsDivider() {
+    Box(Modifier.fillMaxWidth().height(0.5.dp).background(MiuixTheme.colorScheme.dividerLine))
+}
 
 @Composable
 internal fun FlightDetails(flight: CatalogFlight, revision: Long) {
@@ -43,10 +50,10 @@ internal fun FlightDetails(flight: CatalogFlight, revision: Long) {
             failure = "航班详情读取失败"
         } finally { loading = false }
     }
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             FlightSummary(flight, config)
             CatalogAction("移动到分组", DriftIcons.Nodes) { moving = true }
-            HorizontalDivider()
+            FlightDetailsDivider()
             if (loading) CircularProgressIndicator()
             failure?.let {
                 CatalogNotice(it)

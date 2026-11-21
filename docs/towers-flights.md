@@ -6,7 +6,9 @@
 
 塔台页右上角“添加”打开 Miuix `OverlayBottomSheet`。订阅地址／协议链接／YAML 正文、Mihomo YAML 文件、全网打野按同组来源行展示，可独立展开并保留草稿；正文区可滚动，添加按钮固定在抽屉底部。“合并为一个塔台”开关保留，全网打野当前仅占位。
 
-- **订阅地址／协议链接／YAML 正文**：多行输入自动识别 HTTP(S) 订阅、节点协议链接或配置正文。HTTP(S) 来源可再次同步；节点链接与正文交给 Go 解析，同批重复地址合并。输入支持粘贴和行数／字符数显示。
+- **订阅地址／协议链接／YAML 正文**：多行输入自动识别 HTTP(S) 订阅、节点协议链接或配置正文。Mieru 与 OpenVPN 支持应用内部编辑链接输入；HTTP(S) 来源可再次同步，其他节点链接和 YAML 正文导入后保存为 Mihomo 节点字段，并可导出为 YAML。Tailscale 仅通过 Mihomo YAML 导入和导出，不提供服务器地址链接格式。
+
+应用内部链接只用于节点导入：Mieru 使用 `mieru://[username:password@]server:port?...#name`，端口范围使用 `portRange=2090-2099`；OpenVPN 使用 `openvpn://server:1194?...#name`。OpenVPN 的 `data-ciphers` 和 `dns` 可用重复 query key 表示，`peer-info` 和 `ip-stack` 使用 URL 编码的 JSON 对象。这些是 OhMyFly 内部格式，不是 Mihomo 标准分享链接。
 - **Mihomo YAML 文件**：Android/iOS 系统选择器支持多选和逐项移除。选择时只保存本次引用，轮到来源执行时才读取 UTF-8 正文，避免整批文件同时常驻内存。取消系统选择保留原有草稿。
 
 “合并为一个塔台”默认关闭，关闭时每个来源独立建塔台；开启后显示一个塔台并持久保存全部来源。合并塔台的同步更新其中的网络地址，本地来源在“更多”中的来源列表按来源 ID 重新导入。一个来源失败保留其上次成功节点，不清空其他来源。来源之间仍执行基础 ContentHash 去重，来源身份和节点关联分别保存。合并塔台不相加不同套餐的流量额度。

@@ -1,4 +1,4 @@
-// 日志设置复用现有自动保存表单；只提供信息、详细两个级别。
+// 记录级别固定为详情，存储容量和保留时间继续由用户配置。
 package com.ohmyfly.ui.settings
 
 import androidx.compose.runtime.Composable
@@ -13,13 +13,10 @@ import com.ohmyfly.settings.DayMillis
 import com.ohmyfly.settings.MiB
 
 @Composable
-internal fun LogPolicyCard(settings: AppSettings, onChange: (String, (AppSettings) -> AppSettings) -> Unit) {
+internal fun LogPolicyCard(settings: AppSettings) {
     var expanded by remember { mutableStateOf(false) }
     SettingsCard {
-        ChoiceSetting("记录级别", settings.logging.level.name,
-            LogLevel.entries.map { it.name to it.label }, SettingsIcons.Filter) { value ->
-            onChange("日志记录级别") { it.copy(logging = it.logging.copy(level = LogLevel.valueOf(value))) }
-        }
+        SettingsInfo("记录级别", "", SettingsIcons.Filter, value = LogLevel.Detail.label)
         SettingsExpandableRow("存储设置",
             "${settings.logging.fileMiB} / ${settings.logging.totalMiB} MiB  ${settings.logging.retentionDays} 天",
             SettingsIcons.Tune, expanded) { expanded = !expanded }

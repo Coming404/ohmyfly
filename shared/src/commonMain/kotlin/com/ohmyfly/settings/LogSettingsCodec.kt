@@ -18,7 +18,7 @@ internal object LogSettingsCodec {
         target[file] = policy.fileMiB
         target[total] = policy.totalMiB
         target[days] = policy.retentionDays
-        target[level] = policy.level.name
+        target[level] = LogLevel.Detail.name
     }
 
     fun read(preferences: Preferences): LogPolicy {
@@ -26,11 +26,10 @@ internal object LogSettingsCodec {
         val fileMiB = preferences.longOr(file, defaults.fileMiB, Long.MAX_VALUE / MiB)
         // 两个数值分别合法但相互矛盾时，保证能容纳一个完整文件。
         val totalMiB = preferences.longOr(total, defaults.totalMiB, Long.MAX_VALUE / MiB).coerceAtLeast(fileMiB)
-        val rawLevel = runCatching { preferences[level] }.getOrNull()
         return LogPolicy(
             fileMiB = fileMiB, totalMiB = totalMiB,
             retentionDays = preferences.longOr(days, defaults.retentionDays, Long.MAX_VALUE / DayMillis),
-            level = LogLevel.entries.firstOrNull { it.name == rawLevel } ?: defaults.level,
+            level = LogLevel.Detail,
         )
     }
 

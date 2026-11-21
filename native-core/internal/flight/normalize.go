@@ -283,7 +283,7 @@ func normalizeStringFields(node map[string]any) {
 			continue
 		}
 		switch key {
-		case "password", "username", "psk", "auth-str", "token", "private-key-passphrase", "obfs-password":
+		case "password", "username", "psk", "auth-str", "token", "auth-key", "private-key-passphrase", "obfs-password":
 			switch scalar := value.(type) {
 			case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 				node[key] = fmt.Sprint(scalar)
@@ -295,7 +295,8 @@ func normalizeStringFields(node map[string]any) {
 // Upstream keeps YAML numbers as JS Numbers, so these fields accept a string
 // or an integer a Number holds exactly; anything else rejects the node.
 var mihomoStringScalarFields = []string{
-	"password", "username", "psk", "auth-str", "token", "private-key-passphrase", "obfs-password",
+	"password", "username", "psk", "auth-str", "token", "auth-key", "private-key-passphrase", "obfs-password",
+	"hostname", "control-url", "state-dir", "exit-node",
 }
 
 const maxSafeInteger = 1<<53 - 1

@@ -1,13 +1,13 @@
 package com.ohmyfly.ui
 
-import com.ohmyfly.shapes.AppCorners
-
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.background
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.catalog.CatalogFlight
@@ -20,59 +20,79 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 internal fun FlightSummary(flight: CatalogFlight, config: JsonObject?) {
     val metrics = flight.measurements.metrics
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf("latency" to "延迟", "download" to "下载", "upload" to "上传").forEach { (kind, label) ->
-            Row(Modifier.weight(1f).background(MiuixTheme.colorScheme.surfaceVariant, AppCorners.shape(AppCorners.inset(AppCorners.Card, 14.dp)))
-                .padding(vertical = 12.dp, horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(when (kind) { "download" -> SettingsIcons.Download; "upload" -> SettingsIcons.Upload; else -> SettingsIcons.Timer },
-                    label, Modifier.size(20.dp), tint = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-                Text(compactMetric(metrics[kind], "—"), modifier = Modifier.weight(1f), fontSize = 16.sp,
-                    color = metricColor(metrics[kind]), maxLines = 1, autoSize = CatalogTextSizing.Body)
-            }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            MetricValue(Modifier.weight(1f), SettingsIcons.Timer, compactMetric(metrics["latency"], "—"), metricColor(metrics["latency"]))
+            MetricValue(Modifier.weight(1f), SettingsIcons.Download, compactMetric(metrics["download"], "—"), metricColor(metrics["download"]))
+            MetricValue(Modifier.weight(1f), SettingsIcons.Upload, compactMetric(metrics["upload"], "—"), metricColor(metrics["upload"]))
         }
+        DetailStatus("ContentHash", config?.get("contentHash")?.jsonPrimitive?.contentOrNull
+            ?: if (config == null) "正在读取" else "—", DriftIcons.ContentHash, copyable = true)
+        val group = (config?.get("group") as? JsonObject)?.get("name")?.jsonPrimitive?.content
+            ?: if (config == null) "正在读取" else "全部"
+        DetailStatus("所属分组", group, DriftIcons.Nodes)
+        val sources = config?.get("sources") as? JsonArray
+        DetailStatus("所属塔台", sources?.mapNotNull { (it as? JsonObject)?.get("towerName")?.jsonPrimitive?.content }
+            ?.distinct()?.joinToString("、")?.ifBlank { "暂无来源" } ?: if (config == null) "正在读取" else "暂无来源",
+            DriftIcons.Subscriptions)
+        UnlockSummary(flight)
+        val last = flight.measurements.latestRun
+        if (!last?.reason.isNullOrBlank()) CatalogNotice(last!!.reason,
+            if (last.status == "failed") CatalogNoticeKind.Error else CatalogNoticeKind.Warning)
+        val measuredAt = last?.finishedAt ?: last?.startedAt
+        DetailStatus("最近测试", last?.let {
+            resultStatus(it.status) + (measuredAt?.let { time -> " ${catalogAge(time)}" } ?: "")
+        } ?: "未测试", SettingsIcons.Retry)
     }
-    DetailStatus("所属分组", if (config == null) "正在读取" else
-        (config["group"] as? JsonObject)?.getValue("name")?.jsonPrimitive?.content ?: "全部", DriftIcons.Nodes)
-    val sources = config?.get("sources") as? JsonArray
-    DetailStatus("所属塔台", sources?.map { it.jsonObject.getValue("towerName").jsonPrimitive.content }
-        ?.distinct()?.joinToString("、")?.ifBlank { "暂无来源" } ?: "正在读取", DriftIcons.Subscriptions)
-    Row(Modifier.fillMaxWidth().background(MiuixTheme.colorScheme.surfaceVariant, AppCorners.shape(AppCorners.inset(AppCorners.Card, 14.dp)))
-        .padding(12.dp), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+}
+
+@Composable
+private fun MetricValue(modifier: Modifier, icon: ImageVector, value: String, color: androidx.compose.ui.graphics.Color) {
+    Row(modifier.heightIn(min = 44.dp), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, Modifier.size(18.dp), tint = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+        Text(value, fontSize = 13.sp, color = color, maxLines = 1)
+    }
+}
+
+@Composable
+private fun UnlockSummary(flight: CatalogFlight) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically) {
         CatalogTile(MirrorIcons.Globe, 32)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text("流媒体解锁", fontSize = 12.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text("流媒体解锁", fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
             if (flight.measurements.platforms.isEmpty()) Text("未测试", fontSize = 14.sp)
-            else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 flight.measurements.platforms.forEach { result ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        PlatformIcons.forPlatform(result.platform)?.let { PlatformIcon(it, Modifier.size(22.dp)) }
-                        Text(resultStatus(result.status), fontSize = 11.sp)
-                        if (result.region.isNotBlank()) Row(verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        PlatformIcons.forPlatform(result.platform)?.let { PlatformIcon(it, Modifier.size(18.dp)) }
+                        Text(resultStatus(result.status), fontSize = 12.sp)
+                        if (result.region.isNotBlank()) {
                             CountryFlag(result.region, Modifier.size(18.dp))
-                            Text(result.region, fontSize = 11.sp)
+                            Text(result.region, fontSize = 12.sp)
                         }
                     }
                 }
             }
         }
     }
-    val last = flight.measurements.latestRun
-    if (!last?.reason.isNullOrBlank()) CatalogNotice(last!!.reason, if (last.status == "failed") CatalogNoticeKind.Error else CatalogNoticeKind.Warning)
-    val measuredAt = last?.finishedAt ?: last?.startedAt
-    DetailStatus("最近测试", last?.let { resultStatus(it.status) + (measuredAt?.let { time -> " ${catalogAge(time)}" } ?: "") } ?: "未测试",
-        SettingsIcons.Retry)
 }
 
 @Composable
-private fun DetailStatus(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    Row(Modifier.fillMaxWidth().background(MiuixTheme.colorScheme.surfaceVariant, AppCorners.shape(AppCorners.inset(AppCorners.Card, 14.dp)))
-        .padding(12.dp), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+private fun DetailStatus(label: String, value: String, icon: ImageVector, copyable: Boolean = false) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically) {
         CatalogTile(icon, 32)
-        Text(label, fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-        Text(value, modifier = Modifier.weight(1f), fontSize = 14.sp, textAlign = TextAlign.End)
+        Text(label, Modifier.width(96.dp), fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            maxLines = 1)
+        val valueText: @Composable () -> Unit = {
+            Text(value, Modifier.fillMaxWidth(), fontSize = if (copyable) 11.sp else 14.sp,
+                fontFamily = if (copyable) FontFamily.Monospace else FontFamily.Default,
+                textAlign = TextAlign.End, softWrap = copyable, maxLines = if (copyable) Int.MAX_VALUE else 2)
+        }
+        if (copyable) SelectionContainer(Modifier.weight(1f)) { valueText() }
+        else Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) { valueText() }
     }
 }

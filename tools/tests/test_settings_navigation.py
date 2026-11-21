@@ -53,7 +53,7 @@ class SettingsNavigationTests(unittest.TestCase):
         self.assertIn('motion = appNavMotion', nav_transition)
         self.assertIn('NavSettleSpec.Spring(', nav_transition)
         self.assertIn('dampingRatio = 0.72f', nav_transition)
-        self.assertIn('stiffness = 400f', nav_transition)
+        self.assertIn('stiffness = APP_NAV_BASE_STIFFNESS / (AppNavigationDurationMultiplier * AppNavigationDurationMultiplier)', nav_transition)
         self.assertNotIn('PagerNavigationSpringSpec', nav_transition)
         self.assertIn('translationX = appNavTranslationX(', nav_transition)
         self.assertNotIn('coerceIn', nav_transition)
@@ -75,6 +75,8 @@ class SettingsNavigationTests(unittest.TestCase):
         self.assertIn('HorizontalPager(', app)
         self.assertIn('userScrollEnabled = false', app)
         self.assertIn('springAnimateToPage(targetPage)', app)
+        self.assertIn('systemMotionScale * AppNavigationDurationMultiplier', app)
+        self.assertIn('AppNavigationDurationMultiplier = 1.35f', (COMMON / 'ui/AppMotion.kt').read_text())
         self.assertIn('else pagerState.scrollToPage(targetPage)', app)
 
     def test_mirror_editor_back_precedes_route_and_preserves_cancelled_gestures(self):

@@ -25,7 +25,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 internal fun LogsSettingsPage(
     settings: AppSettings,
-    onChange: (String, (AppSettings) -> AppSettings) -> Unit,
     padding: PaddingValues,
     onClearActionChange: ((() -> Unit)?) -> Unit,
 ) {
@@ -42,7 +41,7 @@ internal fun LogsSettingsPage(
         refreshingText = "正在重新获取日志") {
     SettingsList(padding) {
         item("title") { SettingsPageIntro("日志") }
-        item("policy") { LogPolicyCard(settings, onChange) }
+        item("policy") { LogPolicyCard(settings) }
         item("actions") { LogActions(state, storage) }
         if (state.clearing || !storage.ready || state.files.isEmpty() ||
             state.failure != null || storage.failure != null || storage.dropped > 0) item("status") {

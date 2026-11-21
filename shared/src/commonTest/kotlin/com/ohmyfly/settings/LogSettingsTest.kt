@@ -14,8 +14,13 @@ import kotlin.test.assertNull
 
 class LogSettingsTest {
     @Test fun customPolicySurvivesDataStoreRoundTrip() {
-        val settings = AppSettings(logging = LogPolicy(32, 4096, 90, LogLevel.Info))
+        val settings = AppSettings(logging = LogPolicy(32, 4096, 90, LogLevel.Detail))
         assertEquals(settings, SettingsCodec.decode(SettingsCodec.encode(settings)))
+    }
+
+    @Test fun writesAlwaysPersistDetailPolicy() {
+        val settings = AppSettings(logging = LogPolicy(level = LogLevel.Info))
+        assertEquals("Detail", SettingsCodec.encode(settings)[stringPreferencesKey("logging.level")])
     }
 
     @Test fun oldSettingsUseDefaultsWithoutWriting() {
@@ -32,17 +37,22 @@ class LogSettingsTest {
         assertNull(validateLogPolicy(LogPolicy(2048, 8192, 400)))
     }
 
-    @Test fun decodeCorruptLevelFallsBackToDefaultInfo() {
+    @Test fun legacyInformationLevelLoadsAsDetail() {
+        val values = mutablePreferencesOf(stringPreferencesKey("logging.level") to "Info")
+        assertEquals(LogLevel.Detail, SettingsCodec.decode(values).logging.level)
+    }
+
+    @Test fun corruptLevelFallsBackToDetail() {
         val values = mutablePreferencesOf(
             longPreferencesKey("logging.fileMiB") to 16L,
             longPreferencesKey("logging.totalMiB") to 1L,
             longPreferencesKey("logging.retentionDays") to -1L,
             stringPreferencesKey("logging.level") to "Error",
         )
-        assertEquals(LogPolicy(16, 16, 7, LogLevel.Info), SettingsCodec.decode(values).logging)
+        assertEquals(LogPolicy(16, 16, 7, LogLevel.Detail), SettingsCodec.decode(values).logging)
     }
 
-    @Test fun onlyTwoLevelsAndUrlSecretsAreNotLogged() {
+    @Test fun entrySeverityLabelsRemainAvailableWithoutAFilterOption() {
         assertEquals(listOf(LogLevel.Info, LogLevel.Detail), LogLevel.entries)
         assertEquals("https://example.com:443", logTarget("https://u:p@example.com/private-token/path?token=x#key"))
         assertEquals("无效地址", logTarget("not-a-url"))

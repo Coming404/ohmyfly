@@ -36,8 +36,8 @@ internal fun FlightCard(flight: CatalogFlight, selected: Boolean, selectionMode:
     Card(Modifier.fillMaxWidth().clip(AppCorners.shape(AppCorners.Card)), cornerRadius = AppCorners.Card) {
         FlightRow(flight, selected, selectionMode, onSelect, onDetails, expanded, cornerRadius = AppCorners.Card)
         CatalogExpansion(expanded && !selectionMode) {
-            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                HorizontalDivider()
+            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlightDetailsDivider()
                 FlightDetails(flight, revision)
             }
         }

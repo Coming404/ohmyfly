@@ -29,6 +29,7 @@ class AppNavTransitionTest {
         assertSame(motion.commit, motion.cancel)
         val spec = motion.programmatic as NavSettleSpec.Spring
         assertTrue(spec.dampingRatio in 0f..0.99f)
+        assertEquals(400f / (AppNavigationDurationMultiplier * AppNavigationDurationMultiplier), spec.stiffness, 0.001f)
         assertTrue(!spec.clampOvershoot)
     }
 

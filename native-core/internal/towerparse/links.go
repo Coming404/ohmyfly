@@ -38,6 +38,10 @@ func parseLink(text string) (map[string]any, bool, bool, error) {
 		node, err = parseWireGuardLink(normalized)
 	case "snell":
 		node, err = parseSnellLink(normalized)
+	case "mieru":
+		node, err = parseMieruLink(normalized)
+	case "openvpn":
+		node, err = parseOpenVPNLink(normalized)
 	case "socks5", "socks4", "socks", "socks5+tls":
 		node, err = parseSocksLink(normalized)
 	case "tg":

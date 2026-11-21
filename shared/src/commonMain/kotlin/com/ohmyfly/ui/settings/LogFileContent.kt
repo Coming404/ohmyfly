@@ -17,7 +17,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
@@ -42,33 +41,27 @@ import com.ohmyfly.logging.copyLogText
 import com.ohmyfly.ui.AppMessageKind
 import com.ohmyfly.ui.LocalAppMessages
 import com.ohmyfly.ui.LocalAppMotionAllowed
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private data class LogContentSnapshot(
-    val entries: List<LogEntry>, val level: LogLevel, val busy: Boolean, val failure: String?,
+    val entries: List<LogEntry>, val busy: Boolean, val failure: String?,
     val hasOlder: Boolean, val hasNewer: Boolean,
 )
 
 private fun LogPageState.contentSnapshot() =
-    LogContentSnapshot(entries, level, busy, failure, older != null, newer != null)
+    LogContentSnapshot(entries, busy, failure, older != null, newer != null)
 
 @Composable
 internal fun LogFileContent(state: LogPageState, fileId: String) {
-    val scope = rememberCoroutineScope()
     val active = state.selected?.id == fileId
     // 退出动画保留本文件最后一帧，切换文件时不显示新文件正文，也不继续触发读取。
     var content by remember(fileId) { mutableStateOf(state.contentSnapshot()) }
     if (active) content = state.contentSnapshot()
     Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            LogLevelMenu(content.level, enabled = active && !state.clearing) {
-                scope.launch(start = CoroutineStart.UNDISPATCHED) { state.changeLevel(it) }
-            }
             androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
             LogCopyButton(state, content.entries, active)
         }
@@ -176,4 +169,11 @@ internal fun LogBusyHint(text: String) {
         if (LocalAppMotionAllowed.current) CircularProgressIndicator(size = 16.dp)
         SettingsHint(text)
     }
+}
+ }
+}
+text)
+    }
+}
+ }
 }

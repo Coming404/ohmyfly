@@ -27,7 +27,7 @@ func NormalizeYAML(input map[string]any) (Flight, error) {
 	delete(node, "name")
 	server, _ := node["server"].(string)
 	port, _ := portValue(node["port"])
-	if typ != "direct" && typ != "dns" && typ != "reject" && typ != "relay" && server != "" {
+	if typ != "direct" && typ != "dns" && typ != "reject" && typ != "relay" && typ != "tailscale" && server != "" {
 		server = normalizeServer(server)
 		node["server"] = server
 	}
@@ -45,7 +45,7 @@ func NormalizeYAML(input map[string]any) (Flight, error) {
 
 func validateYAMLEndpoint(node map[string]any, typ string) error {
 	switch typ {
-	case "direct", "dns", "reject", "relay":
+	case "direct", "dns", "reject", "relay", "tailscale":
 		return nil
 	case "wireguard":
 		if raw, exists := node["peers"]; exists {

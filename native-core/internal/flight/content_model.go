@@ -94,6 +94,14 @@ var proxyHashFields = map[string]string{
 	"http-opts":                   "Http_opts",
 	"xhttp-opts":                  "XHTTP_opts",
 	"ech-opts":                    "ECH_opts",
+	"hostname":                    "Hostname",
+	"auth-key":                    "Auth_key",
+	"control-url":                 "Control_url",
+	"state-dir":                   "State_dir",
+	"ephemeral":                   "Ephemeral",
+	"accept-routes":               "Accept_routes",
+	"exit-node":                   "Exit_node",
+	"exit-node-allow-lan-access":  "Exit_node_allow_lan_access",
 }
 
 var proxyStringFields = map[string]bool{
@@ -148,6 +156,11 @@ var proxyStringFields = map[string]bool{
 	"key-direction":         true,
 	"tls-crypt":             true,
 	"tls-crypt-v2":          true,
+	"hostname":              true,
+	"auth-key":              true,
+	"control-url":           true,
+	"state-dir":             true,
+	"exit-node":             true,
 	"encryption":            true,
 	"packet-encoding":       true,
 }

@@ -22,8 +22,6 @@ internal class LogPageState(
         private set
     var selected by mutableStateOf<LogFileInfo?>(null)
         private set
-    var level by mutableStateOf(LogLevel.Info)
-        private set
     var pages by mutableStateOf(emptyList<LogFilePage>())
         private set
     var busy by mutableStateOf(false)
@@ -49,7 +47,7 @@ internal class LogPageState(
             val result = enumerate()
             if (token != generation) return false
             val file = result.firstOrNull { it.id == selected?.id }
-            val page = file?.let { read(it, level, null) }
+            val page = file?.let { read(it, LogLevel.Detail, null) }
             if (token != generation) return false
             files = result
             selected = file
@@ -75,12 +73,6 @@ internal class LogPageState(
         busy = false
         revision++
         if (file != null) load(null)
-    }
-
-    suspend fun changeLevel(value: LogLevel) {
-        if (clearing || level == value) return
-        level = value
-        select(selected)
     }
 
     suspend fun more(forward: Boolean) {
@@ -119,7 +111,7 @@ internal class LogPageState(
     private suspend fun load(cursor: LogFileCursor?) {
         val file = selected ?: return
         val token = generation
-        val requestedLevel = level
+        val requestedLevel = LogLevel.Detail
         busy = true
         failure = null
         try {

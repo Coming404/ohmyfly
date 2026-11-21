@@ -38,6 +38,12 @@ func (s *Store) ExportYAML(ctx context.Context, ids []int64) (string, error) {
 		if err = json.Unmarshal([]byte(raw), &value); err != nil {
 			return "", err
 		}
+		if fields, ok := value["fields"].(map[string]any); ok {
+			if name, ok := value["name"].(string); ok {
+				fields["name"] = name
+			}
+			value = fields
+		}
 		proxies = append(proxies, value)
 	}
 	if err = rows.Err(); err != nil {

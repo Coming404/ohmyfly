@@ -14,6 +14,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -23,6 +24,7 @@ import com.ohmyfly.catalog.selectionIds
 import com.ohmyfly.mirror.MirrorProbe
 import com.ohmyfly.mirror.createMirrorTransport
 import kotlinx.coroutines.*
+import kotlin.coroutines.coroutineContext
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.SettingsSession
 import com.ohmyfly.ui.settings.*
@@ -96,8 +98,12 @@ private fun AppContent(
     LaunchedEffect(destination, motionAllowed) {
         val targetPage = destinations.indexOf(destination)
         if (pagerState.settledPage != targetPage) {
-            if (motionAllowed) pagerState.springAnimateToPage(targetPage)
-            else pagerState.scrollToPage(targetPage)
+            if (motionAllowed) {
+                val systemMotionScale = coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f
+                withContext(object : MotionDurationScale {
+                    override val scaleFactor = systemMotionScale * AppNavigationDurationMultiplier
+                }) { pagerState.springAnimateToPage(targetPage) }
+            } else pagerState.scrollToPage(targetPage)
         }
     }
     val settingsStack = rememberNavBackStack<SettingsPage>(SettingsPage.Home)

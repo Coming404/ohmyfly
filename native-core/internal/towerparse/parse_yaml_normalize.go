@@ -15,7 +15,7 @@ func normalizeYAMLNode(record map[string]any) error {
 	typ := strings.ToLower(jsTrimSpace(yamlJSString(record["type"])))
 	record["type"] = typ
 	defaultYAMLString(record, "name", "未命名节点")
-	if typ == "direct" || typ == "dns" || typ == "reject" {
+	if typ == "direct" || typ == "dns" || typ == "reject" || typ == "tailscale" {
 		return nil
 	}
 	if !yamlJSCoercible(record["network"]) || (typ == "vmess" && !yamlJSCoercible(record["alterId"])) {
