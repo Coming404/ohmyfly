@@ -27,7 +27,8 @@ import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.popup.OverlayDropdownPopup
+import top.yukonga.miuix.kmp.overlay.OverlayCascadingListPopup
+import com.ohmyfly.ui.appPopupSurface
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -64,8 +65,8 @@ internal fun ChoiceSetting(
                     modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp))
                 DropdownArrowEndAction(actionColor = MiuixTheme.colorScheme.onSurfaceVariantActions)
                 CompositionLocalProvider(LocalIndication provides popupIndication) {
-                    OverlayDropdownPopup(entry = entry, show = expanded,
-                        onDismiss = { expanded = false }, onDismissFinished = { held = false },
+                    OverlayCascadingListPopup(entries = listOf(entry), show = expanded, surface = appPopupSurface(),
+                        onDismissRequest = { expanded = false }, onDismissFinished = { held = false },
                         maxHeight = null, dropdownColors = DropdownDefaults.dropdownColors(),
                         renderInRootScaffold = true, collapseOnSelection = true)
                 }

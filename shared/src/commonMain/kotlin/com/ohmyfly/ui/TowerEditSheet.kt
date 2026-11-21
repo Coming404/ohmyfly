@@ -25,7 +25,7 @@ internal fun TowerEditSheet(tower: CatalogTower, store: CatalogStore, onClose: (
     var address by remember(tower.id) { mutableStateOf(tower.address) }
     var failure by remember(tower.id) { mutableStateOf<String?>(null) }
     var saving by remember(tower.id) { mutableStateOf(false) }
-    OverlayBottomSheet(show = true, title = "编辑塔台", insideMargin = catalogSheetMargin(),
+    OverlayBottomSheet(surface = appBottomSheetSurface(), show = true, title = "编辑塔台", insideMargin = catalogSheetMargin(),
         onDismissRequest = { if (!saving) onClose() }, cornerRadius = AppCorners.Sheet) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("塔台名称", style = catalogInputStyle())

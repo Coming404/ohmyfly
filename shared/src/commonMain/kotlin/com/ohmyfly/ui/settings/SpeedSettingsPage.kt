@@ -31,7 +31,7 @@ private fun SpeedTargets(settings: AppSettings, onChange: (String, (AppSettings)
             listOf("Latency" to "仅延迟", "Download" to "延迟＋下载", "Full" to "延迟＋下载＋上传"), SettingsIcons.Tune) { selected ->
             onChange("默认模式已修改为${listOf("Latency" to "仅延迟", "Download" to "延迟＋下载", "Full" to "延迟＋下载＋上传").first { it.first == selected }.second}") { current -> current.withSpeed { it.copy(mode = SpeedMode.valueOf(selected)) } }
         }
-        TextSetting("延迟目标网址", { it.speed.latencyUrl }, MirrorIcons.Globe,
+        TextSetting("延迟目标网址", { it.speed.latencyUrl }, MirrorIcons.Link,
             keyboard = KeyboardType.Uri, validate = ::validateTargetUrl) { current, url -> current.withSpeed { it.copy(latencyUrl = url) } }
         TextSetting("下载测试服务网址", { it.speed.downloadUrl }, SettingsIcons.Download,
             hint = "上传需要兼容的服务端，不会静默降级。", keyboard = KeyboardType.Uri, validate = ::validateTargetUrl) {
@@ -67,7 +67,7 @@ private fun SpeedTransfer(settings: AppSettings, onChange: (String, (AppSettings
         NumberSetting("传输请求超时（秒）", { it.speed.transferTimeoutSeconds }, 3..60, SettingsIcons.Timer) {
             current, n -> current.withSpeed { it.copy(transferTimeoutSeconds = n) }
         }
-        ToggleSetting("蜂窝流量确认", "开始大流量航班测试前询问。", settings.speed.cellularConfirm, SettingsIcons.Haptic) {
+        ToggleSetting("蜂窝流量确认", "开始大流量航班测试前询问。", settings.speed.cellularConfirm, SettingsIcons.MobileNetwork) {
             checked -> onChange("蜂窝流量确认已${if (checked) "开启" else "关闭"}") { current -> current.withSpeed { it.copy(cellularConfirm = checked) } }
         }
     }

@@ -23,7 +23,7 @@ class MaterialSettingsTest {
 
     @Test
     fun everyMaterialRoundTripsWithStableNames() {
-        val names = listOf("GaussianBlur", "HighlightGlass", "SoftGlass", "LiquidGlass")
+        val names = listOf("LiquidGlass", "Expressive")
         assertEquals(names, MaterialMode.entries.map { it.name })
         for (mode in MaterialMode.entries) {
             val preferences = SettingsCodec.encode(AppSettings(materialMode = mode))
@@ -54,22 +54,22 @@ class MaterialSettingsTest {
         assertNull(preferences[materialKey])
         assertEquals(before, preferences.toPreferences())
 
-        SettingsCodec.write(preferences, decoded.copy(materialMode = MaterialMode.HighlightGlass))
+        SettingsCodec.write(preferences, decoded.copy(materialMode = MaterialMode.Expressive))
         assertNull(preferences[foreignKey])
-        assertEquals("HighlightGlass", preferences[materialKey])
+        assertEquals("Expressive", preferences[materialKey])
         assertEquals(1, preferences[intPreferencesKey("schema.version")])
         assertEquals(decoded.speed, SettingsCodec.decode(preferences.toPreferences()).speed)
     }
 
     @Test
     fun unknownMaterialFallsBackWithoutRewritingStoredValue() {
-        for (raw in listOf("", "unknown", "液态玻璃", "Off", "SoftBlur", "ProgressiveBlur")) {
+        for (raw in listOf("", "unknown", "液态玻璃", "Off", "SoftBlur", "ProgressiveBlur", "GaussianBlur", "HighlightGlass", "SoftGlass")) {
             val preferences = mutablePreferencesOf(materialKey to raw).toPreferences()
             assertEquals(MaterialMode.LiquidGlass, SettingsCodec.decode(preferences).materialMode)
             assertEquals(raw, preferences[materialKey])
         }
-        val known = mutablePreferencesOf(materialKey to "gaussianblur").toPreferences()
-        assertEquals(MaterialMode.GaussianBlur, SettingsCodec.decode(known).materialMode)
+        val known = mutablePreferencesOf(materialKey to "expressive").toPreferences()
+        assertEquals(MaterialMode.Expressive, SettingsCodec.decode(known).materialMode)
     }
 
     @Test

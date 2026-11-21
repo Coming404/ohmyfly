@@ -1,4 +1,5 @@
 // 描边沿同一连续曲率路径内缩，动画值只在绘制阶段读取。
+@file:kotlin.jvm.JvmName("SquircleBorderKt")
 package top.yukonga.miuix.kmp.squircle
 
 import androidx.compose.runtime.Composable

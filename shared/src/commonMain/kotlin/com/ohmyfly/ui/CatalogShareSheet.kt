@@ -32,7 +32,7 @@ internal fun CatalogShareSheet(ids: Set<Long>, onClose: () -> Unit) {
             } finally { busy = false }
         }
     }
-    OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(), title = "分享 ${ids.size} 个航班", onDismissRequest = { if (!busy) onClose() }, cornerRadius = AppCorners.Sheet) {
+    OverlayBottomSheet(surface = appBottomSheetSurface(), show = true, insideMargin = catalogSheetMargin(), title = "分享 ${ids.size} 个航班", onDismissRequest = { if (!busy) onClose() }, cornerRadius = AppCorners.Sheet) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             notice?.let { CatalogNotice(it, if (failed) CatalogNoticeKind.Error else CatalogNoticeKind.Success) }
             if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())

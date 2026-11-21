@@ -68,7 +68,7 @@ internal fun MirrorEditor(
             )
         }
         MirrorPrefixRow()
-        EditorLabel("地址", MirrorIcons.Globe)
+        EditorLabel("地址", MirrorIcons.Link)
         SettingsInputMenu {
             TextField(
                 value = draft.address,

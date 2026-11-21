@@ -11,7 +11,7 @@ class MirrorRedesignTests(unittest.TestCase):
     def test_empty_state_is_only_icon_and_bold_text(self):
         page = (UI / 'MirrorSettingsPage.kt').read_text()
         empty = page.split('if (mirrors.isEmpty()) item(key = "mirror-empty")', 1)[1].split('if (mirrors.isNotEmpty()) item', 1)[0]
-        self.assertIn('MirrorIcons.Github', empty)
+        self.assertIn('MirrorIcons.Globe', empty)
         self.assertIn('Text("暂无镜像源"', empty)
         self.assertIn('fontWeight = FontWeight.Bold', empty)
         self.assertNotIn('Button(', empty)
@@ -38,7 +38,7 @@ class MirrorRedesignTests(unittest.TestCase):
         self.assertNotIn('chromeMaterial', editor)
         self.assertIn('session.changeConfirmed', owner)
         self.assertIn('mirrorEnabled = current.mirrorEnabled && remaining.isNotEmpty()', owner)
-        self.assertIn('OverlayIconDropdownMenu(', (UI / 'MirrorRow.kt').read_text())
+        self.assertIn('OverlayIconCascadingDropdownMenu(', (UI / 'MirrorRow.kt').read_text())
         self.assertNotIn('上移', (UI / 'MirrorRow.kt').read_text())
         self.assertNotIn('下移', (UI / 'MirrorRow.kt').read_text())
         dialog = (UI / 'MirrorDialog.kt').read_text()
@@ -48,7 +48,7 @@ class MirrorRedesignTests(unittest.TestCase):
 
     def test_editor_labels_and_prefix_value_share_foreground_typography(self):
         editor = (UI / 'MirrorEditor.kt').read_text()
-        for text, icon in (("名称", "Name"), ("拼接方式", "Link"), ("地址", "Globe"), ("改写预览", "External")):
+        for text, icon in (("名称", "Name"), ("拼接方式", "Link"), ("地址", "Link"), ("改写预览", "External")):
             self.assertIn(f'EditorLabel("{text}", MirrorIcons.{icon})', editor)
         label = editor.split('private fun EditorLabel(', 1)[1].split('\n@Composable', 1)[0]
         prefix = editor.split('private fun MirrorPrefixRow()', 1)[1].split('\n@Composable', 1)[0]

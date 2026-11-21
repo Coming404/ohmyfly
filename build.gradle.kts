@@ -14,6 +14,9 @@ subprojects {
             substitute(module("top.yukonga.miuix.kmp:miuix-squircle"))
                 .using(project(":miuix-squircle"))
                 .because("统一控件与玻璃表面的连续曲率")
+            substitute(module("top.yukonga.miuix.kmp:miuix-material"))
+                .using(project(":miuix-material"))
+                .because("玻璃折射、遮罩、阴影与裁剪共用 G2 轮廓")
         }
     }
 }

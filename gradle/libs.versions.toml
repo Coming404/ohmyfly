@@ -1,15 +1,14 @@
 [versions]
-kotlin = "2.4.20"
-compose = "1.12.0"
-miuix = "0.9.4"
-backdrop = "2.0.1"
+kotlin = "2.4.21"
+compose = "1.13.0-rc01"
+miuix = "0.9.5-beta03"
 kyantShapes = "1.2.1"
-agp = "9.4.1"
+agp = "9.5.2"
 activity = "1.13.0"
 datastore = "1.2.1"
 coroutines = "1.11.0"
 lifecycle = "2.11.0"
-serialization = "1.11.0"
+serialization = "1.13.0"
 okio = "3.18.2"
 kotlinLogging = "8.0.5"
 ktor = "3.6.0"
@@ -19,7 +18,6 @@ android-targetSdk = "37"
 android-minSdk = "33"
 
 [libraries]
-kyant-backdrop = { module = "io.github.kyant0:backdrop", version.ref = "backdrop" }
 kyant-shapes = { module = "io.github.kyant0:shapes", version.ref = "kyantShapes" }
 flagkit = { module = "dev.carlsen.flagkit:flagkit", version = "1.1.0" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
@@ -38,9 +36,10 @@ compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose" }
 miuix-ui = { module = "top.yukonga.miuix.kmp:miuix-ui", version.ref = "miuix" }
 miuix-core = { module = "top.yukonga.miuix.kmp:miuix-core", version.ref = "miuix" }
 miuix-preference = { module = "top.yukonga.miuix.kmp:miuix-preference", version.ref = "miuix" }
-miuix-icons = { module = "top.yukonga.miuix.kmp:miuix-icons", version.ref = "miuix" }
+miuix-glass-icons = { module = "top.yukonga.miuix.kmp:miuix-glass-icons", version.ref = "miuix" }
 miuix-blur = { module = "top.yukonga.miuix.kmp:miuix-blur", version.ref = "miuix" }
-miuix-shader = { module = "top.yukonga.miuix.kmp:miuix-shader", version.ref = "miuix" }
+miuix-material = { module = "top.yukonga.miuix.kmp:miuix-material", version.ref = "miuix" }
+miuix-glass = { module = "top.yukonga.miuix.kmp:miuix-glass", version.ref = "miuix" }
 miuix-squircle = { module = "top.yukonga.miuix.kmp:miuix-squircle", version.ref = "miuix" }
 miuix-nav = { module = "top.yukonga.miuix.kmp:miuix-nav", version.ref = "miuix" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }

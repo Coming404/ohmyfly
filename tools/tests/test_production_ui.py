@@ -51,10 +51,10 @@ class ProductionUiTests(unittest.TestCase):
         self.assertIn('system_accent1_500', host)
         self.assertRegex(host, r'(?s)override fun onResume\(\).*?dynamicColorSeed = Color\(getColor\(android.R.color.system_accent1_500\)\)')
         self.assertIn('App(dynamicColorSeed = dynamicColorSeed', host)
-        self.assertIn('AppTheme(dynamicColorSeed, dark)', app)
-        self.assertIn('remember(dark, dynamicColorSeed)', theme)
-        self.assertIn('appThemeController(dynamicColorSeed, dark)', theme)
-        self.assertIn('keyColor = dynamicColorSeed', theme)
+        self.assertIn('AppTheme(dynamicColorSeed, dark, settings.materialMode)', app)
+        self.assertIn('remember(dark, dynamicColorSeed, mode)', theme)
+        self.assertIn('appThemeController(dynamicColorSeed, dark, mode)', theme)
+        self.assertIn('keyColor = seed', theme)
         self.assertIn('ThemePaletteStyle.Neutral', theme)
         self.assertIn('ThemeColorSpec.Spec2025', theme)
         self.assertIn('App(dynamicColorSeed = null', ios)
@@ -88,7 +88,7 @@ class ProductionUiTests(unittest.TestCase):
         self.assertRegex(root, r'(?s)LaunchedEffect\(dark,\s*themeMode\)\s*\{\s*'
                                r'onThemeChanged\(dark,\s*themeMode == ThemeMode\.System\)')
         self.assertIn('AppContent(dynamicColorSeed, dark, settings', root)
-        self.assertIn('AppTheme(dynamicColorSeed, dark)', app)
+        self.assertIn('AppTheme(dynamicColorSeed, dark, settings.materialMode)', app)
         self.assertNotRegex(app, r'\bkey\s*\([^)]*(?:dark|themeMode)')
 
     def test_ios_clears_manual_appearance_on_the_existing_swiftui_host(self):

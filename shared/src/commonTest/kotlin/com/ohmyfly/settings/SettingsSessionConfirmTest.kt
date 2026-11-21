@@ -102,7 +102,7 @@ class SettingsSessionConfirmTest {
         runCurrent()
 
         val first = async { session.changeConfirmed { it.copy(themeMode = ThemeMode.Dark) } }
-        val second = async { session.changeConfirmed { it.copy(materialMode = MaterialMode.SoftGlass) } }
+        val second = async { session.changeConfirmed { it.copy(materialMode = MaterialMode.Expressive) } }
         val third = async { session.changeConfirmed { it.copy(reduceTransparency = true) } }
         runCurrent()
         assertEquals(3, session.state.pendingWrites)

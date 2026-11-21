@@ -1,6 +1,6 @@
 # UI 实现与验收
 
-Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留五个入口：概览、塔台、起飞、航班、设置。生产源码不包含固定假航班、固定延迟、开发状态页脚或占位文件名。当前目录初始为空；塔台读取、安全凭据存储、Go航班起飞尚未接入。本轮主题/表面/设置首页/顶底栏/NavDisplay、玻璃及双端传感器、自有运动策略已在78d80bd通过[双端Release构建](https://github.com/Coming404/ohmyfly/actions/runs/39426815748)，146项共享测试全部通过，无失败或跳过；视觉、无障碍、传感器与性能仍待真机验收，不代表航班／媒体业务完成。
+Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留概览、塔台、起飞、航班、设置五个入口。本轮源码迁移到Miuix0.9.5-beta03，使用液态玻璃／Expressive两档风格与Glass图标。此前e323e8e的双端Release已通过，本轮新增材质G2补丁及升级后的双端编译、真机渲染尚待验证；记录见[beta03验证](miuix-beta03-verification.md)。
 
 ## 页面与状态
 
@@ -16,34 +16,20 @@ Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留五个入口�
 
 ## 悬浮控制层与材质
 
-- 顶部统一显示当前页名，一级/子页均为18sp Semibold单行，不显示品牌或副标题；标题无胶囊与阴影，保留字体缩放、heading语义和完整读屏文本。
-- 子页返回是纯图标，复用官方IconButton/现有HeaderAction，24dp图形、48dp触区，LTR/RTL方向正确；航班页既有两个真实动作移到末端独立容器，无动作页不建空胶囊。
-- 顶部左右16dp、上下8dp、主体至少48dp，另计顶部/横向safeDrawing；标题下是当前页面色的基础渐隐底（前80%保持不透明、末20%到透明），避免滚动正文干扰页名。这不是新的模糊/折射预设，功能按钮与底栏仍用原ChromeMaterial参数。
-- 底部改为应用局部Box/Row与五个等宽Column选择项，上24dp图标、下11sp标签常显，间距4dp、行高14sp，普通Medium/选中Bold；选中取主题primary，未选中取onSurfaceVariantSummary，按下alpha 0.6作为即时反馈。标准Compose selectableGroup/selectable(Role.Tab)提供唯一选择语义，图标装饰性不重复读名。
-- 主体最小64dp而非固定高度，文本跟随字体缩放；单行溢出时省略，完整文本仍供读屏。左右最少16dp、底部safeDrawing之外8dp，横向安全区只处理一次；宽屏最大560dp居中，内部左右4dp。App仍是唯一导航状态源，子页隐藏、列表contentPadding与单一Backdrop不改。
-- 不再调用FloatingNavigationBar/Item：固定版悬浮Item只画图标、无文本槽，容器内置底部36dp（iOS）/26dp加系统栏（Android）无法通过参数取消。标准NavigationBarItem虽有上图下文，但固定64dp高度，不能满足本次大字体自然增长。仅替换这一局部，不迁移路由或新建导航Store。
-- 五页列表视口占满内容层，Scaffold边距加入LazyColumn.contentPadding，只给首末项留白；不得用外层padding截断视口，否则底栏后方只剩纯背景。
-- 单一LayerBackdrop只录制页面内容，不包含顶底控制层；顶部实际功能控件组和底栏分别采样自身后方内容，标题不再套材质胶囊。只共享捕获源，不声称各控件共用一次模糊结果。
-
-顶部真实返回／动作容器与底栏共用 `ui/glass` 的一套预设与效果链；页名本身不套材质。四材质按 `GlassPreset` 参数启用同一采样、模糊、折射与高光，不是四套实现：
-
-| 参数（应用值，非 Apple 规范） | 说明 |
-|---|---|
-| 采样 | 单一页面 LayerBackdrop；底栏另有隐藏图文 tabsBackdrop，经 CombinedBackdrop 供选中胶囊采样 |
-| 效果链 | colorControls → blur → Lens 折射/色散 → BloomStroke 平滑边界高光 |
-| 折射 | 容器边缘带 UV 位移采样；胶囊按压时增加位移、depthEffect 与色散 |
-| 交互 | 玻璃胶囊弹簧滑动、按压缩放、速度拉伸、4dp 橡皮筋与点击光斑 |
-| 圆角 | 顶栏 50dp、底栏 24dp，均基于官方 addSquircleRect 的共享 cubic；Lens、高光、裁剪和阴影同形 |
-| 回退 | 应用或 iOS 系统启用减少透明效果，或 RuntimeShader 不可用时，统一使用实体表面并停止采样/图文录制/传感器；保留已选材质 |
-
-四种预设来自同一参数表：高斯突出均匀模糊、高光玻璃清晰背景加明显边缘光、柔光玻璃柔和混浊感、液态玻璃完整折射与交互。Melox 移植来源、Apache 头与 GPL 说明见 `third-party/README.md`。设备倾斜高光优先读取 draw 阶段重力状态，Android 复用 Miuix 传感器并做屏幕方向映射；iOS 使用 Core Motion，后台/离页/减少动态或实体模式停止采集。当前已有双端原生编译通过记录，但尚无真机像素证据，不能据此宣称视觉验收通过。
+- 保留既定顶栏布局、标题数量、44dp动作区域与安全区；材质通过官方 Miuix glassPanel 绘制。
+- 主导航使用 GlassNavigationBar，App 持有唯一目的地状态，官方组件处理拖动、选中胶囊和按压反馈。底部与横向安全区由外层应用一次，关闭组件默认重复 padding。
+- 五页列表保持全高视口，Scaffold边距使用列表contentPadding，背景仍能滚入悬浮控件后方。
+- 页面内容录制一个 Miuix LayerBackdrop。导航、工具栏、菜单和弹层复用背景源，各自使用官方材质参数；弹层不录入自己的背景源。
+- 界面风格仅有「液态玻璃／Expressive」。前者使用官方玻璃；后者使用不透明Miuix表面，不启用玻璃采样。旧Kyant Backdrop、四档预设、自定义透镜与导航手势实现已移除。
+- 普通控件复用 ui-shapes 的 G2 轮廓；玻璃菜单、对话框、抽屉通过 ui-material 的 Diy_ 补丁让折射、遮罩、高光、阴影与实际G2路径一致。真圆和胶囊保留解析圆弧。
+- 双端传感器与生命周期继续复用，驱动官方材质光照方向。降低透明度时走实色，降低动态效果时停止应用自有运动和重力光照。
+- UI动作图标统一 Glass Regular。应用品牌、GitHub/媒体平台/地区旗帜与塔台专属业务标识独立保留。
 
 ## 配色
 
-- Android宿主提供系统动态代表色，显式传入ThemeController并按Neutral＋Spec2025重新生成；明暗仍遵循已有设置，不固定蓝色种子，也不直接沿用整套平台动态色结果。
-- iOS宿主明确使用System与Miuix默认浅深色回退，不声称读取壁纸，也不使用固定紫色种子伪装系统动态色。
-- System只选择明暗，lightColors/darkColors仍可自定义；当前未新增用户自定义色板功能。
-- 默认字体由Compose平台解析，不增加字体包，不承诺与UIKit/SwiftUI渲染完全一致。
+- 液态玻璃档：Android保留系统代表色＋Neutral/Spec2025；iOS保留Miuix默认浅深色。
+- Expressive档：两端使用ThemePaletteStyle.Expressive；Android使用系统种子，iOS从Miuix默认主色派生，不伪装成壁纸取色。
+- 明暗、字体缩放、主题色过渡继续使用已有设置及单一ThemeController；不引入第二套Material3组件。
 
 ## 页面与设置卡片层级
 
@@ -59,9 +45,9 @@ Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留五个入口�
 
 ## 设置首页与预设选择弹层
 
-首页包含40dp Wave标记、OhMyFly、单行产品简介及实际平台版本；明暗模式、界面材质与减少透明效果直接在外观组修改。六个复杂设置继续进入子页，旧外观子页已移除。
+首页包含40dp Wave标记、OhMyFly、单行产品简介及实际平台版本；明暗模式、界面风格与减少透明效果直接在外观组修改。六个复杂设置继续进入子页，旧外观子页已移除。
 
-没有下级设置、只从已有值中选择的主题/材质/起飞默认模式，复用官方OverlayDropdownPreference：当前值＋常驻上下双箭头，点击打开邻近的选择弹层，当前项对勾，单选即关闭。弹层状态、菜单语义、触感、遮罩与进出场直接交由官方组件，复用App根Scaffold，不新增Window、嵌套宿主、额外BackHandler或自定义动画。旧原地展开区、两处页面展开状态及旋转箭头分支已删除。
+没有下级设置、只从已有值中选择的主题/材质/起飞默认模式，复用现有设置行与官方OverlayCascadingListPopup：当前值＋常驻上下双箭头，点击打开邻近的选择弹层，当前项对勾，单选即关闭。弹层状态、菜单语义、触感、遮罩与进出场直接交由官方组件，复用App根Scaffold，不新增Window、嵌套宿主、额外BackHandler或自定义动画。旧原地展开区、两处页面展开状态及旋转箭头分支已删除。
 
 跳转行仍由BasicComponent承载16sp标题/14sp当前值，开关同样16/14sp，普通右箭头（RTL镜像）仅表示子页。预设选择行恢复官方headline1/body2字号、默认16dp内边距与BasicComponent 56dp下限，不为16sp覆盖再嵌套主题。设置列表左右和相邻项间距仍16dp。ChoiceOption的官方RadioButton保留给航班分类、镜像编辑等原调用方，不用于重新绘制官方菜单。
 
@@ -71,7 +57,7 @@ Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留五个入口�
 
 首页提供独立的“减少动态效果”。应用偏好或Compose系统MotionDurationScale=0任一限制生效时，自有主题/材质过渡立即取终值，胶囊形变/追光/回弹取消，导航使用官方None并关闭空间滑退，保留标题/系统返回与镜像编辑优先级。正数系统倍率沿用平台，不重置为1；减少透明效果仍单独负责实体降级。
 
-正常模式下主题53个语义色、页面/卡片4个角色及玻璃8个数值参数使用应用设定180ms过渡，不是Miuix官方默认。连续改选从当前显示值转向新目标；手势owner切换取消旧scope但保留测量宽度，不把未提交拖拽变为页面选择。一级页继续直接切换，不增加两树Crossfade或新的主导航状态。
+正常模式下主题53个语义色和页面/卡片4个角色继续使用应用180ms过渡。玻璃交互采用官方组件动效，不再维护旧四档参数动画；一级页面保留既有1.35倍转场时长和唯一导航状态。
 
 ThemeController根仍负责生成与动态标记；仅在其内使用官方colors重载覆写插值颜色，保证继承动态模式，LocalContentColor随动画色变化。这里只有一个控制器和一棵UI，不复制采样树；只用colors重载会丢动态标记，故不采用。
 
@@ -79,7 +65,7 @@ ThemeController根仍负责生成与动态标记；仅在其内使用官方color
 
 ## 页面转场与返回
 
-正常运动下设置页面使用官方NavTransitions.MiuixDefault；有效减少动态时改None及NavDisplayEffects.None。NavDisplay默认关闭滑退，本项目正常模式按布局方向显式开启LeftToRight/RightToLeft；根页不能滑退，镜像编辑打开或减少动态生效时None。PredictiveBackHandler与官方Overlay共享返回分发，优先关闭弹层/编辑，不额外装Android BackHandler或iOS空实现。页面使用实体共享底色，NavDisplay在原有760dp内容宿主内，enableCornerClip=false（不套物理屏幕圆角）、blockInputDuringTransition=true，dimAmount沿用官方0.5。未自定义动画时长/物理参数或手势识别器。
+正常运动下设置页面使用既有AppNavTransition共享弹簧；有效减少动态时改None及NavDisplayEffects.None。NavDisplay默认关闭滑退，本项目正常模式按布局方向显式开启LeftToRight/RightToLeft；根页不能滑退，镜像编辑打开或减少动态生效时None。PredictiveBackHandler与官方Overlay共享返回分发，优先关闭弹层/编辑，不额外装Android BackHandler或iOS空实现。页面使用实体共享底色，NavDisplay在原有760dp内容宿主内，enableCornerClip=false（不套物理屏幕圆角）、blockInputDuringTransition=true，dimAmount沿用官方0.5。设置转场沿用应用1.35倍时长，菜单和底栏手势由官方组件处理。
 
 顶部和底栏继续位于根Scaffold，随逻辑栈更新，未与手势进度逐帧联动；本项不把底栏指示器动画或液态玻璃列为已完成。重点设备验收：取消滑退保留页面和草稿；连续点开/返回不空栈；系统恢复设置路由及入口；镜像HTTP任务离页后在entry清理时取消；弹层先消费返回，RTL方向与最低系统一致。
 

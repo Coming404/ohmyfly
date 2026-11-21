@@ -1,6 +1,6 @@
 # 统一连续曲率
 
-`ui-shapes` 是应用与 Miuix 0.9.4 共用的圆角层。非胶囊表面委托 Kyant Shapes 1.2.1 的 `RoundedRectangle(Continuous)` / `UnevenRoundedRectangle(Continuous)`，曲线采用 G2 连续曲率。正圆按钮、胶囊标签和导航栏保留真圆／真胶囊。
+`ui-shapes` 是应用与 Miuix 0.9.5-beta03 共用的圆角层。非胶囊表面委托 Kyant Shapes 1.2.1 的 `RoundedRectangle(Continuous)` / `UnevenRoundedRectangle(Continuous)`，曲线采用 G2 连续曲率。正圆按钮、胶囊标签和导航栏保留真圆／真胶囊。
 
 ## 唯一配置入口
 
@@ -22,17 +22,17 @@
 
 ## Miuix 接入
 
-根构建将 `top.yukonga.miuix.kmp:miuix-squircle` 统一替换为本地 `:miuix-squircle` 项目，目录映射到 `ui-shapes`。保留原模块 group、项目名、公开函数签名与 JVM 文件名，覆盖组件内部的填充、裁剪、路径描边和按压反馈，避免在外侧再叠一层不同曲线。
+根构建将 `top.yukonga.miuix.kmp:miuix-squircle` 统一替换为本地 `:miuix-squircle` 项目，目录映射到 `ui-shapes`。保留原模块 group、项目名、公开函数签名与 JVM 文件门面名；源码文件使用 `Diy_` 前缀，通过 `@file:JvmName` 保留原门面，覆盖组件内部的填充、裁剪、路径描边和按压反馈，避免在外侧再叠一层不同曲线。
 
 固定版本的 `extension` 参数仍保留在接口中，实际曲率由 G2 几何决定；它不再拉伸名义半径。方向式四角随 RTL 翻转，绝对位置式四角保持物理方向。显式关闭库圆角开关时遵循原接口的圆弧分支。
 
 ## 玻璃表面
 
-应用的玻璃顶部、底栏和独立动作均为真圆／真胶囊，由 `NavigationBarShape` 共享裁剪、阴影、折射和高光边界。内容卡片使用连续曲率，但不接入旧三次曲线的玻璃距离场；旧曲线和只服务该曲线的检查已移除。
+应用的玻璃顶部、底栏和独立动作保留真圆／真胶囊；菜单、对话框和抽屉通过 [ui-material](../ui-material/README.md) 的官方源码补丁复用本层 G2 路径。折射、高光、阴影和遮罩从实际轮廓提取同一份控制点，普通控件仍走本模块的填充、裁剪与描边。
 
 ## 版本与维护
 
-- `io.github.kyant0:shapes:1.2.1` 已由 Backdrop 2.0.1 间接使用，此处显式声明供形状层编译。
+- `io.github.kyant0:shapes:1.2.1` 作为独立几何依赖保留；Kyant Backdrop 已移除。
 - Android、iosArm64、iosSimulatorArm64 跟随主项目目标与最低版本；设备单端归档遵循 `iosDeviceOnly`。
 - 升级 Miuix 时核对其 squircle 公开签名及平台元数据；升级 Shapes 时核对连续曲率轮廓及胶囊饱和行为。
 - Apple 提供 `.continuous` 与同心圆角公开能力；本实现复用跨平台 G2 曲线，匹配其设计风格，不声称使用 Apple 私有控制点。
@@ -40,5 +40,5 @@
 ## 鸣谢
 
 - [Kyant Shapes 1.2.1](https://github.com/Kyant0/Shapes/tree/1.2.1)：连续曲率几何，[Apache-2.0](https://github.com/Kyant0/Shapes/blob/1.2.1/LICENSE)。
-- [Miuix 0.9.4](https://github.com/compose-miuix-ui/miuix/tree/39c40f99844227b853f0049a0933b1f3ae6c00ba)：组件公开接口与描边内缩约定，Copyright 2026, compose-miuix-ui contributors，Apache-2.0；许可文本见[保留文件](../third-party/licenses/glass-Apache-2.0.txt)。
+- [Miuix 0.9.5-beta03](https://github.com/compose-miuix-ui/miuix/tree/3526cfe2ca0779c5a2eab99af8737a96c9a8a885)：组件公开接口与描边内缩约定，Copyright 2026, compose-miuix-ui contributors，Apache-2.0；许可文本见[保留文件](../third-party/licenses/glass-Apache-2.0.txt)。
 - [Apple RoundedCornerStyle.continuous](https://developer.apple.com/documentation/swiftui/roundedcornerstyle/continuous)、[ConcentricRectangle](https://developer.apple.com/documentation/swiftui/concentricrectangle)：连续曲率及同心布局设计依据。

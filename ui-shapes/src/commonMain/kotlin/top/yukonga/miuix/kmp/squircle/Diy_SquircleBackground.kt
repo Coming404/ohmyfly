@@ -1,5 +1,6 @@
 // 保留组件库公开修饰器签名，背景和裁剪统一交给连续曲率形状。
 @file:Suppress("UNUSED_PARAMETER")
+@file:kotlin.jvm.JvmName("SquircleBackgroundKt")
 package top.yukonga.miuix.kmp.squircle
 
 import androidx.compose.foundation.background

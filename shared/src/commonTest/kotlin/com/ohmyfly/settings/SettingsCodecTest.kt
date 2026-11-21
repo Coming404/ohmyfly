@@ -22,7 +22,7 @@ class SettingsCodecTest {
     fun roundTripKeepsEveryField() {
         val settings = AppSettings(
             themeMode = ThemeMode.Dark,
-            materialMode = MaterialMode.SoftGlass,
+            materialMode = MaterialMode.Expressive,
             reduceTransparency = true,
             reduceMotion = true,
             speed = SpeedSettings(

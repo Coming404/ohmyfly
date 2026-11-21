@@ -113,7 +113,7 @@ internal fun MirrorSettingsPage(
             item(key = "mirror-title") {
                 Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically) {
-                    Icon(MirrorIcons.Github, null, Modifier.size(24.dp))
+                    Icon(MirrorIcons.Globe, null, Modifier.size(24.dp))
                     Text("GitHub 镜像", fontSize = 20.sp, fontWeight = FontWeight.SemiBold,
                         color = MiuixTheme.colorScheme.onSurface, modifier = Modifier.semantics { heading() })
                 }
@@ -147,7 +147,7 @@ internal fun MirrorSettingsPage(
                     verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Icon(MirrorIcons.Github, contentDescription = null, modifier = Modifier.size(48.dp),
+                    Icon(MirrorIcons.Globe, contentDescription = null, modifier = Modifier.size(48.dp),
                         tint = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                     Text("暂无镜像源", fontSize = 17.sp, fontWeight = FontWeight.Bold,
                         color = MiuixTheme.colorScheme.onSurface, modifier = Modifier.semantics { heading() })
@@ -195,7 +195,7 @@ internal fun MirrorSettingsPage(
             is MirrorPageState.Panel.Delete -> "删除${mirrors.firstOrNull { it.id == panel.id }?.name ?: "镜像"}？"
             null -> ""
         },
-        icon = if (panel is MirrorPageState.Panel.Delete) MirrorIcons.Trash else MirrorIcons.Github,
+        icon = if (panel is MirrorPageState.Panel.Delete) MirrorIcons.Trash else MirrorIcons.Globe,
         onDismiss = close,
         onDismissFinished = { page.finishDismiss() },
         footer = {

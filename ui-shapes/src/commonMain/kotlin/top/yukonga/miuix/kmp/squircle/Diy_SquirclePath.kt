@@ -1,5 +1,6 @@
 // 路径接口供组件动画和描边复用，保持与背景裁剪相同的轮廓。
 @file:Suppress("UNUSED_PARAMETER")
+@file:kotlin.jvm.JvmName("SquirclePathKt")
 package top.yukonga.miuix.kmp.squircle
 
 import androidx.compose.foundation.shape.RoundedCornerShape

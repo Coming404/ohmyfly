@@ -7,24 +7,23 @@ MAIN = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
 
 
 class MaterialSettingsTests(unittest.TestCase):
-    def test_default_and_four_options_are_shared_configuration(self):
+    def test_default_and_two_options_are_shared_configuration(self):
         model = (MAIN / 'settings/AppSettings.kt').read_text()
         modes = (MAIN / 'settings/MaterialMode.kt').read_text()
         self.assertIn('val materialMode: MaterialMode = MaterialMode.LiquidGlass', model)
-        self.assertEqual(4, modes.count('("'))
-        for name, label in (('GaussianBlur', '高斯模糊'), ('HighlightGlass', '高光玻璃'),
-                            ('SoftGlass', '柔光玻璃'), ('LiquidGlass', '液态玻璃')):
+        self.assertEqual(2, modes.count('("'))
+        for name, label in (('LiquidGlass', '液态玻璃'), ('Expressive', 'Expressive')):
             with self.subTest(mode=name):
                 self.assertIn(f'{name}("{label}")', modes)
 
     def test_home_uses_existing_choice_and_settings_callback(self):
         home = (MAIN / 'ui/settings/SettingsHome.kt').read_text()
-        self.assertIn('ChoiceSetting("界面材质", settings.materialMode.name', home)
+        self.assertIn('ChoiceSetting("界面风格", settings.materialMode.name', home)
         self.assertIn('MaterialMode.entries.map { it.name to it.label }', home)
-        self.assertRegex(home, r'onChange\("界面材质[^\n]+\) \{ it\.copy\(materialMode = MaterialMode\.valueOf\(name\)\) \}')
+        self.assertRegex(home, r'onChange\("界面风格[^\n]+\) \{ it\.copy\(materialMode = MaterialMode\.valueOf\(name\)\) \}')
         self.assertNotIn('mutableStateOf', home)
         choice = (MAIN / 'ui/settings/ChoiceSetting.kt').read_text()
-        self.assertIn('OverlayDropdownPopup(', choice)
+        self.assertIn('OverlayCascadingListPopup(', choice)
         self.assertIn('DropdownArrowEndAction(', choice)
         self.assertIn('SettingsName(title)', choice)
 
@@ -40,11 +39,11 @@ class MaterialSettingsTests(unittest.TestCase):
 
     def test_reduced_transparency_keeps_existing_fallback(self):
         app = (MAIN / 'App.kt').read_text()
-        self.assertIn('val glassEnabled = glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)', app)
+        self.assertIn('glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)', app)
         topbar = (MAIN / 'AppTopBar.kt').read_text()
         self.assertEqual(2, (app + topbar).count('glassEnabled = glassEnabled,'))
         self.assertNotIn('materialMode =', (MAIN / 'PersistedSettings.kt').read_text())
-        presets = (MAIN / 'ui/glass/GlassPreset.kt').read_text()
+        presets = (MAIN / 'ui/glass/GlassAppearance.kt').read_text()
         self.assertIn('!reduceTransparency && !systemReduceTransparency && shaderSupported', presets)
 
 

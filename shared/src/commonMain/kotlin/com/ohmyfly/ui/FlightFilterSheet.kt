@@ -40,7 +40,7 @@ internal fun FlightFilterSheet(show: Boolean, onClose: () -> Unit) {
     LaunchedEffect(show) { if (show) expanded = false }
     val height = LocalWindowInfo.current.containerDpSize.height
     val filter = state.flightFilter
-    OverlayBottomSheet(
+    OverlayBottomSheet(surface = appBottomSheetSurface(),
         show = show, title = "航班筛选", onDismissRequest = onClose, insideMargin = catalogSheetMargin(),
         startAction = { CatalogTextButton(text = "重置", onClick = hapticClick { appCatalog.updateFlightFilter(FlightFilter()) }) },
         endAction = { CatalogTextButton(text = "关闭", onClick = hapticClick(onClose)) }, cornerRadius = AppCorners.Sheet,

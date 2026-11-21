@@ -1,3 +1,4 @@
+// 共享图标入口，集中维护官方图标与业务名称的对应。
 package com.ohmyfly.ui
 
 import androidx.compose.ui.graphics.Color
@@ -9,27 +10,27 @@ import androidx.compose.ui.graphics.vector.PathBuilder
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.basic.Check
-import top.yukonga.miuix.kmp.icon.basic.Close
-import top.yukonga.miuix.kmp.icon.extended.Home
-import top.yukonga.miuix.kmp.icon.extended.Layers
-import top.yukonga.miuix.kmp.icon.extended.Link
-import top.yukonga.miuix.kmp.icon.extended.Merge
-import top.yukonga.miuix.kmp.icon.extended.Settings
-import top.yukonga.miuix.kmp.icon.extended.Send
-import top.yukonga.miuix.kmp.icon.extended.Stopwatch
+import top.yukonga.miuix.kmp.icon.glass.Close
+import top.yukonga.miuix.kmp.icon.glass.HomeOutline
+import top.yukonga.miuix.kmp.icon.glass.Layers
+import top.yukonga.miuix.kmp.icon.glass.Link
+import top.yukonga.miuix.kmp.icon.glass.Merge
+import top.yukonga.miuix.kmp.icon.glass.Ok
+import top.yukonga.miuix.kmp.icon.glass.Send
+import top.yukonga.miuix.kmp.icon.glass.SettingsOutline
+import top.yukonga.miuix.kmp.icon.glass.Stopwatch
 
-/** Shared Miuix icons from the complete library; only the BrandMark is original. */
+/** 界面动作采用 Glass 图标，应用品牌标识独立保留。 */
 internal object DriftIcons {
-    val Overview = MiuixIcons.Home
-    val Nodes = MiuixIcons.Layers
-    val Flights = MiuixIcons.Send
-    val Subscriptions = MiuixIcons.Link
-    val ContentHash = MiuixIcons.Merge
-    val Settings = MiuixIcons.Settings
-    val Speed = MiuixIcons.Stopwatch
-    val Clear = MiuixIcons.Basic.Close
-    val Check = MiuixIcons.Basic.Check
+    val Overview = MiuixIcons.Glass.HomeOutline
+    val Nodes = MiuixIcons.Glass.Layers
+    val Flights = MiuixIcons.Glass.Send
+    val Subscriptions = MiuixIcons.Glass.Link
+    val ContentHash = MiuixIcons.Glass.Merge
+    val Settings = MiuixIcons.Glass.SettingsOutline
+    val Speed = MiuixIcons.Glass.Stopwatch
+    val Clear = MiuixIcons.Glass.Close
+    val Check = MiuixIcons.Glass.Ok
 
     /** Hexagonal cube from the app icon: thin outer hull, bold inner ring. */
     val BrandMark: ImageVector = ImageVector.Builder("BrandMark", 24.dp, 24.dp, 24f, 24f)

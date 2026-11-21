@@ -1,5 +1,6 @@
 package com.ohmyfly.ui.settings
 
+import com.ohmyfly.ui.appPopupSurface
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,7 +32,7 @@ import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.RadioButton
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.menu.OverlayIconDropdownMenu
+import top.yukonga.miuix.kmp.menu.OverlayIconCascadingDropdownMenu
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
@@ -100,7 +101,7 @@ internal fun MirrorRow(
         }
         MirrorStatusLabel(result, phase)
         // Miuix owns menu open/selection feedback through LocalHapticFeedback.
-        OverlayIconDropdownMenu(
+        OverlayIconCascadingDropdownMenu(surface = appPopupSurface(),
             entry = DropdownEntry(
                 items = listOf(
                     DropdownItem(

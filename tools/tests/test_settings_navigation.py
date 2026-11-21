@@ -42,7 +42,7 @@ class SettingsNavigationTests(unittest.TestCase):
         self.assertIn('modifier = Modifier.align(Alignment.TopCenter)', app)
         self.assertEqual(1, app.count('AppMessageHost('))
         self.assertEqual(1, app.count('Scaffold('))
-        self.assertIn('if (glassEnabled) recording.record else Modifier', app)
+        self.assertIn('if (glassEnabled) Modifier.layerBackdrop(backdrop) else Modifier', app)
 
     def test_custom_spring_transition_and_directional_swipe(self):
         screen = (COMMON / 'ui/SettingsScreen.kt').read_text()
@@ -109,7 +109,7 @@ class SettingsNavigationTests(unittest.TestCase):
         build = (ROOT / 'shared/build.gradle.kts').read_text()
         root_build = (ROOT / 'build.gradle.kts').read_text()
         self.assertIn('id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin"', catalog)
-        self.assertIn('serialization = "1.11.0"', catalog)
+        self.assertIn('serialization = "1.13.0"', catalog)
         self.assertIn('implementation(libs.kotlinx.serialization.json)', build)
         self.assertIn('alias(libs.plugins.kotlinSerialization)', build)
         self.assertIn('alias(libs.plugins.kotlinSerialization) apply false', root_build)

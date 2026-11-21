@@ -60,7 +60,7 @@ private fun MetricValue(modifier: Modifier, icon: ImageVector, value: String, co
 private fun UnlockSummary(flight: CatalogFlight) {
     Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        CatalogTile(MirrorIcons.Globe, 32)
+        CatalogTile(DriftIcons.Nodes, 32)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text("流媒体解锁", fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
             if (flight.measurements.platforms.isEmpty()) Text("未测试", fontSize = 14.sp)

@@ -32,7 +32,7 @@ import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.basic.ArrowRight
+import top.yukonga.miuix.kmp.icon.glass.ChevronForward
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -71,7 +71,7 @@ internal fun SettingsExpansionArrow(expanded: Boolean) {
             label = "settings-arrow")
         animated
     } else target
-    Icon(MiuixIcons.Basic.ArrowRight, contentDescription = null,
+    Icon(MiuixIcons.Glass.ChevronForward, contentDescription = null,
         tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
         modifier = Modifier.size(width = 10.dp, height = 16.dp).graphicsLayer { rotationZ = rotation })
 }

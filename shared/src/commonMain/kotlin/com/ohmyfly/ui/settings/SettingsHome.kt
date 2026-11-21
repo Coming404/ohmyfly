@@ -52,8 +52,8 @@ internal fun SettingsHome(
                 ChoiceSetting("明暗模式", settings.themeMode.name, ThemeMode.entries.map { it.name to it.label }, SettingsIcons.Appearance) { name ->
                     onChange("明暗模式已修改为${ThemeMode.valueOf(name).label}") { it.copy(themeMode = ThemeMode.valueOf(name)) }
                 }
-                ChoiceSetting("界面材质", settings.materialMode.name, MaterialMode.entries.map { it.name to it.label }, SettingsIcons.Material) { name ->
-                    onChange("界面材质已修改为${MaterialMode.valueOf(name).label}") { it.copy(materialMode = MaterialMode.valueOf(name)) }
+                ChoiceSetting("界面风格", settings.materialMode.name, MaterialMode.entries.map { it.name to it.label }, SettingsIcons.Material) { name ->
+                    onChange("界面风格已修改为${MaterialMode.valueOf(name).label}") { it.copy(materialMode = MaterialMode.valueOf(name)) }
                 }
                 ToggleSetting("减少透明效果", value = settings.reduceTransparency, leadingIcon = SettingsIcons.Transparency,
                     onChange = { enabled -> onChange("减少透明效果已${if (enabled) "开启" else "关闭"}") { it.copy(reduceTransparency = enabled) } })
@@ -73,7 +73,7 @@ internal fun SettingsHome(
         item(key = "network") {
             SettingsCard {
                 SettingsActionRow(SettingsPage.Subscription.title, DriftIcons.Subscriptions, onClick = { onPage(SettingsPage.Subscription) })
-                SettingsActionRow(SettingsPage.Mirrors.title, MirrorIcons.Github,
+                SettingsActionRow(SettingsPage.Mirrors.title, MirrorIcons.Globe,
                     value = if (!settings.mirrorEnabled) "已关闭" else
                         settings.mirrors.firstOrNull { it.id == settings.selectedMirrorId }?.name
                             ?: settings.mirrors.firstOrNull()?.name ?: "暂无镜像源",

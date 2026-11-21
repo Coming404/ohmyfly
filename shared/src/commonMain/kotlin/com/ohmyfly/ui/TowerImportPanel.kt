@@ -25,7 +25,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.basic.ArrowRight
+import top.yukonga.miuix.kmp.icon.glass.ChevronForward
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.overlay.OverlayBottomSheet
 
@@ -39,7 +39,7 @@ internal fun TowerImportPanel(
     var expandedSources by remember(target?.id) { mutableStateOf(emptySet<String>()) }
     val focus = LocalFocusManager.current
     val messages = LocalAppMessages.current
-    OverlayBottomSheet(show = true, cornerRadius = AppCorners.Sheet, insideMargin = catalogSheetMargin(),
+    OverlayBottomSheet(surface = appBottomSheetSurface(), show = true, cornerRadius = AppCorners.Sheet, insideMargin = catalogSheetMargin(),
         startAction = { Text(if (target == null) "添加塔台" else "重新导入", fontSize = 20.sp,
             fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold) },
         onDismissRequest = { if (!draft.reading) onClose() }, backgroundColor = MiuixTheme.colorScheme.background,
@@ -127,7 +127,7 @@ private fun TowerImportSection(
                     Text(title, style = catalogInputStyle(), fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
                     Text(subtitle, fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                 }
-                Icon(MiuixIcons.Basic.ArrowRight, if (open) "收起$title" else "展开$title",
+                Icon(MiuixIcons.Glass.ChevronForward, if (open) "收起$title" else "展开$title",
                     Modifier.size(18.dp).rotate(if (open) 90f else 0f),
                     tint = if (open) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurfaceVariantSummary)
             }

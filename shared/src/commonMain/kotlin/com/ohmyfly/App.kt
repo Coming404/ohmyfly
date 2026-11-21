@@ -32,7 +32,9 @@ import com.ohmyfly.ui.glass.glassEffectsEnabled
 import com.ohmyfly.ui.glass.glassShaderSupported
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.*
-import com.ohmyfly.ui.glass.rememberChromeRecording
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import com.ohmyfly.settings.MaterialMode
 import top.yukonga.miuix.kmp.nav.core.NavBackStack
 import top.yukonga.miuix.kmp.nav.core.rememberNavBackStack
 import top.yukonga.miuix.kmp.utils.springAnimateToPage
@@ -207,7 +209,7 @@ private fun AppContent(
     val nodesState = rememberLazyListState()
     val settingsState = rememberLazyListState()
 
-    AppTheme(dynamicColorSeed, dark) {
+    AppTheme(dynamicColorSeed, dark, settings.materialMode) {
         AppFrame(
             dark, settings, settingsSession, onRetryRead, destination, settingsChild, settingsBack,
             mirrorPage, mirrorAdd, logsPage, logClear, selectedIds, onSelection = { selectedIds = it },
@@ -284,12 +286,15 @@ private fun AppFrame(
     val background = LocalAppSurfaceColors.current.page
     val reduceTransparency = settings.reduceTransparency
     val systemReduceTransparency by rememberSystemReduceTransparency()
-    val recording = rememberChromeRecording(settings.materialMode) {
+    val backdrop = rememberLayerBackdrop {
         drawRect(background)
         drawContent()
     }
-    val backdrop = recording.backdrop
-    val glassEnabled = glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)
+    val glassEnabled = settings.materialMode == MaterialMode.LiquidGlass &&
+        glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)
+    CompositionLocalProvider(LocalChromeAppearance provides ChromeAppearance(
+        glassEnabled, dark, backdrop.takeIf { glassEnabled },
+    )) {
     Box(Modifier.fillMaxSize()) {
     Scaffold(
         floatingToolbar = {
@@ -298,7 +303,7 @@ private fun AppFrame(
                     com.ohmyfly.ui.CatalogSelectionHost(mode,
                         selectedIds.mapNotNull { it.toLongOrNull() }.toSet(), selectedTowerIds,
                         settingsSession.state.confirmedSettings ?: settings,
-                        toolbarModifier = Modifier.chromeMaterial(backdrop, glassEnabled, dark, settings.materialMode),
+                        toolbarModifier = Modifier.chromeMaterial(backdrop, glassEnabled, dark),
                         onDone = { onSelectionMode(null); onSelection(emptySet()); onTowerSelection(emptySet()) })
                 }
             }
@@ -320,19 +325,16 @@ private fun AppFrame(
                 backdrop = backdrop,
                 glassEnabled = glassEnabled,
                 dark = dark,
-                materialMode = settings.materialMode,
             )
         },
     ) { padding ->
         Box(
             modifier = Modifier.fillMaxSize().consumeWindowInsets(padding)
-                .then(if (glassEnabled) recording.record else Modifier)
+                .then(if (glassEnabled) Modifier.layerBackdrop(backdrop) else Modifier)
                 .background(background),
             contentAlignment = Alignment.TopCenter,
         ) {
-            CompositionLocalProvider(LocalChromeAppearance provides ChromeAppearance(glassEnabled, dark, settings.materialMode)) {
-                Box(Modifier.widthIn(max = 760.dp).fillMaxSize()) { content(padding) }
-            }
+            Box(Modifier.widthIn(max = 760.dp).fillMaxSize()) { content(padding) }
         }
         com.ohmyfly.ui.FlightFilterSheet(filterOpen, onClose = { filterOpen = false })
         MirrorDialog(
@@ -347,6 +349,7 @@ private fun AppFrame(
     }
     AppMessageHost(blocked = settingsSession.state.readFailed,
         modifier = Modifier.align(Alignment.TopCenter))
+    }
     }
 }
 

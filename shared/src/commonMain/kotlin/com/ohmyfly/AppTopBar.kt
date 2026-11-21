@@ -8,7 +8,7 @@ import com.ohmyfly.settings.SettingsSession
 import com.ohmyfly.ui.*
 import com.ohmyfly.ui.settings.MirrorIcons
 import com.ohmyfly.ui.settings.SettingsIcons
-import com.ohmyfly.ui.glass.ChromeBackdrop
+import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 只有顶栏固定；塔台总控属于列表内容。 */
@@ -18,7 +18,7 @@ internal fun AppTopBar(
     mirrorPage: Boolean, mirrorAdd: (() -> Unit)?, logsPage: Boolean, logClear: (() -> Unit)?,
     selectedIds: Set<String>, selectedTowerIds: Set<Long>, selectionMode: CatalogSelectionMode?,
     selectionAllLabel: String, selectingAll: Boolean, onCancelSelection: () -> Unit, onSelectAll: () -> Unit,
-    backdrop: ChromeBackdrop, glassEnabled: Boolean, dark: Boolean, settings: AppSettings,
+    backdrop: Backdrop, glassEnabled: Boolean, dark: Boolean, settings: AppSettings,
     settingsSession: SettingsSession, onCatalogSearch: () -> Unit, onTowerAdd: () -> Unit,
     onFlightFilter: () -> Unit, towerCount: Long,
 ) {
@@ -33,12 +33,12 @@ internal fun AppTopBar(
         },
         titleCapsule = selectionMode != null || destination == AppDestination.Subscriptions || destination == AppDestination.NodeLibrary,
         backdrop = backdrop, glassEnabled = glassEnabled, dark = dark,
-        materialMode = settings.materialMode, onBack = settingsBack,
+        onBack = settingsBack,
         actions = when {
             selectionMode != null -> {
                 {
                     CatalogSelectionTopToolbar(
-                        modifier = Modifier.chromeMaterial(backdrop, glassEnabled, dark, settings.materialMode),
+                        modifier = Modifier.chromeMaterial(backdrop, glassEnabled, dark),
                         selecting = selectingAll, selectAllLabel = selectionAllLabel,
                         onCancel = onCancelSelection, onSelectAll = onSelectAll,
                     )
@@ -46,7 +46,7 @@ internal fun AppTopBar(
             }
             destination == AppDestination.NodeLibrary -> {
                 {
-                    CatalogActionToolbar(Modifier.chromeMaterial(backdrop, glassEnabled, dark, settings.materialMode)) {
+                    CatalogActionToolbar(Modifier.chromeMaterial(backdrop, glassEnabled, dark)) {
                         CatalogToolbarAction("搜索航班", SettingsIcons.Search, onClick = onCatalogSearch)
                         FlightFilterAction(onClick = onFlightFilter)
                     }
@@ -54,7 +54,7 @@ internal fun AppTopBar(
             }
             destination == AppDestination.Subscriptions -> {
                 {
-                    CatalogActionToolbar(Modifier.chromeMaterial(backdrop, glassEnabled, dark, settings.materialMode)) {
+                    CatalogActionToolbar(Modifier.chromeMaterial(backdrop, glassEnabled, dark)) {
                         CatalogToolbarAction("搜索塔台", SettingsIcons.Search, onClick = onCatalogSearch)
                         CatalogToolbarAction("添加塔台", MirrorIcons.Add, onClick = onTowerAdd,
                             enabled = !settingsSession.state.readFailed)

@@ -30,7 +30,7 @@ internal fun FlightGroupEditor(group: CatalogGroup?, groups: List<CatalogGroup>,
             else failure = text
         }
     }
-    OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(), title = if (group == null) "新建分组" else "管理分组",
+    OverlayBottomSheet(surface = appBottomSheetSurface(), show = true, insideMargin = catalogSheetMargin(), title = if (group == null) "新建分组" else "管理分组",
         onDismissRequest = { if (!busy) onClose() }, cornerRadius = AppCorners.Sheet) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             TextField(value = name, textStyle = catalogInputStyle(), onValueChange = { name = it; failure = null }, label = "分组名称",
@@ -72,7 +72,7 @@ internal fun FlightGroupMove(nodeIds: Set<Long>, onMoved: () -> Unit, onClose: (
             else failure = text
         }
     }
-    OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(), title = "移动 ${nodeIds.size} 个航班",
+    OverlayBottomSheet(surface = appBottomSheetSurface(), show = true, insideMargin = catalogSheetMargin(), title = "移动 ${nodeIds.size} 个航班",
         onDismissRequest = { if (!busy) onClose() }, cornerRadius = AppCorners.Sheet) {
         Column(Modifier.fillMaxWidth().heightIn(max = LocalWindowInfo.current.containerDpSize.height * 0.65f)
             .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {

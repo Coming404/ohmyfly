@@ -38,13 +38,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ohmyfly.settings.MaterialMode
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TooltipBox
-import com.ohmyfly.ui.glass.ChromeBackdrop
+import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.basic.ArrowRight
+import top.yukonga.miuix.kmp.icon.glass.ChevronForward
+import top.yukonga.miuix.kmp.glass.glassPress
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val LocalHeaderSurface = staticCompositionLocalOf<@Composable () -> Modifier> { { Modifier } }
@@ -52,10 +52,9 @@ private val LocalHeaderSurface = staticCompositionLocalOf<@Composable () -> Modi
 @Composable
 internal fun DriftTopBar(
     title: String,
-    backdrop: ChromeBackdrop,
+    backdrop: Backdrop,
     glassEnabled: Boolean,
     dark: Boolean,
-    materialMode: MaterialMode,
     titleCount: Long? = null,
     titleCapsule: Boolean = false,
     onBack: (() -> Unit)? = null,
@@ -71,7 +70,7 @@ internal fun DriftTopBar(
     }
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val surface: @Composable () -> Modifier = {
-        Modifier.chromeMaterial(backdrop, glassEnabled, dark, materialMode)
+        Modifier.chromeMaterial(backdrop, glassEnabled, dark)
     }
     CompositionLocalProvider(LocalHeaderSurface provides surface) {
         Row(
@@ -85,7 +84,7 @@ internal fun DriftTopBar(
             if (onBack != null) {
                 HeaderAction(
                     label = "返回",
-                    icon = MiuixIcons.Basic.ArrowRight,
+                    icon = MiuixIcons.Glass.ChevronForward,
                     onClick = onBack,
                     iconModifier = Modifier.graphicsLayer { scaleX = if (rtl) 1f else -1f },
                 )
@@ -123,7 +122,9 @@ internal fun HeaderAction(
     TooltipBox(text = label) {
         // 可见玻璃面与点击区一致，独立按钮不再套用更小的内圆。
         Box(
-            Modifier.defaultMinSize(minWidth = ChromeMetrics.ControlSize, minHeight = ChromeMetrics.ControlSize).clickable(
+            Modifier.defaultMinSize(minWidth = ChromeMetrics.ControlSize, minHeight = ChromeMetrics.ControlSize)
+                .glassPress(interaction, enabled && LocalAppMotionAllowed.current)
+                .clickable(
                 interactionSource = interaction,
                 indication = null,
                 enabled = enabled,
@@ -158,7 +159,8 @@ internal fun HeaderTextAction(
     val surface = LocalHeaderSurface.current
     val interaction = remember { MutableInteractionSource() }
     Box(
-        Modifier.defaultMinSize(minWidth = 44.dp, minHeight = 44.dp)
+        Modifier.defaultMinSize(minWidth = ChromeMetrics.ControlSize, minHeight = ChromeMetrics.ControlSize)
+            .glassPress(interaction, enabled && LocalAppMotionAllowed.current)
             .clickable(interactionSource = interaction, indication = null, enabled = enabled,
                 role = Role.Button, onClick = hapticClick(onClick)),
         contentAlignment = Alignment.Center,

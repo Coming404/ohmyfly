@@ -4,7 +4,7 @@ The Gradle Wrapper, iOS host project, editor configuration and starter layout ar
 
 The template archive was downloaded from the default branch on 2026-10-18. Its exact SHA-256 is recorded in the foundation decision. A previously inspected tree SHA is not used as the download commit unless independently verified.
 
-Changes: remove demo application/network/DI/navigation dependencies; retain Android/iOS only; use Miuix 0.9.4; configure ohmydrift development identifiers and iOS16; replace sample app bootstrap; pin build declarations and add project checks.
+Changes: remove demo application/network/DI/navigation dependencies; retain Android/iOS only; use Miuix 0.9.5-beta03; configure ohmydrift development identifiers and iOS16; replace sample app bootstrap; pin build declarations and add project checks.
 
 The copied license covers the template contribution, not all future project code. Go/Mihomo/upstream parsing code has not been imported. Its license obligations must be evaluated and recorded before distribution. Do not assume the template's Apache license overrides GPL obligations.
 
@@ -31,10 +31,9 @@ The port maps normalized Mihomo fields to upstream Go field names and scalar typ
 ## 鸣谢：连续曲率
 
 - [Kyant Shapes 1.2.1](https://github.com/Kyant0/Shapes/tree/1.2.1)，Apache-2.0：`ui-shapes` 直接依赖的 G2 几何实现。
-- [Miuix 0.9.4](https://github.com/compose-miuix-ui/miuix/tree/39c40f99844227b853f0049a0933b1f3ae6c00ba)，Copyright 2026, compose-miuix-ui contributors，Apache-2.0：形状适配保留公开 ABI，描边沿用内缩约定，改由矢量连续曲线统一填充和裁剪。许可见 [glass-Apache-2.0](licenses/glass-Apache-2.0.txt)，接口说明见 [ui-shapes](../ui-shapes/README.md)。
+- [Miuix 0.9.5-beta03](https://github.com/compose-miuix-ui/miuix/tree/3526cfe2ca0779c5a2eab99af8737a96c9a8a885)，Copyright 2026, compose-miuix-ui contributors，Apache-2.0：形状适配保留公开 ABI，描边沿用内缩约定，改由矢量连续曲线统一填充和裁剪。许可见 [glass-Apache-2.0](licenses/glass-Apache-2.0.txt)，接口说明见 [ui-shapes](../ui-shapes/README.md)。
 
-## Melox liquid-glass reference
+## 鸣谢：Miuix 玻璃材质
 
-`shared/src/commonMain/kotlin/dev/ohmydrift/ui/glass/` adapts the glass navigation from [Inefy-03/Melox](https://github.com/Inefy-03/Melox), commit `49ee06aa1f01a67eb5ea1d5cc7307ddfd571a534`. Files carrying a per-file `Copyright 2026, compose-miuix-ui contributors / SPDX-License-Identifier: Apache-2.0` header and a Kyant0/AndroidLiquidGlass attribution are used under Apache-2.0; their notice is in [licenses/glass-Apache-2.0.txt](licenses/glass-Apache-2.0.txt). Files derived from Melox code without such a header (the container blur/preset policy) are treated conservatively as GPL-3.0; the Melox tree license is in [licenses/Melox-GPL-3.0.txt](licenses/Melox-GPL-3.0.txt), and the per-file mapping is in [Melox-NOTICE.md](Melox-NOTICE.md).
-
-Only the liquid-glass sampling, refraction, highlight and navigation interaction are adapted. Melox's media player, Android host, routing, typography and settings are not copied. This reference does not relicense the rest of ohmydrift or assert that distribution obligations are settled.
+- [Miuix v0.9.5-beta03](https://github.com/compose-miuix-ui/miuix/tree/3526cfe2ca0779c5a2eab99af8737a96c9a8a885)，Copyright 2026, compose-miuix-ui contributors，Apache-2.0：玻璃组件、材质、Glass 图标与双端 shader。固定官方归档见 [miuix-material](miuix-material/README.md)，四个 `Diy_` 补丁与变更原因见 [材质适配](../ui-material/README.md)。
+- 原有 Melox/Kyant Backdrop 玻璃、透镜和自定义导航手势代码已移除；历史许可与 [Melox-NOTICE](Melox-NOTICE.md) 保留用于既有版本溯源。

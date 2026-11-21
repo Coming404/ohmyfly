@@ -1,11 +1,10 @@
+// 圆形动作与导航胶囊共用同一轮廓，绘制、折射及点击边界保持一致。
 package com.ohmyfly.ui
 
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.unit.Density
-import com.ohmyfly.ui.glass.GlassShape
+import androidx.compose.foundation.shape.CornerSize
+import top.yukonga.miuix.kmp.material.GlassShape
 
-/** 导航、标题与圆形动作共用半短边半径，裁剪和光学距离场一致。 */
-internal object NavigationBarShape : GlassShape() {
-    override val surface: androidx.compose.ui.graphics.Shape = com.ohmyfly.shapes.AppCorners.Capsule
-    override fun tile(size: Size, density: Density): Float = -size.minDimension * 0.5f
-}
+/** 胶囊不使用连续圆角修饰；普通内容圆角仍由 AppCorners 提供 G2 曲线。 */
+internal val NavigationBarShape = GlassShape(
+    CornerSize(50), CornerSize(50), CornerSize(50), CornerSize(50), smoothing = 0f,
+)

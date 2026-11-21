@@ -1,62 +1,35 @@
+// 顶栏、工具栏与独立动作只使用官方 Miuix 玻璃渲染。
 package com.ohmyfly.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.dropShadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.shadow.Shadow
-import androidx.compose.ui.unit.dp
-import com.ohmyfly.settings.MaterialMode
-import com.ohmyfly.ui.glass.GlassShape
-import com.ohmyfly.ui.glass.InteractiveHighlight
-import com.ohmyfly.ui.glass.rememberAnimatedGlassPreset
-import com.ohmyfly.ui.glass.glassSurface
-import com.ohmyfly.ui.glass.glassTint
-import com.ohmyfly.ui.glass.surfaceShape
-import androidx.compose.ui.graphics.graphicsLayer
-import com.ohmyfly.ui.LocalAppMotionAllowed
-import com.ohmyfly.ui.glass.ChromeBackdrop
+import com.ohmyfly.ui.glass.rememberGlassStyle
+import top.yukonga.miuix.kmp.blur.Backdrop
+import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
+import top.yukonga.miuix.kmp.glass.glassPanel
+import top.yukonga.miuix.kmp.material.GlassEdgeStrokes
+import top.yukonga.miuix.kmp.material.GlassShadows
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-private val ChromeShape = NavigationBarShape
-
-/** The same preset/effect policy as the navigation shell, on actual back/action surfaces. */
+/** Expressive 与无障碍降级使用主题实色，不运行背景采样或旧折射着色器。 */
 @Composable
 internal fun Modifier.chromeMaterial(
-    backdrop: ChromeBackdrop,
+    backdrop: Backdrop,
     enabled: Boolean,
     dark: Boolean,
-    materialMode: MaterialMode,
-    shape: GlassShape = ChromeShape,
 ): Modifier {
-    val surface = MiuixTheme.colorScheme.surface
-    val motion = LocalAppMotionAllowed.current
-    val preset = rememberAnimatedGlassPreset(materialMode, dark, enabled, motion)
-    val outline = remember(backdrop is ChromeBackdrop.Liquid, shape) { backdrop.surfaceShape(shape) }
-    val spot = if (enabled && preset.liquidResponse && motion) {
-        val scope = rememberCoroutineScope()
-        remember(scope) { InteractiveHighlight(scope) }
-    } else null
-    val base = this.then(if (spot == null) Modifier else Modifier.graphicsLayer {
-        val press = spot.pressProgress
-        scaleX = 1f + 0.025f * press
-        scaleY = 1f - 0.025f * press
-    })
-        .dropShadow(shape = outline, shadow = Shadow(radius = 8.dp, color = Color.Black, alpha = 0.12f))
-        .clip(outline)
-    val material = if (enabled) {
-        base.glassSurface(
-            backdrop, shape, preset, glassTint(surface, dark), motion,
-            pressProgress = { spot?.pressProgress ?: 0f },
-        ).then(spot?.modifier ?: Modifier).then(spot?.trackingGestureModifier ?: Modifier)
-    } else {
-        base.background(surface)
-    }
-    return material.border(ChromeMetrics.OutlineWidth,
-        MiuixTheme.colorScheme.onSurface.copy(alpha = ChromeMetrics.OutlineAlpha), outline)
+    val style = rememberGlassStyle(enabled, dark)
+    val surface = MiuixTheme.colorScheme.surfaceContainer
+    return glassPanel(
+        backdrop = backdrop.takeIf { enabled },
+        shape = NavigationBarShape,
+        style = style.value,
+        material = GlassTopAppBarDefaults.buttonMaterial(),
+        stroke = if (enabled) GlassEdgeStrokes.forTheme(dark) else null,
+        shadow = GlassShadows.Regular,
+        shading = false,
+        fallback = Modifier.clip(NavigationBarShape).background(surface),
+    )
 }

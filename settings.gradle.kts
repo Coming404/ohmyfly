@@ -15,5 +15,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "ohmyfly"
-include(":shared", ":androidApp", ":miuix-squircle")
+include(":shared", ":androidApp", ":miuix-squircle", ":miuix-material")
 project(":miuix-squircle").projectDir = file("ui-shapes")
+project(":miuix-material").projectDir = file("ui-material")

@@ -10,7 +10,7 @@ GLASS = COMMON / 'ui/glass'
 class GlassAccessibilityTests(unittest.TestCase):
     def test_system_reduction_reaches_the_single_effect_gate(self):
         app = (COMMON / 'App.kt').read_text()
-        preset = (GLASS / 'GlassPreset.kt').read_text()
+        preset = (GLASS / 'GlassAppearance.kt').read_text()
         self.assertIn('val systemReduceTransparency by rememberSystemReduceTransparency()', app)
         self.assertIn('glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)', app)
         self.assertIn('!reduceTransparency && !systemReduceTransparency && shaderSupported', preset)
@@ -38,32 +38,13 @@ class GlassAccessibilityTests(unittest.TestCase):
 
     def test_fallback_stops_recording_and_requests_static_highlights(self):
         app = (COMMON / 'App.kt').read_text()
-        surface = (GLASS / 'GlassNavigationSurface.kt').read_text()
         chrome = (COMMON / 'ui/ChromeMaterial.kt').read_text()
-        highlight = (GLASS / 'GlassHighlight.kt').read_text()
-        self.assertIn('if (glassEnabled) recording.record else Modifier', app)
-        self.assertIn('if (tabs != null) {', surface)
-        self.assertLess(surface.index('if (tabs != null) {'), surface.index('.then(tabs.record)'))
-        self.assertIn('else Modifier.background(surface, NavigationBarShape)', surface)
-        self.assertIn('base.background(surface)', chrome)
-        self.assertIn('rememberGlassGravity(enabled && motionAllowed && preset.highlightAlpha > 0f)', highlight)
-
-    def test_keyboard_focus_is_visible_above_the_lens_without_duplicate_targets(self):
-        tabs = (GLASS / 'GlassNavigationTabs.kt').read_text()
-        surface = (GLASS / 'GlassNavigationSurface.kt').read_text()
-        self.assertIn('if (recording) Modifier else Modifier', tabs)
-        self.assertIn('.onFocusChanged { onFocusChange(index, it.isFocused) }', tabs)
-        self.assertIn('.selectable(', tabs)
-        self.assertNotIn('.focusable(', tabs)
-        self.assertIn('if (focused) focusedIndex = index else if (focusedIndex == index) focusedIndex = -1', surface)
-        marker = surface.index('if (focusedIndex in AppDestination.entries.indices)')
-        self.assertLess(surface.index('capsule.glassNavigationCapsule'), marker)
-        self.assertLess(surface.index('capsule.liquidCapsule'), marker)
-        focus = surface[marker:surface.index('/** The combined source')]
-        self.assertIn('clearAndSetSemantics {}', focus)
-        self.assertIn('glassTabOffset(focusedIndex.toFloat(), response.tabWidth, response.ltr)', focus)
-        self.assertIn('.border(2.dp, MiuixTheme.colorScheme.onSurface, focusShape)', focus)
-        self.assertNotIn('onDestination', focus)
+        appearance = (GLASS / 'GlassAppearance.kt').read_text()
+        self.assertIn('if (glassEnabled) Modifier.layerBackdrop(backdrop) else Modifier', app)
+        self.assertIn('settings.materialMode == MaterialMode.LiquidGlass', app)
+        self.assertIn('backdrop.takeIf { enabled }', chrome)
+        self.assertIn('Modifier.clip(NavigationBarShape).background(surface)', chrome)
+        self.assertIn('rememberGlassGravity(enabled && LocalAppMotionAllowed.current)', appearance)
 
     def test_settings_errors_are_associated_with_input_and_actions_can_wrap(self):
         controls = (COMMON / 'ui/settings/SettingsControls.kt').read_text()

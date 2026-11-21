@@ -34,8 +34,8 @@ class SettingsSessionTest {
         runCurrent()
 
         session.onMessage = messages::show
-        session.change { it.copy(materialMode = MaterialMode.SoftGlass) }
-        assertEquals(MaterialMode.SoftGlass, session.state.settings.materialMode)
+        session.change { it.copy(materialMode = MaterialMode.Expressive) }
+        assertEquals(MaterialMode.Expressive, session.state.settings.materialMode)
         assertEquals(MaterialMode.LiquidGlass, values.value.materialMode)
         assertEquals(0, writes)
         runCurrent()
@@ -59,10 +59,10 @@ class SettingsSessionTest {
         backgroundScope.launch { session.run() }
         runCurrent()
         session.change { it.copy(themeMode = ThemeMode.Dark) }
-        session.change { it.copy(materialMode = MaterialMode.HighlightGlass) }
+        session.change { it.copy(materialMode = MaterialMode.Expressive) }
         session.change { it.copy(reduceTransparency = true) }
         assertEquals(ThemeMode.Dark, session.state.settings.themeMode)
-        assertEquals(MaterialMode.HighlightGlass, session.state.settings.materialMode)
+        assertEquals(MaterialMode.Expressive, session.state.settings.materialMode)
         assertEquals(true, session.state.settings.reduceTransparency)
         runCurrent()
         // An independent transaction must survive: save transforms, not full UI snapshots.
@@ -72,7 +72,7 @@ class SettingsSessionTest {
         assertEquals(3, committed.size)
         assertEquals(ThemeMode.Dark, committed[0].themeMode)
         assertEquals(MaterialMode.LiquidGlass, committed[0].materialMode)
-        assertEquals(MaterialMode.HighlightGlass, committed[1].materialMode)
+        assertEquals(MaterialMode.Expressive, committed[1].materialMode)
         assertTrue(values.value.reduceTransparency)
         assertEquals(32, values.value.speed.downloadMiB)
         assertEquals(values.value, session.state.settings)
@@ -152,7 +152,7 @@ class SettingsSessionTest {
         val messages = AppMessageState()
         session.onMessage = messages::show
         session.change { it.copy(themeMode = ThemeMode.Dark) }
-        session.change { it.copy(materialMode = MaterialMode.SoftGlass) }
+        session.change { it.copy(materialMode = MaterialMode.Expressive) }
         session.change { it.copy(reduceTransparency = true) }
         gate.complete(Unit)
         runCurrent()
@@ -162,12 +162,12 @@ class SettingsSessionTest {
         assertEquals(false, session.state.settings.reduceTransparency)
         assertEquals(AppMessageKind.Failure, messages.current?.kind)
         assertEquals(values.value, session.state.settings)
-        session.change { it.copy(materialMode = MaterialMode.HighlightGlass) }
+        session.change { it.copy(materialMode = MaterialMode.Expressive) }
         assertEquals(AppMessageKind.Failure, messages.current?.kind)
         runCurrent()
         assertEquals(AppMessageKind.Success, messages.current?.kind)
         assertEquals(3, writes)
-        assertEquals(MaterialMode.HighlightGlass, values.value.materialMode)
+        assertEquals(MaterialMode.Expressive, values.value.materialMode)
         assertEquals(values.value, session.state.settings)
     }
 
@@ -258,7 +258,7 @@ class SettingsSessionTest {
         backgroundScope.launch { session.run() }
         runCurrent()
         session.change { it.copy(themeMode = ThemeMode.Dark) }
-        session.change { it.copy(materialMode = MaterialMode.SoftGlass) }
+        session.change { it.copy(materialMode = MaterialMode.Expressive) }
         runCurrent()
         assertEquals(1, writes)
         assertEquals(ThemeMode.Dark, committed.themeMode)
