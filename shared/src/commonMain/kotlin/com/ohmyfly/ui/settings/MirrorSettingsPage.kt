@@ -90,7 +90,7 @@ internal fun MirrorSettingsPage(
     LaunchedEffect(runner.completedBatchId, mirrors) {
         val fastest = runner.consumeFastestMirrorId()?.takeIf { id -> mirrors.any { it.id == id } }
         if (fastest != null && settings.selectedMirrorId != fastest) {
-            onChange("镜像选择") { current ->
+            onChange("已切换到最快镜像") { current ->
                 if (current.selectedMirrorId == fastest) current else current.copy(selectedMirrorId = fastest)
             }
         }
@@ -121,7 +121,7 @@ internal fun MirrorSettingsPage(
             item(key = "mirror-enabled") {
                 SettingsCard {
                     ToggleSetting("启用镜像", value = settings.mirrorEnabled,
-                        onChange = { enabled -> onChange("启用镜像") { it.copy(mirrorEnabled = enabled) } },
+                        onChange = { enabled -> onChange("镜像已${if (enabled) "启用" else "停用"}") { it.copy(mirrorEnabled = enabled) } },
                         leadingIcon = MirrorIcons.Power,
                         enabled = !session.state.readFailed)
                 }
@@ -163,7 +163,7 @@ internal fun MirrorSettingsPage(
                                 name = entry.name, address = hostOf(entry.address), selected = entry.id == selectedId,
                                 selectionEnabled = settings.mirrorEnabled && !session.state.readFailed,
                                 result = runner.result(entry.id), phase = runner.phase(entry.id),
-                                onSelect = { if (settings.selectedMirrorId != entry.id) onChange("镜像选择") { it.copy(selectedMirrorId = entry.id) } },
+                                onSelect = { if (settings.selectedMirrorId != entry.id) onChange("已选择镜像 ${entry.name}") { it.copy(selectedMirrorId = entry.id) } },
                                 testing = runner.running || runner.stopping,
                                 canWrite = !session.state.readFailed,
                                 onTest = { runner.measure(entry.id, entry) },

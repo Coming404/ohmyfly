@@ -15,7 +15,7 @@
 
 Klibs 查询确认 compose-miuix-ui/miuix 的 Android、ios_arm64、ios_simulator_arm64，但索引仅更新到 beta01；beta03 以 Maven 发布元数据和固定源码交叉核对，ui/blur/material/glass/glass-icons/nav 均有对应平台变体。删除旧 miuix-shader 与 Kyant Backdrop 依赖，保留独立 Shapes1.2.1 几何。
 
-界面只有液态玻璃和 Expressive 两档，均使用 Miuix 控件。Expressive 是配色与不透明表面方案，不引入第二套 Material3 控件。官方圆角未满足现有 G2 契约，采用 ui-shapes 与 ui-material 本地模块替换，详细接口与补丁见各模块 README。
+界面只有液态玻璃和 Expressive 两档，均使用 Miuix 控件；配色以独立的 AccentPalette 设置种子，自动项在 Android 跟随系统壁纸色、iOS Expressive 回退产品蓝，另有六种参考色和宫崎骏森林绿七个预设。Monet 色板由 Miuix ThemeController 生成，详见 ui-showcase/settings。官方圆角未满足现有 G2 契约，采用 ui-shapes 与 ui-material 本地模块替换，详细接口与补丁见各模块 README。
 
 该组合已通过Android编译、415项共享测试及iOS Klib链接/Release归档，记录见[beta03验证](miuix-beta03-verification.md)。Android compileSdk对齐37.2，iOS16/API33产品最低目标保持不变，运行时shader与最低系统真机表现待验收。
 
@@ -49,7 +49,7 @@ https://kmp.jetbrains.com/
 
 ## 4. UI 依赖与材质
 
-- UI 模块保持同版固定值。主导航采用官方 GlassNavigationBar，应用保留目的地、状态、触感和安全区所有权。
+- UI 模块保持同版固定值。主导航由应用自有五项组件呈现，以 Miuix glassPanel、G2 GlassShape 和 EdgeStroke 实现折射玻璃；应用保留目的地、状态、触感和安全区所有权。
 - RuntimeShader、传感器及材质统一通过 miuix-material；普通内容层只录制一份背景，弹层不进入自身采样源。
 - 修改的官方源码加 Diy_ 前缀，保留原包名、公开函数和 @file:JvmName 门面；未修改源码使用固定发布归档生成。
 - G2 的裁剪 Path、光学距离场、遮罩、阴影和高光共享控制点，真圆/胶囊保持圆弧。

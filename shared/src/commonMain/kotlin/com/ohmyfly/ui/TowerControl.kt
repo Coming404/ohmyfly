@@ -34,7 +34,7 @@ internal fun TowerControl(state: CatalogState, ready: Boolean, onCancel: () -> U
     var fuel by rememberSaveable { mutableStateOf(false) }
     val summary = state.summary
     val colors = MiuixTheme.colorScheme
-    Card(Modifier.fillMaxWidth().clickable(role = Role.Button,
+    Card(Modifier.fillMaxWidth().clip(AppCorners.shape(AppCorners.Card)).clickable(role = Role.Button,
         onClick = hapticClick { expanded = !expanded }), cornerRadius = AppCorners.Card) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

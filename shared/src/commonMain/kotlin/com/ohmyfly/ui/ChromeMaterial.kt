@@ -29,7 +29,7 @@ internal fun Modifier.chromeMaterial(
         material = GlassTopAppBarDefaults.buttonMaterial(),
         stroke = if (enabled) GlassEdgeStrokes.forTheme(dark) else null,
         shadow = GlassShadows.Regular,
-        shading = false,
+        shading = enabled,
         fallback = Modifier.clip(NavigationBarShape).background(surface),
     )
 }

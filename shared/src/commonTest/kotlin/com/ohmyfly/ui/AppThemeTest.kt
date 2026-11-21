@@ -7,6 +7,8 @@ import kotlin.test.assertNull
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.ThemeColorSpec
 import top.yukonga.miuix.kmp.theme.ThemePaletteStyle
+import com.ohmyfly.settings.AccentPalette
+import com.ohmyfly.settings.MaterialMode
 import top.yukonga.miuix.kmp.theme.darkColorScheme
 import top.yukonga.miuix.kmp.theme.lightColorScheme
 
@@ -35,6 +37,28 @@ class AppThemeTest {
             assertEquals(lightColorScheme().surface, controller.lightColors.surface)
             assertEquals(darkColorScheme().primary, controller.darkColors.primary)
             assertEquals(darkColorScheme().surface, controller.darkColors.surface)
+        }
+    }
+
+    @Test
+    fun automaticPaletteUsesAndroidSeedAndIosExpressiveDefault() {
+        val systemSeed = Color(0xFF526A8C)
+        assertEquals(systemSeed, appThemeController(systemSeed, false).keyColor)
+        val expressive = appThemeController(null, false, MaterialMode.Expressive)
+        assertEquals(Color(0xFF1F6FE5), expressive.keyColor)
+        assertEquals(ThemePaletteStyle.Expressive, expressive.paletteStyle)
+    }
+
+    @Test
+    fun explicitPresetOverridesSystemSeedAndKeepsMaterialPaletteRecipe() {
+        val preset = AccentPalette.Miyazaki
+        for (mode in MaterialMode.entries) {
+            val controller = appThemeController(Color(0xFF112233), false, mode, preset)
+            assertEquals(Color(preset.seedArgb!!), controller.keyColor)
+            assertEquals(
+                if (mode == MaterialMode.Expressive) ThemePaletteStyle.Expressive else ThemePaletteStyle.Neutral,
+                controller.paletteStyle,
+            )
         }
     }
 

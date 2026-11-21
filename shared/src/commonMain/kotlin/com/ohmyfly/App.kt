@@ -209,7 +209,7 @@ private fun AppContent(
     val nodesState = rememberLazyListState()
     val settingsState = rememberLazyListState()
 
-    AppTheme(dynamicColorSeed, dark, settings.materialMode) {
+    AppTheme(dynamicColorSeed, dark, settings.materialMode, settings.accentPalette) {
         AppFrame(
             dark, settings, settingsSession, onRetryRead, destination, settingsChild, settingsBack,
             mirrorPage, mirrorAdd, logsPage, logClear, selectedIds, onSelection = { selectedIds = it },

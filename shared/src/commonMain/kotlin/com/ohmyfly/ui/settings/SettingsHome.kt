@@ -9,12 +9,14 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ohmyfly.settings.AccentPalette
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.MaterialMode
 import com.ohmyfly.ui.DriftIcons
@@ -54,6 +56,16 @@ internal fun SettingsHome(
                 }
                 ChoiceSetting("界面风格", settings.materialMode.name, MaterialMode.entries.map { it.name to it.label }, SettingsIcons.Material) { name ->
                     onChange("界面风格已修改为${MaterialMode.valueOf(name).label}") { it.copy(materialMode = MaterialMode.valueOf(name)) }
+                }
+                ChoiceSetting(
+                    title = "配色",
+                    value = settings.accentPalette.name,
+                    options = AccentPalette.entries.map { it.name to it.label },
+                    icon = SettingsIcons.Appearance,
+                    optionColor = { name -> AccentPalette.valueOf(name).seedArgb?.let { Color(it) } },
+                ) { name ->
+                    val palette = AccentPalette.valueOf(name)
+                    onChange("配色已修改为${palette.label}") { it.copy(accentPalette = palette) }
                 }
                 ToggleSetting("减少透明效果", value = settings.reduceTransparency, leadingIcon = SettingsIcons.Transparency,
                     onChange = { enabled -> onChange("减少透明效果已${if (enabled) "开启" else "关闭"}") { it.copy(reduceTransparency = enabled) } })

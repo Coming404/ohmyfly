@@ -50,6 +50,21 @@ class SettingsSessionMessageTest {
     }
 
     @Test
+    fun explicitSuccessTextIsShownVerbatim() = runTest {
+        val disk = MutableStateFlow(AppSettings())
+        val notices = mutableListOf<Pair<AppMessageKind, String>>()
+        val session = SettingsSession(disk) { transform -> disk.value = transform(disk.value) }
+        session.onMessage = { kind, text -> notices += kind to text }
+        backgroundScope.launch { session.run() }
+        runCurrent()
+
+        session.changeWithSuccessText("明暗模式已修改为浅色") { it.copy(themeMode = ThemeMode.Light) }
+        runCurrent()
+
+        assertEquals(listOf(AppMessageKind.Success to "明暗模式已修改为浅色"), notices)
+    }
+
+    @Test
     fun rollbackReportsOnlyFailedItemOnceWithNamedOrGenericText() = runTest {
         for ((name, inlineError) in listOf("并发数" to false, null to false, "并发数" to true)) {
             val disk = MutableStateFlow(AppSettings())

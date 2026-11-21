@@ -16,7 +16,7 @@ import com.kyant.shapes.UnevenRoundedRectangle
 /** 数值只在此维护；嵌套内容按外层半径减去实际间距获得同心轮廓。 */
 object AppCorners {
     val Card = 24.dp
-    val SettingsCard = 16.dp
+    val SettingsCard = Card
     val Dialog = 28.dp
     val Sheet = 28.dp
     val Control = 16.dp

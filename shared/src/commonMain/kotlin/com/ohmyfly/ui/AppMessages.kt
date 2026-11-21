@@ -2,16 +2,33 @@ package com.ohmyfly.ui
 
 import com.ohmyfly.shapes.AppCorners
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.*
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.basic.Close
+import top.yukonga.miuix.kmp.icon.glass.Error
+import top.yukonga.miuix.kmp.icon.glass.Help
+import top.yukonga.miuix.kmp.icon.glass.Info
+import top.yukonga.miuix.kmp.icon.glass.Ok
+import top.yukonga.miuix.kmp.icon.glass.Report
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal enum class AppMessageKind { Default, Success, Failure, Error, Uncertain }
@@ -111,9 +128,10 @@ private fun StaticAppSnackbar(message: AppMessage, messages: AppMessageState) {
     AppSnackbar(data, message.kind)
 }
 
+/** 每种通知用语义图标辅助识别，成功正文按调用方提供的文本原样呈现。 */
 @Composable
 private fun AppSnackbar(data: SnackbarData, kind: AppMessageKind) {
-    val colors = SnackbarDefaults.snackbarColors()
+    val defaults = SnackbarDefaults.snackbarColors()
     val dark = MiuixTheme.colorScheme.background.luminance() < 0.5f
     val (background, foreground) = when (kind) {
         AppMessageKind.Default -> Color(0xFF303030) to Color.White
@@ -126,17 +144,68 @@ private fun AppSnackbar(data: SnackbarData, kind: AppMessageKind) {
         AppMessageKind.Uncertain -> if (dark) Color(0xFF46371E) to Color(0xFFFFD999)
             else Color(0xFFFFF0D5) to Color(0xFF754D00)
     }
-    // 使用组件默认布局，关闭图标不再把单行通知撑成 64 dp。
-    Snackbar(data = data,
-        modifier = Modifier.semantics {
-            liveRegion = if (kind == AppMessageKind.Success || kind == AppMessageKind.Default)
-                LiveRegionMode.Polite else LiveRegionMode.Assertive
-        },
-        colors = SnackbarDefaults.snackbarColors(
-            containerColor = background, contentColor = foreground,
-            actionContainerColor = if (kind == AppMessageKind.Default) colors.actionContainerColor else foreground.copy(alpha = 0.12f),
-            actionContentColor = if (kind == AppMessageKind.Default) colors.actionContentColor else foreground,
-            dismissActionContentColor = foreground,
-        ), cornerRadius = AppCorners.Notification,
-    )
+    val icon = when (kind) {
+        AppMessageKind.Default -> MiuixIcons.Glass.Info
+        AppMessageKind.Success -> MiuixIcons.Glass.Ok
+        AppMessageKind.Failure -> MiuixIcons.Glass.Report
+        AppMessageKind.Error -> MiuixIcons.Glass.Error
+        AppMessageKind.Uncertain -> MiuixIcons.Glass.Help
+    }
+    val shape = AppCorners.shape(AppCorners.Notification)
+    val scope = rememberCoroutineScope()
+    Box(
+        Modifier.padding(SnackbarDefaults.OuterPadding)
+            .shadow(10.dp, shape, clip = false)
+            .clip(shape)
+            .background(background)
+            .pointerInput(Unit) { detectTapGestures { } }
+            .semantics {
+                liveRegion = if (kind == AppMessageKind.Success || kind == AppMessageKind.Default)
+                    LiveRegionMode.Polite else LiveRegionMode.Assertive
+            },
+    ) {
+        Row(
+            Modifier.defaultMinSize(minHeight = 48.dp).padding(SnackbarDefaults.InsideMargin),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = foreground)
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = data.visuals.message,
+                color = foreground,
+                style = MiuixTheme.textStyles.body2,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            data.visuals.actionLabel?.takeIf(String::isNotEmpty)?.let { actionLabel ->
+                TextButton(
+                    text = actionLabel,
+                    onClick = { scope.launch { data.performAction() } },
+                    modifier = Modifier.padding(start = 12.dp),
+                    cornerRadius = SnackbarDefaults.ActionCornerRadius,
+                    minWidth = 26.dp,
+                    minHeight = 26.dp,
+                    colors = ButtonDefaults.textButtonColorsPrimary(
+                        color = if (kind == AppMessageKind.Default) defaults.actionContainerColor
+                        else foreground.copy(alpha = 0.12f),
+                        textColor = if (kind == AppMessageKind.Default) defaults.actionContentColor else foreground,
+                    ),
+                    insideMargin = SnackbarDefaults.ActionInsideMargin,
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp),
+                )
+            }
+            if (data.visuals.withDismissAction) {
+                Icon(
+                    imageVector = MiuixIcons.Basic.Close,
+                    contentDescription = "关闭通知",
+                    tint = foreground,
+                    modifier = Modifier.padding(start = 8.dp).size(20.dp)
+                        .clickable(indication = null, interactionSource = null) {
+                            scope.launch { data.dismiss() }
+                        },
+                )
+            }
+        }
+    }
 }

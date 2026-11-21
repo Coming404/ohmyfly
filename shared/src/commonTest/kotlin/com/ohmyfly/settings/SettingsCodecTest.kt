@@ -23,6 +23,7 @@ class SettingsCodecTest {
         val settings = AppSettings(
             themeMode = ThemeMode.Dark,
             materialMode = MaterialMode.Expressive,
+            accentPalette = AccentPalette.Miyazaki,
             reduceTransparency = true,
             reduceMotion = true,
             speed = SpeedSettings(
@@ -71,6 +72,7 @@ class SettingsCodecTest {
 
         assertEquals(settings.themeMode, decoded.themeMode)
         assertEquals(settings.materialMode, decoded.materialMode)
+        assertEquals(settings.accentPalette, decoded.accentPalette)
         assertEquals(settings.reduceTransparency, decoded.reduceTransparency)
         assertEquals(settings.reduceMotion, decoded.reduceMotion)
         assertEquals(settings.speed, decoded.speed)

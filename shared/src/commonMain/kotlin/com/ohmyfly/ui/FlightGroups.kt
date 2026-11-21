@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
@@ -49,8 +50,23 @@ internal fun FlightGroups(catalog: CatalogState) {
             }
         }
         Spacer(Modifier.width(8.dp))
-        InlineChromeIconButton("新建分组", MirrorIcons.Add,
-            onClick = { creating = true }, enabled = catalog.ready, tint = MiuixTheme.colorScheme.primary)
+        TooltipBox(text = "新建分组") {
+            IconButton(
+                onClick = hapticClick { creating = true },
+                enabled = catalog.ready,
+                modifier = Modifier.size(ChromeMetrics.ControlSize),
+                backgroundColor = Color.Transparent,
+                cornerRadius = AppCorners.Toolbar,
+            ) {
+                Icon(
+                    MirrorIcons.Add,
+                    contentDescription = "新建分组",
+                    modifier = Modifier.size(18.dp),
+                    tint = if (catalog.ready) MiuixTheme.colorScheme.primary
+                    else MiuixTheme.colorScheme.disabledOnSurface,
+                )
+            }
+        }
     }
 
     if (creating || editing != null) FlightGroupEditor(editing, catalog.groups.groups) {
@@ -72,6 +88,7 @@ private fun GroupChip(title: String, count: Long, active: Boolean, onClick: () -
         androidx.compose.animation.core.tween(duration), label = "分组文字")
     // 缩小可见胶囊但保留 44 dp 触控高度；未选项不以粗体或边框抢占注意力。
     Box(Modifier.heightIn(min = ChromeMetrics.ControlSize)
+        .clip(shape)
         .clickable(role = Role.Tab, onClick = hapticClick(onClick)).semantics { selected = active },
         contentAlignment = Alignment.Center) {
         Row(Modifier.clip(shape).background(background)

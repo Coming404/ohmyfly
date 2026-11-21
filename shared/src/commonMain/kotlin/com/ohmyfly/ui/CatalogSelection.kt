@@ -88,7 +88,7 @@ private fun RowScope.SelectionToolbarAction(
 @Composable
 private fun SelectionTopAction(enabled: Boolean, label: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
-    val color = if (enabled) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.disabledOnSurface
+    val color = if (enabled) MiuixTheme.colorScheme.onSurface else MiuixTheme.colorScheme.disabledOnSurface
     IconButton(onClick = hapticClick(onClick), enabled = enabled,
         minWidth = ChromeMetrics.ControlSize, minHeight = ChromeMetrics.ControlSize,
         backgroundColor = Color.Transparent, cornerRadius = AppCorners.Selection) {

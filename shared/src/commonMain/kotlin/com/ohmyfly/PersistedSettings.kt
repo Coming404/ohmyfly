@@ -70,7 +70,7 @@ internal fun PersistedSettings(
     ) {
         content(
             current,
-            { name, transform -> session.change(name, transform) },
+            { successText, transform -> session.changeWithSuccessText(successText, transform) },
             session,
             retryRead,
         )

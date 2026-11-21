@@ -10,6 +10,7 @@ import com.ohmyfly.ui.ThemeMode
 internal data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.System,
     val materialMode: MaterialMode = MaterialMode.LiquidGlass,
+    val accentPalette: AccentPalette = AccentPalette.Automatic,
     val reduceTransparency: Boolean = false,
     val reduceMotion: Boolean = false,
     val hapticEnabled: Boolean = true,

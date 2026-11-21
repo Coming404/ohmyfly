@@ -23,12 +23,18 @@ import top.yukonga.miuix.kmp.icon.glass.Stopwatch
 /** 界面动作采用 Glass 图标，应用品牌标识独立保留。 */
 internal object DriftIcons {
     val Overview = MiuixIcons.Glass.HomeOutline
+    val OverviewSelected = MiuixIcons.Glass.Medium.HomeOutline
     val Nodes = MiuixIcons.Glass.Layers
+    val NodesSelected = MiuixIcons.Glass.Medium.Layers
     val Flights = MiuixIcons.Glass.Send
+    val FlightsSelected = MiuixIcons.Glass.Medium.Send
     val Subscriptions = MiuixIcons.Glass.Link
+    val SubscriptionsSelected = MiuixIcons.Glass.Medium.Link
     val ContentHash = MiuixIcons.Glass.Merge
     val Settings = MiuixIcons.Glass.SettingsOutline
+    val SettingsSelected = MiuixIcons.Glass.Medium.SettingsOutline
     val Speed = MiuixIcons.Glass.Stopwatch
+    val SpeedSelected = MiuixIcons.Glass.Medium.Stopwatch
     val Clear = MiuixIcons.Glass.Close
     val Check = MiuixIcons.Glass.Ok
 

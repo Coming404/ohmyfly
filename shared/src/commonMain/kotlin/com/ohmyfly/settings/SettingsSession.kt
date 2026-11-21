@@ -65,6 +65,11 @@ internal class SettingsSession(
         enqueue(PendingChange(transform, null, name, reportErrors = true, successText = null))
     }
 
+    /** 由界面提供完整成功文案，按原文展示，不拼接通用后缀。 */
+    fun changeWithSuccessText(successText: String, transform: (AppSettings) -> AppSettings) {
+        enqueue(PendingChange(transform, null, name = null, reportErrors = true, successText = successText))
+    }
+
     fun change(transform: (AppSettings) -> AppSettings) = change(name = null, transform = transform)
 
     /** 只有事务提交并读回才返回 Confirmed；取消等待不会取消已入队写入。 */
@@ -297,6 +302,7 @@ private fun settingsLogChange(before: AppSettings?, after: AppSettings, name: St
         if (before?.logging?.retentionDays != after.logging.retentionDays) add("日志保留时间改为 ${after.logging.retentionDays} 天")
         if (before?.themeMode != after.themeMode) add("主题改为${after.themeMode.label}")
         if (before?.materialMode != after.materialMode) add("材质改为${after.materialMode.label}")
+        if (before?.accentPalette != after.accentPalette) add("配色改为${after.accentPalette.label}")
         if (before?.reduceTransparency != after.reduceTransparency) add("减少透明效果已${if (after.reduceTransparency) "开启" else "关闭"}")
         if (before?.reduceMotion != after.reduceMotion) add("减少动态效果已${if (after.reduceMotion) "开启" else "关闭"}")
         if (before?.hapticEnabled != after.hapticEnabled) add("震动已${if (after.hapticEnabled) "开启" else "关闭"}")

@@ -34,7 +34,7 @@ internal fun HapticSetting(settings: AppSettings, onChange: (String, (AppSetting
         SettingsIcons.Haptic, expanded, onClick = { expanded = !expanded })
     SettingsExpansion(expanded) {
         ToggleSetting("启用震动", value = settings.hapticEnabled, leadingIcon = SettingsIcons.Haptic,
-            onChange = { enabled -> onChange("启用震动") { it.copy(hapticEnabled = enabled) } })
+            onChange = { enabled -> onChange("震动已${if (enabled) "开启" else "关闭"}") { it.copy(hapticEnabled = enabled) } })
         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SettingsLeadingIcon(SettingsIcons.Tune)
@@ -46,7 +46,7 @@ internal fun HapticSetting(settings: AppSettings, onChange: (String, (AppSetting
                     val next = HapticLevel.entries[value.roundToInt().coerceIn(0, 2)]
                     if (next != level) {
                         level = next
-                        onChange("震动强度") { it.copy(hapticLevel = next) }
+                        onChange("震动强度已设为${next.label}") { it.copy(hapticLevel = next) }
                         feedback.preview(next)
                     }
                 },

@@ -16,19 +16,25 @@ Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留概览、塔�
 
 ## 悬浮控制层与材质
 
-- 保留既定顶栏布局、标题数量、44dp动作区域与安全区；材质通过官方 Miuix glassPanel 绘制。
-- 主导航使用 GlassNavigationBar，App 持有唯一目的地状态，官方组件处理拖动、选中胶囊和按压反馈。底部与横向安全区由外层应用一次，关闭组件默认重复 padding。
+- 顶栏、标题胶囊和搜索/筛选工具栏复用 G2 `NavigationBarShape` 与 Miuix `glassPanel`，液态玻璃档开启折射/rim 光照。
+- 顶部背景使用 Miuix `progressiveTextureBlur`，渐变带与顶栏实际测量高度一致，使用 `ProgressiveBlur.Top`；模糊在标题与按钮胶囊底边附近衰减至零，不延伸到正文。
+- 塔台页及航班选择态的顶部/底部工具栏共用同一 G2 玻璃表面。选择态“取消/全选”采用 `onSurface`，浅色为黑、深色为亮色。
+- 航班分组的新增按钮保留44dp触控范围，图标缩至18dp并取消静态底色。
+- 主导航为应用自有五项 G2 胶囊，使用 Miuix `glassPanel`、`EdgeStroke` 与折射/rim 光照。材质保留 Miuix 模糊和主题混色，将第二、第三颜色层 alpha 调至0.34与0.18以提高背景透出；玻璃不可用时使用实色表面。
+- 五项等宽、高度54dp、内容内缩8dp。选中项使用主题主色、Glass Medium图标与SemiBold标签；拖动时胶囊连续跟手，松手提交目标并弹簧归位。外层安全区由应用一次处理。
 - 五页列表保持全高视口，Scaffold边距使用列表contentPadding，背景仍能滚入悬浮控件后方。
 - 页面内容录制一个 Miuix LayerBackdrop。导航、工具栏、菜单和弹层复用背景源，各自使用官方材质参数；弹层不录入自己的背景源。
-- 界面风格仅有「液态玻璃／Expressive」。前者使用官方玻璃；后者使用不透明Miuix表面，不启用玻璃采样。旧Kyant Backdrop、四档预设、自定义透镜与导航手势实现已移除。
-- 普通控件复用 ui-shapes 的 G2 轮廓；玻璃菜单、对话框、抽屉通过 ui-material 的 Diy_ 补丁让折射、遮罩、高光、阴影与实际G2路径一致。真圆和胶囊保留解析圆弧。
+- 界面风格仅有「液态玻璃／Expressive」。前者使用官方 Miuix 玻璃材质；后者使用不透明Miuix表面，不启用玻璃采样。旧Kyant Backdrop、四档预设及旧版透镜高光引擎已移除；底栏拖拽由应用导航组件负责。
+- AppTheme 根显式启用 `LocalSquircleEnabled`，Miuix Card、IconButton 等内置圆角组件默认绘制 G2；设置页及二级页 `SettingsCard` 使用24dp G2表面和同轮廓描边。自绘表面统一用 `AppCorners.shape`/`continuousCorners`，真圆和胶囊保留解析圆弧。
+- 玻璃菜单、对话框、抽屉由 ui-material 的 Diy_ 补丁让折射、遮罩、高光和阴影与实际 G2 路径一致。
 - 双端传感器与生命周期继续复用，驱动官方材质光照方向。降低透明度时走实色，降低动态效果时停止应用自有运动和重力光照。
 - UI动作图标统一 Glass Regular。应用品牌、GitHub/媒体平台/地区旗帜与塔台专属业务标识独立保留。
 
 ## 配色
 
-- 液态玻璃档：Android保留系统代表色＋Neutral/Spec2025；iOS保留Miuix默认浅深色。
-- Expressive档：两端使用ThemePaletteStyle.Expressive；Android使用系统种子，iOS从Miuix默认主色派生，不伪装成壁纸取色。
+- 液态玻璃档：Android自动项使用系统动态代表色＋Neutral/Spec2025；iOS自动项使用Miuix默认浅深色。用户选预设时两端均使用所选种子。
+- Expressive档：两端使用ThemePaletteStyle.Expressive；Android自动项使用系统动态种子，iOS自动项使用产品蓝。手选的7个种子在两种风格下都由当前 Monet 算法生成明暗语义色。
+- 配色独立于界面风格并持久化为 `AccentPalette`。Android“自动”使用当前系统壁纸 Monet 种子；iOS“自动”在 Expressive 模式使用产品蓝 `#1F6FE5`。可手选绯红、紫罗兰、海洋、鼠尾草、琥珀、玫瑰或宫崎骏森林绿种子；手选预设优先于系统动态种子，Miuix 按当前界面风格及明暗生成整套语义色。系统壁纸仅用于 Android 自动项，不读取 iOS 壁纸。
 - 明暗、字体缩放、主题色过渡继续使用已有设置及单一ThemeController；不引入第二套Material3组件。
 
 ## 页面与设置卡片层级
@@ -41,7 +47,7 @@ Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留概览、塔�
 | Android动态浅色 | Neutral的surfaceContainerHigh | surface / onSurface |
 | 深色（两端） | surface | surfaceContainer / onSurfaceContainer，保持原映射 |
 
-设置首页的外观组及全部子页（含镜像编辑、线路和删除确认）复用SettingsCard，继续使用Miuix Card和CardDefaults。普通设置组不加阴影；使用官方squircleBorder绘制0.5dp平滑轮廓，浅色黑4%/深色白8%，圆角沿用官方16dp。不是重画Card或新建平行主题；仅以根层派生的四个只读颜色统一页面和设置表面。其他一级页目前只跟随共享页面底色，卡片内容与布局尚未改。
+设置首页的外观组及全部子页（含镜像编辑、线路和删除确认）复用SettingsCard，继续使用Miuix Card和CardDefaults。普通设置组不加阴影；使用官方squircleBorder绘制0.5dp平滑轮廓，浅色黑4%/深色白8%，应用卡片圆角统一24dp。仅以根层派生的四个只读颜色统一页面和设置表面。其他一级页目前只跟随共享页面底色，卡片内容与布局尚未改。
 
 ## 设置首页与预设选择弹层
 
@@ -55,9 +61,9 @@ Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留概览、塔�
 
 ## 第7项：运动策略与短过渡
 
-首页提供独立的“减少动态效果”。应用偏好或Compose系统MotionDurationScale=0任一限制生效时，自有主题/材质过渡立即取终值，胶囊形变/追光/回弹取消，导航使用官方None并关闭空间滑退，保留标题/系统返回与镜像编辑优先级。正数系统倍率沿用平台，不重置为1；减少透明效果仍单独负责实体降级。
+首页提供独立的“减少动态效果”。应用偏好或Compose系统MotionDurationScale=0任一限制生效时，自有主题/材质过渡立即取终值，选中胶囊松手后即时定位、不执行弹簧回弹；直接拖拽仍随手指移动。页面导航使用NavDisplayEffects.None并关闭空间滑退，保留标题/系统返回与镜像编辑优先级。正数系统倍率沿用平台，不重置为1；减少透明效果仍单独负责实体降级。
 
-正常模式下主题53个语义色和页面/卡片4个角色继续使用应用180ms过渡。玻璃交互采用官方组件动效，不再维护旧四档参数动画；一级页面保留既有1.35倍转场时长和唯一导航状态。
+正常模式下主题53个语义色和页面/卡片4个角色继续使用应用180ms过渡。弹层及普通玻璃控件使用Miuix动效；主导航的选中胶囊由应用组件沿手势跟随、松手弹簧归位。旧四档参数动画已删除；一级页面保留既有1.35倍转场时长和唯一导航状态。
 
 ThemeController根仍负责生成与动态标记；仅在其内使用官方colors重载覆写插值颜色，保证继承动态模式，LocalContentColor随动画色变化。这里只有一个控制器和一棵UI，不复制采样树；只用colors重载会丢动态标记，故不采用。
 
@@ -65,16 +71,16 @@ ThemeController根仍负责生成与动态标记；仅在其内使用官方color
 
 ## 页面转场与返回
 
-正常运动下设置页面使用既有AppNavTransition共享弹簧；有效减少动态时改None及NavDisplayEffects.None。NavDisplay默认关闭滑退，本项目正常模式按布局方向显式开启LeftToRight/RightToLeft；根页不能滑退，镜像编辑打开或减少动态生效时None。PredictiveBackHandler与官方Overlay共享返回分发，优先关闭弹层/编辑，不额外装Android BackHandler或iOS空实现。页面使用实体共享底色，NavDisplay在原有760dp内容宿主内，enableCornerClip=false（不套物理屏幕圆角）、blockInputDuringTransition=true，dimAmount沿用官方0.5。设置转场沿用应用1.35倍时长，菜单和底栏手势由官方组件处理。
+正常运动下设置页面使用既有AppNavTransition共享弹簧；有效减少动态时改None及NavDisplayEffects.None。NavDisplay默认关闭滑退，本项目正常模式按布局方向显式开启LeftToRight/RightToLeft；根页不能滑退，镜像编辑打开或减少动态生效时None。PredictiveBackHandler与官方Overlay共享返回分发，优先关闭弹层/编辑，不额外装Android BackHandler或iOS空实现。页面使用实体共享底色，NavDisplay在原有760dp内容宿主内，enableCornerClip=false（不套物理屏幕圆角）、blockInputDuringTransition=true，dimAmount沿用官方0.5。设置转场沿用应用1.35倍时长；菜单手势交由官方组件，底栏拖拽由应用导航组件处理。
 
-顶部和底栏继续位于根Scaffold，随逻辑栈更新，未与手势进度逐帧联动；本项不把底栏指示器动画或液态玻璃列为已完成。重点设备验收：取消滑退保留页面和草稿；连续点开/返回不空栈；系统恢复设置路由及入口；镜像HTTP任务离页后在entry清理时取消；弹层先消费返回，RTL方向与最低系统一致。
+顶部和底栏继续位于根Scaffold，随逻辑栈更新，底栏选中胶囊不跟随页面滑退进度逐帧联动。底栏G2折射与EdgeStroke由独立玻璃表面负责，真机边界/帧时间仍待验收。重点设备验收：取消滑退保留页面和草稿；连续点开/返回不空栈；系统恢复设置路由及入口；镜像HTTP任务离页后在entry清理时取消；弹层先消费返回，RTL方向与最低系统一致。
 
 ## 性能与源码职责
 
 五个一级页面仍只绘制当前目的地，不增加全局双页Crossfade；设置NavDisplay在页面转场期间会同时呈现相关entry，转场结束后按库生命周期清理，不再声称所有时刻只有单页。没有自定义滚动逐帧重组或第二套页面动画；Miuix自身转场遵循上游实现，不盲目关闭ProMotion或限制系统字体缩放。
 
 - `App.kt`：单一采样源与页面切换；`ui/AppTheme.kt`集中原有主题控制器和唯一MiuixTheme根，`ui/AppSurfaceColors.kt`只派生页面/设置卡片/卡片前景/轮廓，不持有另一份主题状态。`PersistedSettings.kt`统一加载与保存错误处理，`settings/`持有模型和DataStore；`mirror/`负责有界公开资源探测。
-- `ui/{DriftTopBar,DriftNavigationBar,ChromeMaterial}.kt`：悬浮控制层与共享材质；`ui/NavigationBarShape.kt`是官方平滑Path到Compose Shape的最小适配，不持有状态。
+- `ui/{DriftTopBar,DriftNavigationBar,ChromeMaterial}.kt`：悬浮控制层、共享材质和五项导航行为；`ui/NavigationBarShape.kt`集中导航玻璃与指示胶囊的G2轮廓。
 - `ui/PagePadding.kt`：逻辑方向安全区和内容留白合并。
 - `ui/{NodeSummary,NodeSelection,NodeSelectionActions,ChoiceOption}.kt`：航班摘要、选择逻辑和控件。
 - `ui/{OverviewScreen,SubscriptionsScreen,SpeedScreen,NodesScreen,SettingsScreen}.kt`：五页。

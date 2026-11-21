@@ -1,9 +1,12 @@
 package com.ohmyfly.ui.settings
 
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -11,6 +14,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
@@ -37,6 +42,7 @@ internal fun ChoiceSetting(
     value: String,
     options: List<Pair<String, String>>,
     icon: ImageVector,
+    optionColor: ((String) -> Color?)? = null,
     onChange: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -46,7 +52,14 @@ internal fun ChoiceSetting(
     val entry = DropdownEntry(options.map { (key, label) ->
         DropdownItem(text = label, selected = key == value,
             onClick = { if (key != value) onChange(key) },
-            icon = { modifier -> Icon(icon, null, modifier.size(20.dp)) })
+            icon = { modifier ->
+                if (optionColor == null) {
+                    Icon(icon, null, modifier.size(20.dp))
+                } else {
+                    val color = optionColor.invoke(key) ?: MiuixTheme.colorScheme.primary
+                    Box(modifier.size(20.dp).clip(CircleShape).background(color))
+                }
+            })
     })
     val popupIndication = LocalIndication.current
     SettingsRowFeedback {

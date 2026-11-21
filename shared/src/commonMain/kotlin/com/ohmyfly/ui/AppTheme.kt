@@ -5,23 +5,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import top.yukonga.miuix.kmp.squircle.LocalSquircleEnabled
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.LocalContentColor
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.ThemeColorSpec
 import top.yukonga.miuix.kmp.theme.ThemeController
 import top.yukonga.miuix.kmp.theme.ThemePaletteStyle
-import top.yukonga.miuix.kmp.theme.lightColorScheme
 import com.ohmyfly.settings.MaterialMode
+import com.ohmyfly.settings.AccentPalette
 
-/** iOS 没有系统动态种子时，Expressive 从 Miuix 默认主色派生。 */
+private val ExpressiveDefaultSeed = Color(0xFF1F6FE5)
+
+/** iOS没有壁纸取色API时，Expressive使用产品蓝生成 Monet 色板。 */
 internal fun appThemeController(
     dynamicColorSeed: Color?,
     dark: Boolean,
     mode: MaterialMode = MaterialMode.LiquidGlass,
+    accentPalette: AccentPalette = AccentPalette.Automatic,
 ): ThemeController {
     val expressive = mode == MaterialMode.Expressive
-    val seed = dynamicColorSeed ?: if (expressive) lightColorScheme().primary else null
+    val automaticSeed = dynamicColorSeed ?: if (expressive) ExpressiveDefaultSeed else null
+    val seed = accentPalette.seedArgb?.let { Color(it) } ?: automaticSeed
     return ThemeController(
         colorSchemeMode = if (seed != null) ColorSchemeMode.MonetSystem else ColorSchemeMode.System,
         keyColor = seed,
@@ -33,9 +38,15 @@ internal fun appThemeController(
 
 /** 模式切换复用现有颜色动画和全局动态效果策略。 */
 @Composable
-internal fun AppTheme(dynamicColorSeed: Color?, dark: Boolean, mode: MaterialMode, content: @Composable () -> Unit) {
-    val controller = remember(dark, dynamicColorSeed, mode) {
-        appThemeController(dynamicColorSeed, dark, mode)
+internal fun AppTheme(
+    dynamicColorSeed: Color?,
+    dark: Boolean,
+    mode: MaterialMode,
+    accentPalette: AccentPalette,
+    content: @Composable () -> Unit,
+) {
+    val controller = remember(dark, dynamicColorSeed, mode, accentPalette) {
+        appThemeController(dynamicColorSeed, dark, mode, accentPalette)
     }
     MiuixTheme(controller = controller) {
         val motionAllowed = LocalAppMotionAllowed.current
@@ -48,6 +59,7 @@ internal fun AppTheme(dynamicColorSeed: Color?, dark: Boolean, mode: MaterialMod
         // The colors overload inherits the root's dynamic-mode marker; it cannot provide it alone.
         MiuixTheme(colors = colors) {
             CompositionLocalProvider(
+                LocalSquircleEnabled provides true,
                 LocalAppSurfaceColors provides surfaces,
                 LocalContentColor provides colors.onBackground,
                 content = content,

@@ -21,6 +21,7 @@ internal object SettingsCodec {
     private val schema = intPreferencesKey("schema.version")
     private val theme = stringPreferencesKey("ui.themeMode")
     private val materialMode = stringPreferencesKey("ui.materialMode")
+    private val accentPalette = stringPreferencesKey("ui.accentPalette")
     private val reduceTransparency = booleanPreferencesKey("ui.reduceTransparency")
     private val reduceMotion = booleanPreferencesKey("ui.reduceMotion")
     private val hapticEnabled = booleanPreferencesKey("ui.hapticEnabled")
@@ -68,6 +69,7 @@ internal object SettingsCodec {
         target[schema] = CURRENT_SCHEMA_VERSION
         target[theme] = settings.themeMode.name
         target[materialMode] = settings.materialMode.name
+        target[accentPalette] = settings.accentPalette.name
         target[reduceTransparency] = settings.reduceTransparency
         target[reduceMotion] = settings.reduceMotion
         target[hapticEnabled] = settings.hapticEnabled
@@ -126,6 +128,7 @@ internal object SettingsCodec {
         return AppSettings(
             themeMode = preferences.readOrNull(theme).toEnumOr(ThemeMode.System),
             materialMode = preferences.readOrNull(materialMode).toEnumOr(defaults.materialMode),
+            accentPalette = preferences.readOrNull(accentPalette).toEnumOr(defaults.accentPalette),
             reduceTransparency = preferences.read(reduceTransparency, defaults.reduceTransparency),
             reduceMotion = preferences.read(reduceMotion, defaults.reduceMotion),
             hapticEnabled = preferences.read(hapticEnabled, defaults.hapticEnabled),

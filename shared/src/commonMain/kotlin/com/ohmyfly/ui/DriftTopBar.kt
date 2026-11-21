@@ -27,6 +27,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -42,12 +43,19 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.blur.Backdrop
+import top.yukonga.miuix.kmp.blur.BlendColorEntry
+import top.yukonga.miuix.kmp.blur.BlurDefaults
+import top.yukonga.miuix.kmp.blur.ProgressiveBlur
+import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
+import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.glass.ChevronForward
 import top.yukonga.miuix.kmp.glass.glassPress
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val LocalHeaderSurface = staticCompositionLocalOf<@Composable () -> Modifier> { { Modifier } }
+private val ChromeTopBlurGradient = ProgressiveBlur.Top.copy(curve = 0.25f)
+private const val ChromeTopBlurTintAlpha = 0.3f
 
 @Composable
 internal fun DriftTopBar(
@@ -72,37 +80,54 @@ internal fun DriftTopBar(
     val surface: @Composable () -> Modifier = {
         Modifier.chromeMaterial(backdrop, glassEnabled, dark)
     }
+    val tint = MiuixTheme.colorScheme.surface.copy(alpha = ChromeTopBlurTintAlpha)
+    val blurColors = BlurDefaults.blurColors(
+        blendColors = remember(tint) { listOf(BlendColorEntry(tint)) },
+    )
     CompositionLocalProvider(LocalHeaderSurface provides surface) {
-        Row(
-            // 安全区只用于控件定位，顶部左右两侧不绘制额外遮挡。
-            modifier = Modifier.fillMaxWidth().then(safeArea)
-                .padding(horizontal = 16.dp, vertical = 4.dp)
-                .heightIn(min = 44.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            if (onBack != null) {
-                HeaderAction(
-                    label = "返回",
-                    icon = MiuixIcons.Glass.ChevronForward,
-                    onClick = onBack,
-                    iconModifier = Modifier.graphicsLayer { scaleX = if (rtl) 1f else -1f },
+        Box(Modifier.fillMaxWidth()) {
+            if (glassEnabled) {
+                Box(
+                    Modifier.matchParentSize().progressiveTextureBlur(
+                        backdrop = backdrop,
+                        shape = RectangleShape,
+                        blurRadius = GlassTopAppBarDefaults.ProgressiveBlurRadius.value,
+                        gradient = ChromeTopBlurGradient,
+                        colors = blurColors,
+                    ),
                 )
             }
-            if (title.isNotEmpty()) Box(Modifier.weight(1f)) {
-                if (titleCapsule || titleCount != null) Row(Modifier.then(surface()).heightIn(min = ChromeMetrics.ControlSize)
-                    .padding(horizontal = ChromeMetrics.TitleInset, vertical = 8.dp).semantics { heading() },
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(title, Modifier.weight(1f, fill = false), fontSize = ChromeMetrics.TitleSize,
-                        fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    titleCount?.let { Text(it.toString(), fontSize = ChromeMetrics.TitleSize,
-                        fontWeight = FontWeight.Bold, maxLines = 1) }
-                } else Text(title, modifier = Modifier.semantics { heading() }, fontSize = ChromeMetrics.TitleSize,
-                    fontWeight = FontWeight.SemiBold, color = MiuixTheme.colorScheme.onSurface,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-            } else Spacer(Modifier.weight(1f))
-            if (actions != null) {
-                Row(verticalAlignment = Alignment.CenterVertically, content = actions)
+            Row(
+                // 渐变模糊层与顶栏同高，透明度在控件底边前衰减至零。
+                modifier = Modifier.fillMaxWidth().then(safeArea)
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .heightIn(min = 44.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (onBack != null) {
+                    HeaderAction(
+                        label = "返回",
+                        icon = MiuixIcons.Glass.ChevronForward,
+                        onClick = onBack,
+                        iconModifier = Modifier.graphicsLayer { scaleX = if (rtl) 1f else -1f },
+                    )
+                }
+                if (title.isNotEmpty()) Box(Modifier.weight(1f)) {
+                    if (titleCapsule || titleCount != null) Row(Modifier.then(surface()).heightIn(min = ChromeMetrics.ControlSize)
+                        .padding(horizontal = ChromeMetrics.TitleInset, vertical = 8.dp).semantics { heading() },
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(title, Modifier.weight(1f, fill = false), fontSize = ChromeMetrics.TitleSize,
+                            fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        titleCount?.let { Text(it.toString(), fontSize = ChromeMetrics.TitleSize,
+                            fontWeight = FontWeight.Bold, maxLines = 1) }
+                    } else Text(title, modifier = Modifier.semantics { heading() }, fontSize = ChromeMetrics.TitleSize,
+                        fontWeight = FontWeight.SemiBold, color = MiuixTheme.colorScheme.onSurface,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                } else Spacer(Modifier.weight(1f))
+                if (actions != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically, content = actions)
+                }
             }
         }
     }
