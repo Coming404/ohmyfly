@@ -26,7 +26,12 @@ internal fun appThemeController(
 ): ThemeController {
     val expressive = mode == MaterialMode.Expressive
     val automaticSeed = dynamicColorSeed ?: if (expressive) ExpressiveDefaultSeed else null
-    val seed = accentPalette.seedArgb?.let { Color(it) } ?: automaticSeed
+    // 手选种子只属于 Expressive 配色，液态玻璃继续使用平台自动种子。
+    val seed = if (expressive) {
+        accentPalette.seedArgb?.let { Color(it) } ?: automaticSeed
+    } else {
+        dynamicColorSeed
+    }
     return ThemeController(
         colorSchemeMode = if (seed != null) ColorSchemeMode.MonetSystem else ColorSchemeMode.System,
         keyColor = seed,

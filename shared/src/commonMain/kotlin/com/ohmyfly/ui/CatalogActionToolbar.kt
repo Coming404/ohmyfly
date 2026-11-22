@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -52,7 +53,7 @@ internal fun CatalogToolbarAction(
         IconButton(
             onClick = hapticClick(onClick),
             enabled = enabled,
-            modifier = Modifier.size(ChromeMetrics.ControlSize),
+            modifier = Modifier.size(ChromeMetrics.ControlSize).clip(AppCorners.shape(AppCorners.Toolbar)),
             backgroundColor = Color.Transparent, cornerRadius = AppCorners.Toolbar,
         ) {
             Icon(

@@ -22,6 +22,9 @@ internal object SettingsCodec {
     private val theme = stringPreferencesKey("ui.themeMode")
     private val materialMode = stringPreferencesKey("ui.materialMode")
     private val accentPalette = stringPreferencesKey("ui.accentPalette")
+    private val glassSecondLayerAlpha = doublePreferencesKey("ui.glass.secondLayerAlpha")
+    private val glassThirdLayerAlpha = doublePreferencesKey("ui.glass.thirdLayerAlpha")
+    private val glassBlurRadiusDp = doublePreferencesKey("ui.glass.blurRadiusDp")
     private val reduceTransparency = booleanPreferencesKey("ui.reduceTransparency")
     private val reduceMotion = booleanPreferencesKey("ui.reduceMotion")
     private val hapticEnabled = booleanPreferencesKey("ui.hapticEnabled")
@@ -70,6 +73,9 @@ internal object SettingsCodec {
         target[theme] = settings.themeMode.name
         target[materialMode] = settings.materialMode.name
         target[accentPalette] = settings.accentPalette.name
+        settings.glassMaterial.secondLayerAlpha?.let { target[glassSecondLayerAlpha] = it.toDouble() }
+        settings.glassMaterial.thirdLayerAlpha?.let { target[glassThirdLayerAlpha] = it.toDouble() }
+        settings.glassMaterial.blurRadiusDp?.let { target[glassBlurRadiusDp] = it.toDouble() }
         target[reduceTransparency] = settings.reduceTransparency
         target[reduceMotion] = settings.reduceMotion
         target[hapticEnabled] = settings.hapticEnabled
@@ -129,6 +135,11 @@ internal object SettingsCodec {
             themeMode = preferences.readOrNull(theme).toEnumOr(ThemeMode.System),
             materialMode = preferences.readOrNull(materialMode).toEnumOr(defaults.materialMode),
             accentPalette = preferences.readOrNull(accentPalette).toEnumOr(defaults.accentPalette),
+            glassMaterial = GlassMaterialSettings(
+                secondLayerAlpha = preferences.readDoubleOrNull(glassSecondLayerAlpha, SettingsLimits.glassSecondLayerAlpha),
+                thirdLayerAlpha = preferences.readDoubleOrNull(glassThirdLayerAlpha, SettingsLimits.glassThirdLayerAlpha),
+                blurRadiusDp = preferences.readDoubleOrNull(glassBlurRadiusDp, SettingsLimits.glassBlurRadiusDp),
+            ),
             reduceTransparency = preferences.read(reduceTransparency, defaults.reduceTransparency),
             reduceMotion = preferences.read(reduceMotion, defaults.reduceMotion),
             hapticEnabled = preferences.read(hapticEnabled, defaults.hapticEnabled),
@@ -204,6 +215,11 @@ internal object SettingsCodec {
 
     private fun Double.inOr(range: ClosedFloatingPointRange<Double>, fallback: Double): Double =
         if (isFinite() && this in range) this else fallback
+
+    private fun Preferences.readDoubleOrNull(
+        key: Preferences.Key<Double>,
+        range: ClosedFloatingPointRange<Double>,
+    ): Float? = readOrNull(key)?.takeIf { it.isFinite() && it in range }?.toFloat()
 
     /** 存储集合为空代表用户清空；条目全部无效时才回落到默认平台，避免把损坏数据当选择。 */
     private fun sanitizePlatforms(raw: Set<String>?, defaults: Set<String>): Set<String> {

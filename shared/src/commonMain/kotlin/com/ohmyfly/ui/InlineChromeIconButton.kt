@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.ohmyfly.settings.GlassMaterialSettings
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
@@ -25,6 +26,7 @@ internal data class ChromeAppearance(
     val enabled: Boolean,
     val dark: Boolean,
     val backdrop: top.yukonga.miuix.kmp.blur.Backdrop?,
+    val materialSettings: GlassMaterialSettings = GlassMaterialSettings(),
 )
 internal val LocalChromeAppearance = staticCompositionLocalOf<ChromeAppearance> { error("界面材质尚未初始化") }
 

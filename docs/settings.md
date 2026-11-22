@@ -4,9 +4,9 @@
 
 ## 页面结构
 
-设置首页包含品牌身份区、外观、测试、塔台与网络、应用四组。明暗模式、界面风格、独立配色选择、减少透明效果与减少动态效果在首页直接修改；配色含自动项和7个种子预设：绯红、紫罗兰、海洋、鼠尾草、琥珀、玫瑰、宫崎骏森林绿。Android自动跟随系统壁纸 Monet 色；iOS Expressive 自动使用产品蓝。用户手选的种子通过 Miuix Monet 生成明暗方案。其余起飞与延迟、流媒体与 AI、塔台与过滤、GitHub 镜像、数据与隐私、关于保留六个子页入口，删除已被首页替代的外观子页。品牌复用Wave标记及平台实际版本参数，仅保留一行获准的产品简介，不显示配置状态摘要。子页保留纯图标返回、“返回”读屏名称和48dp触区。
+设置首页包含品牌身份区、外观、测试、塔台与网络、应用四组。明暗模式、界面风格、减少透明效果与减少动态效果在首页直接修改；仅Expressive模式显示独立配色选择，含自动项和7个种子预设；仅液态玻璃模式显示材质调节子页，提供共享预览、第二/第三色层实际Alpha和模糊半径dp无级调节。Android自动跟随系统动态代表色；iOS Expressive自动使用产品蓝。用户手选的种子通过 Miuix Monet 生成明暗方案；切换到液态玻璃时已存种子保留但不生效。其余起飞与延迟、流媒体与 AI、塔台与过滤、GitHub 镜像、数据与隐私、关于保留六个原业务子页入口，液态玻璃调节按材质模式单独进入子页，原外观子页已删除。品牌复用Wave标记及平台实际版本参数，仅保留一行获准的产品简介，不显示配置状态摘要。子页保留纯图标返回、“返回”读屏名称和48dp触区。
 
-设置子页已经接入Miuix NavDisplay 0.9.4：App持有唯一rememberNavBackStack<SettingsPage>(Home)，SettingsPage为可序列化NavKey，SettingsScreen用entry<SettingsPage>注册同一枚举类型的七个值。打开子页只从Home入栈，重复/过期点击不堆叠；标题、返回与底栏显隐由栈派生。五个一级入口仍是互斥切换，按稳定名称保存当前入口，不入设置栈，不改悬浮外观与材质。
+设置子页已经接入Miuix NavDisplay 0.9.4：App持有唯一rememberNavBackStack<SettingsPage>(Home)，SettingsPage为可序列化NavKey，SettingsScreen用entry<SettingsPage>注册SettingsPage枚举的各个值。打开子页只从Home入栈，重复/过期点击不堆叠；标题、返回与底栏显隐由栈派生。五个一级入口仍是互斥切换，按稳定名称保存当前入口，不入设置栈，不改悬浮外观与材质。
 
 正常运动使用官方MiuixDefault转场；有效减少动态时使用None并关闭NavDisplayEffects。正常模式按LTR/RTL分别开启向右/向左物理滑动返回，根页不滑退，减少动态时关闭空间滑退。NavDisplay统一系统/预测返回及页面生命周期，原expect/actual SettingsBackHandler三文件已删除。镜像弹窗从打开到退场结束禁用页面滑退，标题返回优先走页面报告的关闭动作；系统返回由官方 OverlayDialog 处理，不再安装镜像页自有 PredictiveBackHandler。编辑稿由原页面 owner 持有，关闭不写盘，离开整个镜像页清理。弹窗继续用原 Scaffold 宿主，不新增路由。
 
@@ -17,7 +17,7 @@
 - 延迟航班并发默认 8（1–32）；单航班下载／上传连接数默认 4（1–8）；吞吐航班并发固定 1。
 - 流媒体航班并发默认 2（1–8），平台任务预算不能与航班数／HTTP连接数混用。视频和 AI 项目分组配置。
 - 延迟超时、传输超时和最大延迟达标阈值分离；体积为 MiB，速度阈值为 MiB/s，HTTP 请求失败率不称 ICMP 丢包。
-- 首页明暗模式、界面风格、减少透明效果和减少动态效果先经校验同步反映到界面，再按序通过同一DataStore事务保存。首次读取成功前只以默认设置渲染且不接受写入；读取失败保留原文件并显示可重试弹窗，重试成功后替换为真实设置。写入已提交但读回失败时同样暂停写入，弹窗改为“设置结果待确认／已提交，但未能读回”，不声称本地数据未更改，重试读取成功后恢复可写。保存失败恢复最后已确认的设置，丢弃失败操作与其后尚未保存的操作，并提示重新选择重试；旧Flow回发不会覆盖较新的选择。配色选项与界面风格分开持久化：自动项 Android 跟随系统壁纸 Monet 种子，iOS Expressive 使用产品蓝回退；7个手选种子覆盖系统来源并由 Miuix Monet 生成当前风格的浅深色语义方案。界面风格只有液态玻璃／Expressive，默认液态玻璃。液态玻璃使用 Miuix beta03 官方材质；Expressive 使用不透明表面与 ThemePaletteStyle.Expressive。已移除的旧风格值按既有解码规则读为默认液态玻璃，下次正常写入保存新枚举。应用或 iOS 系统减少透明效果、或 shader 不可用时，停止页面采样并使用实色，不改写选择。主题、风格和起飞选项沿用现有设置行，弹层由支持 surface 的 OverlayCascadingListPopup 承载；单选后关闭，退出动画完成后释放按压状态。
+- 首页明暗模式、界面风格、减少透明效果和减少动态效果先经校验同步反映到界面，再按序通过同一DataStore事务保存。首次读取成功前只以默认设置渲染且不接受写入；读取失败保留原文件并显示可重试弹窗，重试成功后替换为真实设置。写入已提交但读回失败时同样暂停写入，弹窗改为“设置结果待确认／已提交，但未能读回”，不声称本地数据未更改，重试读取成功后恢复可写。保存失败恢复最后已确认的设置，丢弃失败操作与其后尚未保存的操作，并提示重新选择重试；旧Flow回发不会覆盖较新的选择。配色选项与界面风格分开持久化：只有 Expressive 模式显示并使用 AccentPalette；自动项 Android 跟随系统动态代表色，iOS Expressive 使用产品蓝回退；7个手选种子覆盖系统来源并由 Miuix Monet 生成 Expressive 浅深色语义方案，液态玻璃模式忽略已保存的手选种子。界面风格只有液态玻璃／Expressive，默认液态玻璃。液态玻璃使用 Miuix beta03 官方材质；Expressive 使用不透明表面与 ThemePaletteStyle.Expressive。已移除的旧风格值按既有解码规则读为默认液态玻璃，下次正常写入保存新枚举。应用或 iOS 系统减少透明效果、或 shader 不可用时，停止页面采样并使用实色，不改写选择。主题、风格和起飞选项沿用现有设置行，弹层由支持 surface 的 OverlayCascadingListPopup 承载；单选后关闭，退出动画完成后释放按压状态。
 - 尚未接入的航班任务参数仅保存供以后任务使用。表单数值／网址验证后保存，错误不悄悄改成另一个值。
 - 恢复设置保留塔台、航班、自定义镜像和历史；当前不提供不存在的历史删除、日志导出或假存储占用。
 
@@ -50,7 +50,8 @@
 
 ## 材质配置兼容
 
-- `AppSettings.materialMode`默认`MaterialMode.LiquidGlass`；`ui.materialMode`保存`GaussianBlur/HighlightGlass/SoftGlass/LiquidGlass`枚举名，不保存中文标签或序号。
+- `AppSettings.materialMode`默认`MaterialMode.LiquidGlass`；`ui.materialMode`保存枚举名，不保存中文标签或序号。
+- 液态玻璃调节页读取当前 TopAppBar 材质的第二、第三层色片 alpha 和模糊 dp 作为控件初值。三个 `ui.glass.*` 都是可选覆盖：缺失时每种组件保留 Miuix 自己的默认材质；用户调整后按实际 alpha/dp 保存，点恢复默认则移除覆盖值。未将 Glasmio `Clear` 配方套作应用默认值。
 - 本轮 schema 只保存当前字段。读取时，缺失或损坏的当前可选字段只在内存回退，不改写原文件；下一次成功写入会以当前 schema 重建配置并移除未知及过时字段。恢复默认设置通过AppSettings默认值回到液态玻璃。真机重启恢复与实盘读写仍待验收，决定见[材质选择](../.agents/notes/implemented/feature/2026-10-20-material-selection.md)。
 
 ## 运动偏好与切换过渡

@@ -303,6 +303,7 @@ private fun settingsLogChange(before: AppSettings?, after: AppSettings, name: St
         if (before?.themeMode != after.themeMode) add("主题改为${after.themeMode.label}")
         if (before?.materialMode != after.materialMode) add("材质改为${after.materialMode.label}")
         if (before?.accentPalette != after.accentPalette) add("配色改为${after.accentPalette.label}")
+        if (before?.glassMaterial != after.glassMaterial) add("液态玻璃参数已调整")
         if (before?.reduceTransparency != after.reduceTransparency) add("减少透明效果已${if (after.reduceTransparency) "开启" else "关闭"}")
         if (before?.reduceMotion != after.reduceMotion) add("减少动态效果已${if (after.reduceMotion) "开启" else "关闭"}")
         if (before?.hapticEnabled != after.hapticEnabled) add("震动已${if (after.hapticEnabled) "开启" else "关闭"}")

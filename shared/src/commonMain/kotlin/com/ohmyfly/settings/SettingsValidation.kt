@@ -9,6 +9,16 @@ import com.ohmyfly.mirror.normalizedMirrorAddress
  */
 internal fun validateSettings(settings: AppSettings): String? {
     validateLogPolicy(settings.logging)?.let { return it }
+    val glass = settings.glassMaterial
+    if (glass.secondLayerAlpha?.toDouble()?.let { it !in SettingsLimits.glassSecondLayerAlpha } == true) {
+        return "液态玻璃第二层色片透明度无效"
+    }
+    if (glass.thirdLayerAlpha?.toDouble()?.let { it !in SettingsLimits.glassThirdLayerAlpha } == true) {
+        return "液态玻璃第三层色片透明度无效"
+    }
+    if (glass.blurRadiusDp?.toDouble()?.let { it !in SettingsLimits.glassBlurRadiusDp } == true) {
+        return "液态玻璃模糊半径无效"
+    }
     val speed = settings.speed
     if (!SettingsLimits.isValidTarget(speed.latencyUrl)) return "延迟测试地址必须是 HTTPS 地址，且不能包含用户信息或凭据参数"
     if (!SettingsLimits.isValidTarget(speed.downloadUrl)) return "下载测试地址必须是 HTTPS 地址，且不能包含用户信息或凭据参数"

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
@@ -62,7 +63,7 @@ internal fun TowerFooter(tower: CatalogTower, loading: Boolean, ready: Boolean, 
 @Composable
 private fun TowerFooterAction(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
     modifier: Modifier, enabled: Boolean, color: Color, expanded: Boolean? = null, onClick: () -> Unit) {
-    Button(onClick = hapticClick(onClick), modifier = modifier, enabled = enabled, minWidth = 0.dp,
+    Button(onClick = hapticClick(onClick), modifier = modifier.clip(AppCorners.shape(AppCorners.Control)), enabled = enabled, minWidth = 0.dp,
         minHeight = 44.dp, insideMargin = PaddingValues(0.dp),
         colors = ButtonDefaults.buttonColors(color = Color.Transparent, disabledColor = Color.Transparent,
             contentColor = color, disabledContentColor = MiuixTheme.colorScheme.disabledOnSurface), cornerRadius = AppCorners.Control) {
@@ -135,7 +136,8 @@ internal fun TowerMoreMenu(tower: CatalogTower, loading: Boolean, revision: Long
             icon = { Icon(DriftIcons.Subscriptions, null, it) }))
         add(DropdownItem(text = "删除塔台", enabled = !loading, onClick = { panel = "delete" },
             icon = { Icon(MirrorIcons.Trash, null, it, tint = MiuixTheme.colorScheme.error) }))
-    }), modifier = modifier, minWidth = 0.dp, minHeight = 44.dp, backgroundColor = Color.Transparent) {
+    }), modifier = modifier.clip(AppCorners.shape(AppCorners.Control)), minWidth = 0.dp, minHeight = 44.dp,
+        backgroundColor = Color.Transparent, cornerRadius = AppCorners.Control) {
         TowerFooterLabel("更多", MirrorIcons.More, MiuixTheme.colorScheme.primary)
     }
     if (panel == "result") TowerImportResultSheet(tower) { panel = "" }

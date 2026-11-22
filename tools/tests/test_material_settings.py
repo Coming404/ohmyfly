@@ -25,9 +25,12 @@ class MaterialSettingsTests(unittest.TestCase):
         self.assertIn('MaterialMode.entries.map { it.name to it.label }', home)
         self.assertRegex(home, r'onChange\("界面风格[^\n]+\) \{ it\.copy\(materialMode = MaterialMode\.valueOf\(name\)\) \}')
         self.assertIn('title = "配色"', home)
+        self.assertIn('if (settings.materialMode == MaterialMode.Expressive)', home)
         self.assertIn('value = settings.accentPalette.name', home)
         self.assertIn('AccentPalette.entries.map { it.name to it.label }', home)
         self.assertIn('it.copy(accentPalette = palette)', home)
+        theme = (ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly/ui/AppTheme.kt').read_text()
+        self.assertIn('val seed = if (expressive)', theme)
         self.assertNotIn('mutableStateOf', home)
         choice = (MAIN / 'ui/settings/ChoiceSetting.kt').read_text()
         self.assertIn('OverlayCascadingListPopup(', choice)
@@ -46,6 +49,26 @@ class MaterialSettingsTests(unittest.TestCase):
         repository = (MAIN / 'settings/SettingsRepository.kt').read_text()
         self.assertIn('dataStore.edit { preferences ->', repository)
         self.assertIn('SettingsCodec.write(preferences, next)', repository)
+
+    def test_glass_tuning_uses_actual_values_and_updates_every_surface(self):
+        model = (MAIN / 'settings/GlassMaterialSettings.kt').read_text()
+        page = (MAIN / 'ui/settings/GlassMaterialSettingsPage.kt').read_text()
+        codec = (MAIN / 'settings/SettingsCodec.kt').read_text()
+        self.assertIn('secondLayerAlpha: Float? = null', model)
+        self.assertIn('thirdLayerAlpha: Float? = null', model)
+        self.assertIn('blurRadiusDp: Float? = null', model)
+        self.assertIn('navigationBarBaseMaterial()', page)
+        self.assertIn('referenceMaterial.second?.color?.alpha', page)
+        self.assertIn('referenceMaterial.third?.color?.alpha', page)
+        self.assertIn('referenceMaterial.blurRadius.value', page)
+        self.assertGreaterEqual(page.count('steps = 0'), 1)
+        self.assertIn('onValueChangeFinished =', page)
+        self.assertIn('GlassMaterialPreview(previewSettings, referenceMaterial)', page)
+        for file in ('ui/ChromeMaterial.kt', 'ui/NavigationBarMaterial.kt', 'ui/AppGlassSurfaces.kt'):
+            self.assertIn('withSettings(', (MAIN / file).read_text())
+        self.assertIn('settings.glassMaterial', (MAIN / 'App.kt').read_text())
+        for key in ('secondLayerAlpha', 'thirdLayerAlpha', 'blurRadiusDp'):
+            self.assertIn(f'ui.glass.{key}', codec)
 
     def test_reduced_transparency_keeps_existing_fallback(self):
         app = (MAIN / 'App.kt').read_text()

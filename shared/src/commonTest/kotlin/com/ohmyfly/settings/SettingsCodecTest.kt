@@ -24,6 +24,7 @@ class SettingsCodecTest {
             themeMode = ThemeMode.Dark,
             materialMode = MaterialMode.Expressive,
             accentPalette = AccentPalette.Miyazaki,
+            glassMaterial = GlassMaterialSettings(secondLayerAlpha = 0.72f, thirdLayerAlpha = 0.24f, blurRadiusDp = 24.5f),
             reduceTransparency = true,
             reduceMotion = true,
             speed = SpeedSettings(
@@ -73,6 +74,7 @@ class SettingsCodecTest {
         assertEquals(settings.themeMode, decoded.themeMode)
         assertEquals(settings.materialMode, decoded.materialMode)
         assertEquals(settings.accentPalette, decoded.accentPalette)
+        assertEquals(settings.glassMaterial, decoded.glassMaterial)
         assertEquals(settings.reduceTransparency, decoded.reduceTransparency)
         assertEquals(settings.reduceMotion, decoded.reduceMotion)
         assertEquals(settings.speed, decoded.speed)
@@ -101,6 +103,9 @@ class SettingsCodecTest {
     @Test
     fun damagedNumbersAndEnumsFallBackWithoutTouchingStoredValues() {
         val doubleKey = doublePreferencesKey("speed.minDownloadMiBps")
+        val glassSecondKey = doublePreferencesKey("ui.glass.secondLayerAlpha")
+        val glassThirdKey = doublePreferencesKey("ui.glass.thirdLayerAlpha")
+        val glassBlurKey = doublePreferencesKey("ui.glass.blurRadiusDp")
         val preferences = mutablePreferencesOf(
             stringPreferencesKey("ui.themeMode") to "neon",
             stringPreferencesKey("speed.mode") to "warp",
@@ -108,6 +113,9 @@ class SettingsCodecTest {
             intPreferencesKey("speed.latencySamples") to 0,
             intPreferencesKey("speed.connectionsPerNode") to 99,
             doubleKey to Double.NaN,
+            glassSecondKey to Double.NaN,
+            glassThirdKey to 1.1,
+            glassBlurKey to Double.POSITIVE_INFINITY,
             stringPreferencesKey("speed.latencyUrl") to "https://user:pw@example.com/204",
             stringSetPreferencesKey("media.platforms") to setOf(" netflix ", ""),
             intPreferencesKey("mirror.count") to 1,
@@ -124,6 +132,7 @@ class SettingsCodecTest {
         assertEquals(defaults.latencySamples, decoded.speed.latencySamples)
         assertEquals(defaults.connectionsPerNode, decoded.speed.connectionsPerNode)
         assertEquals(0.0, decoded.speed.minDownloadMiBps, 0.0)
+        assertEquals(GlassMaterialSettings(), decoded.glassMaterial)
         assertEquals(defaults.latencyUrl, decoded.speed.latencyUrl)
         assertEquals(setOf("netflix"), decoded.media.platforms)
         // 回落只发生在内存，原文件仍是被拒绝的数值，避免每次编辑都写坏原件。

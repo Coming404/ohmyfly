@@ -26,7 +26,7 @@ internal fun Modifier.chromeMaterial(
         backdrop = backdrop.takeIf { enabled },
         shape = NavigationBarShape,
         style = style.value,
-        material = GlassTopAppBarDefaults.buttonMaterial(),
+        material = GlassTopAppBarDefaults.buttonMaterial().withSettings(LocalChromeAppearance.current.materialSettings),
         stroke = if (enabled) GlassEdgeStrokes.forTheme(dark) else null,
         shadow = GlassShadows.Regular,
         shading = enabled,

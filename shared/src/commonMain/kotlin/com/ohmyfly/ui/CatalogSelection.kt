@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
@@ -74,7 +75,7 @@ private fun RowScope.SelectionToolbarAction(
     tint: androidx.compose.ui.graphics.Color = MiuixTheme.colorScheme.onSurface,
 ) {
     IconButton(onClick = hapticClick(onClick), enabled = enabled,
-        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+        modifier = Modifier.weight(1f).heightIn(min = 48.dp).clip(AppCorners.shape(AppCorners.Control)),
         backgroundColor = Color.Transparent, cornerRadius = AppCorners.Control) {
         val color = if (enabled) tint else MiuixTheme.colorScheme.disabledOnSurface
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -90,8 +91,9 @@ private fun SelectionTopAction(enabled: Boolean, label: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
     val color = if (enabled) MiuixTheme.colorScheme.onSurface else MiuixTheme.colorScheme.disabledOnSurface
     IconButton(onClick = hapticClick(onClick), enabled = enabled,
+        modifier = Modifier.clip(AppCorners.shape(AppCorners.Toolbar)),
         minWidth = ChromeMetrics.ControlSize, minHeight = ChromeMetrics.ControlSize,
-        backgroundColor = Color.Transparent, cornerRadius = AppCorners.Selection) {
+        backgroundColor = Color.Transparent, cornerRadius = AppCorners.Toolbar) {
         Row(Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Icon(icon, null, Modifier.size(ChromeMetrics.IconSize), tint = color)

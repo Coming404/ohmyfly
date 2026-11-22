@@ -66,6 +66,7 @@ internal fun SettingsScreen(
                     Column(Modifier.fillMaxSize().background(background)) {
                         when (page) {
                             SettingsPage.Home -> SettingsHome(settings, onChange, onPage, version, listState, contentPadding)
+                            SettingsPage.Glass -> GlassMaterialSettingsPage(settings, onChange, contentPadding)
                             SettingsPage.Speed -> SpeedSettingsPage(settings, onChange, contentPadding)
                             SettingsPage.Media -> MediaSettingsPage(settings, onChange, contentPadding)
                             SettingsPage.Subscription -> SubscriptionSettingsPage(contentPadding)

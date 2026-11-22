@@ -57,15 +57,21 @@ internal fun SettingsHome(
                 ChoiceSetting("界面风格", settings.materialMode.name, MaterialMode.entries.map { it.name to it.label }, SettingsIcons.Material) { name ->
                     onChange("界面风格已修改为${MaterialMode.valueOf(name).label}") { it.copy(materialMode = MaterialMode.valueOf(name)) }
                 }
-                ChoiceSetting(
-                    title = "配色",
-                    value = settings.accentPalette.name,
-                    options = AccentPalette.entries.map { it.name to it.label },
-                    icon = SettingsIcons.Appearance,
-                    optionColor = { name -> AccentPalette.valueOf(name).seedArgb?.let { Color(it) } },
-                ) { name ->
-                    val palette = AccentPalette.valueOf(name)
-                    onChange("配色已修改为${palette.label}") { it.copy(accentPalette = palette) }
+                if (settings.materialMode == MaterialMode.LiquidGlass) {
+                    SettingsActionRow(SettingsPage.Glass.title, SettingsIcons.Material,
+                        onClick = { onPage(SettingsPage.Glass) })
+                }
+                if (settings.materialMode == MaterialMode.Expressive) {
+                    ChoiceSetting(
+                        title = "配色",
+                        value = settings.accentPalette.name,
+                        options = AccentPalette.entries.map { it.name to it.label },
+                        icon = SettingsIcons.Appearance,
+                        optionColor = { name -> AccentPalette.valueOf(name).seedArgb?.let { Color(it) } },
+                    ) { name ->
+                        val palette = AccentPalette.valueOf(name)
+                        onChange("配色已修改为${palette.label}") { it.copy(accentPalette = palette) }
+                    }
                 }
                 ToggleSetting("减少透明效果", value = settings.reduceTransparency, leadingIcon = SettingsIcons.Transparency,
                     onChange = { enabled -> onChange("减少透明效果已${if (enabled) "开启" else "关闭"}") { it.copy(reduceTransparency = enabled) } })

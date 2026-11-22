@@ -17,6 +17,9 @@ internal object SettingsLimits {
     val maxLatencyMs = 0..60_000
     val maxFailurePercent = 0..100
     val minSpeedMiBps = 0.0..10_000.0
+    val glassSecondLayerAlpha = 0.0..1.0
+    val glassThirdLayerAlpha = 0.0..1.0
+    val glassBlurRadiusDp = 0.0..60.0
     val stopAfter = 0..100_000
     val mediaConcurrency = 1..8
     val mediaTimeoutSeconds = 5..30

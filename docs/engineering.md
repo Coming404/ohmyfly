@@ -65,7 +65,7 @@ Miuix 已提供颜色、文字层级和组件 Defaults，项目只补页面级�
 | 图标 | 业务线条图标24dp，不替换组件内部图标默认值 |
 | 圆角 | 应用卡片24dp；Miuix Card 未显式传值时默认16dp |
 
-航班保留卡片列表与选择语义；运行时不包含固定假航班或假延迟，初始为空。禁止通过全局density/fontScale缩放掩盖布局问题。界面风格为液态玻璃与Expressive：玻璃档保留Neutral/默认配色；Expressive采用官方Expressive色板与不透明表面。独立配色设置提供Android壁纸自动种子、iOS产品蓝自动回退与7个共享Monet种子预设。主导航使用应用自有五项G2胶囊，Miuix glassPanel负责折射与EdgeStroke；顶栏采用按实际工具栏高度裁剪的progressiveTextureBlur。AppTheme根强制启用Miuix G2开关，设置卡片与主卡片统一24dp半径并绘制连续曲率。自绘圆角统一使用AppCorners.shape/continuousCorners；弹窗抽屉通过官方surface槽接入。G2光学轮廓由ui-material本地补丁共享，源文件使用Diy_前缀并保留预编译公开契约；详见[UI实现](ui-showcase.md)与[本轮验证](miuix-beta03-verification.md)。
+航班保留卡片列表与选择语义；运行时不包含固定假航班或假延迟，初始为空。禁止通过全局density/fontScale缩放掩盖布局问题。界面风格为液态玻璃与Expressive：玻璃档保留Neutral/自动系统色，忽略手选配色；Expressive采用官方Expressive色板与不透明表面，独立AccentPalette设置仅在此模式显示并生效。主导航使用应用自有五项G2胶囊，Miuix glassPanel负责折射与EdgeStroke；顶栏采用按实际工具栏高度裁剪的progressiveTextureBlur。AppTheme根强制启用Miuix G2开关，设置卡片与主卡片统一24dp半径并绘制连续曲率。自绘圆角统一使用AppCorners.shape/continuousCorners；弹窗抽屉通过官方surface槽接入。G2光学轮廓由ui-material本地补丁共享，源文件使用Diy_前缀并保留预编译公开契约；详见[UI实现](ui-showcase.md)与[本轮验证](miuix-beta03-verification.md)。
 
 - 文字优先引用 `MiuixTheme.textStyles`，仅为起飞大数字等明确用途增加样式。
 - 默认使用平台适配字体；不擅自打包小米专有字体或把字体授权视为组件库授权的一部分。

@@ -11,7 +11,7 @@ private const val NavigationThirdLayerAlpha = 0.18f
 
 /** 下调两层色片的 Alpha，让背景结构仍能透过玻璃显现。 */
 @Composable
-internal fun navigationBarMaterial(): GlassMaterial {
+internal fun navigationBarBaseMaterial(): GlassMaterial {
     val base = GlassNavigationBarDefaults.material()
     return remember(base) {
         base.copy(
@@ -19,4 +19,12 @@ internal fun navigationBarMaterial(): GlassMaterial {
             third = base.third?.let { it.copy(color = it.color.copy(alpha = NavigationThirdLayerAlpha)) },
         )
     }
+}
+
+/** 应用设置页调出的实际 alpha 和 dp 值。 */
+@Composable
+internal fun navigationBarMaterial(): GlassMaterial {
+    val navigationMaterial = navigationBarBaseMaterial()
+    val settings = LocalChromeAppearance.current.materialSettings
+    return remember(navigationMaterial, settings) { navigationMaterial.withSettings(settings) }
 }

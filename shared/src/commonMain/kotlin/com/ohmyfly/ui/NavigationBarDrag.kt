@@ -7,6 +7,7 @@ import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.LayoutDirection
@@ -23,15 +24,20 @@ internal fun Modifier.navigationBarDrag(
     dragIndex: MutableFloatState,
     selectedIndex: State<Int>,
     onSelect: State<(Int) -> Unit>,
+    pressPosition: MutableState<Offset>,
+    pressed: MutableState<Boolean>,
 ): Modifier = pointerInput(itemCount, horizontalInsetPx, layoutDirection) {
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
         val start = down.position
+        pressPosition.value = start
+        pressed.value = true
         var active = false
         try {
             while (true) {
                 val change = awaitPointerEvent(PointerEventPass.Initial).changes
                     .firstOrNull { it.id == down.id } ?: break
+                if (change.pressed) pressPosition.value = change.position
                 if (!change.pressed) {
                     if (active) {
                         val index = navigationPosition(
@@ -60,6 +66,7 @@ internal fun Modifier.navigationBarDrag(
                 }
             }
         } finally {
+            pressed.value = false
             dragging.value = false
         }
     }

@@ -15,7 +15,7 @@
 
 Klibs 查询确认 compose-miuix-ui/miuix 的 Android、ios_arm64、ios_simulator_arm64，但索引仅更新到 beta01；beta03 以 Maven 发布元数据和固定源码交叉核对，ui/blur/material/glass/glass-icons/nav 均有对应平台变体。删除旧 miuix-shader 与 Kyant Backdrop 依赖，保留独立 Shapes1.2.1 几何。
 
-界面只有液态玻璃和 Expressive 两档，均使用 Miuix 控件；配色以独立的 AccentPalette 设置种子，自动项在 Android 跟随系统壁纸色、iOS Expressive 回退产品蓝，另有六种参考色和宫崎骏森林绿七个预设。Monet 色板由 Miuix ThemeController 生成，详见 ui-showcase/settings。官方圆角未满足现有 G2 契约，采用 ui-shapes 与 ui-material 本地模块替换，详细接口与补丁见各模块 README。
+界面只有液态玻璃和 Expressive 两档，均使用 Miuix 控件；AccentPalette 的手选种子只在 Expressive 模式显示和生效，Android自动跟随系统动态代表色、iOS Expressive自动回退产品蓝，7个预设包含六种参考色和宫崎骏森林绿。液态玻璃保留Neutral/自动系统色并忽略已保存的手选种子。Monet 色板由 Miuix ThemeController 生成，详见 ui-showcase/settings。官方圆角未满足现有 G2 契约，采用 ui-shapes 与 ui-material 本地模块替换，详细接口与补丁见各模块 README。
 
 该组合已通过Android编译、415项共享测试及iOS Klib链接/Release归档，记录见[beta03验证](miuix-beta03-verification.md)。Android compileSdk对齐37.2，iOS16/API33产品最低目标保持不变，运行时shader与最低系统真机表现待验收。
 

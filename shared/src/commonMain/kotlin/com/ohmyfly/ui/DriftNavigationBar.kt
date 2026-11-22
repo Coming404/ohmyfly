@@ -5,18 +5,29 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,10 +41,12 @@ import top.yukonga.miuix.kmp.material.GlassShadows
 import top.yukonga.miuix.kmp.material.GlassStyle
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-private val NavigationBarHeight = 54.dp
+private val NavigationBarHeight = 60.dp
 private val NavigationBarContentInset = 8.dp
 private val NavigationBarIndicatorOverhang = 4.dp
 private const val NavigationSelectedIndicatorAlpha = 0.12f
+private const val NavigationPressedScaleX = 1.08f
+private const val NavigationPressedScaleY = 1.12f
 
 /** 设置安全区、共享背景采样和主题光照，持有五个入口的导航状态。 */
 @Composable
@@ -86,7 +99,13 @@ private fun NavigationBarSurface(
             fallback = Modifier.clip(NavigationBarShape).background(colors.surfaceContainer),
         ), contentAlignment = Alignment.Center,
     ) {
-        NavigationBarContents(destination, onDestination, colors.primary, colors.onSurfaceVariantSummary)
+        NavigationBarContents(
+            destination = destination,
+            onDestination = onDestination,
+            selectedColor = colors.primary,
+            unselectedColor = colors.onSurfaceVariantSummary,
+            glassEnabled = glassEnabled,
+        )
     }
 }
 
@@ -97,19 +116,32 @@ private fun NavigationBarContents(
     onDestination: (Int) -> Unit,
     selectedColor: androidx.compose.ui.graphics.Color,
     unselectedColor: androidx.compose.ui.graphics.Color,
+    glassEnabled: Boolean,
 ) {
     val items = remember { AppDestination.entries }
     val index = destination.ordinal
     val selectedIndex = rememberUpdatedState(index)
     val onSelect = rememberUpdatedState(onDestination)
     val dragging = remember { mutableStateOf(false) }
+    val pressed = remember { mutableStateOf(false) }
+    val focusedIndex = remember { mutableIntStateOf(-1) }
     val dragIndex = remember { mutableFloatStateOf(index.toFloat()) }
+    val pressPosition = remember { mutableStateOf(Offset.Zero) }
     val motionAllowed = LocalAppMotionAllowed.current
+    val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
     val indicatorIndex by animateFloatAsState(
         targetValue = if (dragging.value) dragIndex.floatValue else index.toFloat(),
-        animationSpec = if (dragging.value || !motionAllowed) snap()
-        else spring(dampingRatio = 0.78f, stiffness = 460f),
+        animationSpec = when {
+            !motionAllowed -> snap()
+            dragging.value -> spring(dampingRatio = 1f, stiffness = 1000f)
+            else -> spring(dampingRatio = 0.78f, stiffness = 460f)
+        },
         label = "主导航选中胶囊",
+    )
+    val pressProgress by animateFloatAsState(
+        targetValue = if (pressed.value && motionAllowed) 1f else 0f,
+        animationSpec = if (motionAllowed) spring(dampingRatio = 0.5f, stiffness = 300f) else snap(),
+        label = "主导航按压高光",
     )
     BoxWithConstraints(
         Modifier.fillMaxSize().clip(NavigationBarShape).navigationBarDrag(
@@ -117,20 +149,24 @@ private fun NavigationBarContents(
             horizontalInsetPx = with(androidx.compose.ui.platform.LocalDensity.current) {
                 NavigationBarContentInset.toPx()
             },
-            layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current,
+            layoutDirection = layoutDirection,
             dragging = dragging,
             dragIndex = dragIndex,
             selectedIndex = selectedIndex,
             onSelect = onSelect,
+            pressPosition = pressPosition,
+            pressed = pressed,
         ),
     ) {
         val slotWidth = (maxWidth - NavigationBarContentInset * 2) / items.size
-        Box(
-            Modifier.offset(x = NavigationBarContentInset + slotWidth * indicatorIndex - NavigationBarIndicatorOverhang)
-                .width(slotWidth + NavigationBarIndicatorOverhang * 2)
-                .height(NavigationBarHeight - 6.dp)
-                .clip(NavigationBarShape)
-                .background(selectedColor.copy(alpha = NavigationSelectedIndicatorAlpha)),
+        NavigationBarSelectionIndicator(
+            index = indicatorIndex,
+            slotWidth = slotWidth,
+            layoutDirection = layoutDirection,
+            pressProgress = pressProgress,
+            pressPosition = pressPosition.value,
+            focusedIndex = focusedIndex.intValue,
+            glassEnabled = glassEnabled,
         )
         Row(
             Modifier.fillMaxSize().selectableGroup().padding(horizontal = NavigationBarContentInset),
@@ -143,13 +179,91 @@ private fun NavigationBarContents(
                     selectedColor = selectedColor,
                     unselectedColor = unselectedColor,
                     onClick = { onSelect.value(itemIndex) },
+                    onFocusChange = { focused ->
+                        if (focused) focusedIndex.intValue = itemIndex
+                        else if (focusedIndex.intValue == itemIndex) focusedIndex.intValue = -1
+                    },
                 )
             }
         }
     }
 }
 
-/** 选中项使用主题色、中粗图标和粗标签，反馈限制在自身 G2 轮廓内。 */
+/** 选中胶囊和触点高光共用导航外轮廓，避免点击反馈产生第二套圆角。 */
+@Composable
+private fun NavigationBarSelectionIndicator(
+    index: Float,
+    slotWidth: androidx.compose.ui.unit.Dp,
+    layoutDirection: androidx.compose.ui.unit.LayoutDirection,
+    pressProgress: Float,
+    pressPosition: Offset,
+    focusedIndex: Int,
+    glassEnabled: Boolean,
+) {
+    val physicalIndex = if (layoutDirection == androidx.compose.ui.unit.LayoutDirection.Ltr) {
+        index
+    } else {
+        AppDestination.entries.lastIndex - index
+    }
+    Box(Modifier.fillMaxSize()) {
+        Box(
+            Modifier.offset(x = NavigationBarContentInset + slotWidth * physicalIndex - NavigationBarIndicatorOverhang)
+                .width(slotWidth + NavigationBarIndicatorOverhang * 2)
+                .height(NavigationBarHeight - 6.dp)
+                .graphicsLayer {
+                    scaleX = 1f + (NavigationPressedScaleX - 1f) * pressProgress
+                    scaleY = 1f + (NavigationPressedScaleY - 1f) * pressProgress
+                }
+                .clip(NavigationBarShape)
+                .background(MiuixTheme.colorScheme.onSurface.copy(alpha = NavigationSelectedIndicatorAlpha))
+                .then(
+                    if (glassEnabled) Modifier.navigationInnerShadow(NavigationBarShape) {
+                        if (pressProgress > 0f) {
+                            NavigationInnerShadow(radius = 8.dp * pressProgress, alpha = pressProgress)
+                        } else {
+                            null
+                        }
+                    } else Modifier,
+                ),
+        )
+        Box(Modifier.fillMaxSize().drawWithContent {
+            drawContent()
+            if (pressProgress > 0f) {
+                val spotColor = Color.White.copy(alpha = 0.12f * pressProgress)
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colorStops = arrayOf(
+                            0f to spotColor,
+                            0.5f to spotColor,
+                            1f to Color.Transparent,
+                        ),
+                        center = pressPosition,
+                        radius = size.minDimension * 1.2f,
+                    ),
+                    blendMode = BlendMode.Plus,
+                )
+            }
+        })
+        if (focusedIndex in AppDestination.entries.indices) {
+            val physicalFocusIndex = if (layoutDirection == androidx.compose.ui.unit.LayoutDirection.Ltr) {
+                focusedIndex
+            } else {
+                AppDestination.entries.lastIndex - focusedIndex
+            }
+            Box(
+                Modifier.offset(
+                    x = NavigationBarContentInset + slotWidth * physicalFocusIndex + 1.dp,
+                    y = 3.dp,
+                )
+                    .width(slotWidth - 2.dp)
+                    .height(NavigationBarHeight - 6.dp)
+                    .border(2.dp, MiuixTheme.colorScheme.onSurface, AppCorners.shape(AppCorners.Content)),
+            )
+        }
+    }
+}
+
+/** 保持Tab语义与主题选中色，按压仅淡化字形，不额外绘制默认波纹。 */
 @Composable
 private fun RowScope.NavigationBarItem(
     destination: AppDestination,
@@ -157,12 +271,22 @@ private fun RowScope.NavigationBarItem(
     selectedColor: androidx.compose.ui.graphics.Color,
     unselectedColor: androidx.compose.ui.graphics.Color,
     onClick: () -> Unit,
+    onFocusChange: (Boolean) -> Unit,
 ) {
-    val color = if (selected) selectedColor else unselectedColor
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val tint = if (selected) selectedColor else unselectedColor
+    val color = if (pressed) tint.copy(alpha = 0.6f) else tint
     Column(
         Modifier.weight(1f).fillMaxHeight().padding(horizontal = 1.dp, vertical = 3.dp)
-            .clip(AppCorners.shape(AppCorners.Selection))
-            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
+            .onFocusChanged { onFocusChange(it.isFocused) }
+            .selectable(
+                selected = selected,
+                role = Role.Tab,
+                interactionSource = interaction,
+                indication = null,
+                onClick = onClick,
+            )
             .padding(vertical = 3.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,

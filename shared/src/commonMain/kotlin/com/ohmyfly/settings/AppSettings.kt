@@ -11,6 +11,7 @@ internal data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.System,
     val materialMode: MaterialMode = MaterialMode.LiquidGlass,
     val accentPalette: AccentPalette = AccentPalette.Automatic,
+    val glassMaterial: GlassMaterialSettings = GlassMaterialSettings(),
     val reduceTransparency: Boolean = false,
     val reduceMotion: Boolean = false,
     val hapticEnabled: Boolean = true,

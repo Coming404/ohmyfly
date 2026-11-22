@@ -293,7 +293,7 @@ private fun AppFrame(
     val glassEnabled = settings.materialMode == MaterialMode.LiquidGlass &&
         glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)
     CompositionLocalProvider(LocalChromeAppearance provides ChromeAppearance(
-        glassEnabled, dark, backdrop.takeIf { glassEnabled },
+        glassEnabled, dark, backdrop.takeIf { glassEnabled }, settings.glassMaterial,
     )) {
     Box(Modifier.fillMaxSize()) {
     Scaffold(

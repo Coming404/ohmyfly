@@ -50,16 +50,16 @@ class AppThemeTest {
     }
 
     @Test
-    fun explicitPresetOverridesSystemSeedAndKeepsMaterialPaletteRecipe() {
+    fun explicitPresetOnlyAffectsExpressiveMode() {
+        val systemSeed = Color(0xFF112233)
         val preset = AccentPalette.Miyazaki
-        for (mode in MaterialMode.entries) {
-            val controller = appThemeController(Color(0xFF112233), false, mode, preset)
-            assertEquals(Color(preset.seedArgb!!), controller.keyColor)
-            assertEquals(
-                if (mode == MaterialMode.Expressive) ThemePaletteStyle.Expressive else ThemePaletteStyle.Neutral,
-                controller.paletteStyle,
-            )
-        }
+        val liquidGlass = appThemeController(systemSeed, false, MaterialMode.LiquidGlass, preset)
+        assertEquals(systemSeed, liquidGlass.keyColor)
+        assertEquals(ThemePaletteStyle.Neutral, liquidGlass.paletteStyle)
+        assertNull(appThemeController(null, false, MaterialMode.LiquidGlass, preset).keyColor)
+        val expressive = appThemeController(systemSeed, false, MaterialMode.Expressive, preset)
+        assertEquals(Color(preset.seedArgb!!), expressive.keyColor)
+        assertEquals(ThemePaletteStyle.Expressive, expressive.paletteStyle)
     }
 
     @Test
