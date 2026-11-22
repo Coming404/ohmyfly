@@ -31,6 +31,7 @@ import com.ohmyfly.settings.MaterialMode
 import com.ohmyfly.settings.SettingsSession
 import com.ohmyfly.ui.settings.*
 import com.ohmyfly.ui.glass.glassEffectsEnabled
+import com.ohmyfly.ui.glass.glassPreset
 import com.ohmyfly.ui.glass.glassShaderSupported
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.*

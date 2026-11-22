@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.basic.Close
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal enum class AppMessageKind { Default, Success, Failure, Error, Uncertain }
@@ -192,7 +192,7 @@ private fun AppSnackbar(data: SnackbarData, kind: AppMessageKind) {
             }
             if (data.visuals.withDismissAction) {
                 Icon(
-                    imageVector = MiuixIcons.Basic.Close,
+                    imageVector = DriftIcons.Clear,
                     contentDescription = "关闭通知",
                     tint = foreground,
                     modifier = Modifier.padding(start = 8.dp).size(20.dp)
