@@ -57,7 +57,7 @@ class MaterialSettingsTests(unittest.TestCase):
         self.assertIn('secondLayerAlpha: Float? = null', model)
         self.assertIn('thirdLayerAlpha: Float? = null', model)
         self.assertIn('blurRadiusDp: Float? = null', model)
-        self.assertIn('navigationBarBaseMaterial()', page)
+        self.assertIn('navigationBarBaseMaterial(appearance.dark)', page)
         self.assertIn('referenceMaterial.second?.color?.alpha', page)
         self.assertIn('referenceMaterial.third?.color?.alpha', page)
         self.assertIn('referenceMaterial.blurRadius.value', page)

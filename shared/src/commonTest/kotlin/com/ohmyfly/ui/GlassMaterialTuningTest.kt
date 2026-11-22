@@ -24,8 +24,9 @@ class GlassMaterialTuningTest {
         )
         assertEquals(8.dp, tuned.blurRadius)
         assertEquals(material.first, tuned.first)
-        assertEquals(0.34f, tuned.second!!.color.alpha, 0.0001f)
-        assertEquals(0.18f, tuned.third!!.color.alpha, 0.0001f)
+        // Compose sRGB 将 alpha 量化到 8 位；测试允许一个通道步长。
+        assertEquals(0.34f, tuned.second!!.color.alpha, 1f / 255f)
+        assertEquals(0.18f, tuned.third!!.color.alpha, 1f / 255f)
     }
 
     private fun sampleMaterial() = GlassMaterial(

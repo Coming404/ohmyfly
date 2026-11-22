@@ -11,43 +11,56 @@ GLASS = UI / 'glass'
 class BottomNavigationTests(unittest.TestCase):
     def test_five_existing_destinations_and_single_navigation_owner(self):
         nav = (UI / 'DriftNavigationBar.kt').read_text()
+        surface = (GLASS / 'GlassNavigationSurface.kt').read_text()
+        tabs = (GLASS / 'GlassNavigationTabs.kt').read_text()
         destinations = (UI / 'AppDestination.kt').read_text()
         app = (COMMON / 'App.kt').read_text()
         labels = ['概览', '塔台', '起飞', '航班', '设置']
         positions = [destinations.index(f'("{label}"') for label in labels]
         self.assertEqual(sorted(positions), positions)
-        self.assertIn('NavigationBarContents(', nav)
-        self.assertIn('onDestination = hapticChange', nav)
+        self.assertIn('GlassNavigationSurface(', nav)
+        self.assertIn('GlassNavigationTabs(', surface)
+        self.assertIn('hapticChange', tabs)
         self.assertIn('onDestination = navigate', app)
         self.assertNotIn('onDestination = { destination = it }', app)
         self.assertIn('!settingsChild && selectionMode == null && !imeVisible', app)
 
-    def test_insets_are_applied_once_outside_the_material(self):
+    def test_insets_are_applied_once_and_navigation_uses_material_settings(self):
         nav = (UI / 'DriftNavigationBar.kt').read_text()
+        surface = (GLASS / 'GlassNavigationSurface.kt').read_text()
+        effects = (GLASS / 'GlassEffects.kt').read_text()
         app = (COMMON / 'App.kt').read_text()
-        self.assertIn('shading = glassEnabled', nav)
-        self.assertIn('GlassNavigationBarDefaults.stroke()', nav)
-        self.assertIn('navigationBarMaterial()', nav)
+        self.assertIn('material = navigationBarMaterial(dark)', nav)
+        self.assertIn('Modifier.glassSurface(', surface)
+        self.assertIn('material.blurRadius.toPx()', effects)
+        self.assertIn('blendColors(colors)', effects)
+        self.assertIn('noiseDither(0f)', effects)
         self.assertEqual(1, nav.count('.windowInsetsPadding('))
         self.assertIn('.consumeWindowInsets(padding)', app)
         self.assertIn('if (glassEnabled) Modifier.layerBackdrop(backdrop) else Modifier', app)
 
-    def test_navigation_uses_g2_glass_and_selected_theme_weight(self):
-        nav = (UI / 'DriftNavigationBar.kt').read_text()
+    def test_navigation_restores_legacy_capsule_and_keeps_current_g2_shape(self):
+        surface = (GLASS / 'GlassNavigationSurface.kt').read_text()
+        tabs = (GLASS / 'GlassNavigationTabs.kt').read_text()
         shape = (UI / 'NavigationBarShape.kt').read_text()
         icons = (UI / 'DriftIcons.kt').read_text()
         material = (UI / 'NavigationBarMaterial.kt').read_text()
-        drag = (UI / 'NavigationBarDrag.kt').read_text()
-        self.assertIn('NavigationBarItem(', nav)
-        self.assertIn('shape = NavigationBarShape', nav)
+        shadow = (UI / 'NavigationInnerShadow.kt').read_text()
+        self.assertIn('glassNavigationCapsule(', surface)
+        self.assertIn('rememberGlassNavigationGesture(', surface)
+        self.assertIn('response.drag.modifier', surface)
+        self.assertIn('navigationInnerShadow(shape)', surface)
+        self.assertIn('NavigationInnerShadow(radius = 8.dp * press', surface)
+        self.assertIn('NavigationBarShape', surface)
         self.assertIn('smoothing = 1f', shape)
-        self.assertIn('FontWeight.SemiBold', nav)
-        self.assertIn('colors.primary', nav)
+        self.assertIn('item.navigationIcon(selected)', tabs)
+        self.assertIn('FontWeight.Bold', tabs)
         self.assertIn('Glass.Medium.', icons)
-        self.assertIn('NavigationSecondLayerAlpha = 0.34f', material)
-        self.assertIn('NavigationThirdLayerAlpha = 0.18f', material)
-        self.assertIn('navigationPosition(', drag)
-        self.assertFalse((GLASS / 'GlassNavigationSurface.kt').exists())
+        self.assertIn('blurRadius = 4.dp', material)
+        self.assertIn('0.30f', material)
+        self.assertIn('thirdAlpha = 0f', material)
+        self.assertIn('Modifier.Node', shadow)
+
 
     def test_g2_is_the_app_wide_default_for_miuix_and_settings_cards(self):
         theme = (UI / 'AppTheme.kt').read_text()

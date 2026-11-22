@@ -21,7 +21,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -37,16 +39,16 @@ import com.ohmyfly.ui.NavigationBarShape
 import com.ohmyfly.ui.hapticClick
 import com.ohmyfly.ui.navigationBarBaseMaterial
 import com.ohmyfly.ui.withSettings
+import com.ohmyfly.ui.glass.glassPreset
+import com.ohmyfly.ui.glass.glassSurface
+import com.ohmyfly.ui.glass.rememberGlassMaterialColors
 import com.ohmyfly.ui.glass.rememberGlassStyle
 import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.SliderDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
-import top.yukonga.miuix.kmp.glass.glassPanel
-import top.yukonga.miuix.kmp.material.GlassEdgeStrokes
 import top.yukonga.miuix.kmp.material.GlassMaterial
-import top.yukonga.miuix.kmp.material.GlassShadows
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import kotlin.math.roundToInt
 
@@ -56,7 +58,8 @@ internal fun GlassMaterialSettingsPage(
     onChange: (String, (AppSettings) -> AppSettings) -> Unit,
     padding: PaddingValues,
 ) {
-    val referenceMaterial = navigationBarBaseMaterial()
+    val appearance = LocalChromeAppearance.current
+    val referenceMaterial = navigationBarBaseMaterial(appearance.dark)
     val currentSettings = settings.glassMaterial
     val initialValues = GlassMaterialSettings(
         secondLayerAlpha = currentSettings.secondLayerAlpha ?: referenceMaterial.second?.color?.alpha,
@@ -64,7 +67,7 @@ internal fun GlassMaterialSettingsPage(
         blurRadiusDp = currentSettings.blurRadiusDp ?: referenceMaterial.blurRadius.value,
     )
     var previewSettings by remember(currentSettings, referenceMaterial) { mutableStateOf(initialValues) }
-    val previewAvailable = LocalChromeAppearance.current.enabled
+    val previewAvailable = appearance.enabled
     SettingsList(padding) {
         item {
             SettingsPageIntro(
@@ -174,6 +177,9 @@ private fun GlassMaterialPreview(settings: GlassMaterialSettings, baseMaterial: 
     val shape = NavigationBarShape
     val style = rememberGlassStyle(appearance.enabled, appearance.dark)
     val material = baseMaterial.withSettings(settings)
+    val materialColors = rememberGlassMaterialColors(material)
+    val surface = MiuixTheme.colorScheme.surface
+    val fallback = Modifier.clip(shape).background(MiuixTheme.colorScheme.surfaceContainer)
     Box(Modifier.fillMaxWidth().height(164.dp).clip(com.ohmyfly.shapes.AppCorners.shape(com.ohmyfly.shapes.AppCorners.Content))) {
         Box(Modifier.fillMaxSize().layerBackdrop(source)) {
             Row(Modifier.fillMaxSize()) {
@@ -184,15 +190,23 @@ private fun GlassMaterialPreview(settings: GlassMaterialSettings, baseMaterial: 
         }
         Box(
             Modifier.align(Alignment.Center).fillMaxWidth(0.88f).height(70.dp)
-                .glassPanel(
-                    backdrop = source.takeIf { appearance.enabled },
-                    shape = shape,
-                    style = style.value,
-                    material = material,
-                    stroke = if (appearance.enabled) GlassEdgeStrokes.forTheme(appearance.dark) else null,
-                    shadow = if (appearance.enabled) GlassShadows.Regular else null,
-                    shading = appearance.enabled,
-                    fallback = Modifier.clip(shape).background(MiuixTheme.colorScheme.surfaceContainer),
+                .then(
+                    if (appearance.enabled) {
+                        Modifier.dropShadow(
+                            shape,
+                            Shadow(radius = 10.dp, color = Color.Black, alpha = if (appearance.dark) 0.2f else 0.1f),
+                        ).glassSurface(
+                            backdrop = source,
+                            shape = shape,
+                            preset = glassPreset(),
+                            material = material,
+                            colors = materialColors,
+                            surface = surface,
+                            style = style.value,
+                        )
+                    } else {
+                        fallback
+                    },
                 ),
             contentAlignment = Alignment.Center,
         ) {
