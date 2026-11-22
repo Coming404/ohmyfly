@@ -107,7 +107,7 @@ internal fun MirrorProbeBar(
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 ) {
                     Icon(
-                        imageVector = if (busy) com.ohmyfly.ui.DriftIcons.Clear else MirrorIcons.Play,
+                        imageVector = if (busy) MirrorIcons.Stop else MirrorIcons.Play,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
                     )

@@ -1,4 +1,4 @@
-// 液态玻璃覆盖值为空时沿用当前组件的 Miuix 原生配方。
+// 预览值为空时沿用升级前玻璃预设的表面、高光与模糊参数。
 package com.ohmyfly.settings
 
 internal data class GlassMaterialSettings(

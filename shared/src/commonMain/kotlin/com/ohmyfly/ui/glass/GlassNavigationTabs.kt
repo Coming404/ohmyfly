@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.ui.AppDestination
 import com.ohmyfly.ui.hapticChange
-import com.ohmyfly.ui.navigationIcon
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -80,12 +79,7 @@ internal fun RowScope.GlassNavigationTabs(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(1.dp, Alignment.CenterVertically),
         ) {
-            Icon(
-                imageVector = item.navigationIcon(selected),
-                contentDescription = null,
-                modifier = Modifier.size(22.dp),
-                tint = color,
-            )
+            Icon(item.icon, contentDescription = null, modifier = Modifier.size(22.dp), tint = color)
             NavigationLabel(item.label, selected, color)
         }
     }

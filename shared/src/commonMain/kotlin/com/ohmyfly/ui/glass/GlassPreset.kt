@@ -2,23 +2,35 @@
 // GPL-3.0 for the former; see third-party/Melox-NOTICE.md. Application parameters are ours.
 package com.ohmyfly.ui.glass
 
-internal const val ClearBlurRadiusDp = 0.75f
-internal const val ClearFaceSaturation = 1.06f
-internal const val ClearBlackPoint = 0.125f
-internal const val ClearWhitePoint = 1.08f
-internal const val ClearMaximumLuma = 1f
+import com.ohmyfly.settings.MaterialMode
+import com.kyant.backdrop.isRuntimeShaderSupported
 
+/** 材质共享设置参数，半径和折射距离均为 dp。 */
 internal data class GlassPreset(
-    val saturation: Float = 1f,
-    val brightness: Float = 0f,
-    val blurDp: Float = 4f,
-    val innerLensHeight: Float = 24f,
-    val innerLensAmount: Float = 24f,
-    val highlightAlpha: Float = 0.75f,
-    val highlightStrokeWidthDp: Float = 1f,
-    val highlightBlurRadiusDp: Float = 2f,
-    val highlightColorAlpha: Float = 0.12f,
-    val liquidResponse: Boolean = true,
+    val blur: Float,
+    val saturation: Float,
+    val brightness: Float,
+    val surfaceAlpha: Float,
+    val lensHeight: Float,
+    val lensAmount: Float,
+    val highlightAlpha: Float,
+    val highlightBlur: Float,
+    val liquidResponse: Boolean = false,
 )
 
-internal fun glassPreset(): GlassPreset = GlassPreset()
+internal fun glassPreset(mode: MaterialMode, dark: Boolean): GlassPreset = when (mode) {
+    MaterialMode.LiquidGlass -> GlassPreset(
+        4f, 1.5f, 0f, if (dark) 0.10f else 0.30f, 24f, 24f, 1f, 0.25f,
+        liquidResponse = true,
+    )
+    MaterialMode.Expressive -> GlassPreset(4f, 1f, 0f, 0f, 0f, 0f, 0f, 0f)
+}
+
+internal fun glassEffectsEnabled(
+    reduceTransparency: Boolean,
+    shaderSupported: Boolean,
+    systemReduceTransparency: Boolean,
+): Boolean = !reduceTransparency && !systemReduceTransparency && shaderSupported
+
+/** No silent unblurred transparency when RuntimeShader is unavailable. */
+internal fun glassShaderSupported(): Boolean = isRuntimeShaderSupported()

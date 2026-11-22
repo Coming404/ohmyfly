@@ -1,6 +1,8 @@
 package com.ohmyfly.ui
 
 import com.ohmyfly.shapes.AppCorners
+import com.ohmyfly.ui.settings.MirrorIcons
+import com.ohmyfly.ui.settings.SettingsIcons
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,12 +25,6 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.basic.Close
-import top.yukonga.miuix.kmp.icon.glass.Error
-import top.yukonga.miuix.kmp.icon.glass.Help
-import top.yukonga.miuix.kmp.icon.glass.Info
-import top.yukonga.miuix.kmp.icon.glass.Ok
-import top.yukonga.miuix.kmp.icon.glass.Report
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal enum class AppMessageKind { Default, Success, Failure, Error, Uncertain }
@@ -145,11 +141,10 @@ private fun AppSnackbar(data: SnackbarData, kind: AppMessageKind) {
             else Color(0xFFFFF0D5) to Color(0xFF754D00)
     }
     val icon = when (kind) {
-        AppMessageKind.Default -> MiuixIcons.Glass.Info
-        AppMessageKind.Success -> MiuixIcons.Glass.Ok
-        AppMessageKind.Failure -> MiuixIcons.Glass.Report
-        AppMessageKind.Error -> MiuixIcons.Glass.Error
-        AppMessageKind.Uncertain -> MiuixIcons.Glass.Help
+        AppMessageKind.Default -> SettingsIcons.Hint
+        AppMessageKind.Success -> DriftIcons.Check
+        AppMessageKind.Failure, AppMessageKind.Error -> MirrorIcons.Alert
+        AppMessageKind.Uncertain -> SettingsIcons.Timer
     }
     val shape = AppCorners.shape(AppCorners.Notification)
     val scope = rememberCoroutineScope()

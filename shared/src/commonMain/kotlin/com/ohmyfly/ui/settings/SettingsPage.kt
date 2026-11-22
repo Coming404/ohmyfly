@@ -7,7 +7,7 @@ import top.yukonga.miuix.kmp.nav.core.NavKey
 @Serializable
 internal enum class SettingsPage(val title: String) : NavKey {
     Home("设置"),
-    Glass("液态玻璃"),
+    Glass("玻璃预览"),
     Speed("起飞与延迟"),
     Media("流媒体与 AI"),
     Subscription("塔台与过滤"),

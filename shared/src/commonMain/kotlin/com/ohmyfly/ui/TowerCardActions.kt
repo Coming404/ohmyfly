@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.sp
 import com.ohmyfly.catalog.*
 import com.ohmyfly.ui.settings.*
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.menu.OverlayIconCascadingDropdownMenu
+import top.yukonga.miuix.kmp.menu.OverlayIconDropdownMenu
 import top.yukonga.miuix.kmp.overlay.OverlayBottomSheet
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -125,7 +125,7 @@ internal fun TowerMoreMenu(tower: CatalogTower, loading: Boolean, revision: Long
     onEdit: () -> Unit, onRemove: () -> Unit, onSourceImport: (CatalogSource) -> Unit) {
     var panel by remember(tower.id) { mutableStateOf("") }
     val messages = LocalAppMessages.current
-    OverlayIconCascadingDropdownMenu(surface = appPopupSurface(), entry = DropdownEntry(items = buildList {
+    OverlayIconDropdownMenu(entry = DropdownEntry(items = buildList {
         add(DropdownItem(text = "编辑塔台", enabled = !loading, onClick = onEdit,
             icon = { Icon(SettingsIcons.Rename, null, it) }))
         if (tower.sourceKind == "http" && tower.address.isNotBlank()) {
@@ -142,15 +142,15 @@ internal fun TowerMoreMenu(tower: CatalogTower, loading: Boolean, revision: Long
             icon = { Icon(MirrorIcons.Trash, null, it, tint = MiuixTheme.colorScheme.error) }))
     }), modifier = modifier.wrapContentWidth().clip(AppCorners.shape(AppCorners.Control)),
         minWidth = 0.dp, minHeight = ChromeMetrics.ToolbarButtonSize,
-        backgroundColor = Color.Transparent, cornerRadius = AppCorners.Control) {
+        backgroundColor = Color.Transparent) {
         TowerFooterLabel("更多", MirrorIcons.More, MiuixTheme.colorScheme.primary)
     }
     if (panel == "result") TowerImportResultSheet(tower) { panel = "" }
-    if (panel == "sources") OverlayBottomSheet(surface = appBottomSheetSurface(), show = true, title = "管理来源", insideMargin = catalogSheetMargin(),
+    if (panel == "sources") OverlayBottomSheet(show = true, title = "管理来源", insideMargin = catalogSheetMargin(),
         onDismissRequest = { panel = "" }, cornerRadius = AppCorners.Sheet) {
         TowerSources(tower.id, revision) { source -> panel = ""; onSourceImport(source) }
     }
-    if (panel == "delete") OverlayBottomSheet(surface = appBottomSheetSurface(), show = true, title = "删除塔台", insideMargin = catalogSheetMargin(),
+    if (panel == "delete") OverlayBottomSheet(show = true, title = "删除塔台", insideMargin = catalogSheetMargin(),
         onDismissRequest = { panel = "" }, cornerRadius = AppCorners.Sheet) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(tower.name, style = catalogInputStyle())

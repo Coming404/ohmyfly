@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.glass.ChevronForward
+import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import kotlin.time.Clock
 
@@ -44,7 +44,7 @@ internal fun CatalogAction(text: String, icon: ImageVector, modifier: Modifier =
 // 展开图标单独布局，避免文本字符基线影响垂直居中。
 @Composable
 internal fun CatalogExpansionArrow(expanded: Boolean, color: Color = MiuixTheme.colorScheme.onSurfaceVariantSummary) {
-    Icon(MiuixIcons.Glass.ChevronForward, if (expanded) "收起" else "展开",
+    Icon(MiuixIcons.Basic.ArrowRight, if (expanded) "收起" else "展开",
         Modifier.size(16.dp).rotate(if (expanded) -90f else 90f), tint = color)
 }
 

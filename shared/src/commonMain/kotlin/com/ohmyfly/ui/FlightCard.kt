@@ -14,7 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.glass.ChevronForward
+import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -60,7 +60,7 @@ internal fun FlightRow(flight: CatalogFlight, selected: Boolean = false, selecti
         if (flight.regionCode.isNotBlank()) {
             Box(Modifier.size(36.dp).background(MiuixTheme.colorScheme.surfaceVariant, AppCorners.tile(36.dp)),
                 contentAlignment = Alignment.Center) { CountryFlag(flight.regionCode, Modifier.size(24.dp)) }
-        } else CatalogTile(DriftIcons.Nodes, 36)
+        } else CatalogTile(com.ohmyfly.ui.settings.MirrorIcons.Globe, 36)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(flight.name, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -82,7 +82,7 @@ internal fun FlightRow(flight: CatalogFlight, selected: Boolean = false, selecti
             Text(compactMetric(download, "—"),
                 fontSize = 12.sp, color = metricColor(download))
         }
-        if (!selectionMode) Icon(MiuixIcons.Glass.ChevronForward, if (expanded) "收起详情" else "展开详情",
+        if (!selectionMode) Icon(MiuixIcons.Basic.ArrowRight, if (expanded) "收起详情" else "展开详情",
             Modifier.size(16.dp).rotate(if (expanded) 90f else 0f), tint = MiuixTheme.colorScheme.onSurfaceVariantSummary)
     }
 }

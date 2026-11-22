@@ -90,7 +90,7 @@ internal fun MirrorSettingsPage(
     LaunchedEffect(runner.completedBatchId, mirrors) {
         val fastest = runner.consumeFastestMirrorId()?.takeIf { id -> mirrors.any { it.id == id } }
         if (fastest != null && settings.selectedMirrorId != fastest) {
-            onChange("已切换到最快镜像") { current ->
+            onChange("镜像选择") { current ->
                 if (current.selectedMirrorId == fastest) current else current.copy(selectedMirrorId = fastest)
             }
         }
@@ -113,7 +113,7 @@ internal fun MirrorSettingsPage(
             item(key = "mirror-title") {
                 Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically) {
-                    Icon(MirrorIcons.Globe, null, Modifier.size(24.dp))
+                    Icon(MirrorIcons.Github, null, Modifier.size(24.dp))
                     Text("GitHub 镜像", fontSize = 20.sp, fontWeight = FontWeight.SemiBold,
                         color = MiuixTheme.colorScheme.onSurface, modifier = Modifier.semantics { heading() })
                 }
@@ -121,7 +121,7 @@ internal fun MirrorSettingsPage(
             item(key = "mirror-enabled") {
                 SettingsCard {
                     ToggleSetting("启用镜像", value = settings.mirrorEnabled,
-                        onChange = { enabled -> onChange("镜像已${if (enabled) "启用" else "停用"}") { it.copy(mirrorEnabled = enabled) } },
+                        onChange = { enabled -> onChange("启用镜像") { it.copy(mirrorEnabled = enabled) } },
                         leadingIcon = MirrorIcons.Power,
                         enabled = !session.state.readFailed)
                 }
@@ -147,7 +147,7 @@ internal fun MirrorSettingsPage(
                     verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Icon(MirrorIcons.Globe, contentDescription = null, modifier = Modifier.size(48.dp),
+                    Icon(MirrorIcons.Github, contentDescription = null, modifier = Modifier.size(48.dp),
                         tint = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                     Text("暂无镜像源", fontSize = 17.sp, fontWeight = FontWeight.Bold,
                         color = MiuixTheme.colorScheme.onSurface, modifier = Modifier.semantics { heading() })
@@ -163,7 +163,7 @@ internal fun MirrorSettingsPage(
                                 name = entry.name, address = hostOf(entry.address), selected = entry.id == selectedId,
                                 selectionEnabled = settings.mirrorEnabled && !session.state.readFailed,
                                 result = runner.result(entry.id), phase = runner.phase(entry.id),
-                                onSelect = { if (settings.selectedMirrorId != entry.id) onChange("已选择镜像 ${entry.name}") { it.copy(selectedMirrorId = entry.id) } },
+                                onSelect = { if (settings.selectedMirrorId != entry.id) onChange("镜像选择") { it.copy(selectedMirrorId = entry.id) } },
                                 testing = runner.running || runner.stopping,
                                 canWrite = !session.state.readFailed,
                                 onTest = { runner.measure(entry.id, entry) },
@@ -195,7 +195,7 @@ internal fun MirrorSettingsPage(
             is MirrorPageState.Panel.Delete -> "删除${mirrors.firstOrNull { it.id == panel.id }?.name ?: "镜像"}？"
             null -> ""
         },
-        icon = if (panel is MirrorPageState.Panel.Delete) MirrorIcons.Trash else MirrorIcons.Globe,
+        icon = if (panel is MirrorPageState.Panel.Delete) MirrorIcons.Trash else MirrorIcons.Github,
         onDismiss = close,
         onDismissFinished = { page.finishDismiss() },
         footer = {

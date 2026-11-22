@@ -1,7 +1,11 @@
-// 导航胶囊按压时绘制受形状裁切的内部环影。
-package com.ohmyfly.ui
+// Copyright 2026, compose-miuix-ui contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package com.ohmyfly.ui.glass
+
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.BlurEffect
@@ -26,69 +30,84 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 
-/** 保存按压环影的模糊半径、偏移和可见度。 */
+/** 内部绘制参数仅由共享界面使用，不生成 Objective-C 桥接。 */
 @Immutable
-internal data class NavigationInnerShadow(
-    val radius: Dp,
+internal data class InnerShadow(
+    val radius: Dp = 24.dp,
     val offset: DpOffset = DpOffset(0.dp, radius),
     val color: Color = Color.Black.copy(alpha = 0.15f),
     val alpha: Float = 1f,
     val blendMode: BlendMode = DrawScope.DefaultBlendMode,
-)
+) {
+    companion object {
+        @Stable
+        val Default: InnerShadow = InnerShadow()
+    }
+}
 
-/** 在玻璃胶囊的既有轮廓内叠加按压环影。 */
-internal fun Modifier.navigationInnerShadow(
+/** 在共享界面内部应用内阴影，动画参数不触发额外重组。 */
+internal fun Modifier.innerShadow(
     shape: Shape,
-    shadow: () -> NavigationInnerShadow?,
-): Modifier = this then NavigationInnerShadowElement(shape, shadow)
+    shadow: () -> InnerShadow?,
+): Modifier = this then InnerShadowElement(shape, shadow)
 
-/** 复用节点持有的离屏图层，按动画帧更新环影。 */
-private class NavigationInnerShadowElement(
+private class InnerShadowElement(
     val shape: Shape,
-    val shadow: () -> NavigationInnerShadow?,
-) : ModifierNodeElement<NavigationInnerShadowNode>() {
+    val shadow: () -> InnerShadow?,
+) : ModifierNodeElement<InnerShadowNode>() {
 
-    override fun create(): NavigationInnerShadowNode = NavigationInnerShadowNode(shape, shadow)
+    override fun create(): InnerShadowNode = InnerShadowNode(shape, shadow)
 
-    override fun update(node: NavigationInnerShadowNode) {
+    override fun update(node: InnerShadowNode) {
         node.shape = shape
         node.shadow = shadow
         node.invalidateDraw()
     }
 
     override fun InspectorInfo.inspectableProperties() {
-        name = "navigationInnerShadow"
+        name = "innerShadow"
         properties["shape"] = shape
         properties["shadow"] = shadow
     }
 
-    override fun equals(other: Any?): Boolean = other is NavigationInnerShadowElement &&
-        shape == other.shape && shadow == other.shadow
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is InnerShadowElement) return false
+        if (shape != other.shape) return false
+        if (shadow != other.shadow) return false
+        return true
+    }
 
-    override fun hashCode(): Int = 31 * shape.hashCode() + shadow.hashCode()
+    override fun hashCode(): Int {
+        var result = shape.hashCode()
+        result = 31 * result + shadow.hashCode()
+        return result
+    }
 }
 
-/** 在目标轮廓内绘制按压内环阴影。 */
-private class NavigationInnerShadowNode(
+private class InnerShadowNode(
     var shape: Shape,
-    var shadow: () -> NavigationInnerShadow?,
-) : Modifier.Node(), DrawModifierNode {
+    var shadow: () -> InnerShadow?,
+) : Modifier.Node(),
+    DrawModifierNode {
 
     override val shouldAutoInvalidate: Boolean = false
 
-    private var layer: GraphicsLayer? = null
+    private var shadowLayer: GraphicsLayer? = null
     private val paint = Paint()
     private val clipPath = Path()
-    private var previousRadius = Float.NaN
+    private var prevRadius = Float.NaN
 
-    /** 偏移并挖空原形状，再模糊剩余边缘形成内环。 */
     override fun ContentDrawScope.draw() {
         drawContent()
-        val style = shadow() ?: return
-        val shadowLayer = layer ?: return
-        val radiusPx = style.radius.toPx()
-        val offsetX = style.offset.x.toPx()
-        val offsetY = style.offset.y.toPx()
+
+        val shadow = shadow() ?: return
+        val layer = shadowLayer ?: return
+
+        val radius = shadow.radius.toPx()
+        val offsetX = shadow.offset.x.toPx()
+        val offsetY = shadow.offset.y.toPx()
+
         val outline = shape.createOutline(size, layoutDirection, this)
         clipPath.reset()
         when (outline) {
@@ -96,50 +115,51 @@ private class NavigationInnerShadowNode(
             is Outline.Rounded -> clipPath.addRoundRect(outline.roundRect)
             is Outline.Generic -> clipPath.addPath(outline.path)
         }
-        paint.color = style.color
-        shadowLayer.alpha = style.alpha
-        shadowLayer.blendMode = style.blendMode
-        if (previousRadius != radiusPx) {
-            shadowLayer.renderEffect = if (radiusPx > 0f) {
-                BlurEffect(radiusPx, radiusPx, TileMode.Decal)
-            } else {
-                null
-            }
-            previousRadius = radiusPx
+
+        paint.color = shadow.color
+        layer.alpha = shadow.alpha
+        layer.blendMode = shadow.blendMode
+        if (prevRadius != radius) {
+            layer.renderEffect = if (radius > 0f) BlurEffect(radius, radius, TileMode.Decal) else null
+            prevRadius = radius
         }
-        shadowLayer.record {
+
+        // Clear an offset copy from a solid shape; blurring the remainder produces the inner rim.
+        layer.record {
             drawContext.canvas.let { canvas ->
                 canvas.save()
                 canvas.clipPath(clipPath)
                 canvas.drawOutline(outline, paint)
                 canvas.translate(offsetX, offsetY)
-                canvas.drawOutline(outline, ClearPaint)
+                canvas.drawOutline(outline, ShadowMaskPaint)
                 canvas.translate(-offsetX, -offsetY)
                 canvas.restore()
             }
         }
+
         drawContext.canvas.let { canvas ->
             canvas.save()
             canvas.clipPath(clipPath)
-            drawLayer(shadowLayer)
+            drawLayer(layer)
             canvas.restore()
         }
     }
 
-    /** 在当前绘制上下文内申请可复用图层。 */
     override fun onAttach() {
-        layer = requireGraphicsContext().createGraphicsLayer().apply {
+        // Graphics layers must be owned by the node's context and released when it detaches.
+        shadowLayer = requireGraphicsContext().createGraphicsLayer().apply {
             compositingStrategy = CompositingStrategy.Offscreen
         }
     }
 
-    /** 节点脱离时归还它持有的离屏图层。 */
     override fun onDetach() {
-        layer?.let {
-            requireGraphicsContext().releaseGraphicsLayer(it)
-            layer = null
+        shadowLayer?.let { layer ->
+            requireGraphicsContext().releaseGraphicsLayer(layer)
+            shadowLayer = null
         }
     }
 }
 
-private val ClearPaint = Paint().apply { blendMode = BlendMode.Clear }
+private val ShadowMaskPaint: Paint = Paint().apply {
+    blendMode = BlendMode.Clear
+}

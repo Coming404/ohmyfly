@@ -2,22 +2,32 @@
 
 ## 1. Miuix 发布基线
 
-用户明确要求完整升级至 **v0.9.5-beta03**，GitHub `prerelease=true`，固定提交 `3526cfe2ca0779c5a2eab99af8737a96c9a8a885`。不是浮动 main 或 snapshot。
+本轮交叉核查 GitHub 正式 release、标签源码与 Klibs MCP：
 
-| 项目 | 当前声明 |
-| --- | --- |
-| Miuix 各模块 | 0.9.5-beta03 |
-| Kotlin / Compose Compiler | 2.4.21 |
-| Compose Multiplatform | 1.13.0-rc01 |
-| AGP / Gradle | 9.5.2 / 9.9.2 |
-| kotlinx.serialization | 1.13.0 |
-| Android / iOS 最低目标 | API33 / iOS16.0 |
+| 项 | 结果 |
+|---|---|
+| Miuix GitHub 最新正式 release | v0.9.4，prerelease=false |
+| Maven 坐标 | top.yukonga.miuix.kmp:miuix-ui:0.9.4 |
+| Klibs getLatestVersion | latestVersion=0.9.4，latestStableVersion=null |
+| 库的 API 稳定承诺 | README 仍明确 experimental，不能宣称 API 已稳定 |
+| 0.9.4 工具链参考 | Kotlin 2.4.20、Compose Multiplatform 1.12.0、AGP 9.4.1、Gradle 9.7.1 |
+| 上游构建 JDK | 21；作为 Actions 候选基线，与本地 17 无关 |
+| 上游 Android 核心 minSdk | 24 |
+| 独立 miuix-blur minSdk | 33；用户现已明确最低 Android13/API33，接入同版0.9.4 |
 
-Klibs 查询确认 compose-miuix-ui/miuix 的 Android、ios_arm64、ios_simulator_arm64，但索引仅更新到 beta01；beta03 以 Maven 发布元数据和固定源码交叉核对，ui/blur/material/glass/glass-icons/nav 均有对应平台变体。删除旧 miuix-shader 与 Kyant Backdrop 依赖，保留独立 Shapes1.2.1 几何。
+因此“使用稳定版”在本项目中的落地是：**使用官方正式发布、非预发布版本，当前候选 0.9.4；不使用 snapshot/main 分支，不把 0.x 正式发布误称为 API 稳定保证。**若用户要求全依赖树无任何 alpha/rc，需额外审查传递依赖，不能仅看顶层版本号。
 
-界面只有液态玻璃和 Expressive 两档，均使用 Miuix 控件；AccentPalette 的手选种子只在 Expressive 模式显示和生效，Android自动跟随系统动态代表色、iOS Expressive自动回退产品蓝，7个预设包含六种参考色和宫崎骏森林绿。液态玻璃保留Neutral/自动系统色并忽略已保存的手选种子。Monet 色板由 Miuix ThemeController 生成，详见 ui-showcase/settings。官方圆角未满足现有 G2 契约，采用 ui-shapes 与 ui-material 本地模块替换，详细接口与补丁见各模块 README。
+以上版本已经写入当前工程的直接声明：Kotlin2.4.20、Compose Multiplatform1.12.0、Miuix0.9.4、AGP9.4.1、Gradle Wrapper9.7.1。**基线9930858已通过双端Release；本轮材质与运行时清理尚未云端编译，未生成完整传递依赖锁或校验元数据**。Compose Compiler与Kotlin插件同版本。禁止`+`、`latest.release`或自动跟随main；升级需要兼容性验证。Version Catalog并不自动锁死整个传递依赖图。
 
-该组合已通过Android编译、415项共享测试及iOS Klib链接/Release归档，记录见[beta03验证](miuix-beta03-verification.md)。Android compileSdk对齐37.2，iOS16/API33产品最低目标保持不变，运行时shader与最低系统真机表现待验收。
+`mavenCentral()` 是依赖仓库地址，不是另一种 Compose 版本，也没有需要指定的“仓库版本”。Android 的 Compose/AndroidX 依赖通常还需 `google()`；插件仓库按实际插件使用配置。Klibs 本轮查到 Compose UI 最新正式版为1.12.2，但不自动取代对齐 Miuix 的1.12.0候选。
+
+### iOS 最低版本的证据边界
+
+- 当前官方兼容页针对 Compose Multiplatform **1.12.2**列出 iOS **14** 为框架下限；这不是本项目1.12.0 + Miuix + Go完整组合的验收证据。
+- Miuix 0.9.4未在已查文档中明确给出独立的统一 iOS最低承诺；其示例工程17.6/26.0目标也不等于库下限。
+- 完整App下限取共享框架、Miuix及传递原生依赖、Go库、宿主实际API使用中的最高要求，目前尚未完成链接/可用性验证。
+- 本项目产品目标仍是 **iOS16.0**。不得把“目标16”写成“整个组合已经验证支持16”，也不因示例高版本而自动提高到17。
+- Android API33对应Android13；用户已明确将最低版本提升到33，并接入 miuix-blur。API31/Android12不再是当前支持下限。
 
 ## 2. 项目脚手架
 
@@ -49,13 +59,33 @@ https://kmp.jetbrains.com/
 
 ## 4. UI 依赖与材质
 
-- 主导航和工具栏由应用自有五项 G2 capsule / Clear surface 实现，统一到 Glasmio Clear 可映射 face/blur 配方；Miuix 提供双端 Backdrop、shader runtime 与 G2 距离场。应用保留目的地、状态、触感和安全区所有权。
-- RuntimeShader、传感器及材质统一通过 miuix-material；普通内容层只录制一份背景，弹层不进入自身采样源。
-- 修改的官方源码加 Diy_ 前缀，保留原包名、公开函数和 @file:JvmName 门面；未修改源码使用固定发布归档生成。
-- G2 的裁剪 Path、光学距离场、遮罩、阴影和高光共享控制点，真圆/胶囊保持圆弧。
-- [圆角模块](../ui-shapes/README.md)、[材质模块](../ui-material/README.md)、[鸣谢](../third-party/README.md)。
+- UI沿用Miuix0.9.4全部正式模块与完整图标，8模块均显式声明。miuix-nav不自动改写现有五个目的地的路由，不新增平行Material页面。底栏/控件签名按固定tag核对；具体行为见[UI实现](ui-showcase.md)。
+- 当前已移除全局Crossfade与展开体验，删除不再直接使用的Compose animation目录别名和声明；Miuix自身需要的传递动画依赖不因此被排除。不引入第三方动效库。
 
-## 5. 历史来源与验证范围（0.9.4）
+### 统一连续曲率：Shapes 1.2.1
+
+- 2026-11-20 核验 Klibs `getLatestVersion`：`io.github.kyant0:shapes` 最新稳定版 1.2.1，Kotlin 2.4.10；按项目名和平台过滤的搜索未返回 Kyant 项目，双端目标由 Maven 1.2.1 `.module` 的 Android、iosArm64、iosSimulatorArm64 变体交叉确认。许可为 Apache-2.0。
+- Backdrop 2.0.1 已使用该版本，本次提升为形状层直接依赖。未选择其他 squircle 库，避免引入重复几何。Miuix 原单段三次曲线仅切线连续；新的非胶囊表面使用 Shapes 的 G2 连续曲率。
+- Miuix 0.9.4 未提供全局 Shape 注入接口。`ui-shapes` 保留其 squircle 公开 ABI 和模块身份，通过依赖替换覆盖内部填充、裁剪及边框，具体配置和调用约定见 [统一圆角模块](../ui-shapes/README.md)。原版本 iOS KLIB 的 `unique_name` 为 `top.yukonga.miuix.kmp:miuix-squircle`，新模块沿用相同 group 和项目名。
+- 玻璃控制表面继续使用真圆／真胶囊，移除旧三次曲线距离场；背景、裁剪、描边与光学边界统一。苹果未公开其私有曲线控制参数，此处实现跨平台 G2 连续曲率与同心设计风格。
+
+### Kyant Backdrop 2.0.1：液态玻璃
+
+- `commonMain` 固定使用 `io.github.kyant0:backdrop:2.0.1`（Apache-2.0）。Klibs `getLatestVersion` 返回稳定版 2.0.1、Kotlin 2.4.10；带平台过滤的项目名检索未命中，目标以[固定版本构建文件](https://github.com/Kyant0/AndroidLiquidGlass/blob/2.0.1/backdrop/build.gradle.kts)与[发布变体](https://repo.maven.apache.org/maven2/io/github/kyant0/backdrop/2.0.1/backdrop-2.0.1.module)为准：Android、iosArm64、iosSimulatorArm64。
+- Android AAR 要求 compileSdk 37，运行时折射需要 API 33；当前工程均满足。iOS 使用 Skia，无需 iOS 26 原生材质；iOS 16 真机与双端链接待验证。
+- 静止高光对照 Kyant 官方 2.0.1 [LiquidBottomTabs 示例](https://github.com/Kyant0/AndroidLiquidGlass/blob/2.0.1/app/src/commonMain/kotlin/com/kyant/backdrop/catalog/components/LiquidBottomTabs.kt#L166)：外层面板省略 `highlight`，继承 `drawBackdrop` 的 `Highlight.Default`。该库默认高光为 `width=0.5dp`、`blurRadius=0.25dp`、`alpha=1`；Default 样式为白色 `alpha=0.5`、Plus 混合、`angle=45°`、`falloff=1`（[2.0.1 定义](https://github.com/Kyant0/AndroidLiquidGlass/blob/2.0.1/backdrop/src/commonMain/kotlin/com/kyant/backdrop/highlight/Highlight.kt#L10)、[样式](https://github.com/Kyant0/AndroidLiquidGlass/blob/2.0.1/backdrop/src/commonMain/kotlin/com/kyant/backdrop/highlight/HighlightStyle.kt#L39)）。示例选中透镜高光另按按压进度淡入，不是静止面板默认值。原项目静止基线使用 `width=1dp`、`blurRadius=2dp`、`alpha=0.75`，并以重力感应旋转方向；2dp 模糊是官方默认的 8 倍，造成光边过宽过散且更暗。当前调整为 `0.5dp`、`0.25dp`、`1`，仍保留重力角度变化。示例面板同时继承 `Shadow.Default`（24dp、y 偏移 4dp、黑色 alpha 0.1）；项目在 Kyant 调用中使用 `shadow=null`，外投影由 Compose 绘制。液态底栏额外复用顶部的 0.5dp、10% 主题前景色细轮廓，与随重力变化的方向高光分开，静止时保持上下边缘可辨。背景模糊保留项目的 4dp，官方底栏示例为 8dp；折射高度和距离均为 24dp。
+
+- 设置为液态玻璃时，页面录制、顶部及选择工具栏、底栏面板与选中透镜使用同一个 Kyant 渲染后端；另外三种材质仍使用 Miuix。减少透明效果时使用实色，减少动态效果时关闭动态高光与形变。Miuix UI 继续提供控件、颜色与交互语义。
+
+### miuix-blur 0.9.4 接入核验
+
+- Klibs MCP `searchProjects("miuix")` / `getLatestVersion(top.yukonga.miuix.kmp:miuix-blur)` 返回0.9.4，`latestStableVersion=null`仍只表示索引未报告稳定版；项目级目标包含 AndroidJvm、ios_arm64、ios_simulator_arm64。
+- 逐制品交叉检查 [Gradle Module Metadata](https://repo.maven.apache.org/maven2/top/yukonga/miuix/kmp/miuix-blur/0.9.4/miuix-blur-0.9.4.module)，确认 android、iosarm64、iossimulatorarm64 真实变体，而不是只凭项目级KMP标记。固定同版版本，不额外直接依赖其 api 传递的 miuix-shader。
+- 上游 [build.gradle.kts](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/miuix-blur/build.gradle.kts) 和 Android AAR manifest 均为minSdk33，因此本项目Android App与shared统一提升到33。模块沿用上游Apache-2.0许可，不表示整个App许可已定。
+- 最小接入为 `rememberLayerBackdrop` + `Modifier.layerBackdrop` + `Modifier.textureBlur`；[blur指南](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/docs/guide/blur.md)与[顶栏示例](https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/example/shared/src/commonMain/kotlin/utils/PageUtils.kt)均按固定tag核实。没有臆造 BlurState/blurSource API，不加其他模糊库。
+- iOS走Skiko/SkSL，源码未见高于16的独立系统API要求；不把上游示例17.6/26.0部署值当作库下限。保持产品目标16.0，最低系统实际性能和效果待真机验证。
+
+## 5. 来源与验证范围
 
 - Miuix release：https://github.com/compose-miuix-ui/miuix/releases/tag/v0.9.4
 - 版本目录：https://github.com/compose-miuix-ui/miuix/blob/v0.9.4/gradle/libs.versions.toml
@@ -69,7 +99,7 @@ KMP依赖需先查Klibs，再核对上游许可证与最低系统。所有可查
 
 已完成：共享五页、双端宿主、Miuix全模块、固定直接依赖、Wrapper与本地检查。9930858已通过双端Release和8项共享测试；本轮悬浮层与生产源码清理尚未编译。Go桥接、塔台存储、最低系统真机性能与最终发布许可仍未完成。
 
-## 6. 历史记录：Miuix 0.9.4 全模块与完整图标
+## 6. Miuix 0.9.4 全模块与完整图标
 
 用户明确要求全部正式模块，不使用基础子集。核验先查配置好的klibs MCP，后查固定tag与Maven POM/module元数据；实现决定见[全模块接入](../.agents/notes/implemented/feature/2026-10-18-miuix-full-modules.md)。
 

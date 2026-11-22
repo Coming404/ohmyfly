@@ -14,7 +14,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
-import top.yukonga.miuix.kmp.material.sensor.rememberDeviceTilt
+import top.yukonga.miuix.kmp.blur.sensor.rememberDeviceTilt
 
 @Composable
 internal actual fun rememberGlassGravity(enabled: Boolean): State<Offset> {
@@ -44,7 +44,7 @@ internal actual fun rememberGlassGravity(enabled: Boolean): State<Offset> {
         displays?.registerDisplayListener(listener, null)
         onDispose { displays?.unregisterDisplayListener(listener) }
     }
-    // 库已在设备坐标系执行低通滤波，此处只转换屏幕方向。
+    // 0.9.4 already low-passes in device coordinates; do not filter again here.
     val tilt = rememberDeviceTilt(smoothing = GlassGravitySmoothing)
     return remember(tilt, rotation) {
         derivedStateOf {

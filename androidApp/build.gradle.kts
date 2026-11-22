@@ -6,7 +6,7 @@ plugins {
 android {
     namespace = "com.ohmyfly.app"
     compileSdk {
-        version = release(libs.versions.android.compileSdk.get().toInt()) { minorApiLevel = libs.versions.android.compileSdkMinor.get().toInt() }
+        version = release(libs.versions.android.compileSdk.get().toInt())
     }
     defaultConfig {
         // Development identifier; confirm ownership before release.

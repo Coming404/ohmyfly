@@ -4,9 +4,9 @@
 
 ## 页面结构
 
-设置首页包含品牌身份区、外观、测试、塔台与网络、应用四组。明暗模式、界面风格、减少透明效果与减少动态效果在首页直接修改；仅Expressive模式显示独立配色选择，含自动项和7个种子预设；仅液态玻璃模式显示材质调节子页，提供共享预览、第二/第三色层实际Alpha和模糊半径dp无级调节。Android自动跟随系统动态代表色；iOS Expressive自动使用产品蓝。用户手选的种子通过 Miuix Monet 生成明暗方案；切换到液态玻璃时已存种子保留但不生效。其余起飞与延迟、流媒体与 AI、塔台与过滤、GitHub 镜像、数据与隐私、关于保留六个原业务子页入口，液态玻璃调节按材质模式单独进入子页，原外观子页已删除。品牌复用Wave标记及平台实际版本参数，仅保留一行获准的产品简介，不显示配置状态摘要。子页保留纯图标返回、“返回”读屏名称和48dp触区。
+首页包含品牌身份区、外观、测试、塔台与网络、应用四组。明暗模式、界面风格、配色及减少透明/动态效果在首页直接修改；起飞与延迟、流媒体与 AI、塔台与过滤、GitHub 镜像、数据与隐私、关于保留六个子页入口。玻璃实时预览页独立提供参数滑块。界面风格保留 LiquidGlass 与 Expressive 两项，LiquidGlass 使用升级前的玻璃链；抽屉、对话框、浮层和弹出菜单保持普通组件表面。
 
-设置子页已经接入Miuix NavDisplay 0.9.4：App持有唯一rememberNavBackStack<SettingsPage>(Home)，SettingsPage为可序列化NavKey，SettingsScreen用entry<SettingsPage>注册SettingsPage枚举的各个值。打开子页只从Home入栈，重复/过期点击不堆叠；标题、返回与底栏显隐由栈派生。五个一级入口仍是互斥切换，按稳定名称保存当前入口，不入设置栈，不改悬浮外观与材质。
+设置子页已经接入Miuix NavDisplay 0.9.4：App持有唯一rememberNavBackStack<SettingsPage>(Home)，SettingsPage为可序列化NavKey，SettingsScreen用entry<SettingsPage>注册同一枚举类型的七个值。打开子页只从Home入栈，重复/过期点击不堆叠；标题、返回与底栏显隐由栈派生。五个一级入口仍是互斥切换，按稳定名称保存当前入口，不入设置栈，不改悬浮外观与材质。
 
 正常运动使用官方MiuixDefault转场；有效减少动态时使用None并关闭NavDisplayEffects。正常模式按LTR/RTL分别开启向右/向左物理滑动返回，根页不滑退，减少动态时关闭空间滑退。NavDisplay统一系统/预测返回及页面生命周期，原expect/actual SettingsBackHandler三文件已删除。镜像弹窗从打开到退场结束禁用页面滑退，标题返回优先走页面报告的关闭动作；系统返回由官方 OverlayDialog 处理，不再安装镜像页自有 PredictiveBackHandler。编辑稿由原页面 owner 持有，关闭不写盘，离开整个镜像页清理。弹窗继续用原 Scaffold 宿主，不新增路由。
 
@@ -17,7 +17,7 @@
 - 延迟航班并发默认 8（1–32）；单航班下载／上传连接数默认 4（1–8）；吞吐航班并发固定 1。
 - 流媒体航班并发默认 2（1–8），平台任务预算不能与航班数／HTTP连接数混用。视频和 AI 项目分组配置。
 - 延迟超时、传输超时和最大延迟达标阈值分离；体积为 MiB，速度阈值为 MiB/s，HTTP 请求失败率不称 ICMP 丢包。
-- 首页明暗模式、界面风格、减少透明效果和减少动态效果先经校验同步反映到界面，再按序通过同一DataStore事务保存。首次读取成功前只以默认设置渲染且不接受写入；读取失败保留原文件并显示可重试弹窗，重试成功后替换为真实设置。写入已提交但读回失败时同样暂停写入，弹窗改为“设置结果待确认／已提交，但未能读回”，不声称本地数据未更改，重试读取成功后恢复可写。保存失败恢复最后已确认的设置，丢弃失败操作与其后尚未保存的操作，并提示重新选择重试；旧Flow回发不会覆盖较新的选择。配色选项与界面风格分开持久化：只有 Expressive 模式显示并使用 AccentPalette；自动项 Android 跟随系统动态代表色，iOS Expressive 使用产品蓝回退；7个手选种子覆盖系统来源并由 Miuix Monet 生成 Expressive 浅深色语义方案，液态玻璃模式忽略已保存的手选种子。界面风格只有液态玻璃／Expressive，默认液态玻璃。液态玻璃使用 Miuix beta03 官方材质；Expressive 使用不透明表面与 ThemePaletteStyle.Expressive。已移除的旧风格值按既有解码规则读为默认液态玻璃，下次正常写入保存新枚举。应用或 iOS 系统减少透明效果、或 shader 不可用时，停止页面采样并使用实色，不改写选择。主题、风格和起飞选项沿用现有设置行，弹层由支持 surface 的 OverlayCascadingListPopup 承载；单选后关闭，退出动画完成后释放按压状态。
+- 首页明暗模式、界面风格、配色和减少透明效果、减少动态效果先经校验同步反映到界面，再按序通过同一DataStore事务保存。首次读取成功前只以默认设置渲染且不接受写入；读取失败保留原文件并显示可重试弹窗，重试成功后替换为真实设置。写入已提交但读回失败时同样暂停写入，弹窗改为“设置结果待确认／已提交，但未能读回”，不声称本地数据未更改，重试读取成功后恢复可写。保存失败恢复最后已确认的设置，丢弃失败操作与其后尚未保存的操作，并提示重新选择重试；旧Flow回发不会覆盖较新的选择。两种界面风格为 LiquidGlass 与 Expressive；玻璃预览页保存表面填充、扩散高光和模糊半径三个参数，滑动时即时预览、结束后保存，并驱动升级前的导航与顶栏材质。抽屉、对话框、浮层和弹出菜单保持普通 Miuix 表面。开启应用或iOS系统减少透明效果、或shader不可用时停止页面采样、走实体回退，不改写已选材质；菜单不再单列关闭。主题、材质和起飞默认模式统一使用官方OverlayDropdownPreference：右侧当前值＋常驻上下双箭头，点击弹出选项，当前项对勾，单选后自动关闭；弹层状态和动画由官方组件持有，选择值仍只读AppSettings。其他真实单选行继续复用官方RadioButton，不增加重复焦点。
 - 尚未接入的航班任务参数仅保存供以后任务使用。表单数值／网址验证后保存，错误不悄悄改成另一个值。
 - 恢复设置保留塔台、航班、自定义镜像和历史；当前不提供不存在的历史删除、日志导出或假存储占用。
 
@@ -42,17 +42,14 @@
 航班筛选按批读取全量有效候选，用 Kotlin 求值；数据库仅暂存筛选结果 ID 及匹配位，不改源节点或来源资格。匹配结果基于入库去重与额外输出规则形成的全局代表统一统计和键集分页，目录修订与筛选令牌共同隔离迟到查询；概览总航班数保持目录事实，航班页展示匹配数。清除筛选不能找回导入时已排除的节点，需要按新导入设置重新刷新订阅。
 
 
-
-
-全局通知按普通信息、成功、失败、错误和待确认状态显示对应左侧图标。设置调用提供的成功文案原样展示，不再自动重复追加“已修改”；未指定文案的内部调用继续使用默认结果句。
+`PersistedSettings`只读取一个随composition生命周期存在的`SettingsSession`快照：点击以最新可见值变换并校验，同步呈现；持久化保留原变换，在DataStore最新事务值上合并，不整份覆盖其他字段。
 
 首个待保存操作取消旧 Flow 订阅，保存后重新读取已确认值，队列排空才恢复常规订阅；不靠值相等推断写入版本。保存失败丢弃失败后缀并恢复已确认值，重新选择即可重试；协程取消不显示 IO 错误。`confirmedSettings` 只包含已读回值，`settings` 可领先磁盘；镜像手动保存通过同一队列的 `changeConfirmed` 等待对应操作结果。写后确认失败进入只读保护但保留页面／草稿，`retryRead` 只重读，不重发操作；快速重复重试共用一个在途恢复任务。决定见[即时反馈](../.agents/notes/implemented/feature/2026-10-20-optimistic-settings.md)及[镜像页还原](../.agents/notes/implemented/feature/2026-10-21-mirror-settings-page.md)。
 
 ## 材质配置兼容
 
-- `AppSettings.materialMode`默认`MaterialMode.LiquidGlass`；`ui.materialMode`保存枚举名，不保存中文标签或序号。
-- 液态玻璃调节页以 Glasmio Clear 可映射值作默认基线：第二、第三层alpha均为0，模糊0.75dp。Clear face 默认 saturation1.06、black/white 0.125/1.08、white fill alpha0、maximum luma1。三个 `ui.glass.*` 是可选滑块覆写；未覆盖仍采用 Clear，恢复默认会删除覆写。
-- 本轮 schema 只保存当前字段。读取时，缺失或损坏的当前可选字段只在内存回退，不改写原文件；下一次成功写入会以当前 schema 重建配置并移除未知及过时字段。恢复默认设置通过AppSettings默认值回到液态玻璃。真机重启恢复与实盘读写仍待验收，决定见[材质选择](../.agents/notes/implemented/feature/2026-10-20-material-selection.md)。
+- `AppSettings.materialMode`仍保存 LiquidGlass 或 Expressive；用户配色由 `ui.accentPalette` 持久化，玻璃实时预览的表面填充、高光和模糊由三个可选参数持久化。旧枚举值读取时回退到默认风格，不改写原文件。
+- schema 保持 1。可选参数缺失时在内存沿用旧玻璃预设；恢复默认仅清除预览覆写，不影响界面风格与配色。
 
 ## 运动偏好与切换过渡
 
@@ -68,7 +65,7 @@
 - 内置候选来自上游配置，初始均“未测试”，不代表可用／可信。打开页面和保存地址不探测，只有用户按测试按钮发请求。
 - 新增只用 HTTP(S) 前缀：显式 `http://`／`https://` 保留，无协议的 `www.example.com` 或 `example.com` 默认补 HTTPS；`www` 不强行增删，路径大小写保留。提供改写预览、规范化去重；仅镜像输入放宽，原始 GitHub 资源和其他设置 URL 仍要求 HTTPS。
 - 镜像页按[九画面与流程总览](design/mirror-settings/PRD.md)实现列表、单一 `⋯` 管理、居中管理／编辑／删除弹窗，以及底部测试栏。新增／编辑弹窗底部手动保存；输入、IME 完成、失焦和关闭不保存，关闭仅保留本次页面会话草稿。点击保存后整体验证，以 `SettingsSession.changeConfirmed` 的事务读回结果认定成功并关闭；失败保稿，结果未知时只重试读取。
-- “拼接方式”为无独立卡片背景的普通设置行：链路图标＋标题，右侧只读显示 HTTP(S) 前缀；已无第二选项，不显示下拉箭头、不提供浮层，读屏读作“拼接方式，HTTP(S) 前缀”。“名称”“拼接方式”“地址”“改写预览”四标题及 HTTP(S) 前缀值统一为 13sp Normal、主题前景色 `MiuixTheme.colorScheme.onSurface`，随明暗主题切换；标题图标保留 16dp、`onSurfaceVariantSummary` 灰色，图文间距统一 8dp。输入文字 14sp、预览正文 12sp 不变。弹窗继续复用 Miuix OverlayDialog 生命周期和灰幕；Liquid Glass surface 使用 Clear shader pipeline，Expressive 使用实色。内容表面和裁剪使用共享 G2 轮廓，采样背景不含弹窗自身。
+- “拼接方式”为无独立卡片背景的普通设置行：链路图标＋标题，右侧只读显示 HTTP(S) 前缀；已无第二选项，不显示下拉箭头、不提供浮层，读屏读作“拼接方式，HTTP(S) 前缀”。“名称”“拼接方式”“地址”“改写预览”四标题及 HTTP(S) 前缀值统一为 13sp Normal、主题前景色 `MiuixTheme.colorScheme.onSurface`，随明暗主题切换；标题图标保留 16dp、`onSurfaceVariantSummary` 灰色，图文间距统一 8dp。输入文字 14sp、预览正文 12sp 不变。弹窗沿用 Miuix 默认 DialogDefaults 表面和 `windowDimming` 半透明灰幕，附加 18dp 阴影；背景保持清晰，不叠加高斯模糊。
 - `mirror.enabled` 是默认 true 的可选布尔字段，schema 保持 1；停用保留列表和选择偏好、禁用选择，手动测试和管理仍可用；资源请求传 `enabled=false` 只直连、不降级到镜像。
 - 列表和测试全部均不显示／探测直连条目；关闭镜像只直连，开启镜像按选中优先、其余持久化顺序逐个降级，所有镜像失败后才直连。旧配置未选或选择已失效时从首个镜像开始。删除当前项改选剩余首项，删光时原子关闭镜像；空状态只有 GitHub 图标＋Bold“暂无镜像源”，不另放添加按钮，右上 ＋ 仍是唯一新增入口。
 - 订阅添加与刷新使用当前 `mirrorEnabled`、`mirrors`、`selectedMirrorId`，设置变化在下一次操作生效。只有无凭据、无查询参数且路径合格的 GitHub HTTPS 公开资源才转发；根域与任意子域共用域名分类，Gist 仅明确 raw 路径可用，HTML 页不自动转换。带 Authorization、Cookie 或未知自定义头的 provider 直连原站。名称和用量复用实际订阅 GET 响应，不增加查询请求、不套用测速的 64 KiB 资源上限。
@@ -90,7 +87,7 @@
 - `kotlinx-coroutines-core/test:1.11.0`：klibs确认稳定及JVM／iOS目标，Maven POM指向Kotlin官方仓库，Apache-2.0。直接使用Flow／取消／测试，因此显式声明，不依赖Miuix传递。
 - `com.squareup.okio:okio:3.18.2`：klibs稳定版与JVM1.8／双iOS目标。Maven POM的仓库已迁移至lysine-dev；GitHub `square/okio` API重定向确认同一维护迁移，不把域名变化当成另一个库。Apache-2.0，用于DataStore路径等公开API。DataStore1.2.1自身依赖Okio3.9.1，显式版本解析与完整兼容仍以双端构建验证。
 - `io.ktor:ktor-client-core/okhttp/darwin:3.6.0`：klibs确认ktorio项目、稳定版与Android／双iOS目标，Maven POM为Apache-2.0、Kotlin2.3.21元数据（项目2.4.20）。只引HTTP核心和各自平台引擎；mock仅放commonTest。固定版本源码核对`prepareGet.execute`流式读取、`readAvailable`、OkHttp Builder配置和Darwin `configureSession`，Darwin代理明确不自动跟随重定向。官方支持页未给本制品精确iOS下限，本轮不声称已证明iOS16兼容，保留编译／真机验收。
-- 设置导航继续使用 `miuix-nav:0.9.5-beta03`。序列化插件随 Kotlin2.4.21，JSON库对齐1.13.0，保留 DataStore 格式、NavDisplay 状态与返回优先级。Android宿主activity-compose依赖仍为1.13.0。
+- 设置导航复用已引入的 `miuix-nav:0.9.4`；共享模块已删除只供旧返回适配使用的activity-compose直接依赖，Android宿主自身仍使用1.13.0。序列化插件与项目Kotlin同为2.4.20，JSON库固定1.11.0，与Miuix上游一致。Klibs确认Kotlin官方库、JVM1.8（Android通过JVM制品）与双iOS目标、最新稳定1.11.0，未选1.12.0-RC；AndroidJvm筛选未命中不当成不支持。官方README说明Android/Native支持，Apache-2.0；精确最低系统与最终解析版本仍需双端构建。原生版本读取方式保持PackageInfoFlags/API33与NSBundle。
 - `org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:2.11.0`：倾斜光只在前台/可见composition采集所需，直接使用`LocalLifecycleOwner`、`LifecycleEventObserver`与`currentStateAsState`，因此显式声明而非依赖Miuix传递。Klibs确认androidx lifecycle项目含common/AndroidJvm/双iOS目标，报告稳定2.11.0（Kotlin2.3.20元数据，项目2.4.20）；与固定Miuix上游`jetbrains-lifecycle=2.11.0`一致。未做独立许可证核验，沿用AndroidX Apache-2.0声明；双端编译/运行仍待验收。
 
 来源：[DataStore多平台官方文档](https://developer.android.com/kotlin/multiplatform/datastore)、[DataStore发布](https://developer.android.com/jetpack/androidx/releases/datastore#1.2.1)、[协程](https://github.com/Kotlin/kotlinx.coroutines)、[Okio](https://github.com/lysine-dev/okio)。

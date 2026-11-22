@@ -1,6 +1,5 @@
 package com.ohmyfly.ui.settings
 
-import com.ohmyfly.ui.appDialogSurface
 import com.ohmyfly.shapes.AppCorners
 
 import androidx.compose.foundation.background
@@ -51,7 +50,7 @@ internal fun MirrorDialog(
     title: String,
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
-    icon: ImageVector = MirrorIcons.Globe,
+    icon: ImageVector = MirrorIcons.Github,
     dismissible: Boolean = true,
     footer: @Composable () -> Unit = {},
     content: @Composable () -> Unit,
@@ -61,7 +60,7 @@ internal fun MirrorDialog(
     val imeHeight = with(density) { WindowInsets.ime.getBottom(this).toDp() }
     // The keyboard shrinks the usable height; safe drawing insets stay with the host scaffold.
     val maxDialogHeight = (containerHeight - imeHeight - DialogOutsideMargin * 2).coerceAtLeast(200.dp)
-    OverlayDialog(surface = appDialogSurface(),
+    OverlayDialog(
         show = show,
         modifier = Modifier.shadow(18.dp, AppCorners.shape(AppCorners.Dialog), clip = false),
         enableWindowDim = true,

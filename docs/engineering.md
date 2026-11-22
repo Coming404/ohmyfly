@@ -46,9 +46,9 @@ ohmyfly/
 - Miuix OverlayDialog、OverlayListPopup 等需要位于其 Scaffold 弹层宿主范围内。
 - 顶栏滚动时按文档接入 nestedScroll；键盘、底部手势区、刘海横竖屏分别验证。
 - Scaffold 只解决页面结构，不决定字体、栅格、页面间距或数据流。
-- 文档与 API以锁定的 0.9.5-beta03 标签为准，不能直接复制 main 分支新组件。
-- 设置子页当前使用已固定的miuix-nav 0.9.5-beta03 NavDisplay与可保存NavBackStack；五个一级入口仍互斥切换，底栏外观与路由运行时分开。路由键复用SettingsPage枚举的稳定名字，启用同Kotlin版本的序列化插件与上游同版JSON1.13.0；不将草稿/凭据放入导航栈，也不改DataStore格式。旧三端SettingsBackHandler已删除，系统/预测返回共享库事件链，镜像编辑优先关闭/取消保留；决定和未实测边界见[设置路由](../.agents/notes/implemented/architecture/2026-10-20-settings-navdisplay.md)。
-- 用户已要求统一升级 miuix-blur / miuix-material / miuix-glass 0.9.5-beta03，Android 最低版本相应提升到 API33 / Android13；iOS 保持16.0。
+- 文档与 API以锁定的 0.9.4 标签为准，不能直接复制 main 分支新组件。
+- 设置子页当前使用已固定的miuix-nav 0.9.4 NavDisplay与可保存NavBackStack；五个一级入口仍互斥切换，底栏外观与路由运行时分开。路由键复用SettingsPage枚举的稳定名字，启用同Kotlin版本的序列化插件与上游同版JSON1.11.0；不将草稿/凭据放入导航栈，也不改DataStore格式。旧三端SettingsBackHandler已删除，系统/预测返回共享库事件链，镜像编辑优先关闭/取消保留；决定和未实测边界见[设置路由](../.agents/notes/implemented/architecture/2026-10-20-settings-navdisplay.md)。
+- 用户已要求引入 miuix-blur 0.9.4，Android 最低版本相应提升到 API33 / Android13；iOS 保持16.0。
 
 ## 4. 视觉规则
 
@@ -63,9 +63,9 @@ Miuix 已提供颜色、文字层级和组件 Defaults，项目只补页面级�
 | 标准列表行 | BasicComponent 默认16dp内距、17sp Medium标题与14sp说明 |
 | 卡片内部 | 标准行自己提供内距，避免给Card再次叠加 |
 | 图标 | 业务线条图标24dp，不替换组件内部图标默认值 |
-| 圆角 | 应用卡片24dp；Miuix Card 未显式传值时默认16dp |
+| 圆角 | Card 默认 24dp |
 
-航班保留卡片列表与选择语义；运行时不包含固定假航班或假延迟，初始为空。禁止通过全局density/fontScale缩放掩盖布局问题。界面风格为液态玻璃与Expressive：玻璃档保留Neutral/自动系统色，忽略手选配色；Expressive采用官方Expressive色板与不透明表面，独立AccentPalette设置仅在此模式显示并生效。主导航和工具栏由应用自有 G2 GlassShape 与 Clear face/blur pipeline 绘制；顶栏背景使用同一Clear模糊参数的渐变边带。AppTheme根强制启用Miuix G2开关，设置卡片与主卡片统一24dp半径并绘制连续曲率。自绘圆角统一使用AppCorners.shape/continuousCorners；dialog、sheet与popup保留Miuix宿主状态并采样Clear面材质。G2 optical outline由ui-material本地补丁共享，源文件使用Diy_前缀并保留预编译公开契约；详见[UI实现](ui-showcase.md)与[本轮验证](miuix-beta03-verification.md)。
+航班保留卡片列表与选择语义；运行时不包含固定假航班或假延迟，初始为空。禁止通过全局density/fontScale缩放掩盖布局问题。LiquidGlass 使用 Neutral＋Spec2025 动态色；Expressive 使用官方 Expressive 调色板，配色支持自动与七种固定种子。Android自动项使用系统动态代表色，iOS自动项使用产品蓝生成 Expressive 色板。五页复用升级前图文采样、折射与高光管线，顶栏额外应用渐进模糊；抽屉、对话框、浮层与菜单保留普通组件表面。
 
 - 文字优先引用 `MiuixTheme.textStyles`，仅为起飞大数字等明确用途增加样式。
 - 默认使用平台适配字体；不擅自打包小米专有字体或把字体授权视为组件库授权的一部分。
@@ -133,4 +133,3 @@ P2：塔台格式样本、去重碰撞、单航班起飞、错误隔离与流量
 P3：深浅色、小屏/大字体/长名称/横竖屏真机截图验收。
 
 P4：按选定分发方式完成签名、许可证及源码交付。编译成功不等于 iPhone 可以直接安装；iOS16支持不能只通过最新系统模拟器运行来证明。
-统模拟器运行来证明。

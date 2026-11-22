@@ -34,8 +34,8 @@ class MotionPolicyTests(unittest.TestCase):
         self.assertIn('LocalAppMotionAllowed provides appMotionAllowed(reduceMotion, systemScale)', policy)
         self.assertNotIn('MotionDurationScale {', policy)
         self.assertNotIn('scaleFactor =', policy)
-        self.assertNotIn('rememberGlassMotionAllowed', (GLASS / 'GlassAppearance.kt').read_text())
-        for file in (GLASS / 'GlassAppearance.kt', UI / 'SettingsScreen.kt'):
+        self.assertNotIn('rememberGlassMotionAllowed', (GLASS / 'GlassPreset.kt').read_text())
+        for file in (UI / 'ChromeMaterial.kt', GLASS / 'GlassNavigationSurface.kt', UI / 'SettingsScreen.kt'):
             self.assertIn('LocalAppMotionAllowed.current', file.read_text())
 
     def test_owned_transitions_return_targets_immediately_when_restricted(self):
@@ -50,6 +50,20 @@ class MotionPolicyTests(unittest.TestCase):
         self.assertIn('editorBackActive || !motionAllowed -> NavSwipeDirection.None', screen)
         self.assertNotIn('key(motionAllowed)', screen)
         self.assertIn('AppTransitionDurationMillis = 180', (UI / 'AppMotion.kt').read_text())
+
+    def test_policy_change_cancels_only_gesture_owner_and_keeps_measured_width(self):
+        gesture = (GLASS / 'GlassNavigationGesture.kt').read_text()
+        reset = gesture.index('return key(motionAllowed, effectsEnabled, liquid, count, inset, ltr)')
+        self.assertLess(gesture.index('val measuredWidth = remember'), reset)
+        self.assertGreater(gesture.index('val scope = rememberCoroutineScope()'), reset)
+        self.assertIn('var width by measuredWidth', gesture)
+        self.assertIn('onDragCancelled = {\n', gesture)
+        self.assertIn('updateValue(selected.toFloat())', gesture)
+        drag = (GLASS / 'DampedDragAnimation.kt').read_text()
+        release = drag[drag.index('fun release()'):drag.index('fun updateValue(')]
+        self.assertIn('if (!motionAllowed() || !deformationAllowed())', release)
+        self.assertIn('scaleXAnimation.snapTo(initialScale)', release)
+        self.assertLess(release.index('return'), release.index('pressProgressAnimation.animateTo'))
 
     def test_all_pinned_miuix_color_roles_are_interpolated_without_losing_mode(self):
         source = (UI / 'AppThemeAnimation.kt').read_text()
@@ -67,6 +81,18 @@ class MotionPolicyTests(unittest.TestCase):
         self.assertIn('LocalContentColor provides colors.onBackground', theme)
         self.assertNotIn('LocalColorSchemeMode', theme)
 
+    def test_material_transition_stays_in_single_effect_chain(self):
+        preset = (GLASS / 'GlassPresetAnimation.kt').read_text()
+        self.assertIn('LaunchedEffect(target, enabled, motionAllowed)', preset)
+        self.assertIn('liquidResponse = end.liquidResponse', preset)
+        self.assertIn('return if (!enabled || !motionAllowed) target else current.copy', preset)
+        for file in (UI / 'ChromeMaterial.kt', GLASS / 'GlassNavigationSurface.kt'):
+            source = file.read_text()
+            self.assertIn('rememberAnimatedGlassPreset(materialMode, dark, enabled, motion)', source)
+            self.assertNotIn('Crossfade', source)
+            self.assertNotIn('AnimatedContent', source)
+        chrome = (UI / 'ChromeMaterial.kt').read_text()
+        self.assertLess(chrome.index('val spot = if'), chrome.index('val scope = rememberCoroutineScope()'))
 
 
 if __name__ == '__main__':

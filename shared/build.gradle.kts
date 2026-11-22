@@ -14,7 +14,7 @@ kotlin {
     android {
         namespace = "com.ohmyfly.shared"
         compileSdk {
-            version = release(libs.versions.android.compileSdk.get().toInt()) { minorApiLevel = libs.versions.android.compileSdkMinor.get().toInt() }
+            version = release(libs.versions.android.compileSdk.get().toInt())
         }
         minSdk = libs.versions.android.minSdk.get().toInt()
         withHostTest {}
@@ -58,10 +58,10 @@ kotlin {
             implementation(libs.miuix.ui)
             implementation(libs.miuix.core)
             implementation(libs.miuix.preference)
-            implementation(libs.miuix.glass.icons)
+            implementation(libs.miuix.icons)
             implementation(libs.miuix.blur)
-            implementation(libs.miuix.material)
-            implementation(libs.miuix.glass)
+            implementation(libs.kyant.backdrop)
+            implementation(libs.miuix.shader)
             implementation(project(":miuix-squircle"))
             implementation(libs.miuix.nav)
             implementation(libs.androidx.lifecycle.runtime.compose)

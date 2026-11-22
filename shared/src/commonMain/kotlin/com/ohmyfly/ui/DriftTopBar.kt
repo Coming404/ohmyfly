@@ -27,7 +27,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -39,30 +38,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ohmyfly.ui.glass.ClearBlurRadiusDp
-import com.ohmyfly.ui.glass.clearFace
+import com.ohmyfly.settings.MaterialMode
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TooltipBox
-import top.yukonga.miuix.kmp.blur.Backdrop
-import top.yukonga.miuix.kmp.blur.ProgressiveBlur
-import top.yukonga.miuix.kmp.blur.drawBackdrop
-import top.yukonga.miuix.kmp.blur.noiseDither
-import top.yukonga.miuix.kmp.blur.progressiveBlur
+import com.ohmyfly.ui.glass.ChromeBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.glass.ChevronForward
-import top.yukonga.miuix.kmp.glass.glassPress
+import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val LocalHeaderSurface = staticCompositionLocalOf<@Composable () -> Modifier> { { Modifier } }
-private val ChromeTopBlurGradient = ProgressiveBlur.Top.copy(curve = 0.25f)
 
 @Composable
 internal fun DriftTopBar(
     title: String,
-    backdrop: Backdrop,
+    backdrop: ChromeBackdrop,
     glassEnabled: Boolean,
     dark: Boolean,
+    materialMode: MaterialMode,
     titleCount: Long? = null,
     titleCapsule: Boolean = false,
     onBack: (() -> Unit)? = null,
@@ -78,56 +71,39 @@ internal fun DriftTopBar(
     }
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val surface: @Composable () -> Modifier = {
-        Modifier.chromeMaterial(backdrop, glassEnabled, dark)
+        Modifier.chromeMaterial(backdrop, glassEnabled, dark, materialMode)
     }
-    val blurRadiusDp = LocalChromeAppearance.current.materialSettings.blurRadiusDp ?: ClearBlurRadiusDp
     CompositionLocalProvider(LocalHeaderSurface provides surface) {
-        Box(Modifier.fillMaxWidth()) {
-            if (glassEnabled) {
-                Box(
-                    Modifier.matchParentSize().drawBackdrop(
-                        backdrop = backdrop,
-                        shape = { RectangleShape },
-                        effects = {
-                            noiseDither(0f)
-                            progressiveBlur(blurRadiusDp.dp.toPx(), gradient = ChromeTopBlurGradient)
-                            clearFace()
-                        },
-                        progressiveGradient = ChromeTopBlurGradient,
-                    ),
+        Row(
+            // 安全区只用于控件定位，顶部左右两侧不绘制额外遮挡。
+            modifier = Modifier.fillMaxWidth().then(safeArea)
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .heightIn(min = 44.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (onBack != null) {
+                HeaderAction(
+                    label = "返回",
+                    icon = MiuixIcons.Basic.ArrowRight,
+                    onClick = onBack,
+                    iconModifier = Modifier.graphicsLayer { scaleX = if (rtl) 1f else -1f },
                 )
             }
-            Row(
-                // 渐变模糊层与顶栏同高，透明度在控件底边前衰减至零。
-                modifier = Modifier.fillMaxWidth().then(safeArea)
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .heightIn(min = 44.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (onBack != null) {
-                    HeaderAction(
-                        label = "返回",
-                        icon = MiuixIcons.Glass.ChevronForward,
-                        onClick = onBack,
-                        iconModifier = Modifier.graphicsLayer { scaleX = if (rtl) 1f else -1f },
-                    )
-                }
-                if (title.isNotEmpty()) Box(Modifier.weight(1f)) {
-                    if (titleCapsule || titleCount != null) Row(Modifier.then(surface()).heightIn(min = ChromeMetrics.ControlSize)
-                        .padding(horizontal = ChromeMetrics.TitleInset, vertical = 8.dp).semantics { heading() },
-                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(title, Modifier.weight(1f, fill = false), fontSize = ChromeMetrics.TitleSize,
-                            fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        titleCount?.let { Text(it.toString(), fontSize = ChromeMetrics.TitleSize,
-                            fontWeight = FontWeight.Bold, maxLines = 1) }
-                    } else Text(title, modifier = Modifier.semantics { heading() }, fontSize = ChromeMetrics.TitleSize,
-                        fontWeight = FontWeight.SemiBold, color = MiuixTheme.colorScheme.onSurface,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
-                } else Spacer(Modifier.weight(1f))
-                if (actions != null) {
-                    Row(verticalAlignment = Alignment.CenterVertically, content = actions)
-                }
+            if (title.isNotEmpty()) Box(Modifier.weight(1f)) {
+                if (titleCapsule || titleCount != null) Row(Modifier.then(surface()).heightIn(min = ChromeMetrics.ControlSize)
+                    .padding(horizontal = ChromeMetrics.TitleInset, vertical = 8.dp).semantics { heading() },
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(title, Modifier.weight(1f, fill = false), fontSize = ChromeMetrics.TitleSize,
+                        fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    titleCount?.let { Text(it.toString(), fontSize = ChromeMetrics.TitleSize,
+                        fontWeight = FontWeight.Bold, maxLines = 1) }
+                } else Text(title, modifier = Modifier.semantics { heading() }, fontSize = ChromeMetrics.TitleSize,
+                    fontWeight = FontWeight.SemiBold, color = MiuixTheme.colorScheme.onSurface,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+            } else Spacer(Modifier.weight(1f))
+            if (actions != null) {
+                Row(verticalAlignment = Alignment.CenterVertically, content = actions)
             }
         }
     }
@@ -147,9 +123,7 @@ internal fun HeaderAction(
     TooltipBox(text = label) {
         // 可见玻璃面与点击区一致，独立按钮不再套用更小的内圆。
         Box(
-            Modifier.defaultMinSize(minWidth = ChromeMetrics.ControlSize, minHeight = ChromeMetrics.ControlSize)
-                .glassPress(interaction, enabled && LocalAppMotionAllowed.current)
-                .clickable(
+            Modifier.defaultMinSize(minWidth = ChromeMetrics.ControlSize, minHeight = ChromeMetrics.ControlSize).clickable(
                 interactionSource = interaction,
                 indication = null,
                 enabled = enabled,
@@ -184,17 +158,17 @@ internal fun HeaderTextAction(
     val surface = LocalHeaderSurface.current
     val interaction = remember { MutableInteractionSource() }
     Box(
-        Modifier.defaultMinSize(minWidth = ChromeMetrics.ControlSize, minHeight = ChromeMetrics.ControlSize)
-            .glassPress(interaction, enabled && LocalAppMotionAllowed.current)
+        Modifier.defaultMinSize(minWidth = 44.dp, minHeight = 44.dp)
             .clickable(interactionSource = interaction, indication = null, enabled = enabled,
                 role = Role.Button, onClick = hapticClick(onClick)),
         contentAlignment = Alignment.Center,
     ) {
         Row(Modifier.heightIn(min = ChromeMetrics.ToolbarButtonSize).then(surface()).indication(interaction, LocalIndication.current)
             .padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ChromeMetrics.ActionGap)) {
             Icon(icon, label, Modifier.size(ChromeMetrics.ToolbarIconSize), tint = if (enabled) tint else tint.copy(alpha = 0.38f))
-            Text(label, color = if (enabled) tint else tint.copy(alpha = 0.38f), fontWeight = FontWeight.SemiBold, fontSize = ChromeMetrics.ToolbarLabelSize,
+            Text(label, color = if (enabled) tint else tint.copy(alpha = 0.38f),
+                fontWeight = FontWeight.SemiBold, fontSize = ChromeMetrics.ToolbarLabelSize,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }

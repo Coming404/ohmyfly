@@ -30,22 +30,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.settings.GlassMaterialSettings
+import com.ohmyfly.settings.MaterialMode
 import com.ohmyfly.settings.SettingsLimits
 import com.ohmyfly.ui.CatalogTextButton
 import com.ohmyfly.ui.LocalChromeAppearance
 import com.ohmyfly.ui.NavigationBarShape
+import com.ohmyfly.ui.chromeMaterial
 import com.ohmyfly.ui.hapticClick
-import com.ohmyfly.ui.navigationBarBaseMaterial
-import com.ohmyfly.ui.withSettings
 import com.ohmyfly.ui.glass.glassPreset
-import com.ohmyfly.ui.glass.glassSurface
-import com.ohmyfly.ui.glass.rememberGlassMaterialColors
+import com.ohmyfly.ui.glass.glassShaderSupported
+import com.ohmyfly.ui.glass.rememberChromeRecording
 import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.SliderDefaults
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
-import top.yukonga.miuix.kmp.material.GlassMaterial
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import kotlin.math.roundToInt
 
@@ -56,27 +53,33 @@ internal fun GlassMaterialSettingsPage(
     padding: PaddingValues,
 ) {
     val appearance = LocalChromeAppearance.current
-    val referenceMaterial = navigationBarBaseMaterial()
+    val referencePreset = glassPreset(MaterialMode.LiquidGlass, appearance.dark)
     val currentSettings = settings.glassMaterial
     val initialValues = GlassMaterialSettings(
-        secondLayerAlpha = currentSettings.secondLayerAlpha ?: referenceMaterial.second?.color?.alpha,
-        thirdLayerAlpha = currentSettings.thirdLayerAlpha ?: referenceMaterial.third?.color?.alpha,
-        blurRadiusDp = currentSettings.blurRadiusDp ?: referenceMaterial.blurRadius.value,
+        secondLayerAlpha = currentSettings.secondLayerAlpha ?: referencePreset.surfaceAlpha,
+        thirdLayerAlpha = currentSettings.thirdLayerAlpha ?: referencePreset.highlightAlpha,
+        blurRadiusDp = currentSettings.blurRadiusDp ?: referencePreset.blur,
     )
-    var previewSettings by remember(currentSettings, referenceMaterial) { mutableStateOf(initialValues) }
-    val previewAvailable = appearance.enabled
+    var previewSettings by remember(currentSettings, referencePreset) { mutableStateOf(initialValues) }
+    val previewAvailable = glassShaderSupported() && !settings.reduceTransparency &&
+        !appearance.systemReduceTransparency
     SettingsList(padding) {
         item {
             SettingsPageIntro(
                 SettingsPage.Glass.title,
-                "滑块以 Glasmio Clear 可映射配方为基准，修改后即时预览。",
+                "调节升级前的玻璃参数，修改后即时预览。",
             )
         }
         item { SettingsSectionTitle("实时预览", SettingsIcons.Material) }
         item {
             SettingsCard {
                 Column(Modifier.fillMaxWidth().padding(12.dp)) {
-                    GlassMaterialPreview(previewSettings, referenceMaterial)
+                    GlassMaterialPreview(
+                        settings = previewSettings,
+                        preset = referencePreset,
+                        dark = appearance.dark,
+                        enabled = previewAvailable,
+                    )
                 }
             }
         }
@@ -89,7 +92,7 @@ internal fun GlassMaterialSettingsPage(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     GlassMaterialSlider(
-                        title = "第二层色片",
+                        title = "表面填充透明度",
                         value = previewSettings.secondLayerAlpha ?: 0f,
                         range = SettingsLimits.glassSecondLayerAlpha.toFloatRange(),
                         valueLabel = { "${(it * 100f).roundToInt()}%" },
@@ -98,16 +101,16 @@ internal fun GlassMaterialSettingsPage(
                         onValueChange = { previewSettings = previewSettings.copy(secondLayerAlpha = it) },
                         onValueChangeFinished = {
                             val next = previewSettings.secondLayerAlpha
-                            val current = currentSettings.secondLayerAlpha ?: referenceMaterial.second?.color?.alpha
+                            val current = currentSettings.secondLayerAlpha ?: referencePreset.surfaceAlpha
                             if (next != null && next != current) {
-                                onChange("第二层色片透明度") {
+                                onChange("表面填充透明度") {
                                     it.copy(glassMaterial = it.glassMaterial.copy(secondLayerAlpha = next))
                                 }
                             }
                         },
                     )
                     GlassMaterialSlider(
-                        title = "第三层色片",
+                        title = "扩散高光透明度",
                         value = previewSettings.thirdLayerAlpha ?: 0f,
                         range = SettingsLimits.glassThirdLayerAlpha.toFloatRange(),
                         valueLabel = { "${(it * 100f).roundToInt()}%" },
@@ -116,9 +119,9 @@ internal fun GlassMaterialSettingsPage(
                         onValueChange = { previewSettings = previewSettings.copy(thirdLayerAlpha = it) },
                         onValueChangeFinished = {
                             val next = previewSettings.thirdLayerAlpha
-                            val current = currentSettings.thirdLayerAlpha ?: referenceMaterial.third?.color?.alpha
+                            val current = currentSettings.thirdLayerAlpha ?: referencePreset.highlightAlpha
                             if (next != null && next != current) {
-                                onChange("第三层色片透明度") {
+                                onChange("扩散高光透明度") {
                                     it.copy(glassMaterial = it.glassMaterial.copy(thirdLayerAlpha = next))
                                 }
                             }
@@ -126,7 +129,7 @@ internal fun GlassMaterialSettingsPage(
                     )
                     GlassMaterialSlider(
                         title = "背景模糊半径",
-                        value = previewSettings.blurRadiusDp ?: referenceMaterial.blurRadius.value,
+                        value = previewSettings.blurRadiusDp ?: referencePreset.blur,
                         range = SettingsLimits.glassBlurRadiusDp.toFloatRange(),
                         valueLabel = { "${(it * 10f).roundToInt() / 10f} dp" },
                         minLabel = "0 dp",
@@ -134,7 +137,7 @@ internal fun GlassMaterialSettingsPage(
                         onValueChange = { previewSettings = previewSettings.copy(blurRadiusDp = it) },
                         onValueChangeFinished = {
                             val next = previewSettings.blurRadiusDp
-                            val current = currentSettings.blurRadiusDp ?: referenceMaterial.blurRadius.value
+                            val current = currentSettings.blurRadiusDp ?: referencePreset.blur
                             if (next != null && next != current) {
                                 onChange("背景模糊半径") {
                                     it.copy(glassMaterial = it.glassMaterial.copy(blurRadiusDp = next))
@@ -144,10 +147,10 @@ internal fun GlassMaterialSettingsPage(
                     )
                     if (currentSettings != GlassMaterialSettings()) {
                         CatalogTextButton(
-                            text = "恢复各组件默认",
+                            text = "恢复默认参数",
                             onClick = hapticClick {
                                 previewSettings = initialValues
-                                onChange("液态玻璃默认材质") {
+                                onChange("玻璃预览参数") {
                                     it.copy(glassMaterial = GlassMaterialSettings())
                                 }
                             },
@@ -164,43 +167,42 @@ private fun ClosedFloatingPointRange<Double>.toFloatRange(): ClosedFloatingPoint
     start.toFloat()..endInclusive.toFloat()
 
 @Composable
-private fun GlassMaterialPreview(settings: GlassMaterialSettings, baseMaterial: GlassMaterial) {
-    val enabled = LocalChromeAppearance.current.enabled
+private fun GlassMaterialPreview(
+    settings: GlassMaterialSettings,
+    preset: com.ohmyfly.ui.glass.GlassPreset,
+    dark: Boolean,
+    enabled: Boolean,
+) {
     val previewBackground = MiuixTheme.colorScheme.surfaceContainerHigh
-    val source = rememberLayerBackdrop {
+    val recording = rememberChromeRecording(MaterialMode.LiquidGlass) {
         drawRect(previewBackground)
         drawContent()
     }
     val shape = NavigationBarShape
-    val material = baseMaterial.withSettings(settings)
-    val materialColors = rememberGlassMaterialColors(material)
-    val fallback = Modifier.clip(shape).background(MiuixTheme.colorScheme.surfaceContainer)
-    Box(Modifier.fillMaxWidth().height(164.dp).clip(com.ohmyfly.shapes.AppCorners.shape(com.ohmyfly.shapes.AppCorners.Content))) {
-        Box(Modifier.fillMaxSize().layerBackdrop(source)) {
+    Box(
+        Modifier.fillMaxWidth().height(164.dp)
+            .clip(com.ohmyfly.shapes.AppCorners.shape(com.ohmyfly.shapes.AppCorners.Content)),
+    ) {
+        Box(Modifier.fillMaxSize().then(recording.record)) {
             Row(Modifier.fillMaxSize()) {
                 PreviewContent(Color(0xFF4F746A), "航班", "东京 23 毫秒", Modifier.weight(1f))
                 PreviewContent(Color(0xFFE6BE74), "概览", "今日 08:42", Modifier.weight(1.2f))
                 PreviewContent(Color(0xFFAD725F), "塔台", "12 个来源", Modifier.weight(1f))
             }
-        }
-        Box(
-            Modifier.align(Alignment.Center).fillMaxWidth(0.88f).height(70.dp)
-                .then(
-                    if (enabled) {
-                        Modifier.glassSurface(
-                            backdrop = source,
-                            shape = shape,
-                            preset = glassPreset(),
-                            material = material,
-                            colors = materialColors,
-                        )
-                    } else {
-                        fallback
-                    },
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("液态玻璃", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Box(
+                Modifier.align(Alignment.Center).fillMaxWidth(0.88f).height(70.dp)
+                    .chromeMaterial(
+                        backdrop = recording.backdrop,
+                        enabled = enabled,
+                        dark = dark,
+                        materialMode = MaterialMode.LiquidGlass,
+                        shape = shape,
+                        materialSettings = settings,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("玻璃预览", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }

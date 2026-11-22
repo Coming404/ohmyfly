@@ -14,6 +14,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -26,15 +27,19 @@ import com.ohmyfly.mirror.createMirrorTransport
 import kotlinx.coroutines.*
 import kotlin.coroutines.coroutineContext
 import com.ohmyfly.settings.AppSettings
+import com.ohmyfly.settings.MaterialMode
 import com.ohmyfly.settings.SettingsSession
 import com.ohmyfly.ui.settings.*
 import com.ohmyfly.ui.glass.glassEffectsEnabled
 import com.ohmyfly.ui.glass.glassShaderSupported
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.*
+import com.ohmyfly.ui.glass.rememberChromeRecording
+import top.yukonga.miuix.kmp.blur.ProgressiveBlur
+import top.yukonga.miuix.kmp.blur.drawBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.progressiveBlur
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
-import com.ohmyfly.settings.MaterialMode
 import top.yukonga.miuix.kmp.nav.core.NavBackStack
 import top.yukonga.miuix.kmp.nav.core.rememberNavBackStack
 import top.yukonga.miuix.kmp.utils.springAnimateToPage
@@ -286,15 +291,23 @@ private fun AppFrame(
     val background = LocalAppSurfaceColors.current.page
     val reduceTransparency = settings.reduceTransparency
     val systemReduceTransparency by rememberSystemReduceTransparency()
-    val backdrop = rememberLayerBackdrop {
+    val recording = rememberChromeRecording(settings.materialMode) {
         drawRect(background)
         drawContent()
     }
+    val topBlurBackdrop = rememberLayerBackdrop {
+        drawRect(background)
+        drawContent()
+    }
+    val backdrop = recording.backdrop
     val glassEnabled = settings.materialMode == MaterialMode.LiquidGlass &&
         glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)
-    CompositionLocalProvider(LocalChromeAppearance provides ChromeAppearance(
-        glassEnabled, dark, backdrop.takeIf { glassEnabled }, settings.glassMaterial,
-    )) {
+    val topBlurEnabled = !reduceTransparency && !systemReduceTransparency && glassShaderSupported()
+    CompositionLocalProvider(
+        LocalChromeAppearance provides ChromeAppearance(
+            glassEnabled, dark, settings.materialMode, settings.glassMaterial, systemReduceTransparency,
+        ),
+    ) {
     Box(Modifier.fillMaxSize()) {
     Scaffold(
         floatingToolbar = {
@@ -303,7 +316,7 @@ private fun AppFrame(
                     com.ohmyfly.ui.CatalogSelectionHost(mode,
                         selectedIds.mapNotNull { it.toLongOrNull() }.toSet(), selectedTowerIds,
                         settingsSession.state.confirmedSettings ?: settings,
-                        toolbarModifier = Modifier.chromeMaterial(backdrop, glassEnabled, dark),
+                        toolbarModifier = Modifier.chromeMaterial(backdrop, glassEnabled, dark, settings.materialMode),
                         onDone = { onSelectionMode(null); onSelection(emptySet()); onTowerSelection(emptySet()) })
                 }
             }
@@ -311,12 +324,27 @@ private fun AppFrame(
         floatingToolbarPosition = ToolbarPosition.BottomCenter,
         containerColor = Color.Transparent,
         topBar = {
-            AppTopBar(destination, settingsChild, settingsBack, mirrorPage, mirrorAdd, logsPage, logClear,
-                selectedIds, selectedTowerIds, selectionMode,
-                selectionAllLabel, selectingAll, onCancelSelection, onSelectAll,
-                backdrop, glassEnabled, dark, settings, settingsSession,
-                onCatalogSearch = onCatalogSearch, onTowerAdd = onTowerAdd,
-                onFlightFilter = { filterOpen = true }, towerCount = towerCount)
+            Box(
+                Modifier.fillMaxWidth().then(
+                    if (topBlurEnabled) Modifier.drawBackdrop(
+                        backdrop = topBlurBackdrop,
+                        shape = { RectangleShape },
+                        effects = {
+                            progressiveBlur(
+                                (settings.glassMaterial.blurRadiusDp ?: glassPreset(MaterialMode.LiquidGlass, dark).blur).dp.toPx(),
+                                gradient = ProgressiveBlur.Top.copy(curve = 0.25f),
+                            )
+                        },
+                    ) else Modifier,
+                ),
+            ) {
+                AppTopBar(destination, settingsChild, settingsBack, mirrorPage, mirrorAdd, logsPage, logClear,
+                    selectedIds, selectedTowerIds, selectionMode,
+                    selectionAllLabel, selectingAll, onCancelSelection, onSelectAll,
+                    backdrop, glassEnabled, dark, settings, settingsSession,
+                    onCatalogSearch = onCatalogSearch, onTowerAdd = onTowerAdd,
+                    onFlightFilter = { filterOpen = true }, towerCount = towerCount)
+            }
         },
         bottomBar = {
             if (!settingsChild && selectionMode == null && !imeVisible) DriftNavigationBar(
@@ -325,12 +353,14 @@ private fun AppFrame(
                 backdrop = backdrop,
                 glassEnabled = glassEnabled,
                 dark = dark,
+                materialMode = settings.materialMode,
             )
         },
     ) { padding ->
         Box(
             modifier = Modifier.fillMaxSize().consumeWindowInsets(padding)
-                .then(if (glassEnabled) Modifier.layerBackdrop(backdrop) else Modifier)
+                .then(if (glassEnabled) recording.record else Modifier)
+                .layerBackdrop(topBlurBackdrop)
                 .background(background),
             contentAlignment = Alignment.TopCenter,
         ) {

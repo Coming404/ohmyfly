@@ -14,8 +14,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ohmyfly.settings.GlassMaterialSettings
-import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import com.ohmyfly.settings.MaterialMode
+import com.ohmyfly.ui.glass.rememberChromeRecording
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -25,8 +25,9 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 internal data class ChromeAppearance(
     val enabled: Boolean,
     val dark: Boolean,
-    val backdrop: top.yukonga.miuix.kmp.blur.Backdrop?,
+    val mode: MaterialMode,
     val materialSettings: GlassMaterialSettings = GlassMaterialSettings(),
+    val systemReduceTransparency: Boolean = false,
 )
 internal val LocalChromeAppearance = staticCompositionLocalOf<ChromeAppearance> { error("界面材质尚未初始化") }
 
@@ -42,13 +43,13 @@ internal fun InlineChromeIconButton(
     tint: Color = MiuixTheme.colorScheme.onSurface,
 ) {
     val style = LocalChromeAppearance.current
-    val backdrop = rememberLayerBackdrop { drawRect(background) }
+    val recording = rememberChromeRecording(style.mode) { drawRect(background) }
     TooltipBox(text = label) {
         Box {
-            Box(Modifier.matchParentSize().then(if (style.enabled) Modifier.layerBackdrop(backdrop) else Modifier))
+            Box(Modifier.matchParentSize().then(if (style.enabled) recording.record else Modifier))
             IconButton(onClick = hapticClick(onClick), enabled = enabled,
                 modifier = Modifier.size(ChromeMetrics.ControlSize)
-                    .chromeMaterial(backdrop, style.enabled, style.dark),
+                    .chromeMaterial(recording.backdrop, style.enabled, style.dark, style.mode),
                 backgroundColor = Color.Transparent, cornerRadius = AppCorners.Toolbar,
             ) {
                 if (busy && LocalAppMotionAllowed.current) CircularProgressIndicator(

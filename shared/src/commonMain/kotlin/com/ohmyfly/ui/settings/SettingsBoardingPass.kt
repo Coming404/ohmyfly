@@ -27,7 +27,7 @@ import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.glass.ChevronForward
+import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** App icon blue; the brand tile stays fixed while the rest of the UI follows the theme. */
@@ -77,7 +77,7 @@ private fun SponsorChip() {
     ) {
         Icon(SettingsIcons.Sponsor, contentDescription = null, modifier = Modifier.size(14.dp), tint = SponsorPink)
         Text("赞助", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = SponsorPink)
-        Icon(MiuixIcons.Glass.ChevronForward, contentDescription = null, tint = SponsorPink,
+        Icon(MiuixIcons.Basic.ArrowRight, contentDescription = null, tint = SponsorPink,
             modifier = Modifier.size(width = 7.dp, height = 11.dp).graphicsLayer { scaleX = if (rtl) -1f else 1f })
     }
 }

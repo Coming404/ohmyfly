@@ -46,7 +46,7 @@ internal fun CatalogSelectionHost(
         })
     if (sheet == "share") CatalogShareSheet(nodeIds) { sheet = "" }
     if (sheet == "move") FlightGroupMove(nodeIds, onMoved = { sheet = ""; onDone() }, onClose = { sheet = "" })
-    if (sheet == "toggle" || sheet == "delete") OverlayBottomSheet(surface = appBottomSheetSurface(), show = true, insideMargin = catalogSheetMargin(),
+    if (sheet == "toggle" || sheet == "delete") OverlayBottomSheet(show = true, insideMargin = catalogSheetMargin(),
         title = if (sheet == "toggle") "启停 $count 个航班" else "删除 $count 个${if (mode == CatalogSelectionMode.Nodes) "航班" else "塔台"}",
         onDismissRequest = { if (!busy) sheet = "" }, cornerRadius = AppCorners.Sheet) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {

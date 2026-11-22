@@ -55,20 +55,11 @@ class ProductionUiTests(unittest.TestCase):
         self.assertIn('remember(dark, dynamicColorSeed, mode, accentPalette)', theme)
         self.assertIn('appThemeController(dynamicColorSeed, dark, mode, accentPalette)', theme)
         self.assertIn('keyColor = seed', theme)
+        self.assertIn('ThemePaletteStyle.Expressive', theme)
         self.assertIn('ThemePaletteStyle.Neutral', theme)
         self.assertIn('ThemeColorSpec.Spec2025', theme)
         self.assertIn('App(dynamicColorSeed = null', ios)
         self.assertNotRegex(manifest, r'READ_MEDIA|READ_EXTERNAL_STORAGE|READ_WALLPAPER')
-    def test_global_notice_has_status_icons_and_preserves_success_copy(self):
-        messages = (ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly/ui/AppMessages.kt').read_text()
-        session = (ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly/settings/SettingsSession.kt').read_text()
-        persisted = (ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly/PersistedSettings.kt').read_text()
-        for icon in ('Glass.Info', 'Glass.Ok', 'Glass.Report', 'Glass.Error', 'Glass.Help'):
-            self.assertIn(icon, messages)
-        self.assertIn('text = data.visuals.message', messages)
-        self.assertIn('change.successText ?: "${change.name ?: "设置"}已修改"', session)
-        self.assertIn('session.changeWithSuccessText(successText, transform)', persisted)
-
     def test_settings_cards_share_one_surface_and_squircle_border(self):
         shared = ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly'
         app = (shared / 'App.kt').read_text()

@@ -34,7 +34,7 @@ internal fun SubscriptionSettingsPage(padding: PaddingValues) {
                 NumberSetting("单个塔台来源上限（MiB）", { it.subscription.maxMiB }, 1..50, SettingsIcons.Download) {
                     current, n -> current.withSubscription { it.copy(maxMiB = n) }
                 }
-                TextSetting("User-Agent", { it.subscription.userAgent }, SettingsIcons.Device,
+                TextSetting("User-Agent", { it.subscription.userAgent }, SettingsIcons.Haptic,
                     hint = "多个 UA 用 | 分隔，按填写顺序比较结果。", validate = ::validateUserAgent) {
                     current, value -> current.withSubscription { it.copy(userAgent = value) }
                 }

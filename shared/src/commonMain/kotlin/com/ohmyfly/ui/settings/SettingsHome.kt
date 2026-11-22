@@ -57,10 +57,8 @@ internal fun SettingsHome(
                 ChoiceSetting("界面风格", settings.materialMode.name, MaterialMode.entries.map { it.name to it.label }, SettingsIcons.Material) { name ->
                     onChange("界面风格已修改为${MaterialMode.valueOf(name).label}") { it.copy(materialMode = MaterialMode.valueOf(name)) }
                 }
-                if (settings.materialMode == MaterialMode.LiquidGlass) {
-                    SettingsActionRow(SettingsPage.Glass.title, SettingsIcons.Material,
-                        onClick = { onPage(SettingsPage.Glass) })
-                }
+                SettingsActionRow(SettingsPage.Glass.title, SettingsIcons.Material,
+                    onClick = { onPage(SettingsPage.Glass) })
                 if (settings.materialMode == MaterialMode.Expressive) {
                     ChoiceSetting(
                         title = "配色",

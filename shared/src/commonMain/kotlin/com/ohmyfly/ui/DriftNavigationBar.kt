@@ -13,18 +13,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.ohmyfly.settings.MaterialMode
 import com.ohmyfly.ui.glass.GlassNavigationSurface
-import top.yukonga.miuix.kmp.blur.Backdrop
+import com.ohmyfly.ui.glass.ChromeBackdrop
 
 @Composable
 internal fun DriftNavigationBar(
     destination: AppDestination,
     onDestination: (AppDestination) -> Unit,
-    backdrop: Backdrop,
+    backdrop: ChromeBackdrop,
     glassEnabled: Boolean,
     dark: Boolean,
+    materialMode: MaterialMode,
 ) {
-    val material = navigationBarMaterial()
     Box(
         modifier = Modifier.fillMaxWidth()
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
@@ -37,7 +38,7 @@ internal fun DriftNavigationBar(
             backdrop = backdrop,
             enabled = glassEnabled,
             dark = dark,
-            material = material,
+            materialMode = materialMode,
             modifier = Modifier.widthIn(max = 420.dp).fillMaxWidth(),
         )
     }

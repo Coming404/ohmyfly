@@ -7,7 +7,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.ohmyfly.ui.NavigationBarShape
-import top.yukonga.miuix.kmp.material.GlassShape
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -53,6 +52,7 @@ class GlassShapeTest {
                 val expected = assertIs<Outline.Rounded>(CircleShape.createOutline(size, direction, density))
                 val actual = assertIs<Outline.Rounded>(shape.createOutline(size, direction, density))
                 assertEquals(expected.roundRect, actual.roundRect)
+                assertEquals(-size.minDimension * 0.5f, shape.tile(size, density), 0.0001f)
             }
         }
     }
