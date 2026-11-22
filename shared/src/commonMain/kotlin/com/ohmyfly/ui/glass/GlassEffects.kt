@@ -24,7 +24,8 @@ import top.yukonga.miuix.kmp.material.GlassShape
 import top.yukonga.miuix.kmp.material.GlassStyle
 import top.yukonga.miuix.kmp.material.drawGlassRim
 
-/** 复用 Miuix 玻璃材料的实际模糊与色片值，避免导航另有一套固定参数。 */
+internal fun glassTint(surface: Color, dark: Boolean): Color = if (dark) surface else Color.White
+
 /** 颜色层列表在组合阶段缓存，避免按压动画逐帧创建对象。 */
 @Composable
 internal fun rememberGlassMaterialColors(material: GlassMaterial): BlurColors = remember(material) {

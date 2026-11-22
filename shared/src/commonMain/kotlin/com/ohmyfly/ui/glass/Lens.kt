@@ -5,10 +5,10 @@ package com.ohmyfly.ui.glass
 
 // Lens motion adapted from Kyant0/AndroidLiquidGlass; G2 distance fields come from Miuix.
 import top.yukonga.miuix.kmp.blur.BackdropEffectScope
-import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.blur.runtimeShaderEffect
 import top.yukonga.miuix.kmp.material.GlassShape
 import top.yukonga.miuix.kmp.material.agsl.MaterialAgsl
+import top.yukonga.miuix.kmp.material.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.material.setSilhouetteUniforms
 
 /** 使用当前 G2 轮廓折射背景，并在按压时加入色散。 */
@@ -28,7 +28,7 @@ internal fun BackdropEffectScope.lens(
         shaderString = G2_REFRACTION_SHADER,
         uniformShaderName = "content",
     ) {
-        setSilhouetteUniforms(glassShape, layoutDirection, size, this, scale)
+        setSilhouetteUniforms(glassShape, layoutDirection, size, this@lens, scale)
         setFloatUniform("offset", -samplingPadding / scale, -samplingPadding / scale)
         setFloatUniform("refractionHeight", refractionHeight / scale)
         setFloatUniform("refractionAmount", -refractionAmount / scale)
