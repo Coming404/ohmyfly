@@ -198,8 +198,6 @@ half4 main(float2 coord) {
 }
 """
 
-}
-
 /** 背景模糊和色层由材质设置驱动，G2 轮廓共用于裁剪与边缘光。 */
 internal fun Modifier.glassSurface(
     backdrop: Backdrop,
