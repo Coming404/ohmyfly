@@ -49,7 +49,7 @@ https://kmp.jetbrains.com/
 
 ## 4. UI 依赖与材质
 
-- UI 模块保持同版固定值。主导航由应用自有五项组件呈现，以 Miuix glassPanel、G2 GlassShape 和 EdgeStroke 实现折射玻璃；应用保留目的地、状态、触感和安全区所有权。
+- 主导航和工具栏由应用自有五项 G2 capsule / Clear surface 实现，统一到 Glasmio Clear 可映射 face/blur 配方；Miuix 提供双端 Backdrop、shader runtime 与 G2 距离场。应用保留目的地、状态、触感和安全区所有权。
 - RuntimeShader、传感器及材质统一通过 miuix-material；普通内容层只录制一份背景，弹层不进入自身采样源。
 - 修改的官方源码加 Diy_ 前缀，保留原包名、公开函数和 @file:JvmName 门面；未修改源码使用固定发布归档生成。
 - G2 的裁剪 Path、光学距离场、遮罩、阴影和高光共享控制点，真圆/胶囊保持圆弧。

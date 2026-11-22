@@ -39,15 +39,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ohmyfly.ui.glass.ClearBlurRadiusDp
+import com.ohmyfly.ui.glass.clearFace
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.blur.Backdrop
-import top.yukonga.miuix.kmp.blur.BlendColorEntry
-import top.yukonga.miuix.kmp.blur.BlurDefaults
 import top.yukonga.miuix.kmp.blur.ProgressiveBlur
-import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
-import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
+import top.yukonga.miuix.kmp.blur.drawBackdrop
+import top.yukonga.miuix.kmp.blur.noiseDither
+import top.yukonga.miuix.kmp.blur.progressiveBlur
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.glass.ChevronForward
 import top.yukonga.miuix.kmp.glass.glassPress
@@ -55,7 +56,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val LocalHeaderSurface = staticCompositionLocalOf<@Composable () -> Modifier> { { Modifier } }
 private val ChromeTopBlurGradient = ProgressiveBlur.Top.copy(curve = 0.25f)
-private const val ChromeTopBlurTintAlpha = 0.3f
 
 @Composable
 internal fun DriftTopBar(
@@ -80,20 +80,20 @@ internal fun DriftTopBar(
     val surface: @Composable () -> Modifier = {
         Modifier.chromeMaterial(backdrop, glassEnabled, dark)
     }
-    val tint = MiuixTheme.colorScheme.surface.copy(alpha = ChromeTopBlurTintAlpha)
-    val blurColors = BlurDefaults.blurColors(
-        blendColors = remember(tint) { listOf(BlendColorEntry(tint)) },
-    )
+    val blurRadiusDp = LocalChromeAppearance.current.materialSettings.blurRadiusDp ?: ClearBlurRadiusDp
     CompositionLocalProvider(LocalHeaderSurface provides surface) {
         Box(Modifier.fillMaxWidth()) {
             if (glassEnabled) {
                 Box(
-                    Modifier.matchParentSize().progressiveTextureBlur(
+                    Modifier.matchParentSize().drawBackdrop(
                         backdrop = backdrop,
-                        shape = RectangleShape,
-                        blurRadius = GlassTopAppBarDefaults.ProgressiveBlurRadius.value,
-                        gradient = ChromeTopBlurGradient,
-                        colors = blurColors,
+                        shape = { RectangleShape },
+                        effects = {
+                            noiseDither(0f)
+                            progressiveBlur(blurRadiusDp.dp.toPx(), gradient = ChromeTopBlurGradient)
+                            clearFace()
+                        },
+                        progressiveGradient = ChromeTopBlurGradient,
                     ),
                 )
             }
@@ -159,14 +159,14 @@ internal fun HeaderAction(
             contentAlignment = Alignment.Center,
         ) {
             Box(
-                Modifier.size(ChromeMetrics.ControlSize).then(surface()).indication(interaction, LocalIndication.current),
+                Modifier.size(ChromeMetrics.ToolbarButtonSize).then(surface()).indication(interaction, LocalIndication.current),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     icon,
                     contentDescription = label,
                     tint = if (enabled) tint else tint.copy(alpha = 0.38f),
-                    modifier = Modifier.size(ChromeMetrics.IconSize).then(iconModifier),
+                    modifier = Modifier.size(ChromeMetrics.ToolbarIconSize).then(iconModifier),
                 )
             }
         }
@@ -190,11 +190,11 @@ internal fun HeaderTextAction(
                 role = Role.Button, onClick = hapticClick(onClick)),
         contentAlignment = Alignment.Center,
     ) {
-        Row(Modifier.heightIn(min = ChromeMetrics.ControlSize).then(surface()).indication(interaction, LocalIndication.current)
+        Row(Modifier.heightIn(min = ChromeMetrics.ToolbarButtonSize).then(surface()).indication(interaction, LocalIndication.current)
             .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Icon(icon, label, Modifier.size(ChromeMetrics.IconSize), tint = if (enabled) tint else tint.copy(alpha = 0.38f))
-            Text(label, color = if (enabled) tint else tint.copy(alpha = 0.38f), fontSize = ChromeMetrics.ActionTextSize,
+            Icon(icon, label, Modifier.size(ChromeMetrics.ToolbarIconSize), tint = if (enabled) tint else tint.copy(alpha = 0.38f))
+            Text(label, color = if (enabled) tint else tint.copy(alpha = 0.38f), fontWeight = FontWeight.SemiBold, fontSize = ChromeMetrics.ToolbarLabelSize,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }

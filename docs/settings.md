@@ -51,7 +51,7 @@
 ## 材质配置兼容
 
 - `AppSettings.materialMode`默认`MaterialMode.LiquidGlass`；`ui.materialMode`保存枚举名，不保存中文标签或序号。
-- 液态玻璃调节页读取当前 TopAppBar 材质的第二、第三层色片 alpha 和模糊 dp 作为控件初值。三个 `ui.glass.*` 都是可选覆盖：缺失时每种组件保留 Miuix 自己的默认材质；用户调整后按实际 alpha/dp 保存，点恢复默认则移除覆盖值。未将 Glasmio `Clear` 配方套作应用默认值。
+- 液态玻璃调节页以 Glasmio Clear 可映射值作默认基线：第二、第三层alpha均为0，模糊0.75dp。Clear face 默认 saturation1.06、black/white 0.125/1.08、white fill alpha0、maximum luma1。三个 `ui.glass.*` 是可选滑块覆写；未覆盖仍采用 Clear，恢复默认会删除覆写。
 - 本轮 schema 只保存当前字段。读取时，缺失或损坏的当前可选字段只在内存回退，不改写原文件；下一次成功写入会以当前 schema 重建配置并移除未知及过时字段。恢复默认设置通过AppSettings默认值回到液态玻璃。真机重启恢复与实盘读写仍待验收，决定见[材质选择](../.agents/notes/implemented/feature/2026-10-20-material-selection.md)。
 
 ## 运动偏好与切换过渡
@@ -68,7 +68,7 @@
 - 内置候选来自上游配置，初始均“未测试”，不代表可用／可信。打开页面和保存地址不探测，只有用户按测试按钮发请求。
 - 新增只用 HTTP(S) 前缀：显式 `http://`／`https://` 保留，无协议的 `www.example.com` 或 `example.com` 默认补 HTTPS；`www` 不强行增删，路径大小写保留。提供改写预览、规范化去重；仅镜像输入放宽，原始 GitHub 资源和其他设置 URL 仍要求 HTTPS。
 - 镜像页按[九画面与流程总览](design/mirror-settings/PRD.md)实现列表、单一 `⋯` 管理、居中管理／编辑／删除弹窗，以及底部测试栏。新增／编辑弹窗底部手动保存；输入、IME 完成、失焦和关闭不保存，关闭仅保留本次页面会话草稿。点击保存后整体验证，以 `SettingsSession.changeConfirmed` 的事务读回结果认定成功并关闭；失败保稿，结果未知时只重试读取。
-- “拼接方式”为无独立卡片背景的普通设置行：链路图标＋标题，右侧只读显示 HTTP(S) 前缀；已无第二选项，不显示下拉箭头、不提供浮层，读屏读作“拼接方式，HTTP(S) 前缀”。“名称”“拼接方式”“地址”“改写预览”四标题及 HTTP(S) 前缀值统一为 13sp Normal、主题前景色 `MiuixTheme.colorScheme.onSurface`，随明暗主题切换；标题图标保留 16dp、`onSurfaceVariantSummary` 灰色，图文间距统一 8dp。输入文字 14sp、预览正文 12sp 不变。弹窗保留 Miuix OverlayDialog 的生命周期和半透明灰幕；玻璃模式接 glassDialogSurface，Expressive 使用实色。表面与裁剪统一 G2，背景采样不包含弹窗自身。
+- “拼接方式”为无独立卡片背景的普通设置行：链路图标＋标题，右侧只读显示 HTTP(S) 前缀；已无第二选项，不显示下拉箭头、不提供浮层，读屏读作“拼接方式，HTTP(S) 前缀”。“名称”“拼接方式”“地址”“改写预览”四标题及 HTTP(S) 前缀值统一为 13sp Normal、主题前景色 `MiuixTheme.colorScheme.onSurface`，随明暗主题切换；标题图标保留 16dp、`onSurfaceVariantSummary` 灰色，图文间距统一 8dp。输入文字 14sp、预览正文 12sp 不变。弹窗继续复用 Miuix OverlayDialog 生命周期和灰幕；Liquid Glass surface 使用 Clear shader pipeline，Expressive 使用实色。内容表面和裁剪使用共享 G2 轮廓，采样背景不含弹窗自身。
 - `mirror.enabled` 是默认 true 的可选布尔字段，schema 保持 1；停用保留列表和选择偏好、禁用选择，手动测试和管理仍可用；资源请求传 `enabled=false` 只直连、不降级到镜像。
 - 列表和测试全部均不显示／探测直连条目；关闭镜像只直连，开启镜像按选中优先、其余持久化顺序逐个降级，所有镜像失败后才直连。旧配置未选或选择已失效时从首个镜像开始。删除当前项改选剩余首项，删光时原子关闭镜像；空状态只有 GitHub 图标＋Bold“暂无镜像源”，不另放添加按钮，右上 ＋ 仍是唯一新增入口。
 - 订阅添加与刷新使用当前 `mirrorEnabled`、`mirrors`、`selectedMirrorId`，设置变化在下一次操作生效。只有无凭据、无查询参数且路径合格的 GitHub HTTPS 公开资源才转发；根域与任意子域共用域名分类，Gist 仅明确 raw 路径可用，HTML 页不自动转换。带 Authorization、Cookie 或未知自定义头的 provider 直连原站。名称和用量复用实际订阅 GET 响应，不增加查询请求、不套用测速的 64 KiB 资源上限。

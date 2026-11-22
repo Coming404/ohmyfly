@@ -63,9 +63,7 @@ MCP版本/目标信息不足以证明许可证或持续维护；缺失字段查�
 
 ## 玻璃材质实现来源
 
-玻璃统一采用 Miuix `miuix-glass` / `miuix-material` / `miuix-blur`。普通菜单选择使用支持表面插槽的 OverlayCascadingListPopup/OverlayIconCascadingDropdownMenu；弹窗、抽屉接官方 glassDialogSurface/glassBottomSheetSurface。Expressive 档使用不透明 Miuix 表面。
-
-旧 Kyant Backdrop、Melox 玻璃预设、自定义透镜与导航手势已移除；Shapes1.2.1 仅保留为 G2 几何依赖。[鸣谢及许可](../third-party/README.md)、[固定材质源码归档](../third-party/miuix-material/README.md)。
+玻璃渲染以 Glasmio 固定提交 `64b2d00746480c2136a77840cdb849c5505f8b6c` 的 Native `Clear` face 配方为参照：0.75模糊、1.06饱和、black/white 0.125/1.08、white fill alpha0、maximum luma1，关闭 outer-ray mix且保留 inner ray。代码把面部颜色变换映射到 extended-gamma sRGB，并由 Miuix双端 Backdrop执行blur/G2裁剪；胶囊外 ray不运行，Miuix G2 inner ray和独立按压色散保留。Glasmio整套native renderer并未引入，因此这里是配方适配，不是完整渲染器复刻。
 
 ## Kotlin / Compose / 工程
 

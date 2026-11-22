@@ -16,17 +16,15 @@ Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留概览、塔�
 
 ## 悬浮控制层与材质
 
-- 顶栏、标题胶囊和搜索/筛选工具栏复用 G2 `NavigationBarShape` 与 Miuix `glassPanel`，液态玻璃档开启折射/rim 光照。
-- 顶部背景使用 Miuix `progressiveTextureBlur`，渐变带与顶栏实际测量高度一致，使用 `ProgressiveBlur.Top`；模糊在标题与按钮胶囊底边附近衰减至零，不延伸到正文。
+- 顶栏胶囊、右上动作、选择态顶/底胶囊与导航主体共用 Clear face/blur shader 和 G2 轮廓；顶边的渐变模糊带亦读取同一模糊滑块值。
 - 塔台页及航班选择态的顶部/底部工具栏共用同一 G2 玻璃表面。选择态“取消/全选”采用 `onSurface`，浅色为黑、深色为亮色；各按钮按压层裁切到对应 G2 胶囊/控件轮廓。塔台卡片内的三个操作按钮也使用16dp G2裁切，反馈不越出按钮。
 - 航班分组的新增按钮保留44dp触控范围，图标缩至18dp并取消静态底色。
-- 主导航恢复到 2026-10-20 提交 `3e9e878` 的五项 G2 玻璃胶囊实现，并接入现有共享材质设置。主体采用 4dp 模糊、浅色白色染色30%和无噪声处理；选中胶囊继续使用拖动形变、按压折射、色散与内环阴影。
-- 五项等宽、内容区64dp起，胶囊和导航外框均使用共享G2胶囊轮廓。按压时复原旧版淡化字形、触点光斑、胶囊渐入折射与内环阴影；拖动时保留旧阻尼形变、释放吸附和触觉反馈。
+- 主导航恢复到提交 `3e9e878` 的五项 G2 玻璃胶囊并保留拖动、按压内折射、触点扩散和内环阴影。Clear基线为0.75dp blur、1.06饱和、0.125/1.08 face端点、0 white fill及maximum luma 1。外侧折射mix关闭，Miuix G2 inner ray保留。BloomStroke在按压胶囊上以1dp描边、2dp内模糊和0.75高光强度绘制扩散光，静止状态不叠Bloom/外阴影。
+- 普通顶栏动作、取消/全选与选择态工具栏共用 Clear G2 材质。可见按钮胶囊40dp，图标18dp，标签12sp SemiBold；选择态动作4dp间距。Tower card 底部三个操作不再拉成全卡宽的三等分，按各标签自然宽度组居中排布，icon和间距共用工具栏token。
 - 五页列表保持全高视口，Scaffold边距使用列表contentPadding，背景仍能滚入悬浮控件后方。
-- 页面内容录制一个 Miuix LayerBackdrop。导航、工具栏、菜单和弹层复用背景源，各自使用官方材质参数；弹层不录入自己的背景源。
-- 界面风格仅有「液态玻璃／Expressive」。前者使用官方 Miuix 玻璃材质；后者使用不透明Miuix表面，不启用玻璃采样。旧Kyant Backdrop、四档预设及旧版透镜材质已移除；导航按压光斑与拖拽形变由应用组件实现。
-- AppTheme 根显式启用 `LocalSquircleEnabled`，Miuix Card、IconButton 等内置圆角组件默认绘制 G2；设置页及二级页 `SettingsCard` 使用24dp G2表面和同轮廓描边。自绘表面统一用 `AppCorners.shape`/`continuousCorners`，真圆和胶囊保留解析圆弧。
-- 玻璃菜单、对话框、抽屉由 ui-material 的 Diy_ 补丁让折射、遮罩、高光和阴影与实际 G2 路径一致。
+- 页面内容录制一个 Miuix LayerBackdrop。导航、顶栏、工具栏按钮、菜单、对话框与抽屉采样同一背景源，使用共享 Clear face/blur转换；dialog/sheet继续接收 Miuix自己的 scrim、scale及 overscroll 生命周期参数。弹层不采样自身。
+- LiquidGlass 使用应用共享的 Clear face/blur pipeline，Expressive 使用不透明 Miuix 表面。Kyant Backdrop 运行库已移除；旧导航 capsule/lens 的交互算法按固定历史版本接回，以 Miuix 公共 RuntimeShader 与当前 G2 距离场适配，不引入 Kyant 依赖。
+- Miuix 卡片、IconButton 等内置圆角默认采用本地 G2 shape patch；设置主卡片与二级卡片统一24dp。自绘表面使用 `AppCorners.shape` / `continuousCorners`，真正圆形与胶囊保留圆形轮廓。GlassMenus、dialog和sheet的采样面使用 Clear pipeline 并共享G2距离场；弹层外观仍由 Miuix宿主布局、scrim与状态scope管理。
 - 双端传感器与生命周期继续复用，驱动官方材质光照方向。降低透明度时走实色，降低动态效果时停止应用自有运动和重力光照。
 - UI动作图标统一 Glass Regular。应用品牌、GitHub/媒体平台/地区旗帜与塔台专属业务标识独立保留。
 
@@ -35,7 +33,7 @@ Android与iOS共用 `shared/src/commonMain` 的Miuix界面，保留概览、塔�
 - 液态玻璃档：Android“自动”项使用系统动态代表色＋Neutral/Spec2025；iOS自动项使用Miuix默认浅深色。液态玻璃下不显示配色选择，已保存的手选种子不参与玻璃主题。
 - Expressive档：两端使用ThemePaletteStyle.Expressive；Android自动项使用系统动态种子，iOS自动项使用产品蓝。手选的7个种子由Monet生成明暗语义色。
 - 配色持久化为 `AccentPalette`，仅在 Expressive 档显示并生效。Android自动项跟随系统动态代表色；iOS自动项使用产品蓝 `#1F6FE5`。可手选绯红、紫罗兰、海洋、鼠尾草、琥珀、玫瑰或宫崎骏森林绿；手选覆盖自动种子。
-- 液态玻璃调节子页按当前导航配方初始化：第二层白色染色alpha为0.30、第三层为0、模糊半径为4dp；用户调节的实际alpha和dp实时预览并共享应用于玻璃表面。
+- 液态玻璃调节子页以 Clear 值初始化：第二/第三色层alpha均为0、模糊0.75dp；饱和度和中性色 face transform 随Clear配方生效。三个色层/模糊滑块的覆写会同步到导航主体、选中胶囊、实时预览、顶栏、按钮、菜单、对话框和抽屉。
 - 明暗、字体缩放、主题色过渡继续使用已有设置及单一ThemeController；不引入第二套Material3组件。
 
 ## 页面与设置卡片层级

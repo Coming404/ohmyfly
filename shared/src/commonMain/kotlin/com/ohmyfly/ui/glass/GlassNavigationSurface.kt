@@ -22,10 +22,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -35,6 +33,8 @@ import com.ohmyfly.ui.LocalAppMotionAllowed
 import com.ohmyfly.ui.NavigationBarShape
 import com.ohmyfly.ui.NavigationInnerShadow
 import com.ohmyfly.ui.navigationInnerShadow
+import com.ohmyfly.ui.glass.drawClearBloom
+import com.ohmyfly.ui.glass.rememberClearBloomShader
 import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.blur.drawBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
@@ -42,7 +42,7 @@ import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.material.GlassMaterial
 import top.yukonga.miuix.kmp.material.GlassShape
 import top.yukonga.miuix.kmp.material.GlassStyle
-import top.yukonga.miuix.kmp.material.drawGlassRim
+import top.yukonga.miuix.kmp.material.RuntimeShader
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -60,8 +60,8 @@ internal fun GlassNavigationSurface(
     val preset = glassPreset()
     val materialColors = rememberGlassMaterialColors(material)
     val style = rememberGlassStyle(enabled, dark)
+    val bloomShader = rememberClearBloomShader(enabled)
     val surface = MiuixTheme.colorScheme.surface
-    val tint = glassTint(surface, dark)
     val response = rememberGlassNavigationGesture(
         selectedIndex = destination.ordinal,
         count = AppDestination.entries.size,
@@ -77,14 +77,13 @@ internal fun GlassNavigationSurface(
         modifier = modifier
             .onSizeChanged { response.width = it.width.toFloat() }
             .graphicsLayer { translationX = response.panelOffset }
-            .dropShadow(NavigationBarShape, Shadow(radius = 10.dp, color = Color.Black, alpha = if (dark) 0.2f else 0.1f))
             .then(response.drag.modifier)
             .then(spot?.trackingGestureModifier ?: Modifier),
     ) {
         Box(
             Modifier.matchParentSize().then(
                 if (enabled) Modifier.glassSurface(
-                    backdrop, NavigationBarShape, preset, material, materialColors, tint, style.value,
+                    backdrop, NavigationBarShape, preset, material, materialColors,
                     layerBlock = {
                         val scale = 1f + 16.dp.toPx() / size.width.coerceAtLeast(1f) * response.drag.pressProgress
                         scaleX = scale; scaleY = scale
@@ -111,7 +110,13 @@ internal fun GlassNavigationSurface(
                 modifier = Modifier.matchParentSize().clearAndSetSemantics {}
                     .graphicsLayer { alpha = 0f }
                     .layerBackdrop(tabsBackdrop)
-                    .glassSurface(backdrop, NavigationBarShape, preset, material, materialColors, tint, style.value)
+                    .glassSurface(
+                        backdrop,
+                        NavigationBarShape,
+                        preset,
+                        material,
+                        materialColors,
+                    )
                     .clip(NavigationBarShape).then(spot?.modifier ?: Modifier)
                     .padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -121,7 +126,7 @@ internal fun GlassNavigationSurface(
                 }
             }
         }
-        GlassNavigationSelection(response, focusedIndex, enabled, combined, style.value, surface, dark)
+        GlassNavigationSelection(response, focusedIndex, enabled, combined, preset, style.value, dark, spot, bloomShader)
     }
 }
 
@@ -131,9 +136,11 @@ private fun BoxScope.GlassNavigationSelection(
     focusedIndex: Int,
     enabled: Boolean,
     backdrop: Backdrop,
+    preset: GlassPreset,
     style: GlassStyle,
-    surface: Color,
     dark: Boolean,
+    spot: InteractiveHighlight?,
+    bloomShader: RuntimeShader?,
 ) {
     if (response.tabWidth <= 0f) return
     val tabWidth = with(LocalDensity.current) { response.tabWidth.toDp() }
@@ -143,11 +150,12 @@ private fun BoxScope.GlassNavigationSelection(
             translationX = glassTabOffset(response.drag.value, response.tabWidth, response.ltr)
         }
         Box(
-            if (enabled) capsule.glassNavigationCapsule(backdrop, capsuleShape, response, style, surface, dark)
+            if (enabled) capsule.glassNavigationCapsule(backdrop, capsuleShape, response, preset, style, dark, bloomShader)
             else capsule.background(MiuixTheme.colorScheme.primary.copy(alpha = 0.15f), capsuleShape),
         )
     }
-    // Draw after the lens so the selected capsule cannot obscure keyboard focus.
+    spot?.let { Box(Modifier.matchParentSize().clip(NavigationBarShape).then(it.modifier)) }
+    // 光斑叠在移动胶囊上方，键盘焦点仍绘制在最上层。
     if (focusedIndex in AppDestination.entries.indices) {
         val focusShape = remember { GlassShape(12.dp) }
         Box(Modifier.matchParentSize().padding(4.dp).clearAndSetSemantics {}) {
@@ -163,9 +171,10 @@ private fun Modifier.glassNavigationCapsule(
     backdrop: Backdrop,
     shape: GlassShape,
     response: GlassNavigationGesture,
+    preset: GlassPreset,
     style: GlassStyle,
-    surface: Color,
     dark: Boolean,
+    bloomShader: RuntimeShader?,
 ): Modifier = drawBackdrop(
     backdrop = backdrop,
     shape = { shape },
@@ -173,11 +182,15 @@ private fun Modifier.glassNavigationCapsule(
         val press = response.drag.pressProgress
         // Keep full sampling reach before the first frame of the press animation.
         padding = maxOf(padding, 40.dp.toPx())
-        lens(10.dp.toPx() * press, 14.dp.toPx() * press, depthEffect = true, chromaticAberration = 0.5f * press)
+        lens(
+            (preset.innerLensHeight + 10f * press).dp.toPx(),
+            (preset.innerLensAmount + 14f * press).dp.toPx(),
+            depthEffect = true,
+            chromaticAberration = 0.5f * press,
+        )
     },
     onDrawFront = {
-        val press = response.drag.pressProgress
-        if (press > 0f) drawGlassRim(shape, style, surface, press)
+        bloomShader?.let { drawClearBloom(shape, style, it, preset, response.drag.pressProgress) }
     },
     layerBlock = {
         val velocity = response.drag.velocity / 10f

@@ -8,9 +8,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import top.yukonga.miuix.kmp.basic.IconButton
 import com.ohmyfly.ui.settings.MirrorIcons
 import com.ohmyfly.ui.settings.SettingsIcons
@@ -33,10 +33,17 @@ internal fun CatalogSelectionToolbar(
     onDelete: () -> Unit,
     onSync: () -> Unit,
 ) {
-    // 材质只绘制在内容表面，FloatingToolbar 保留定位和默认外边距，避免双层背景遮住玻璃。
-    FloatingToolbar(color = Color.Transparent, shadowElevation = 0.dp, cornerRadius = AppCorners.Toolbar) {
-        Row(modifier.width(ChromeMetrics.SelectionWidth).heightIn(min = ChromeMetrics.SelectionHeight).padding(6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+    FloatingToolbar(
+        color = Color.Transparent,
+        shadowElevation = 0.dp,
+        outSidePadding = PaddingValues(0.dp),
+        cornerRadius = AppCorners.Toolbar,
+    ) {
+        Row(
+            modifier = modifier.wrapContentWidth().padding(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(ChromeMetrics.ActionGap),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             if (mode == CatalogSelectionMode.Nodes) {
                 SelectionToolbarAction(enabled, "测速", DriftIcons.Speed, onSpeed)
                 SelectionToolbarAction(enabled, "启停", MirrorIcons.Power, onToggle)
@@ -67,20 +74,30 @@ internal fun CatalogSelectionTopToolbar(
 }
 
 @Composable
-private fun RowScope.SelectionToolbarAction(
+private fun SelectionToolbarAction(
     enabled: Boolean,
     label: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit,
     tint: androidx.compose.ui.graphics.Color = MiuixTheme.colorScheme.onSurface,
 ) {
-    IconButton(onClick = hapticClick(onClick), enabled = enabled,
-        modifier = Modifier.weight(1f).heightIn(min = 48.dp).clip(AppCorners.shape(AppCorners.Control)),
-        backgroundColor = Color.Transparent, cornerRadius = AppCorners.Control) {
-        val color = if (enabled) tint else MiuixTheme.colorScheme.disabledOnSurface
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Icon(icon, null, Modifier.size(20.dp), tint = color)
-            Text(label, color = color, fontSize = 11.sp, maxLines = 1)
+    val color = if (enabled) tint else MiuixTheme.colorScheme.disabledOnSurface
+    IconButton(
+        onClick = hapticClick(onClick),
+        enabled = enabled,
+        modifier = Modifier.clip(AppCorners.shape(AppCorners.Toolbar)),
+        minWidth = ChromeMetrics.ToolbarButtonSize,
+        minHeight = ChromeMetrics.ToolbarButtonSize,
+        backgroundColor = Color.Transparent,
+        cornerRadius = AppCorners.Toolbar,
+    ) {
+        Row(
+            Modifier.padding(horizontal = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(ChromeMetrics.ActionGap),
+        ) {
+            Icon(icon, null, Modifier.size(ChromeMetrics.ToolbarIconSize), tint = color)
+            Text(label, color = color, fontSize = ChromeMetrics.ToolbarLabelSize, fontWeight = FontWeight.SemiBold, maxLines = 1)
         }
     }
 }
@@ -92,12 +109,15 @@ private fun SelectionTopAction(enabled: Boolean, label: String,
     val color = if (enabled) MiuixTheme.colorScheme.onSurface else MiuixTheme.colorScheme.disabledOnSurface
     IconButton(onClick = hapticClick(onClick), enabled = enabled,
         modifier = Modifier.clip(AppCorners.shape(AppCorners.Toolbar)),
-        minWidth = ChromeMetrics.ControlSize, minHeight = ChromeMetrics.ControlSize,
-        backgroundColor = Color.Transparent, cornerRadius = AppCorners.Toolbar) {
+        minWidth = ChromeMetrics.ToolbarButtonSize,
+        minHeight = ChromeMetrics.ToolbarButtonSize,
+        backgroundColor = Color.Transparent,
+        cornerRadius = AppCorners.Toolbar,
+    ) {
         Row(Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Icon(icon, null, Modifier.size(ChromeMetrics.IconSize), tint = color)
-            Text(label, color = color, fontSize = ChromeMetrics.ActionTextSize, maxLines = 1)
+            horizontalArrangement = Arrangement.spacedBy(ChromeMetrics.ActionGap)) {
+            Icon(icon, null, Modifier.size(ChromeMetrics.ToolbarIconSize), tint = color)
+            Text(label, color = color, fontSize = ChromeMetrics.ToolbarLabelSize, fontWeight = FontWeight.SemiBold, maxLines = 1)
         }
     }
 }

@@ -11,9 +11,12 @@ import top.yukonga.miuix.kmp.material.GlassMaterial
 
 class GlassMaterialTuningTest {
     @Test
-    fun defaultSettingsPreserveEachComponentMaterial() {
-        val material = sampleMaterial()
-        assertEquals(material, material.withSettings(GlassMaterialSettings()))
+    fun defaultSettingsMapToClearMaterial() {
+        val clear = sampleMaterial().withSettings(GlassMaterialSettings())
+        assertEquals(0.75.dp, clear.blurRadius)
+        assertEquals(Color.Transparent, clear.first.color)
+        assertEquals(0f, clear.second!!.color.alpha, 0f)
+        assertEquals(0f, clear.third!!.color.alpha, 0f)
     }
 
     @Test
@@ -23,7 +26,8 @@ class GlassMaterialTuningTest {
             GlassMaterialSettings(secondLayerAlpha = 0.34f, thirdLayerAlpha = 0.18f, blurRadiusDp = 8f),
         )
         assertEquals(8.dp, tuned.blurRadius)
-        assertEquals(material.first, tuned.first)
+        assertEquals(Color.Transparent, tuned.first.color)
+        assertEquals(GlassColorBlendMode.SrcOver, tuned.first.mode)
         // Compose sRGB 将 alpha 量化到 8 位；测试允许一个通道步长。
         assertEquals(0.34f, tuned.second!!.color.alpha, 1f / 255f)
         assertEquals(0.18f, tuned.third!!.color.alpha, 1f / 255f)

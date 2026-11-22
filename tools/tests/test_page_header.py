@@ -40,8 +40,8 @@ class PageHeaderTests(unittest.TestCase):
         self.assertIn('.glassPress(interaction, enabled && LocalAppMotionAllowed.current)', source)
         self.assertIn('indication = null', source)
         self.assertIn('role = Role.Button', source)
-        self.assertIn('Modifier.size(ChromeMetrics.IconSize).then(iconModifier)', source)
-        self.assertIn('Modifier.size(ChromeMetrics.ControlSize).then(surface()).indication(interaction, LocalIndication.current)', source)
+        self.assertIn('Modifier.size(ChromeMetrics.ToolbarIconSize).then(iconModifier)', source)
+        self.assertIn('Modifier.size(ChromeMetrics.ToolbarButtonSize).then(surface()).indication(interaction, LocalIndication.current)', source)
         self.assertIn('val surface = LocalHeaderSurface.current', source)
         self.assertNotIn('IconButton(', source)
 
@@ -100,12 +100,12 @@ class PageHeaderTests(unittest.TestCase):
         toolbar = (UI / 'CatalogActionToolbar.kt').read_text()
         selection = (UI / 'CatalogSelection.kt').read_text()
         tower = (UI / 'TowerCardActions.kt').read_text()
-        self.assertIn('Modifier.size(ChromeMetrics.ControlSize).clip(AppCorners.shape(AppCorners.Toolbar))', toolbar)
-        self.assertIn('.clip(AppCorners.shape(AppCorners.Control))', selection)
+        self.assertIn('Modifier.size(ChromeMetrics.ToolbarButtonSize).clip(AppCorners.shape(AppCorners.Toolbar))', toolbar)
+        self.assertIn('.clip(AppCorners.shape(AppCorners.Toolbar))', selection)
         self.assertIn('Modifier.clip(AppCorners.shape(AppCorners.Toolbar))', selection)
         self.assertIn('cornerRadius = AppCorners.Toolbar', selection)
-        self.assertIn('modifier.clip(AppCorners.shape(AppCorners.Control))', tower)
-        self.assertIn('modifier = modifier.clip(AppCorners.shape(AppCorners.Control))', tower)
+        self.assertIn('modifier.wrapContentWidth().clip(AppCorners.shape(AppCorners.Control))', tower)
+        self.assertIn('modifier.wrapContentWidth().clip(AppCorners.shape(AppCorners.Control))', tower)
 
     def test_safe_area_and_readability_without_resizing_the_content_viewport(self):
         source = (UI / 'DriftTopBar.kt').read_text()

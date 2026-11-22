@@ -42,8 +42,8 @@ class GlassAccessibilityTests(unittest.TestCase):
         appearance = (GLASS / 'GlassAppearance.kt').read_text()
         self.assertIn('if (glassEnabled) Modifier.layerBackdrop(backdrop) else Modifier', app)
         self.assertIn('settings.materialMode == MaterialMode.LiquidGlass', app)
-        self.assertIn('backdrop.takeIf { enabled }', chrome)
-        self.assertIn('Modifier.clip(NavigationBarShape).background(surface)', chrome)
+        self.assertIn('return if (enabled)', chrome)
+        self.assertIn('clip(NavigationBarShape).background(MiuixTheme.colorScheme.surfaceContainer)', chrome)
         self.assertIn('rememberGlassGravity(enabled && LocalAppMotionAllowed.current)', appearance)
 
     def test_settings_errors_are_associated_with_input_and_actions_can_wrap(self):

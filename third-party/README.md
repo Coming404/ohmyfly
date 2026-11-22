@@ -36,4 +36,8 @@ The port maps normalized Mihomo fields to upstream Go field names and scalar typ
 ## 鸣谢：Miuix 玻璃材质
 
 - [Miuix v0.9.5-beta03](https://github.com/compose-miuix-ui/miuix/tree/3526cfe2ca0779c5a2eab99af8737a96c9a8a885)，Copyright 2026, compose-miuix-ui contributors，Apache-2.0：玻璃组件、材质、Glass 图标与双端 shader。固定官方归档见 [miuix-material](miuix-material/README.md)，四个 `Diy_` 补丁与变更原因见 [材质适配](../ui-material/README.md)。
-- 原有 Melox/Kyant Backdrop 玻璃、透镜和自定义导航手势代码已移除；历史许可与 [Melox-NOTICE](Melox-NOTICE.md) 保留用于既有版本溯源。
+- Kyant Backdrop 运行库与全屏玻璃渲染已移除；历史导航的 capsule、inner lens 和按压手势按固定源码重新接入并适配 Miuix beta03/G2。Melox/Kyant 来源与文件级许可继续见 [Melox-NOTICE](Melox-NOTICE.md)。
+
+## 鸣谢：Glasmio Clear 材质参数
+
+- [NEORUAA/Glasmio](https://github.com/NEORUAA/Glasmio/tree/64b2d00746480c2136a77840cdb849c5505f8b6c/docs/native-materials.md)，固定提交 `64b2d00746480c2136a77840cdb849c5505f8b6c`，Apache-2.0：Clear 的0.75模糊、1.06饱和度、black/white 0.125/1.08、face matrix与maximum luma参数用作当前材质映射依据。项目保留 Miuix 双端 G2 Backdrop实现，不引入 Glasmio Android模块或其渲染器。

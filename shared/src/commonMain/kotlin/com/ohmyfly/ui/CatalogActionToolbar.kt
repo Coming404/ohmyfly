@@ -21,7 +21,7 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 控件统一为 44 dp 点击区，工具栏宽度由动作数量自然撑开。 */
+/** 操作按钮统一为40dp可见尺寸；宽度由动作数量自然撑开。 */
 @Composable
 internal fun CatalogActionToolbar(
     modifier: Modifier,
@@ -53,13 +53,14 @@ internal fun CatalogToolbarAction(
         IconButton(
             onClick = hapticClick(onClick),
             enabled = enabled,
-            modifier = Modifier.size(ChromeMetrics.ControlSize).clip(AppCorners.shape(AppCorners.Toolbar)),
-            backgroundColor = Color.Transparent, cornerRadius = AppCorners.Toolbar,
+            modifier = Modifier.size(ChromeMetrics.ToolbarButtonSize).clip(AppCorners.shape(AppCorners.Toolbar)),
+            backgroundColor = Color.Transparent,
+            cornerRadius = AppCorners.Toolbar,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                modifier = Modifier.size(ChromeMetrics.IconSize),
+                modifier = Modifier.size(ChromeMetrics.ToolbarIconSize),
                 tint = if (enabled) MiuixTheme.colorScheme.onSurface
                     else MiuixTheme.colorScheme.disabledOnSurface,
             )

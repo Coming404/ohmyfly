@@ -21,7 +21,7 @@ internal fun glassEffectsEnabled(
 /** 使用材质库提供的双端能力判断，不保留旧引擎探测。 */
 internal fun glassShaderSupported(): Boolean = isRuntimeShaderSupported()
 
-/** 保留已验证的双端传感器，只驱动官方材质的光照方向。 */
+/** Miuix 默认 Style 仅提供 Bloom 的方向光，Clear face 与模糊由 Clear pipeline 处理。 */
 @Composable
 internal fun rememberGlassStyle(enabled: Boolean, dark: Boolean): State<GlassStyle> {
     val gravity = rememberGlassGravity(enabled && LocalAppMotionAllowed.current)

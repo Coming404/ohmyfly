@@ -24,7 +24,7 @@ internal fun DriftNavigationBar(
     glassEnabled: Boolean,
     dark: Boolean,
 ) {
-    val material = navigationBarMaterial(dark)
+    val material = navigationBarMaterial()
     Box(
         modifier = Modifier.fillMaxWidth()
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))

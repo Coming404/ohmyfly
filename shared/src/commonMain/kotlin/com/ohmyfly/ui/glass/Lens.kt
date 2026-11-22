@@ -62,6 +62,7 @@ float lensCircleMap(float x) {
 half4 main(float2 coord) {
     float2 local = coord + offset;
     float sd = silhouetteSdf(local);
+    if (sd > 0.0) return content.eval(coord);
     if (-sd >= refractionHeight) return content.eval(coord);
     sd = min(sd, 0.0);
     float depth = clamp(-sd / refractionHeight, 0.0, 1.0);

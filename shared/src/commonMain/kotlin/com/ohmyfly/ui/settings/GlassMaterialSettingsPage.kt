@@ -21,9 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -42,7 +40,6 @@ import com.ohmyfly.ui.withSettings
 import com.ohmyfly.ui.glass.glassPreset
 import com.ohmyfly.ui.glass.glassSurface
 import com.ohmyfly.ui.glass.rememberGlassMaterialColors
-import com.ohmyfly.ui.glass.rememberGlassStyle
 import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.SliderDefaults
 import top.yukonga.miuix.kmp.basic.Text
@@ -59,7 +56,7 @@ internal fun GlassMaterialSettingsPage(
     padding: PaddingValues,
 ) {
     val appearance = LocalChromeAppearance.current
-    val referenceMaterial = navigationBarBaseMaterial(appearance.dark)
+    val referenceMaterial = navigationBarBaseMaterial()
     val currentSettings = settings.glassMaterial
     val initialValues = GlassMaterialSettings(
         secondLayerAlpha = currentSettings.secondLayerAlpha ?: referenceMaterial.second?.color?.alpha,
@@ -72,7 +69,7 @@ internal fun GlassMaterialSettingsPage(
         item {
             SettingsPageIntro(
                 SettingsPage.Glass.title,
-                "读取当前预览材质的实际值；未覆盖的参数保留各组件默认配方。",
+                "滑块以 Glasmio Clear 可映射配方为基准，修改后即时预览。",
             )
         }
         item { SettingsSectionTitle("实时预览", SettingsIcons.Material) }
@@ -168,17 +165,15 @@ private fun ClosedFloatingPointRange<Double>.toFloatRange(): ClosedFloatingPoint
 
 @Composable
 private fun GlassMaterialPreview(settings: GlassMaterialSettings, baseMaterial: GlassMaterial) {
-    val appearance = LocalChromeAppearance.current
+    val enabled = LocalChromeAppearance.current.enabled
     val previewBackground = MiuixTheme.colorScheme.surfaceContainerHigh
     val source = rememberLayerBackdrop {
         drawRect(previewBackground)
         drawContent()
     }
     val shape = NavigationBarShape
-    val style = rememberGlassStyle(appearance.enabled, appearance.dark)
     val material = baseMaterial.withSettings(settings)
     val materialColors = rememberGlassMaterialColors(material)
-    val surface = MiuixTheme.colorScheme.surface
     val fallback = Modifier.clip(shape).background(MiuixTheme.colorScheme.surfaceContainer)
     Box(Modifier.fillMaxWidth().height(164.dp).clip(com.ohmyfly.shapes.AppCorners.shape(com.ohmyfly.shapes.AppCorners.Content))) {
         Box(Modifier.fillMaxSize().layerBackdrop(source)) {
@@ -191,18 +186,13 @@ private fun GlassMaterialPreview(settings: GlassMaterialSettings, baseMaterial: 
         Box(
             Modifier.align(Alignment.Center).fillMaxWidth(0.88f).height(70.dp)
                 .then(
-                    if (appearance.enabled) {
-                        Modifier.dropShadow(
-                            shape,
-                            Shadow(radius = 10.dp, color = Color.Black, alpha = if (appearance.dark) 0.2f else 0.1f),
-                        ).glassSurface(
+                    if (enabled) {
+                        Modifier.glassSurface(
                             backdrop = source,
                             shape = shape,
                             preset = glassPreset(),
                             material = material,
                             colors = materialColors,
-                            surface = surface,
-                            style = style.value,
                         )
                     } else {
                         fallback
