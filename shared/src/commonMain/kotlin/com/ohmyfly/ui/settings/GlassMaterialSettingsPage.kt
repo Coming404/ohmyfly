@@ -166,8 +166,9 @@ private fun ClosedFloatingPointRange<Double>.toFloatRange(): ClosedFloatingPoint
 @Composable
 private fun GlassMaterialPreview(settings: GlassMaterialSettings, baseMaterial: GlassMaterial) {
     val appearance = LocalChromeAppearance.current
+    val previewBackground = MiuixTheme.colorScheme.surfaceContainerHigh
     val source = rememberLayerBackdrop {
-        drawRect(MiuixTheme.colorScheme.surfaceContainerHigh)
+        drawRect(previewBackground)
         drawContent()
     }
     val shape = NavigationBarShape
