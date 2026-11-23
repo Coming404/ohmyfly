@@ -55,7 +55,7 @@ internal fun InlineChromeIconButton(
             ) {
                 if (busy && LocalAppMotionAllowed.current) CircularProgressIndicator(
                     size = 18.dp, modifier = Modifier.semantics { contentDescription = label },
-                ) else Icon(icon, label, Modifier.size(ChromeMetrics.IconSize),
+                ) else Icon(icon, label, Modifier.size(ChromeMetrics.ToolbarIconSize),
                     tint = if (enabled) tint else MiuixTheme.colorScheme.disabledOnSurface)
             }
         }

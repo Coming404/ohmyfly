@@ -130,7 +130,7 @@ internal fun GlassNavigationSurface(
                 }
             }
         }
-        GlassNavigationSelection(response, focusedIndex, enabled, combined, capsuleHighlight, dark)
+        GlassNavigationSelection(response, focusedIndex, enabled, combined, preset, capsuleHighlight, dark)
     }
 }
 
@@ -140,6 +140,7 @@ private fun BoxScope.GlassNavigationSelection(
     focusedIndex: Int,
     enabled: Boolean,
     backdrop: Backdrop,
+    preset: GlassPreset,
     highlight: State<Highlight>,
     dark: Boolean,
 ) {
