@@ -39,6 +39,8 @@ import com.ohmyfly.ui.hapticChange
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.Platform
+import top.yukonga.miuix.kmp.utils.platform
 
 /** The recording copy is drawing only: no selectable, pointer input or focus targets. */
 @Composable
@@ -50,6 +52,7 @@ internal fun RowScope.GlassNavigationTabs(
     sourceScale: () -> Float = { 1f },
 ) {
     val select = if (recording) onSelect else hapticChange(onSelect)
+    val minimumHeight = if (platform() == Platform.IOS) com.ohmyfly.ui.ChromeMetrics.NavigationHeight else 64.dp
     AppDestination.entries.forEachIndexed { index, item ->
         val selected = index == selectedIndex
         val interaction = remember { MutableInteractionSource() }
@@ -72,7 +75,7 @@ internal fun RowScope.GlassNavigationTabs(
                 indication = null,
             )
         Column(
-            modifier = Modifier.weight(1f).heightIn(min = 64.dp)
+            modifier = Modifier.weight(1f).heightIn(min = minimumHeight)
                 .then(input)
                 .padding(horizontal = 4.dp, vertical = 8.dp)
                 .graphicsLayer { scaleX = sourceScale(); scaleY = scaleX },

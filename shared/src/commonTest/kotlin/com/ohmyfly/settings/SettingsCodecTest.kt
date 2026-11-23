@@ -24,7 +24,12 @@ class SettingsCodecTest {
             themeMode = ThemeMode.Dark,
             materialMode = MaterialMode.Expressive,
             accentPalette = AccentPalette.Miyazaki,
-            glassMaterial = GlassMaterialSettings(secondLayerAlpha = 0.72f, thirdLayerAlpha = 0.24f, blurRadiusDp = 24.5f),
+            glassMaterial = GlassMaterialSettings(
+                secondLayerAlpha = 0.72f,
+                thirdLayerAlpha = 0.24f,
+                blurRadiusDp = 24.5f,
+                convexLensEnabled = true,
+            ),
             reduceTransparency = true,
             reduceMotion = true,
             speed = SpeedSettings(

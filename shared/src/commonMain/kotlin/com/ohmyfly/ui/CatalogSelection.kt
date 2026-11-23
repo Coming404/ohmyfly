@@ -3,7 +3,9 @@ package com.ohmyfly.ui
 
 import com.ohmyfly.shapes.AppCorners
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -40,7 +42,9 @@ internal fun CatalogSelectionToolbar(
         cornerRadius = AppCorners.Toolbar,
     ) {
         Row(
-            modifier = modifier.wrapContentWidth().padding(2.dp),
+            modifier = modifier.widthIn(max = 360.dp).heightIn(min = ChromeMetrics.TopBarHeight)
+                .horizontalScroll(rememberScrollState())
+                .padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(ChromeMetrics.ActionGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {

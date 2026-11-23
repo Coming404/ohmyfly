@@ -32,6 +32,11 @@ class GlassPipelineTests(unittest.TestCase):
         self.assertEqual(1, effects.count('effects = { glassEffects('))
         self.assertIn('onDrawSurface = { drawRect(surface.copy(alpha = preset.surfaceAlpha)) }', effects)
         self.assertNotIn('textureBlur(', effects)
+        catalog = (ROOT / 'gradle/libs.versions.toml').read_text()
+        dependencies = (ROOT / 'shared/build.gradle.kts').read_text()
+        self.assertNotIn('kyant-backdrop', catalog)
+        self.assertNotIn('libs.kyant.backdrop', dependencies)
+        self.assertIn('top.yukonga.miuix.kmp.blur.drawBackdrop', effects)
 
     def test_press_does_not_add_a_uniform_white_plus_layer(self):
         highlight = (GLASS / 'InteractiveHighlight.kt').read_text()
@@ -63,8 +68,8 @@ class GlassPipelineTests(unittest.TestCase):
         self.assertTrue((ROOT / 'third-party/licenses/glass-Apache-2.0.txt').is_file())
         self.assertIn('49ee06a', combined + (GLASS / 'GlassEffects.kt').read_text())
         for file in GLASS.glob('*.kt'):
-            if file.name in {'GlassPresetAnimation.kt', 'ChromeBackdrop.kt', 'LiquidSurface.kt'}:
-                continue  # Original application policy and public API integration.
+            if file.name in {'GlassPresetAnimation.kt', 'GlassPreset.kt'}:
+                continue  # 原生配置与动画策略，不承载上游移植代码。
             header = file.read_text()[:800]
             self.assertTrue('SPDX-License-Identifier' in header or 'Derived from' in header, file.name)
 

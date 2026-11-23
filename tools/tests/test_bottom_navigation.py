@@ -25,8 +25,12 @@ class BottomNavigationTests(unittest.TestCase):
         self.assertIn('destination = next', app)
         self.assertNotIn('onDestination = { destination = it }', app)
         self.assertRegex(app, r'if\s*\(!settingsChild\s*&&\s*selectionMode\s*==\s*null\s*&&\s*!imeVisible\)\s*DriftNavigationBar\(')
-        self.assertIn('materialMode = settings.materialMode', app)
-        self.assertNotIn('FloatingNavigationBarItem(', surface)
+        self.assertIn('backdrop = backdrop', nav)
+        self.assertIn('rememberLayerBackdrop()', surface)
+        self.assertNotIn('ChromeBackdrop', surface)
+        self.assertNotIn('liquidCapsule', surface)
+        self.assertFalse((GLASS / 'ChromeBackdrop.kt').exists())
+        self.assertFalse((GLASS / 'LiquidSurface.kt').exists())
         self.assertNotIn('FloatingNavigationBar(', surface)
 
     def test_labels_are_always_below_existing_icons(self):
@@ -49,7 +53,8 @@ class BottomNavigationTests(unittest.TestCase):
         tabs = (GLASS / 'GlassNavigationTabs.kt').read_text()
         surface = (GLASS / 'GlassNavigationSurface.kt').read_text()
         self.assertIn('Modifier.weight(1f)', tabs)
-        self.assertIn('heightIn(min = 64.dp)', tabs)
+        self.assertIn('ChromeMetrics.NavigationHeight else 64.dp', tabs)
+        self.assertIn('heightIn(min = minimumHeight)', tabs)
         self.assertNotIn('.height(64.dp)', tabs)
         self.assertIn('.selectableGroup()', surface)
         self.assertIn('.selectable(', tabs)
@@ -68,14 +73,25 @@ class BottomNavigationTests(unittest.TestCase):
 
     def test_insets_are_applied_once_outside_the_material(self):
         nav = (UI / 'DriftNavigationBar.kt').read_text()
+        self.assertIn('val NavigationHeight = 62.dp', (UI / 'ChromeMetrics.kt').read_text())
+        self.assertIn('val NavigationBottomInset = 21.dp', (UI / 'ChromeMetrics.kt').read_text())
+        self.assertIn('val NavigationIndicatorHeight = 56.dp', (UI / 'ChromeMetrics.kt').read_text())
+        self.assertIn('platform() == Platform.IOS', nav)
+        self.assertIn('padding(bottom = ChromeMetrics.NavigationBottomInset)', nav)
+        self.assertIn('WindowInsetsSides.Bottom', nav)
         app = (COMMON / 'App.kt').read_text()
-        self.assertIn('WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)', nav)
-        self.assertEqual(1, nav.count('.windowInsetsPadding('))
-        self.assertIn('padding(start = 24.dp, end = 24.dp, bottom = 8.dp)', nav)
+        self.assertIn('WindowInsetsSides.Horizontal', nav)
+        self.assertIn('WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)', nav)
+        self.assertEqual(2, nav.count('.windowInsetsPadding('))
+        self.assertIn('platform() == Platform.IOS', nav)
+        self.assertIn('padding(bottom = ChromeMetrics.NavigationBottomInset)', nav)
+        self.assertIn('Modifier.padding(bottom = ChromeMetrics.NavigationBottomInset)', nav)
+        self.assertIn('.padding(bottom = 8.dp)', nav)
+        self.assertIn('padding(horizontal = 24.dp)', nav)
         self.assertIn('Modifier.widthIn(max = 420.dp).fillMaxWidth()', nav)
         self.assertLess(nav.index('.windowInsetsPadding('), nav.index('GlassNavigationSurface('))
         self.assertIn('.consumeWindowInsets(padding)', app)
-        self.assertIn('if (glassEnabled) recording.record else Modifier', app)
+        self.assertIn('if (glassEnabled) Modifier.layerBackdrop(backdrop) else Modifier', app)
         self.assertIn('glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)', app)
 
     def test_tabs_and_capsule_share_one_smooth_boundary(self):
@@ -91,11 +107,15 @@ class BottomNavigationTests(unittest.TestCase):
         self.assertIn('p - clamp(p, -extent, extent)', shape)
         self.assertIn('glassSurface(', surface)
         self.assertIn('glassNavigationCapsule(', surface)
-        layers = (GLASS / 'ChromeBackdrop.kt').read_text()
-        self.assertIn('rememberTabRecording(backdrop)', surface)
-        self.assertIn('combineLiquid(page.source, tabs)', layers)
-        self.assertIn('rememberCombinedBackdrop(page.source, tabs)', layers)
-        self.assertIn('.then(tabs.record)', surface)
+        selection = surface.split('private fun BoxScope.GlassNavigationSelection(', 1)[1].split(
+            '/** The combined source', 1,
+        )[0]
+        self.assertIn('if (enabled) capsule.glassNavigationCapsule(', selection)
+        self.assertNotIn('response.drag.pressProgress > 0f) {\n            Box(capsule.glassNavigationCapsule', selection)
+        self.assertIn('rememberCombinedBackdrop(backdrop, tabsBackdrop)', surface)
+        self.assertIn('.layerBackdrop(tabsBackdrop)', surface)
+        self.assertNotIn('liquidCapsule(', surface)
+        self.assertNotIn('ChromeBackdrop', surface)
         self.assertIn('rememberGlassHighlight(', surface)
         self.assertIn('rememberGlassNavigationGesture(', surface)
         self.assertIn('InteractiveHighlight', ch + (GLASS / 'InteractiveHighlight.kt').read_text())
@@ -103,7 +123,7 @@ class BottomNavigationTests(unittest.TestCase):
         self.assertIn('surface.createOutline(size, layoutDirection, density)', shape)
         self.assertIn('private val ChromeShape = NavigationBarShape', ch)
         self.assertIn('fun tile(', shape)
-        for shared in ('rememberAnimatedGlassPreset(materialMode, dark, enabled, motion)', 'glassSurface(', 'backdrop.surfaceShape(shape)'):
+        for shared in ('rememberAnimatedGlassPreset(materialMode, dark, enabled, motion)', 'glassSurface(', 'val outline = shape'):
             with self.subTest(shared=shared):
                 self.assertIn(shared, ch)
         self.assertNotIn('textureBlur(', ch)

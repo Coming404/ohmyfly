@@ -32,9 +32,28 @@ class MaterialSettingsTests(unittest.TestCase):
         self.assertIn('stringPreferencesKey("ui.materialMode")', codec)
         self.assertIn('target[materialMode] = settings.materialMode.name', codec)
         self.assertIn('preferences.readOrNull(materialMode).toEnumOr(defaults.materialMode)', codec)
+        self.assertIn('booleanPreferencesKey("ui.glass.convexLensEnabled")', codec)
+        self.assertIn('target[glassConvexLensEnabled] = settings.glassMaterial.convexLensEnabled', codec)
+        self.assertIn('preferences.read(glassConvexLensEnabled, false)', codec)
         repository = (MAIN / 'settings/SettingsRepository.kt').read_text()
         self.assertIn('dataStore.edit { preferences ->', repository)
         self.assertIn('SettingsCodec.write(preferences, next)', repository)
+
+    def test_glass_preview_surface_is_outside_its_recorded_backdrop(self):
+        page = (MAIN / 'ui/settings/GlassMaterialSettingsPage.kt').read_text()
+        preview = page.split('private fun GlassMaterialPreview(', 1)[1].split(
+            '@Composable\nprivate fun PreviewNavigationItem(', 1,
+        )[0]
+        record_layer = preview.index('Box(Modifier.fillMaxSize().layerBackdrop(backdrop))')
+        glass_materials = [index for index in range(len(preview)) if preview.startswith('.chromeMaterial(', index)]
+        self.assertEqual(2, len(glass_materials))
+        self.assertTrue(all(record_layer < index for index in glass_materials))
+        self.assertIn('Brush.linearGradient(', preview)
+        self.assertIn('CatalogToolbarAction("搜索"', preview)
+        self.assertIn('CatalogToolbarAction("设置"', preview)
+        self.assertIn('PreviewNavigationItem(', preview)
+        self.assertIn('convexLensEnabled = currentSettings.convexLensEnabled', page)
+        self.assertIn('title = "凸透镜折射"', page)
 
     def test_reduced_transparency_keeps_existing_fallback(self):
         app = (MAIN / 'App.kt').read_text()

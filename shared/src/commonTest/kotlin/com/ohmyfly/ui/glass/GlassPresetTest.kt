@@ -8,16 +8,17 @@ import kotlin.test.assertTrue
 
 class GlassPresetTest {
     @Test
-    fun liquidKeepsItsOpticsWithClearerThemeOpacity() {
+    fun liquidUsesCentralizedClearParameters() {
         for (dark in listOf(false, true)) {
             val preset = glassPreset(MaterialMode.LiquidGlass, dark)
-            assertEquals(4f, preset.blur)
-            assertEquals(1.5f, preset.saturation)
-            assertEquals(if (dark) 0.10f else 0.30f, preset.surfaceAlpha)
-            assertEquals(24f, preset.lensHeight)
-            assertEquals(24f, preset.lensAmount)
-            assertEquals(1f, preset.highlightAlpha)
-            assertEquals(0.25f, preset.highlightBlur)
+            assertEquals(LiquidGlassParameters.blurRadiusDp, preset.blur)
+            assertEquals(LiquidGlassParameters.saturation, preset.saturation)
+            assertEquals(LiquidGlassParameters.brightness, preset.brightness)
+            assertEquals(LiquidGlassParameters.fillAlpha, preset.surfaceAlpha)
+            assertEquals(LiquidGlassParameters.lensHeightDp, preset.lensHeight)
+            assertEquals(LiquidGlassParameters.lensAmountDp, preset.lensAmount)
+            assertEquals(LiquidGlassParameters.highlightAlpha, preset.highlightAlpha)
+            assertEquals(LiquidGlassParameters.highlightBlurDp, preset.highlightBlur)
             assertTrue(preset.liquidResponse)
         }
     }

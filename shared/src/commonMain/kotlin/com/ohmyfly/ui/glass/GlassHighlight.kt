@@ -42,7 +42,7 @@ internal fun rememberGlassHighlight(
     enabled: Boolean,
     motionAllowed: Boolean,
     preset: GlassPreset,
-    extraDegrees: Float = -45f,
+    extraDegrees: Float = LiquidGlassParameters.panelLightOffsetDegrees,
 ): State<Highlight> {
     val gravity = rememberGlassGravity(enabled && motionAllowed && preset.highlightAlpha > 0f)
     // Neither gravity nor the angle is read by composition/layout. Quantization suppresses draw invalidations.
@@ -50,15 +50,29 @@ internal fun rememberGlassHighlight(
         derivedStateOf {
             val angle = quantizedGravityAngle(gravity.value) + (extraDegrees * PI / 180.0).toFloat()
             Highlight(
-                width = 1.dp,
+                width = LiquidGlassParameters.highlightWidthDp.dp,
                 alpha = preset.highlightAlpha,
                 style = SmoothBloomStroke(BloomStroke(
-                    color = Color.White.copy(alpha = 0.12f),
+                    color = Color.White.copy(alpha = LiquidGlassParameters.highlightColorAlpha),
                     innerBlurRadius = preset.highlightBlur.dp,
                     // Sensor coordinates are y-up; shader/light positions use Compose y-down.
-                    primaryLight = LightSource(LightPosition(0.5f + cos(angle), 0.7f - sin(angle), -0.05f), intensity = 1f),
-                    secondaryLight = LightSource(LightPosition(0.5f, 0.8f, -0.5f), intensity = 0.4f),
-                    dualPeak = true,
+                    primaryLight = LightSource(
+                        LightPosition(
+                            LiquidGlassParameters.primaryLightX + cos(angle),
+                            LiquidGlassParameters.primaryLightY - sin(angle),
+                            LiquidGlassParameters.primaryLightZ,
+                        ),
+                        intensity = LiquidGlassParameters.primaryLightIntensity,
+                    ),
+                    secondaryLight = LightSource(
+                        LightPosition(
+                            LiquidGlassParameters.secondaryLightX,
+                            LiquidGlassParameters.secondaryLightY,
+                            LiquidGlassParameters.secondaryLightZ,
+                        ),
+                        intensity = LiquidGlassParameters.secondaryLightIntensity,
+                    ),
+                    dualPeak = LiquidGlassParameters.dualPeakHighlight,
                 )),
             )
         }

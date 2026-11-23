@@ -9,4 +9,5 @@ internal fun GlassPreset.withSettings(settings: GlassMaterialSettings): GlassPre
     surfaceAlpha = settings.secondLayerAlpha ?: surfaceAlpha,
     highlightAlpha = settings.thirdLayerAlpha ?: highlightAlpha,
     blur = settings.blurRadiusDp ?: blur,
+    convexLensEnabled = settings.convexLensEnabled,
 )

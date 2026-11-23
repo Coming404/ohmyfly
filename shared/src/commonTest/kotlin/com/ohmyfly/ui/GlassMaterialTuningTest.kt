@@ -10,11 +10,17 @@ class GlassMaterialTuningTest {
     fun settingsMapToSurfaceHighlightAndBlurParameters() {
         val base = GlassPreset(4f, 1.5f, 0f, 0.3f, 24f, 24f, 1f, 0.25f, true)
         val tuned = base.withSettings(
-            GlassMaterialSettings(secondLayerAlpha = 0.34f, thirdLayerAlpha = 0.18f, blurRadiusDp = 8f),
+            GlassMaterialSettings(
+                secondLayerAlpha = 0.34f,
+                thirdLayerAlpha = 0.18f,
+                blurRadiusDp = 8f,
+                convexLensEnabled = true,
+            ),
         )
         assertEquals(8f, tuned.blur)
         assertEquals(0.34f, tuned.surfaceAlpha)
         assertEquals(0.18f, tuned.highlightAlpha)
+        assertEquals(true, tuned.convexLensEnabled)
         assertEquals(base.lensHeight, tuned.lensHeight)
         assertEquals(base.lensAmount, tuned.lensAmount)
     }

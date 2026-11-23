@@ -6,13 +6,19 @@ import androidx.compose.ui.unit.sp
 
 internal object ChromeMetrics {
     val ControlSize = 44.dp
-    val ToolbarButtonSize = 40.dp
-    val ToolbarIconSize = 18.dp
-    val ToolbarLabelSize = 12.sp
-    val IconSize = 20.dp
-    val TitleSize = 17.sp
-    val ActionGap = 4.dp
+    val ToolbarButtonSize = 44.dp
+    val ToolbarIconSize = 20.dp
+    val ToolbarLabelSize = 13.sp
+    val TitleSize = 16.sp
+    val ActionGap = 6.dp
     val TitleInset = 14.dp
+    val TopBarHeight = 54.dp
+    val TitleCapsuleHeight = ControlSize
+    val NavigationHeight = 62.dp
+    val NavigationHeight = 62.dp
+    val NavigationBottomInset = 21.dp
+    val NavigationIndicatorHeight = 56.dp
+    val NavigationIndicatorInset = 3.dp
     val OutlineWidth = 0.5.dp
     const val OutlineAlpha = 0.10f
 }

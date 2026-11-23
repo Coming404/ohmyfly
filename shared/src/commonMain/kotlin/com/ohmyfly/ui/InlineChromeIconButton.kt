@@ -15,7 +15,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ohmyfly.settings.GlassMaterialSettings
 import com.ohmyfly.settings.MaterialMode
-import com.ohmyfly.ui.glass.rememberChromeRecording
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -43,13 +44,13 @@ internal fun InlineChromeIconButton(
     tint: Color = MiuixTheme.colorScheme.onSurface,
 ) {
     val style = LocalChromeAppearance.current
-    val recording = rememberChromeRecording(style.mode) { drawRect(background) }
+    val backdrop = rememberLayerBackdrop { drawRect(background) }
     TooltipBox(text = label) {
         Box {
-            Box(Modifier.matchParentSize().then(if (style.enabled) recording.record else Modifier))
+            Box(Modifier.matchParentSize().then(if (style.enabled) Modifier.layerBackdrop(backdrop) else Modifier))
             IconButton(onClick = hapticClick(onClick), enabled = enabled,
                 modifier = Modifier.size(ChromeMetrics.ControlSize)
-                    .chromeMaterial(recording.backdrop, style.enabled, style.dark, style.mode),
+                    .chromeMaterial(backdrop, style.enabled, style.dark, style.mode),
                 backgroundColor = Color.Transparent, cornerRadius = AppCorners.Toolbar,
             ) {
                 if (busy && LocalAppMotionAllowed.current) CircularProgressIndicator(

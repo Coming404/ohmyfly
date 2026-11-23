@@ -42,7 +42,7 @@ import com.ohmyfly.settings.MaterialMode
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TooltipBox
-import com.ohmyfly.ui.glass.ChromeBackdrop
+import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -52,7 +52,7 @@ private val LocalHeaderSurface = staticCompositionLocalOf<@Composable () -> Modi
 @Composable
 internal fun DriftTopBar(
     title: String,
-    backdrop: ChromeBackdrop,
+    backdrop: Backdrop,
     glassEnabled: Boolean,
     dark: Boolean,
     materialMode: MaterialMode,
@@ -77,8 +77,8 @@ internal fun DriftTopBar(
         Row(
             // 安全区只用于控件定位，顶部左右两侧不绘制额外遮挡。
             modifier = Modifier.fillMaxWidth().then(safeArea)
-                .padding(horizontal = 16.dp, vertical = 4.dp)
-                .heightIn(min = 44.dp),
+                .padding(horizontal = 16.dp, vertical = 5.dp)
+                .heightIn(min = ChromeMetrics.ControlSize),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -91,8 +91,8 @@ internal fun DriftTopBar(
                 )
             }
             if (title.isNotEmpty()) Box(Modifier.weight(1f)) {
-                if (titleCapsule || titleCount != null) Row(Modifier.then(surface()).heightIn(min = ChromeMetrics.ControlSize)
-                    .padding(horizontal = ChromeMetrics.TitleInset, vertical = 8.dp).semantics { heading() },
+                if (titleCapsule || titleCount != null) Row(Modifier.then(surface()).heightIn(min = ChromeMetrics.TitleCapsuleHeight)
+                    .padding(horizontal = ChromeMetrics.TitleInset).semantics { heading() },
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(title, Modifier.weight(1f, fill = false), fontSize = ChromeMetrics.TitleSize,
                         fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -164,7 +164,7 @@ internal fun HeaderTextAction(
         contentAlignment = Alignment.Center,
     ) {
         Row(Modifier.heightIn(min = ChromeMetrics.ToolbarButtonSize).then(surface()).indication(interaction, LocalIndication.current)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ChromeMetrics.ActionGap)) {
             Icon(icon, label, Modifier.size(ChromeMetrics.ToolbarIconSize), tint = if (enabled) tint else tint.copy(alpha = 0.38f))
             Text(label, color = if (enabled) tint else tint.copy(alpha = 0.38f),

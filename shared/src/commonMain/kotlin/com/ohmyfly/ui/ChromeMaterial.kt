@@ -13,15 +13,15 @@ import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.unit.dp
 import com.ohmyfly.settings.GlassMaterialSettings
 import com.ohmyfly.settings.MaterialMode
+import com.ohmyfly.ui.glass.rememberGlassHighlight
 import com.ohmyfly.ui.glass.GlassShape
 import com.ohmyfly.ui.glass.InteractiveHighlight
 import com.ohmyfly.ui.glass.rememberAnimatedGlassPreset
 import com.ohmyfly.ui.glass.glassSurface
 import com.ohmyfly.ui.glass.glassTint
-import com.ohmyfly.ui.glass.surfaceShape
 import androidx.compose.ui.graphics.graphicsLayer
 import com.ohmyfly.ui.LocalAppMotionAllowed
-import com.ohmyfly.ui.glass.ChromeBackdrop
+import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val ChromeShape = NavigationBarShape
@@ -29,7 +29,7 @@ private val ChromeShape = NavigationBarShape
 /** The same preset/effect policy as the navigation shell, on actual back/action surfaces. */
 @Composable
 internal fun Modifier.chromeMaterial(
-    backdrop: ChromeBackdrop,
+    backdrop: Backdrop,
     enabled: Boolean,
     dark: Boolean,
     materialMode: MaterialMode,
@@ -41,7 +41,8 @@ internal fun Modifier.chromeMaterial(
     val motion = LocalAppMotionAllowed.current
     val preset = rememberAnimatedGlassPreset(materialMode, dark, enabled, motion)
         .withSettings(settings)
-    val outline = remember(backdrop is ChromeBackdrop.Liquid, shape) { backdrop.surfaceShape(shape) }
+    val outline = shape
+    val highlight = rememberGlassHighlight(enabled, motion, preset)
     val spot = if (enabled && preset.liquidResponse && motion) {
         val scope = rememberCoroutineScope()
         remember(scope) { InteractiveHighlight(scope) }
@@ -55,7 +56,7 @@ internal fun Modifier.chromeMaterial(
         .clip(outline)
     val material = if (enabled) {
         base.glassSurface(
-            backdrop, shape, preset, glassTint(surface, dark), motion,
+            backdrop, shape, preset, glassTint(surface, dark), highlight,
             pressProgress = { spot?.pressProgress ?: 0f },
         ).then(spot?.modifier ?: Modifier).then(spot?.trackingGestureModifier ?: Modifier)
     } else {

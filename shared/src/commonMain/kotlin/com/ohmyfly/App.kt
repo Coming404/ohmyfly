@@ -35,8 +35,8 @@ import com.ohmyfly.ui.glass.glassPreset
 import com.ohmyfly.ui.glass.glassShaderSupported
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.*
-import com.ohmyfly.ui.glass.rememberChromeRecording
 import top.yukonga.miuix.kmp.blur.ProgressiveBlur
+import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.blur.drawBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.progressiveBlur
@@ -292,7 +292,7 @@ private fun AppFrame(
     val background = LocalAppSurfaceColors.current.page
     val reduceTransparency = settings.reduceTransparency
     val systemReduceTransparency by rememberSystemReduceTransparency()
-    val recording = rememberChromeRecording(settings.materialMode) {
+    val backdrop = rememberLayerBackdrop {
         drawRect(background)
         drawContent()
     }
@@ -300,7 +300,6 @@ private fun AppFrame(
         drawRect(background)
         drawContent()
     }
-    val backdrop = recording.backdrop
     val glassEnabled = settings.materialMode == MaterialMode.LiquidGlass &&
         glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)
     val topBlurEnabled = !reduceTransparency && !systemReduceTransparency && glassShaderSupported()
@@ -360,7 +359,7 @@ private fun AppFrame(
     ) { padding ->
         Box(
             modifier = Modifier.fillMaxSize().consumeWindowInsets(padding)
-                .then(if (glassEnabled) recording.record else Modifier)
+                .then(if (glassEnabled) Modifier.layerBackdrop(backdrop) else Modifier)
                 .layerBackdrop(topBlurBackdrop)
                 .background(background),
             contentAlignment = Alignment.TopCenter,

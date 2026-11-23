@@ -8,7 +8,7 @@ import com.ohmyfly.settings.SettingsSession
 import com.ohmyfly.ui.*
 import com.ohmyfly.ui.settings.MirrorIcons
 import com.ohmyfly.ui.settings.SettingsIcons
-import com.ohmyfly.ui.glass.ChromeBackdrop
+import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 只有顶栏固定；塔台总控属于列表内容。 */
@@ -18,7 +18,7 @@ internal fun AppTopBar(
     mirrorPage: Boolean, mirrorAdd: (() -> Unit)?, logsPage: Boolean, logClear: (() -> Unit)?,
     selectedIds: Set<String>, selectedTowerIds: Set<Long>, selectionMode: CatalogSelectionMode?,
     selectionAllLabel: String, selectingAll: Boolean, onCancelSelection: () -> Unit, onSelectAll: () -> Unit,
-    backdrop: ChromeBackdrop, glassEnabled: Boolean, dark: Boolean, settings: AppSettings,
+    backdrop: Backdrop, glassEnabled: Boolean, dark: Boolean, settings: AppSettings,
     settingsSession: SettingsSession, onCatalogSearch: () -> Unit, onTowerAdd: () -> Unit,
     onFlightFilter: () -> Unit, towerCount: Long,
 ) {

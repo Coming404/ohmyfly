@@ -14,11 +14,19 @@ import top.yukonga.miuix.kmp.blur.colorControls
 import top.yukonga.miuix.kmp.blur.drawBackdrop
 import top.yukonga.miuix.kmp.blur.highlight.Highlight
 
-internal fun BackdropEffectScope.glassEffects(preset: GlassPreset) {
-    padding = maxOf(padding, preset.lensAmount.dp.toPx())
+internal fun BackdropEffectScope.glassEffects(preset: GlassPreset, pressProgress: Float = 0f) {
+    val press = if (preset.liquidResponse) pressProgress.coerceIn(0f, 1f) else 0f
+    // Melox reserves the full press/lens reach before blurring. Miuix blur(4dp) already
+    // supplies sigma=4dp*0.45 on each platform; do not reuse Android's BlurEffect conversion on iOS.
+    padding = maxOf(padding, preset.samplingReachDp.dp.toPx())
     colorControls(brightness = preset.brightness, saturation = preset.saturation)
     blur(preset.blur.dp.toPx())
-    lens(preset.lensHeight.dp.toPx(), preset.lensAmount.dp.toPx(), depthEffect = false, chromaticAberration = 0f)
+    lens(
+        (preset.lensHeight + preset.pressLensHeight * press).dp.toPx(),
+        (preset.lensAmount + preset.pressLensAmount * press).dp.toPx(),
+        depthEffect = preset.convexLensEnabled || (LiquidGlassParameters.depthEffectOnPress && press > 0f),
+        chromaticAberration = preset.chromaticAberration * press,
+    )
 }
 
 /** Light glass is tinted white so it can only lift content; Miuix light surface (F7F7F7) grays white cards. */
@@ -31,10 +39,11 @@ internal fun Modifier.glassSurface(
     surface: Color,
     highlight: State<Highlight>,
     layerBlock: (GraphicsLayerScope.() -> Unit)? = null,
+    pressProgress: () -> Float = { 0f },
 ): Modifier = drawBackdrop(
     backdrop = backdrop,
     shape = { shape },
-    effects = { glassEffects(preset) },
+    effects = { glassEffects(preset, pressProgress()) },
     highlight = { highlight.value },
     layerBlock = layerBlock,
     onDrawSurface = { drawRect(surface.copy(alpha = preset.surfaceAlpha)) },

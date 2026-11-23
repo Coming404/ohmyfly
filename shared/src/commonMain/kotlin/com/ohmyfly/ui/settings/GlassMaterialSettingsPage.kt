@@ -7,11 +7,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,13 +22,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.settings.AppSettings
+import com.ohmyfly.ui.CatalogToolbarAction
+import top.yukonga.miuix.kmp.basic.Icon
 import com.ohmyfly.settings.GlassMaterialSettings
 import com.ohmyfly.settings.MaterialMode
 import com.ohmyfly.settings.SettingsLimits
@@ -39,7 +44,8 @@ import com.ohmyfly.ui.chromeMaterial
 import com.ohmyfly.ui.hapticClick
 import com.ohmyfly.ui.glass.glassPreset
 import com.ohmyfly.ui.glass.glassShaderSupported
-import com.ohmyfly.ui.glass.rememberChromeRecording
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.SliderDefaults
 import top.yukonga.miuix.kmp.basic.Text
@@ -59,6 +65,7 @@ internal fun GlassMaterialSettingsPage(
         secondLayerAlpha = currentSettings.secondLayerAlpha ?: referencePreset.surfaceAlpha,
         thirdLayerAlpha = currentSettings.thirdLayerAlpha ?: referencePreset.highlightAlpha,
         blurRadiusDp = currentSettings.blurRadiusDp ?: referencePreset.blur,
+        convexLensEnabled = currentSettings.convexLensEnabled,
     )
     var previewSettings by remember(currentSettings, referencePreset) { mutableStateOf(initialValues) }
     val previewAvailable = glassShaderSupported() && !settings.reduceTransparency &&
@@ -76,7 +83,6 @@ internal fun GlassMaterialSettingsPage(
                 Column(Modifier.fillMaxWidth().padding(12.dp)) {
                     GlassMaterialPreview(
                         settings = previewSettings,
-                        preset = referencePreset,
                         dark = appearance.dark,
                         enabled = previewAvailable,
                     )
@@ -85,6 +91,22 @@ internal fun GlassMaterialSettingsPage(
         }
         if (!previewAvailable) item { SettingsHint("当前玻璃渲染已停用，调节值会在恢复后生效。") }
         item { SettingsSectionTitle("调节", SettingsIcons.Tune) }
+        item {
+            SettingsCard {
+                ToggleSetting(
+                    title = "凸透镜折射",
+                    summary = "增强静止玻璃的立体折射感",
+                    value = previewSettings.convexLensEnabled,
+                    leadingIcon = SettingsIcons.Material,
+                    onChange = { enabled ->
+                        previewSettings = previewSettings.copy(convexLensEnabled = enabled)
+                        onChange("凸透镜折射") {
+                            it.copy(glassMaterial = it.glassMaterial.copy(convexLensEnabled = enabled))
+                        }
+                    },
+                )
+            }
+        }
         item {
             SettingsCard {
                 Column(
@@ -169,57 +191,89 @@ private fun ClosedFloatingPointRange<Double>.toFloatRange(): ClosedFloatingPoint
 @Composable
 private fun GlassMaterialPreview(
     settings: GlassMaterialSettings,
-    preset: com.ohmyfly.ui.glass.GlassPreset,
     dark: Boolean,
     enabled: Boolean,
 ) {
     val previewBackground = MiuixTheme.colorScheme.surfaceContainerHigh
-    val recording = rememberChromeRecording(MaterialMode.LiquidGlass) {
+    val backdrop = rememberLayerBackdrop {
         drawRect(previewBackground)
         drawContent()
     }
-    val shape = NavigationBarShape
-    Box(
-        Modifier.fillMaxWidth().height(164.dp)
-            .clip(com.ohmyfly.shapes.AppCorners.shape(com.ohmyfly.shapes.AppCorners.Content)),
-    ) {
-        Box(Modifier.fillMaxSize().then(recording.record)) {
-            Row(Modifier.fillMaxSize()) {
-                PreviewContent(Color(0xFF4F746A), "航班", "东京 23 毫秒", Modifier.weight(1f))
-                PreviewContent(Color(0xFFE6BE74), "概览", "今日 08:42", Modifier.weight(1.2f))
-                PreviewContent(Color(0xFFAD725F), "塔台", "12 个来源", Modifier.weight(1f))
+    val shape = com.ohmyfly.shapes.AppCorners.shape(com.ohmyfly.shapes.AppCorners.Content)
+    Box(Modifier.fillMaxWidth().height(224.dp).clip(shape)) {
+        Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
+            Box(Modifier.fillMaxSize().background(Brush.linearGradient(
+                listOf(Color(0xFF172B67), Color(0xFF167F91), Color(0xFFFF8E63)),
+            )))
+            Box(Modifier.align(Alignment.TopEnd).padding(top = 20.dp, end = 34.dp)
+                .size(82.dp).clip(CircleShape).background(Color(0xFFFFD166)))
+            Box(Modifier.align(Alignment.BottomStart).padding(start = 28.dp, bottom = 45.dp)
+                .size(66.dp).clip(CircleShape).background(Color(0xFFEF476F)))
+            Column(Modifier.align(Alignment.CenterStart).padding(start = 18.dp)) {
+                Text("Liquid Glass", color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.Bold)
+                Text("折射与高光实时预览", color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp)
+                Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    listOf(Color.White, Color(0xFF06D6A0), Color(0xFFFFD166), Color(0xFFEF476F)).forEach { color ->
+                        Box(Modifier.size(width = 24.dp, height = 5.dp).clip(CircleShape).background(color))
+                    }
+                }
             }
-            Box(
-                Modifier.align(Alignment.Center).fillMaxWidth(0.88f).height(70.dp)
-                    .chromeMaterial(
-                        backdrop = recording.backdrop,
-                        enabled = enabled,
-                        dark = dark,
-                        materialMode = MaterialMode.LiquidGlass,
-                        shape = shape,
-                        materialSettings = settings,
-                    ),
-                contentAlignment = Alignment.Center,
+        }
+        Column(
+            Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(
+                Modifier.fillMaxWidth().height(52.dp).chromeMaterial(
+                    backdrop, enabled, dark, MaterialMode.LiquidGlass, NavigationBarShape, settings,
+                ),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("玻璃预览", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                CatalogToolbarAction("搜索", SettingsIcons.Search, {})
+                Text(
+                    "工具栏",
+                    Modifier.weight(1f),
+                    color = MiuixTheme.colorScheme.onSurface,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                )
+                CatalogToolbarAction("设置", com.ohmyfly.ui.DriftIcons.Settings, {})
+            }
+            Row(
+                Modifier.fillMaxWidth().height(62.dp).chromeMaterial(
+                    backdrop, enabled, dark, MaterialMode.LiquidGlass, NavigationBarShape, settings,
+                ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PreviewNavigationItem(com.ohmyfly.ui.DriftIcons.Overview, "概览", true, Modifier.weight(1f))
+                PreviewNavigationItem(com.ohmyfly.ui.DriftIcons.Flights, "航班", false, Modifier.weight(1f))
+                PreviewNavigationItem(com.ohmyfly.ui.DriftIcons.Nodes, "塔台", false, Modifier.weight(1f))
             }
         }
     }
 }
 
 @Composable
-private fun PreviewContent(color: Color, heading: String, detail: String, modifier: Modifier) {
-    Column(
-        modifier.fillMaxHeight().background(color).padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(heading, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-        Text(detail, color = Color.White, fontSize = 9.sp, maxLines = 1)
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            listOf(Color(0xFFF5D47C), Color(0xFFEB8A67), Color(0xFF77A992)).forEach { swatch ->
-                Box(Modifier.weight(1f).height(18.dp).clip(CircleShape).background(swatch))
-            }
-        }
+private fun PreviewNavigationItem(
+    icon: ImageVector,
+    label: String,
+    selected: Boolean,
+    modifier: Modifier,
+) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Icon(
+            icon,
+            contentDescription = label,
+            modifier = Modifier.size(20.dp),
+            tint = if (selected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurface,
+        )
+        Text(
+            label,
+            color = if (selected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurface,
+            fontSize = 10.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+        )
     }
 }
 

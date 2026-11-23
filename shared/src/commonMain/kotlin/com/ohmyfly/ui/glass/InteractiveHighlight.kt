@@ -23,10 +23,9 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import com.kyant.backdrop.RuntimeShader
-import com.kyant.backdrop.asComposeShader
-import androidx.compose.ui.graphics.ShaderBrush
-import com.kyant.backdrop.isRuntimeShaderSupported
+import top.yukonga.miuix.kmp.blur.RuntimeShader
+import top.yukonga.miuix.kmp.blur.asBrush
+import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 
 internal class InteractiveHighlight(
     private val animationScope: CoroutineScope,
@@ -69,7 +68,7 @@ internal class InteractiveHighlight(
                 spotShader.setFloatUniform("radius", radius)
                 spotShader.setFloatUniform("position", center.x, center.y)
                 drawRect(
-                    brush = ShaderBrush(spotShader.asComposeShader()),
+                    brush = spotShader.asBrush(),
                     blendMode = BlendMode.Plus,
                 )
             } else {
