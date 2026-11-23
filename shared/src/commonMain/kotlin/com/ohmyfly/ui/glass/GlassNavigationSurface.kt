@@ -161,7 +161,7 @@ private fun BoxScope.GlassNavigationSelection(
     }
     // Draw after the lens so the selected capsule cannot obscure keyboard focus.
     if (focusedIndex in AppDestination.entries.indices) {
-        val focusShape = remember { GlassShape(12.dp) }
+        val focusShape = com.ohmyfly.shapes.AppCorners.shape(12.dp)
         Box(Modifier.matchParentSize().padding(4.dp).clearAndSetSemantics {}) {
             Box(Modifier.fillMaxHeight().width(tabWidth).graphicsLayer {
                 translationX = glassTabOffset(focusedIndex.toFloat(), response.tabWidth, response.ltr)
@@ -203,5 +203,4 @@ private fun Modifier.glassNavigationCapsule(
         drawRect((if (dark) Color.White else Color.Black).copy(alpha = 0.1f * (1f - press)))
         drawRect(Color.Black.copy(alpha = 0.03f * press))
     },
-).innerShadow(shape) {
-}.graphicsLayer { alpha = response.drag.pressProgress.coerceIn(0f, 1f) }
+).innerShadow(shape) { null }.graphicsLayer { alpha = response.drag.pressProgress.coerceIn(0f, 1f) }
