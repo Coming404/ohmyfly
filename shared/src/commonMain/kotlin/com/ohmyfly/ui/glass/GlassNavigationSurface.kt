@@ -154,7 +154,7 @@ private fun BoxScope.GlassNavigationSelection(
             translationX = glassTabOffset(response.drag.value, response.tabWidth, response.ltr)
         }
         Box(
-            if (enabled) capsule.glassNavigationCapsule(backdrop, capsuleShape, response, highlight, dark)
+            if (enabled) capsule.glassNavigationCapsule(backdrop, capsuleShape, response, preset, highlight, dark)
             else capsule.background(MiuixTheme.colorScheme.primary.copy(alpha = 0.15f), capsuleShape),
         )
     }
@@ -174,6 +174,7 @@ private fun Modifier.glassNavigationCapsule(
     backdrop: Backdrop,
     shape: GlassShape,
     response: GlassNavigationGesture,
+    preset: GlassPreset,
     highlight: State<Highlight>,
     dark: Boolean,
 ): Modifier = drawBackdrop(

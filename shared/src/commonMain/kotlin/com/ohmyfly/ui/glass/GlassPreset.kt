@@ -49,6 +49,7 @@ internal object LiquidGlassParameters {
     const val dualPeakHighlight = true
     const val panelLightOffsetDegrees = -45f
     const val capsuleLightOffsetDegrees = 90f
+}
 
 internal fun glassPreset(mode: MaterialMode, dark: Boolean): GlassPreset = when (mode) {
     MaterialMode.LiquidGlass -> GlassPreset(
