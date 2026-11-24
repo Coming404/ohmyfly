@@ -29,6 +29,7 @@ class SettingsCodecTest {
                 thirdLayerAlpha = 0.24f,
                 blurRadiusDp = 24.5f,
                 convexLensEnabled = true,
+                convexLensProfile = GlassLensProfile.Card,
             ),
             reduceTransparency = true,
             reduceMotion = true,
@@ -111,6 +112,7 @@ class SettingsCodecTest {
         val glassSecondKey = doublePreferencesKey("ui.glass.secondLayerAlpha")
         val glassThirdKey = doublePreferencesKey("ui.glass.thirdLayerAlpha")
         val glassBlurKey = doublePreferencesKey("ui.glass.blurRadiusDp")
+        val lensProfileKey = stringPreferencesKey("ui.glass.convexLensProfile")
         val preferences = mutablePreferencesOf(
             stringPreferencesKey("ui.themeMode") to "neon",
             stringPreferencesKey("speed.mode") to "warp",
@@ -121,6 +123,7 @@ class SettingsCodecTest {
             glassSecondKey to Double.NaN,
             glassThirdKey to 1.1,
             glassBlurKey to Double.POSITIVE_INFINITY,
+            lensProfileKey to "unlisted",
             stringPreferencesKey("speed.latencyUrl") to "https://user:pw@example.com/204",
             stringSetPreferencesKey("media.platforms") to setOf(" netflix ", ""),
             intPreferencesKey("mirror.count") to 1,

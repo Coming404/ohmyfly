@@ -1,5 +1,6 @@
 package com.ohmyfly.ui.glass
 
+import com.ohmyfly.settings.GlassLensProfile
 import com.ohmyfly.settings.MaterialMode
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -7,6 +8,17 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class GlassPresetTest {
+    @Test
+    fun lensProfilesKeepGoldenRatioAndScaleByComponentSize() {
+        assertEquals(0.618f, LiquidGlassParameters.goldenRefractionScale)
+        assertEquals(10f, GlassLensProfile.Pill.bezelWidthDp)
+        assertEquals(38f, GlassLensProfile.Pill.thicknessDp)
+        assertEquals(16f, GlassLensProfile.Control.bezelWidthDp)
+        assertEquals(62f, GlassLensProfile.Control.thicknessDp)
+        assertEquals(26f, GlassLensProfile.Card.bezelWidthDp)
+        assertEquals(100f, GlassLensProfile.Card.thicknessDp)
+    }
+
     @Test
     fun liquidUsesCentralizedClearParameters() {
         for (dark in listOf(false, true)) {

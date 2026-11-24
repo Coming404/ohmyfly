@@ -19,7 +19,17 @@ internal data class GlassPreset(
     val chromaticAberration: Float = LiquidGlassParameters.pressChromaticAberration,
     val samplingReachDp: Float = LiquidGlassParameters.samplingReachDp,
     val convexLensEnabled: Boolean = false,
-)
+    val convexLensProfile: com.ohmyfly.settings.GlassLensProfile = com.ohmyfly.settings.GlassLensProfile.Pill,
+) {
+    val effectSamplingReachDp: Float
+        get() = maxOf(
+            samplingReachDp,
+            if (convexLensEnabled) {
+                (convexLensProfile.bezelWidthDp + convexLensProfile.thicknessDp) *
+                    LiquidGlassParameters.goldenRefractionScale + blur + 2f
+            } else samplingReachDp,
+        )
+}
 
 /** 默认值按 Glasmio Clear 的无色填充与中性图像处理设置。 */
 internal object LiquidGlassParameters {
@@ -49,6 +59,9 @@ internal object LiquidGlassParameters {
     const val dualPeakHighlight = true
     const val panelLightOffsetDegrees = -45f
     const val capsuleLightOffsetDegrees = 90f
+    const val capsuleInnerShadowRadiusDp = 8f
+    const val capsuleInnerShadowAlpha = 0.12f
+    const val goldenRefractionScale = 0.618f
 }
 
 internal fun glassPreset(mode: MaterialMode, dark: Boolean): GlassPreset = when (mode) {

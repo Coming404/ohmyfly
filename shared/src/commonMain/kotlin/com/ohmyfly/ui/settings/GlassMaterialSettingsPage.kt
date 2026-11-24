@@ -35,6 +35,7 @@ import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.ui.CatalogToolbarAction
 import top.yukonga.miuix.kmp.basic.Icon
 import com.ohmyfly.settings.GlassMaterialSettings
+import com.ohmyfly.settings.GlassLensProfile
 import com.ohmyfly.settings.MaterialMode
 import com.ohmyfly.settings.SettingsLimits
 import com.ohmyfly.ui.CatalogTextButton
@@ -66,6 +67,7 @@ internal fun GlassMaterialSettingsPage(
         thirdLayerAlpha = currentSettings.thirdLayerAlpha ?: referencePreset.highlightAlpha,
         blurRadiusDp = currentSettings.blurRadiusDp ?: referencePreset.blur,
         convexLensEnabled = currentSettings.convexLensEnabled,
+        convexLensProfile = currentSettings.convexLensProfile,
     )
     var previewSettings by remember(currentSettings, referencePreset) { mutableStateOf(initialValues) }
     val previewAvailable = glassShaderSupported() && !settings.reduceTransparency &&
@@ -105,6 +107,41 @@ internal fun GlassMaterialSettingsPage(
                         }
                     },
                 )
+            }
+        }
+        item {
+            SettingsCard {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    GlassMaterialSlider(
+                        title = "凸透镜档位",
+                        value = previewSettings.convexLensProfile.ordinal.toFloat(),
+                        range = 0f..2f,
+                        steps = 1,
+                        valueLabel = { value ->
+                            val profile = GlassLensProfile.entries[value.roundToInt()]
+                            "${profile.label}  ${profile.bezelWidthDp.toInt()}/${profile.thicknessDp.toInt()} dp  φ 0.618"
+                        },
+                        minLabel = "pill",
+                        maxLabel = "card",
+                        onValueChange = { value ->
+                            previewSettings = previewSettings.copy(
+                                convexLensEnabled = true,
+                                convexLensProfile = GlassLensProfile.entries[value.roundToInt()],
+                            )
+                        },
+                        onValueChangeFinished = {
+                            val next = previewSettings.convexLensProfile
+                            if (next != currentSettings.convexLensProfile || !currentSettings.convexLensEnabled) {
+                                onChange("凸透镜档位") {
+                                    it.copy(glassMaterial = it.glassMaterial.copy(
+                                        convexLensEnabled = true,
+                                        convexLensProfile = next,
+                                    ))
+                                }
+                            }
+                        },
+                    )
+                }
             }
         }
         item {
@@ -281,7 +318,7 @@ private fun PreviewNavigationItem(
 private fun GlassMaterialSlider(
     title: String,
     value: Float,
-    range: ClosedFloatingPointRange<Float>,
+    steps: Int = 0,
     valueLabel: (Float) -> String,
     minLabel: String,
     maxLabel: String,
@@ -304,7 +341,7 @@ private fun GlassMaterialSlider(
             onValueChange = onValueChange,
             onValueChangeFinished = onValueChangeFinished,
             valueRange = range,
-            steps = 0,
+            steps = steps,
             hapticEffect = SliderDefaults.SliderHapticEffect.None,
             modifier = Modifier.fillMaxWidth().semantics {
                 contentDescription = title

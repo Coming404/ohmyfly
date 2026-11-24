@@ -30,6 +30,18 @@ class PageHeaderTests(unittest.TestCase):
         nodes = (UI / 'NodesScreen.kt').read_text()
         self.assertNotIn('SmallTitle("航班")', nodes)
 
+    def test_toolbar_geometry_uses_intrinsic_width_and_shared_height(self):
+        toolbar = (UI / 'CatalogActionToolbar.kt').read_text()
+        selection = (UI / 'CatalogSelection.kt').read_text()
+        metrics = (UI / 'ChromeMetrics.kt').read_text()
+        footer = (UI / 'TowerCardActions.kt').read_text()
+        self.assertIn('modifier = modifier.heightIn(min = ChromeMetrics.ToolbarButtonSize)', toolbar)
+        self.assertIn('modifier = modifier.heightIn(min = ChromeMetrics.ToolbarButtonSize)', selection)
+        self.assertNotIn('widthIn(max = 360.dp)', selection)
+        self.assertIn('Modifier.offset(y = -ChromeMetrics.BottomToolbarLift)', (COMMON / 'App.kt').read_text())
+        self.assertIn('horizontalArrangement = Arrangement.SpaceBetween', footer)
+        self.assertIn('val BottomToolbarLift = 8.dp', metrics)
+
     def test_back_is_icon_only_with_rtl_and_accessible_touch_target(self):
         source = (UI / 'DriftTopBar.kt').read_text()
         self.assertIn('if (onBack != null)', source)

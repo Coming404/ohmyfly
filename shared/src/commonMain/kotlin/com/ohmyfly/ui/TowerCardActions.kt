@@ -52,7 +52,7 @@ internal fun TowerFooter(tower: CatalogTower, loading: Boolean, ready: Boolean, 
     onEdit: () -> Unit, onRemove: () -> Unit, onSourceImport: (CatalogSource) -> Unit) {
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(ChromeMetrics.ActionGap, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         TowerFooterAction("航班 ${tower.nodeCount}", DriftIcons.Nodes, Modifier, flightsEnabled,

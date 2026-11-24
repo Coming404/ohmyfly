@@ -73,6 +73,14 @@ class SettingsNavigationTests(unittest.TestCase):
         self.assertNotIn('Crossfade', screen)
         self.assertNotIn('pointerInput', screen)
         self.assertIn('HorizontalPager(', app)
+        self.assertIn('rememberSaveableStateHolder()', app)
+        self.assertIn('pageStateHolder.SaveableStateProvider(AppDestination.entries[page].name)', app)
+        self.assertIn('rememberSaveable { mutableStateOf(emptyList<Long>()) }',
+                      (COMMON / 'ui/NodesScreen.kt').read_text())
+        self.assertIn('LaunchedEffect(catalog.appliedFilter) { listState.scrollToItem(0) }',
+                      (COMMON / 'ui/NodesScreen.kt').read_text())
+        self.assertIn('4.dp.toPx()', app)
+        self.assertNotIn('settings.glassMaterial.blurRadiusDp ?: glassPreset(MaterialMode.LiquidGlass, dark).blur', app)
         self.assertIn('userScrollEnabled = false', app)
         self.assertIn('springAnimateToPage(targetPage)', app)
         self.assertIn('systemMotionScale * AppNavigationDurationMultiplier', app)

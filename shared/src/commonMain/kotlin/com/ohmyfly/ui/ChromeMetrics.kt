@@ -15,9 +15,8 @@ internal object ChromeMetrics {
     val TopBarHeight = 54.dp
     val TitleCapsuleHeight = ControlSize
     val NavigationHeight = 62.dp
-    val NavigationBottomInset = 21.dp
+    val NavigationBottomInset = 28.dp
     val NavigationIndicatorHeight = 56.dp
     val NavigationIndicatorInset = 3.dp
-    val OutlineWidth = 0.5.dp
-    const val OutlineAlpha = 0.10f
+    val BottomToolbarLift = 8.dp
 }

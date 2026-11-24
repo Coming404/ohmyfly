@@ -42,9 +42,9 @@ internal fun CatalogSelectionToolbar(
         cornerRadius = AppCorners.Toolbar,
     ) {
         Row(
-            modifier = modifier.widthIn(max = 360.dp).heightIn(min = ChromeMetrics.TopBarHeight)
+            modifier = modifier.heightIn(min = ChromeMetrics.ToolbarButtonSize)
                 .horizontalScroll(rememberScrollState())
-                .padding(4.dp),
+                .padding(horizontal = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(ChromeMetrics.ActionGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {

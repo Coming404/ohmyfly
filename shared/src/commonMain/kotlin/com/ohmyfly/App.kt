@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -316,7 +317,8 @@ private fun AppFrame(
                     com.ohmyfly.ui.CatalogSelectionHost(mode,
                         selectedIds.mapNotNull { it.toLongOrNull() }.toSet(), selectedTowerIds,
                         settingsSession.state.confirmedSettings ?: settings,
-                        toolbarModifier = Modifier.chromeMaterial(backdrop, glassEnabled, dark, settings.materialMode),
+                        toolbarModifier = Modifier.offset(y = -ChromeMetrics.BottomToolbarLift)
+                            .chromeMaterial(backdrop, glassEnabled, dark, settings.materialMode),
                         onDone = { onSelectionMode(null); onSelection(emptySet()); onTowerSelection(emptySet()) })
                 }
             }
@@ -331,7 +333,7 @@ private fun AppFrame(
                         shape = { RectangleShape },
                         effects = {
                             progressiveBlur(
-                                (settings.glassMaterial.blurRadiusDp ?: glassPreset(MaterialMode.LiquidGlass, dark).blur).dp.toPx(),
+                                4.dp.toPx(),
                                 gradient = ProgressiveBlur.Top.copy(curve = 0.25f),
                             )
                         },
@@ -425,7 +427,7 @@ private fun AppPager(
     nodesState: LazyListState, settingsState: LazyListState,
     padding: PaddingValues,
 ) {
-    val catalog by subscriptionTowerStore.state.collectAsState()
+    val pageStateHolder = rememberSaveableStateHolder()
     HorizontalPager(
         state = pagerState,
         modifier = Modifier.fillMaxSize(),
@@ -483,13 +485,15 @@ private fun AppPager(
             )
         }
         }
-        if (AppDestination.entries[page] in listOf(AppDestination.Speed, AppDestination.Settings)) pageContent()
-        else com.ohmyfly.ui.PageRefresh(padding,
-            onRefresh = { subscriptionTowerStore.refreshView(invalidate = true) },
-            refreshingText = when (AppDestination.entries[page]) {
-                AppDestination.Subscriptions -> "正在刷新塔台"
-                AppDestination.NodeLibrary -> "正在重新获取航班"
-                else -> "正在刷新概览"
-            }, content = pageContent)
+        pageStateHolder.SaveableStateProvider(AppDestination.entries[page].name) {
+            if (AppDestination.entries[page] in listOf(AppDestination.Speed, AppDestination.Settings)) pageContent()
+            else com.ohmyfly.ui.PageRefresh(padding,
+                onRefresh = { subscriptionTowerStore.refreshView(invalidate = true) },
+                refreshingText = when (AppDestination.entries[page]) {
+                    AppDestination.Subscriptions -> "正在刷新塔台"
+                    AppDestination.NodeLibrary -> "正在重新获取航班"
+                    else -> "正在刷新概览"
+                }, content = pageContent)
+        }
     }
 }

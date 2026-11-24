@@ -6,4 +6,5 @@ internal data class GlassMaterialSettings(
     val thirdLayerAlpha: Float? = null,
     val blurRadiusDp: Float? = null,
     val convexLensEnabled: Boolean = false,
+    val convexLensProfile: GlassLensProfile = GlassLensProfile.Pill,
 )

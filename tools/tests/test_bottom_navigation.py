@@ -74,8 +74,9 @@ class BottomNavigationTests(unittest.TestCase):
     def test_insets_are_applied_once_outside_the_material(self):
         nav = (UI / 'DriftNavigationBar.kt').read_text()
         self.assertIn('val NavigationHeight = 62.dp', (UI / 'ChromeMetrics.kt').read_text())
-        self.assertIn('val NavigationBottomInset = 21.dp', (UI / 'ChromeMetrics.kt').read_text())
+        self.assertIn('val NavigationBottomInset = 28.dp', (UI / 'ChromeMetrics.kt').read_text())
         self.assertIn('val NavigationIndicatorHeight = 56.dp', (UI / 'ChromeMetrics.kt').read_text())
+        self.assertIn('val BottomToolbarLift = 8.dp', (UI / 'ChromeMetrics.kt').read_text())
         self.assertIn('platform() == Platform.IOS', nav)
         self.assertIn('padding(bottom = ChromeMetrics.NavigationBottomInset)', nav)
         self.assertIn('WindowInsetsSides.Bottom', nav)
@@ -90,6 +91,7 @@ class BottomNavigationTests(unittest.TestCase):
         self.assertIn('padding(horizontal = 24.dp)', nav)
         self.assertIn('Modifier.widthIn(max = 420.dp).fillMaxWidth()', nav)
         self.assertLess(nav.index('.windowInsetsPadding('), nav.index('GlassNavigationSurface('))
+        self.assertIn('Modifier.offset(y = -ChromeMetrics.BottomToolbarLift)', app)
         self.assertIn('.consumeWindowInsets(padding)', app)
         self.assertIn('if (glassEnabled) Modifier.layerBackdrop(backdrop) else Modifier', app)
         self.assertIn('glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)', app)
@@ -123,6 +125,11 @@ class BottomNavigationTests(unittest.TestCase):
         self.assertIn('surface.createOutline(size, layoutDirection, density)', shape)
         self.assertIn('private val ChromeShape = NavigationBarShape', ch)
         self.assertIn('fun tile(', shape)
+        self.assertNotIn('ChromeMetrics.OutlineWidth', surface)
+        self.assertIn('highlight = { highlight.value }', surface)
+        self.assertIn('(preset.lensHeight + preset.pressLensHeight * press)', surface)
+        self.assertIn('InnerShadow(', surface)
+        self.assertNotIn('response.drag.pressProgress.coerceIn(0f, 1f) }', surface)
         for shared in ('rememberAnimatedGlassPreset(materialMode, dark, enabled, motion)', 'glassSurface(', 'val outline = shape'):
             with self.subTest(shared=shared):
                 self.assertIn(shared, ch)

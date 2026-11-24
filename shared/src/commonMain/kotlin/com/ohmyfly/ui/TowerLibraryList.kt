@@ -26,7 +26,7 @@ internal fun TowerLibraryList(listState: LazyListState, catalog: CatalogState, s
     val messages = LocalAppMessages.current
     val mirrors = SubscriptionMirrorSettings(settings.mirrorEnabled, settings.mirrors, settings.selectedMirrorId)
     val count = catalog.towerMatchCount ?: 0
-    val hasStatus = catalog.failure != null || catalog.towerMatchCount == null || count == 0L
+    val hasStatus = catalog.failure != null || catalog.towerMatchCount == null
     val searchOpen = searchState.expanded
     val showControl = catalog.summary.towers > 0
     val headerCount = (if (showControl) 1 else 0) + (if (searchOpen) 1 else 0) + (if (hasStatus) 1 else 0)
@@ -36,7 +36,8 @@ internal fun TowerLibraryList(listState: LazyListState, catalog: CatalogState, s
     }
     CatalogViewport(listState, headerCount, catalog.towerPage, catalog.towerWindow.keys, count,
         catalog.failure != null) { store.page("towers", it) }
-    LazyColumn(modifier.fillMaxSize(), state = listState,
+    Box(modifier.fillMaxSize()) {
+        LazyColumn(Modifier.fillMaxSize(), state = listState,
         contentPadding = contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (searchOpen) item("search") {
@@ -51,8 +52,10 @@ internal fun TowerLibraryList(listState: LazyListState, catalog: CatalogState, s
         }
         items(count.coerceAtMost(Int.MAX_VALUE.toLong() - 1).toInt(), key = { "tower-slot:$it" }) { index ->
             val tower = catalog.towerWindow[index / 100]?.getOrNull(index % 100)
-            if (tower == null) CatalogLoading()
-            else if (tower.id !in catalog.pendingRemoval) TowerCard(tower,
+            if (tower == null) {
+                if (catalog.summary.towers > 0L) CatalogLoadingIndicator("正在加载塔台")
+                else CatalogTowerLoading()
+            } else if (tower.id !in catalog.pendingRemoval) TowerCard(tower,
                 catalog.sourceTasks.values.any { it.parentId == tower.id }, importReady && catalog.ready,
                 phase = catalog.sourceTasks.values.firstOrNull { it.parentId == tower.id }?.phase,
                 selected = tower.id in selectedTowerIds, selectionMode = selectionMode == CatalogSelectionMode.Towers,
@@ -71,6 +74,24 @@ internal fun TowerLibraryList(listState: LazyListState, catalog: CatalogState, s
                     } else onReimport(tower)
                 },
                 onRemove = { postponeTowerRemoval(tower, store, messages) })
+        }
+        }
+        if (catalog.failure == null && catalog.towerMatchCount != null && count == 0L) {
+            val searching = catalog.towerSearch.isNotBlank()
+            Box(
+                Modifier.fillMaxSize().padding(
+                    contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp),
+                ),
+                contentAlignment = Alignment.Center,
+            ) {
+                CatalogEmpty(
+                    title = if (searching) "没有匹配的塔台" else "还没有塔台",
+                    hint = if (searching) "换个名称搜索，或清除条件查看全部塔台。" else "添加订阅地址、协议链接或 YAML 文件，开始接收航班。",
+                    onAction = if (searching) ({ store.updateTowerSearch("") }) else onAdd,
+                    actionLabel = if (searching) "清除搜索" else "添加塔台",
+                    icon = if (searching) SettingsIcons.Search else DriftIcons.Nodes,
+                )
+            }
         }
     }
 }

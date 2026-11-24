@@ -26,6 +26,7 @@ internal object SettingsCodec {
     private val glassThirdLayerAlpha = doublePreferencesKey("ui.glass.thirdLayerAlpha")
     private val glassBlurRadiusDp = doublePreferencesKey("ui.glass.blurRadiusDp")
     private val glassConvexLensEnabled = booleanPreferencesKey("ui.glass.convexLensEnabled")
+    private val glassConvexLensProfile = stringPreferencesKey("ui.glass.convexLensProfile")
     private val reduceTransparency = booleanPreferencesKey("ui.reduceTransparency")
     private val reduceMotion = booleanPreferencesKey("ui.reduceMotion")
     private val hapticEnabled = booleanPreferencesKey("ui.hapticEnabled")
@@ -78,6 +79,7 @@ internal object SettingsCodec {
         settings.glassMaterial.thirdLayerAlpha?.let { target[glassThirdLayerAlpha] = it.toDouble() }
         settings.glassMaterial.blurRadiusDp?.let { target[glassBlurRadiusDp] = it.toDouble() }
         target[glassConvexLensEnabled] = settings.glassMaterial.convexLensEnabled
+        target[glassConvexLensProfile] = settings.glassMaterial.convexLensProfile.name
         target[reduceTransparency] = settings.reduceTransparency
         target[reduceMotion] = settings.reduceMotion
         target[hapticEnabled] = settings.hapticEnabled
@@ -142,6 +144,7 @@ internal object SettingsCodec {
                 thirdLayerAlpha = preferences.readDoubleOrNull(glassThirdLayerAlpha, SettingsLimits.glassThirdLayerAlpha),
                 blurRadiusDp = preferences.readDoubleOrNull(glassBlurRadiusDp, SettingsLimits.glassBlurRadiusDp),
                 convexLensEnabled = preferences.read(glassConvexLensEnabled, false),
+                convexLensProfile = preferences.readOrNull(glassConvexLensProfile).toEnumOr(GlassLensProfile.Pill),
             ),
             reduceTransparency = preferences.read(reduceTransparency, defaults.reduceTransparency),
             reduceMotion = preferences.read(reduceMotion, defaults.reduceMotion),

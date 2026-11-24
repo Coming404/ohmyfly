@@ -1,9 +1,9 @@
 package com.ohmyfly.ui.settings
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Column
@@ -67,8 +67,7 @@ internal fun SettingsExpansionArrow(expanded: Boolean) {
     val target = if (expanded) 90f else if (rtl) 180f else 0f
     val rotation = if (LocalAppMotionAllowed.current) {
         val animated by animateFloatAsState(target,
-            animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
-            label = "settings-arrow")
+            animationSpec = tween(160, easing = FastOutSlowInEasing), label = "settings-arrow")
         animated
     } else target
     Icon(MiuixIcons.Basic.ArrowRight, contentDescription = null,
@@ -81,12 +80,8 @@ internal fun SettingsExpansion(expanded: Boolean, content: @Composable ColumnSco
     if (LocalAppMotionAllowed.current) {
         AnimatedVisibility(
             visible = expanded,
-            enter = expandVertically(animationSpec = spring(
-                dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium,
-            ), expandFrom = Alignment.Top),
-            exit = shrinkVertically(animationSpec = spring(
-                dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium,
-            ), shrinkTowards = Alignment.Top),
+            enter = expandVertically(animationSpec = tween(200, easing = FastOutSlowInEasing), expandFrom = Alignment.Top),
+            exit = shrinkVertically(animationSpec = tween(160, easing = FastOutSlowInEasing), shrinkTowards = Alignment.Top),
         ) { Column(content = content) }
     } else if (expanded) Column(content = content)
 }

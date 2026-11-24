@@ -5,6 +5,8 @@ package com.ohmyfly.ui.glass
 
 // Adapted from Kyant0/AndroidLiquidGlass — https://github.com/Kyant0/AndroidLiquidGlass (Apache 2.0).
 
+import androidx.compose.ui.unit.dp
+import com.ohmyfly.settings.GlassLensProfile
 import top.yukonga.miuix.kmp.blur.BackdropEffectScope
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.blur.runtimeShaderEffect
@@ -22,6 +24,9 @@ internal fun BackdropEffectScope.lens(
     refractionAmount: Float,
     depthEffect: Boolean = false,
     chromaticAberration: Float = 0f,
+    convexProfile: GlassLensProfile? = null,
+    glassThicknessDp: Float = 0f,
+    refractionScale: Float = 0.618f,
 ) {
     if (!isRuntimeShaderSupported()) return
     if (refractionHeight <= 0f || refractionAmount <= 0f) return
@@ -48,6 +53,9 @@ internal fun BackdropEffectScope.lens(
     val scaledRefractionHeight = refractionHeight / sf
     val scaledRefractionAmount = refractionAmount / sf
     val scaledTile = boundary.tile(size, this) / sf
+    val convexLens = convexProfile != null
+    val physicalThickness = glassThicknessDp.dp.toPx() / sf
+    val convexBezelWidth = convexProfile?.bezelWidthDp?.let { it.dp.toPx() / sf } ?: 1f
 
     runtimeShaderEffect(
         key = key,
@@ -60,11 +68,48 @@ internal fun BackdropEffectScope.lens(
         setFloatUniform("refractionHeight", scaledRefractionHeight)
         setFloatUniform("refractionAmount", -scaledRefractionAmount)
         setFloatUniform("depthEffect", if (depthEffect) 1f else 0f)
+        if (convexLens) {
+            setFloatUniform("convexBezelWidth", convexBezelWidth)
+            setFloatUniform("convexThickness", physicalThickness)
+            setFloatUniform("convexRefractionScale", refractionScale)
+        } else {
+            setFloatUniform("convexBezelWidth", 1f)
+            setFloatUniform("convexThickness", 0f)
+            setFloatUniform("convexRefractionScale", 0f)
+        }
+        setFloatUniform("convexLens", if (convexLens) 1f else 0f)
         if (dispersionEnabled) {
             setFloatUniform("chromaticAberration", chromaticAberration)
         }
     }
 }
+
+// 将凸面轮廓的数值梯度代入 Snell 定律，直接生成边缘采样位移。
+private const val CONVEX_LENS_UNIFORMS = """
+uniform float convexLens;
+uniform float convexBezelWidth;
+uniform float convexThickness;
+uniform float convexRefractionScale;
+"""
+
+private const val CONVEX_LENS_FUNCTIONS = """
+float convexDisplacement(float x) {
+    float edge = 1.0 - x;
+    float base = max(1.0 - edge * edge * edge * edge, 0.0001);
+    float y = sqrt(sqrt(base));
+    float slope = edge * edge * edge / (base * y);
+    float normalLength = sqrt(slope * slope + 1.0);
+    float2 normal = float2(-slope, -1.0) / normalLength;
+    float eta = 1.0 / 1.5;
+    float discriminant = 1.0 - eta * eta * (1.0 - normal.y * normal.y);
+    if (discriminant < 0.0) return 0.0;
+    float root = sqrt(discriminant);
+    float rayX = -(eta * normal.y + root) * normal.x;
+    float rayY = eta - (eta * normal.y + root) * normal.y;
+    float travel = (y * convexBezelWidth + convexThickness) / max(rayY, 0.001);
+    return rayX * travel * convexRefractionScale;
+}
+"""
 
 private const val ROUNDED_RECT_REFRACTION_SHADER = """
 uniform shader content;
@@ -75,8 +120,11 @@ uniform float cornerTile;
 uniform float refractionHeight;
 uniform float refractionAmount;
 uniform float depthEffect;
+$CONVEX_LENS_UNIFORMS
 
 $GLASS_BOUNDARY_SDF
+
+$CONVEX_LENS_FUNCTIONS
 
 float circleMap(float x) {
     return 1.0 - sqrt(max(1.0 - x * x, 0.0));
@@ -92,9 +140,12 @@ half4 main(float2 coord) {
     }
     sd = min(sd, 0.0);
 
-    float d = circleMap(1.0 - -sd / refractionHeight) * refractionAmount;
+    float depth = -sd;
+    float d = convexLens > 0.5
+        ? -convexDisplacement(clamp(depth / convexBezelWidth, 0.0, 1.0))
+        : circleMap(1.0 - depth / refractionHeight) * refractionAmount;
     float2 centerDir = centeredCoord / max(length(centeredCoord), 0.001);
-    float2 normal = boundary.xy + depthEffect * centerDir;
+    float2 normal = boundary.xy + (depthEffect * (1.0 - convexLens)) * centerDir;
     float2 grad = normal / max(length(normal), 0.001);
 
     float2 refractedCoord = coord + d * grad;
@@ -112,8 +163,11 @@ uniform float refractionHeight;
 uniform float refractionAmount;
 uniform float depthEffect;
 uniform float chromaticAberration;
+$CONVEX_LENS_UNIFORMS
 
 $GLASS_BOUNDARY_SDF
+
+$CONVEX_LENS_FUNCTIONS
 
 float circleMap(float x) {
     return 1.0 - sqrt(max(1.0 - x * x, 0.0));
@@ -129,9 +183,12 @@ half4 main(float2 coord) {
     }
     sd = min(sd, 0.0);
 
-    float d = circleMap(1.0 - -sd / refractionHeight) * refractionAmount;
+    float depth = -sd;
+    float d = convexLens > 0.5
+        ? -convexDisplacement(clamp(depth / convexBezelWidth, 0.0, 1.0))
+        : circleMap(1.0 - depth / refractionHeight) * refractionAmount;
     float2 centerDir = centeredCoord / max(length(centeredCoord), 0.001);
-    float2 normal = boundary.xy + depthEffect * centerDir;
+    float2 normal = boundary.xy + (depthEffect * (1.0 - convexLens)) * centerDir;
     float2 grad = normal / max(length(normal), 0.001);
 
     float2 refractedCoord = coord + d * grad;

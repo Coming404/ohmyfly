@@ -18,14 +18,19 @@ internal fun BackdropEffectScope.glassEffects(preset: GlassPreset, pressProgress
     val press = if (preset.liquidResponse) pressProgress.coerceIn(0f, 1f) else 0f
     // Melox reserves the full press/lens reach before blurring. Miuix blur(4dp) already
     // supplies sigma=4dp*0.45 on each platform; do not reuse Android's BlurEffect conversion on iOS.
-    padding = maxOf(padding, preset.samplingReachDp.dp.toPx())
+    padding = maxOf(padding, preset.effectSamplingReachDp.dp.toPx())
     colorControls(brightness = preset.brightness, saturation = preset.saturation)
     blur(preset.blur.dp.toPx())
     lens(
-        (preset.lensHeight + preset.pressLensHeight * press).dp.toPx(),
-        (preset.lensAmount + preset.pressLensAmount * press).dp.toPx(),
+        if (preset.convexLensEnabled) preset.convexLensProfile.bezelWidthDp.dp.toPx()
+        else (preset.lensHeight + preset.pressLensHeight * press).dp.toPx(),
+        if (preset.convexLensEnabled) preset.convexLensProfile.thicknessDp.dp.toPx()
+        else (preset.lensAmount + preset.pressLensAmount * press).dp.toPx(),
         depthEffect = preset.convexLensEnabled || (LiquidGlassParameters.depthEffectOnPress && press > 0f),
         chromaticAberration = preset.chromaticAberration * press,
+        convexProfile = preset.convexLensProfile.takeIf { preset.convexLensEnabled },
+        glassThicknessDp = preset.convexLensProfile.thicknessDp,
+        refractionScale = LiquidGlassParameters.goldenRefractionScale,
     )
 }
 

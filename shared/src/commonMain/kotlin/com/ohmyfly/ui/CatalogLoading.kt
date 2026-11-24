@@ -16,6 +16,29 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
+internal fun CatalogLoadingIndicator(label: String) {
+    Card(
+        Modifier.fillMaxWidth().semantics { contentDescription = label },
+        cornerRadius = AppCorners.Card,
+    ) {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            top.yukonga.miuix.kmp.basic.CircularProgressIndicator(
+                modifier = Modifier,
+                size = 20.dp,
+            )
+            top.yukonga.miuix.kmp.basic.Text(
+                label,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            )
+        }
+    }
+}
+
+@Composable
 internal fun CatalogTowerLoading() {
     val alpha = if (LocalAppMotionAllowed.current) {
         rememberInfiniteTransition(label = "towerSkeleton").animateFloat(

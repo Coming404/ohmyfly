@@ -76,7 +76,8 @@ internal val LocalAppMessages = staticCompositionLocalOf<AppMessageState> {
 @Composable
 internal fun AppMessageHost(blocked: Boolean, modifier: Modifier = Modifier) {
     Box(modifier.widthIn(max = 760.dp).fillMaxWidth()
-        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))) {
+        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+        .padding(top = 56.dp)) {
     val messages = LocalAppMessages.current
     val message = messages.current
     val motion = LocalAppMotionAllowed.current

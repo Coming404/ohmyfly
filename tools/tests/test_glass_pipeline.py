@@ -55,6 +55,15 @@ class GlassPipelineTests(unittest.TestCase):
         self.assertIn('float2 refractedCoord = coord + d * grad', lens)
         self.assertIn('content.eval(refractedCoord)', lens)
         self.assertIn('chromaticAberration', lens)
+        self.assertIn('float base = max(1.0 - edge * edge * edge * edge, 0.0001)', lens)
+        self.assertIn('float slope = edge * edge * edge / (base * y)', lens)
+        self.assertIn('refractionScale = LiquidGlassParameters.goldenRefractionScale',
+                      (COMMON / 'ui/GlassMaterialTuning.kt').read_text() +
+                      (GLASS / 'GlassEffects.kt').read_text() + lens)
+        self.assertIn('float convexDisplacement(float x)', lens)
+        self.assertIn('float discriminant = 1.0 - eta * eta', lens)
+        self.assertIn('convexLens > 0.5', lens)
+        self.assertEqual(2, lens.count('$CONVEX_LENS_FUNCTIONS'))
         self.assertNotIn('android.graphics', lens)
         self.assertNotIn('CornerBasedShape', lens)
 

@@ -28,6 +28,7 @@ class MaterialSettingsTests(unittest.TestCase):
 
     def test_codec_adds_optional_key_without_new_store_or_schema(self):
         codec = (MAIN / 'settings/SettingsCodec.kt').read_text()
+        page = (MAIN / 'ui/settings/GlassMaterialSettingsPage.kt').read_text()
         self.assertIn('const val CURRENT_SCHEMA_VERSION = 1', codec)
         self.assertIn('stringPreferencesKey("ui.materialMode")', codec)
         self.assertIn('target[materialMode] = settings.materialMode.name', codec)
@@ -35,6 +36,14 @@ class MaterialSettingsTests(unittest.TestCase):
         self.assertIn('booleanPreferencesKey("ui.glass.convexLensEnabled")', codec)
         self.assertIn('target[glassConvexLensEnabled] = settings.glassMaterial.convexLensEnabled', codec)
         self.assertIn('preferences.read(glassConvexLensEnabled, false)', codec)
+        self.assertIn('stringPreferencesKey("ui.glass.convexLensProfile")', codec)
+        self.assertIn('convexLensProfile = preferences.readOrNull(glassConvexLensProfile).toEnumOr(GlassLensProfile.Pill)', codec)
+        self.assertIn('"凸透镜档位"', page)
+        self.assertIn('steps = 1', page)
+        self.assertIn('convexLensEnabled = true', page)
+        self.assertIn('convexLensProfile = next', page)
+        self.assertIn('GlassLensProfile.entries[value.roundToInt()]', page)
+        self.assertIn('title = "凸透镜折射"', page)
         repository = (MAIN / 'settings/SettingsRepository.kt').read_text()
         self.assertIn('dataStore.edit { preferences ->', repository)
         self.assertIn('SettingsCodec.write(preferences, next)', repository)

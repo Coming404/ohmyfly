@@ -80,11 +80,6 @@ internal fun GlassNavigationSurface(
             .onSizeChanged { response.width = it.width.toFloat() }
             .graphicsLayer { translationX = response.panelOffset }
             .dropShadow(NavigationBarShape, Shadow(radius = 10.dp, color = Color.Black, alpha = if (dark) 0.2f else 0.1f))
-            .then(if (enabled && preset.liquidResponse) Modifier.border(
-                com.ohmyfly.ui.ChromeMetrics.OutlineWidth,
-                MiuixTheme.colorScheme.onSurface.copy(alpha = com.ohmyfly.ui.ChromeMetrics.OutlineAlpha),
-                NavigationBarShape,
-            ) else Modifier)
             .then(response.drag.modifier)
             .then(spot?.trackingGestureModifier ?: Modifier),
     ) {
@@ -184,23 +179,30 @@ private fun Modifier.glassNavigationCapsule(
     effects = {
         val press = response.drag.pressProgress
         // Keep full sampling reach before the first frame of the press animation.
-        padding = maxOf(padding, preset.samplingReachDp.dp.toPx())
+        padding = maxOf(padding, preset.effectSamplingReachDp.dp.toPx())
         lens(
-            preset.pressLensHeight.dp.toPx() * press,
-            preset.pressLensAmount.dp.toPx() * press,
+            if (preset.convexLensEnabled) preset.convexLensProfile.bezelWidthDp.dp.toPx()
+            else (preset.lensHeight + preset.pressLensHeight * press).dp.toPx(),
+            if (preset.convexLensEnabled) preset.convexLensProfile.thicknessDp.dp.toPx()
+            else (preset.lensAmount + preset.pressLensAmount * press).dp.toPx(),
             depthEffect = preset.convexLensEnabled || (LiquidGlassParameters.depthEffectOnPress && press > 0f),
             chromaticAberration = preset.chromaticAberration * press,
+            convexProfile = preset.convexLensProfile.takeIf { preset.convexLensEnabled },
+            glassThicknessDp = preset.convexLensProfile.thicknessDp,
+            refractionScale = LiquidGlassParameters.goldenRefractionScale,
         )
     },
-    highlight = { highlight.value.copy(alpha = highlight.value.alpha * response.drag.pressProgress) },
+    highlight = { highlight.value },
     layerBlock = {
         val velocity = response.drag.velocity / 10f
         scaleX = response.drag.scaleX / (1f - (velocity * 0.75f).coerceIn(-0.2f, 0.2f))
         scaleY = response.drag.scaleY * (1f - (velocity * 0.25f).coerceIn(-0.2f, 0.2f))
     },
-    onDrawSurface = {
-        val press = response.drag.pressProgress
-        drawRect((if (dark) Color.White else Color.Black).copy(alpha = 0.1f * (1f - press)))
-        drawRect(Color.Black.copy(alpha = 0.03f * press))
-    },
-).innerShadow(shape) { null }.graphicsLayer { alpha = response.drag.pressProgress.coerceIn(0f, 1f) }
+).innerShadow(shape) {
+    val press = response.drag.pressProgress
+    InnerShadow(
+        radius = LiquidGlassParameters.capsuleInnerShadowRadiusDp.dp,
+        color = Color.Black.copy(alpha = LiquidGlassParameters.capsuleInnerShadowAlpha),
+        alpha = 0.75f + press * 0.25f,
+    )
+}

@@ -21,11 +21,12 @@ class HapticSettingTests(unittest.TestCase):
         self.assertIn('if (expanded) 90f else if (rtl) 180f else 0f', expansion)
         self.assertIn('rotationZ = rotation', expansion)
         self.assertIn('animateFloatAsState', expansion)
-        self.assertIn('expandVertically(animationSpec = spring(', expansion)
-        self.assertIn('shrinkVertically(animationSpec = spring(', expansion)
+        self.assertIn('expandVertically(animationSpec = tween(200, easing = FastOutSlowInEasing)', expansion)
+        self.assertIn('shrinkVertically(animationSpec = tween(160, easing = FastOutSlowInEasing)', expansion)
+        self.assertNotIn('spring(', expansion)
         self.assertIn('LocalAppMotionAllowed.current', expansion)
         self.assertIn('else if (expanded) Column(content = content)', expansion)
-        for forbidden in ('fadeIn', 'fadeOut', 'animateContentSize', 'tween(', 'alpha ='):
+        for forbidden in ('fadeIn', 'fadeOut', 'animateContentSize', 'alpha ='):
             self.assertNotIn(forbidden, expansion)
 
     def test_slider_previews_only_new_detents_and_disables_builtin_haptics(self):

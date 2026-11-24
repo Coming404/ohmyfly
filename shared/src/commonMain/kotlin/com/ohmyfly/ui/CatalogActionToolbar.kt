@@ -34,7 +34,7 @@ internal fun CatalogActionToolbar(
         outSidePadding = PaddingValues(0.dp), cornerRadius = AppCorners.Toolbar,
     ) {
         Row(
-            modifier = modifier.heightIn(min = ChromeMetrics.TopBarHeight),
+            modifier = modifier.heightIn(min = ChromeMetrics.ToolbarButtonSize),
             horizontalArrangement = Arrangement.spacedBy(ChromeMetrics.ActionGap),
             verticalAlignment = Alignment.CenterVertically,
             content = content,

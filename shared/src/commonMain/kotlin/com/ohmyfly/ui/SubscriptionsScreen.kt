@@ -73,8 +73,12 @@ internal fun TowerListStatus(catalog: CatalogState, count: Long, store: CatalogS
             CatalogNotice(catalog.failure)
             SettingsButton("重试", SettingsIcons.Retry) { if (catalog.ready) store.page("towers", catalog.towerPage) else store.start() }
         }
-        catalog.towerMatchCount == null -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            repeat(3) { CatalogTowerLoading() }
+        catalog.towerMatchCount == null -> if (catalog.summary.towers > 0L) {
+            CatalogLoadingIndicator("正在加载塔台")
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                repeat(3) { CatalogTowerLoading() }
+            }
         }
         count == 0L -> {
             val searching = catalog.towerSearch.isNotBlank()
