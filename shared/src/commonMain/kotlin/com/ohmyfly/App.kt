@@ -427,6 +427,7 @@ private fun AppPager(
     nodesState: LazyListState, settingsState: LazyListState,
     padding: PaddingValues,
 ) {
+    val catalog by subscriptionTowerStore.state.collectAsState()
     val pageStateHolder = rememberSaveableStateHolder()
     HorizontalPager(
         state = pagerState,

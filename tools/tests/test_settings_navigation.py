@@ -72,7 +72,8 @@ class SettingsNavigationTests(unittest.TestCase):
         self.assertIn('else -> NavSwipeDirection.LeftToRight', screen)
         self.assertNotIn('Crossfade', screen)
         self.assertNotIn('pointerInput', screen)
-        self.assertIn('HorizontalPager(', app)
+        pager = app.split('private fun AppPager(', 1)[1]
+        self.assertIn('val catalog by subscriptionTowerStore.state.collectAsState()', pager)
         self.assertIn('rememberSaveableStateHolder()', app)
         self.assertIn('pageStateHolder.SaveableStateProvider(AppDestination.entries[page].name)', app)
         self.assertIn('rememberSaveable { mutableStateOf(emptyList<Long>()) }',
