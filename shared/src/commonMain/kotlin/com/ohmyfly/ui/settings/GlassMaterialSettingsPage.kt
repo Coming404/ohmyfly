@@ -318,6 +318,7 @@ private fun PreviewNavigationItem(
 private fun GlassMaterialSlider(
     title: String,
     value: Float,
+    range: ClosedFloatingPointRange<Float>,
     steps: Int = 0,
     valueLabel: (Float) -> String,
     minLabel: String,

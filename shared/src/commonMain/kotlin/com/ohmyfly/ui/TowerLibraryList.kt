@@ -5,11 +5,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import com.ohmyfly.catalog.*
 import com.ohmyfly.settings.AppSettings
+import com.ohmyfly.ui.settings.SettingsIcons
 import com.ohmyfly.subscription.SubscriptionMirrorSettings
 
 /** 搜索、总控和卡片统一消费列表内边距，只有 Scaffold 顶栏固定。 */
