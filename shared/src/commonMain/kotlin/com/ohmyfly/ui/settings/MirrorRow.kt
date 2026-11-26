@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.mirror.MirrorProbeResult
 import com.ohmyfly.mirror.ProbeStatus
+import com.ohmyfly.ui.appIconTint
 import com.ohmyfly.ui.hapticClick
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
@@ -131,8 +132,7 @@ internal fun MirrorRow(
             Icon(
                 imageVector = MirrorIcons.More,
                 contentDescription = "管理$name",
-                tint = if (selectionEnabled) MiuixTheme.colorScheme.onSurfaceVariantActions
-                    else MiuixTheme.colorScheme.disabledOnSurface,
+                tint = appIconTint(),
                 modifier = Modifier.size(20.dp),
             )
         }

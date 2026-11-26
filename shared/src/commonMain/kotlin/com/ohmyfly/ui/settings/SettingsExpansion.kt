@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.ui.LocalAppMotionAllowed
+import com.ohmyfly.ui.appIconTint
 import com.ohmyfly.ui.hapticClick
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Icon
@@ -71,7 +72,7 @@ internal fun SettingsExpansionArrow(expanded: Boolean) {
         animated
     } else target
     Icon(MiuixIcons.Basic.ArrowRight, contentDescription = null,
-        tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+        tint = appIconTint(),
         modifier = Modifier.size(width = 10.dp, height = 16.dp).graphicsLayer { rotationZ = rotation })
 }
 

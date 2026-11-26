@@ -61,10 +61,6 @@ internal fun LogFileContent(state: LogPageState, fileId: String) {
     var content by remember(fileId) { mutableStateOf(state.contentSnapshot()) }
     if (active) content = state.contentSnapshot()
     Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
-            LogCopyButton(state, content.entries, active)
-        }
         LogTextWindow(state, content, active)
     }
 }
@@ -114,7 +110,14 @@ private fun LogTextWindow(state: LogPageState, content: LogContentSnapshot, acti
         LazyColumn(state = list, modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp, max = maxHeight)
             .nestedScroll(scroll),
             contentPadding = PaddingValues(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-            item("window-start") { if (content.hasNewer) SettingsHint("向上滚动读取") }
+            item("window-start") {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.weight(1f)) {
+                        if (content.hasNewer) SettingsHint("向上滚动读取")
+                    }
+                    LogCopyButton(state, entries, active)
+                }
+            }
             items(entries, key = { it.id }) { entry ->
                 Column {
                     Text("${logTime(entry.timestampMillis)}  ${entry.level.label}", fontSize = 12.sp,
@@ -159,7 +162,7 @@ internal fun LogIconButton(
     onClick: () -> Unit,
 ) {
     com.ohmyfly.ui.InlineChromeIconButton(label, icon, onClick, enabled = enabled, busy = busy,
-        background = background, tint = MiuixTheme.colorScheme.onSurfaceVariantActions)
+        background = background, controlSize = 34.dp, iconSize = 16.dp)
 }
 
 @Composable

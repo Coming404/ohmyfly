@@ -69,6 +69,8 @@ internal data class CatalogPage(
 @Serializable
 internal data class RefreshTicket(val id: Long, val generation: Long, val address: String, val name: String)
 
+internal data class CatalogTaskProgress(val completed: Int = 0, val total: Int = 0)
+
 internal data class CatalogState(
     val summary: CatalogSummary = CatalogSummary(), val towers: List<CatalogTower> = emptyList(),
     val flights: List<CatalogFlight> = emptyList(), val towerPage: Int = 0, val flightPage: Int = 0,
@@ -77,6 +79,7 @@ internal data class CatalogState(
     val ready: Boolean = false, val failure: String? = null, val busy: Boolean = false,
     val towerSearch: String = "", val towerMatchCount: Long? = null, val towerLoading: Boolean = true,
     val sourceTasks: Map<Long, CatalogSourceTask> = emptyMap(),
+    val towerTaskProgress: Map<Long, CatalogTaskProgress> = emptyMap(),
     val taskTotal: Int = 0, val taskCompleted: Int = 0, val taskFailed: Int = 0,
     val operationFailure: String? = null,
     val queuedBatches: Int = 0, val stopping: Boolean = false, val stopped: Boolean = false,

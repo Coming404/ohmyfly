@@ -51,7 +51,7 @@ internal fun FlightSummary(flight: CatalogFlight, config: JsonObject?) {
 private fun MetricValue(modifier: Modifier, icon: ImageVector, value: String, color: androidx.compose.ui.graphics.Color) {
     Row(modifier.heightIn(min = 44.dp), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, Modifier.size(18.dp), tint = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+        Icon(icon, null, Modifier.size(18.dp), tint = appIconTint())
         Text(value, fontSize = 13.sp, color = color, maxLines = 1)
     }
 }

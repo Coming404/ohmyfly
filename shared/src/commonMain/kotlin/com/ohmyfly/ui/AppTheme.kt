@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import top.yukonga.miuix.kmp.squircle.LocalSquircleEnabled
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.LocalContentColor
@@ -14,6 +15,9 @@ import top.yukonga.miuix.kmp.theme.ThemeController
 import top.yukonga.miuix.kmp.theme.ThemePaletteStyle
 import com.ohmyfly.settings.MaterialMode
 import com.ohmyfly.settings.AccentPalette
+
+@Composable
+internal fun appIconTint(): Color = if (MiuixTheme.colorScheme.background.luminance() < 0.5f) Color.White else Color.Black
 
 private val ExpressiveDefaultSeed = Color(0xFF1F6FE5)
 

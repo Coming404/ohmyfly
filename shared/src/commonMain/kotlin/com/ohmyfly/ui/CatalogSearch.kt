@@ -44,7 +44,7 @@ internal fun CatalogSearch(
                 backgroundColor = androidx.compose.ui.graphics.Color.Transparent, cornerRadius = AppCorners.Toolbar,
             ) {
                 top.yukonga.miuix.kmp.basic.Icon(DriftIcons.Clear, "关闭搜索框",
-                    modifier = Modifier.size(ChromeMetrics.ToolbarIconSize))
+                    modifier = Modifier.size(ChromeMetrics.ToolbarIconSize), tint = appIconTint())
             }
         },
         modifier = Modifier.fillMaxWidth()

@@ -4,6 +4,7 @@ package catalog
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 const nodeRegionSchema = `
@@ -80,14 +81,20 @@ func applyNameRegions(ctx context.Context, tx *sql.Tx, towerID int64) error {
 		if len(items) == 0 {
 			return nil
 		}
-		for _, v := range items {
-			code := regionFromName(v.name)
-			if _, err = tx.ExecContext(ctx, `INSERT INTO node_regions(node_id,name_region) VALUES(?,?)
+		values := make([]map[string]any, 0, len(items))
+		for _, item := range items {
+			values = append(values, map[string]any{"id": item.id, "region": regionFromName(item.name)})
+			anchor = item.id
+		}
+		encoded, err := json.Marshal(values)
+		if err != nil {
+			return err
+		}
+		if _, err = tx.ExecContext(ctx, `INSERT INTO node_regions(node_id,name_region)
+ SELECT json_extract(value,'$.id'),json_extract(value,'$.region') FROM json_each(?) WHERE true
  ON CONFLICT(node_id) DO UPDATE SET name_region=excluded.name_region
- WHERE node_regions.name_region<>excluded.name_region`, v.id, code); err != nil {
-				return err
-			}
-			anchor = v.id
+ WHERE node_regions.name_region<>excluded.name_region`, string(encoded)); err != nil {
+			return err
 		}
 	}
 }

@@ -24,8 +24,8 @@ import kotlin.time.Instant
 @Composable
 internal fun TowerCard(
     tower: CatalogTower, loading: Boolean, ready: Boolean, expanded: Boolean, revision: Long,
-    onExpand: () -> Unit, onRefresh: () -> Unit, onRemove: () -> Unit,
-    phase: String? = null, onSourceImport: (CatalogSource) -> Unit = {},
+    onExpand: () -> Unit, onRefresh: () -> Unit, onStop: () -> Unit, onRemove: () -> Unit,
+    progress: CatalogTaskProgress? = null, onSourceImport: (CatalogSource) -> Unit = {},
     onEdit: () -> Unit = {},
     selected: Boolean = false, selectionMode: Boolean = false, onSelect: () -> Unit = {},
     selectedNodeIds: Set<String> = emptySet(), onNodeSelection: (Set<String>) -> Unit = {},
@@ -47,10 +47,11 @@ internal fun TowerCard(
     ) {
         Column(Modifier.fillMaxWidth().catalogSelectionSurface(selected, AppCorners.Card)) {
             Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 14.dp)) {
-                TowerIdentity(tower, loading, selected, selectionMode, syncColor)
-                if (loading) Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    LinearProgressIndicator(Modifier.fillMaxWidth())
-                    Text(phase ?: "正在同步", fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+                TowerIdentity(tower, loading, progress, selected, selectionMode, syncColor)
+                if (loading) {
+                    val ratio = progress?.let { if (it.total == 0) 0f else it.completed.toFloat() / it.total }
+                        ?.coerceIn(0f, 1f) ?: 0f
+                    LinearProgressIndicator(progress = ratio, modifier = Modifier.fillMaxWidth().padding(top = 14.dp), height = 6.dp)
                 }
                 if (!loading) TowerUsage(tower)
                 if (!loading && tower.failure.isNotBlank()) {
@@ -65,7 +66,7 @@ internal fun TowerCard(
                 if (!selectionMode && !nodeSelectionMode) HorizontalDivider()
             }
             if (!selectionMode && !nodeSelectionMode) TowerFooter(tower, loading, ready, flightsEnabled,
-                expanded, revision, syncColor, onExpand, onRefresh, onEdit, onRemove, onSourceImport)
+                expanded, revision, syncColor, onExpand, onRefresh, onStop, onEdit, onRemove, onSourceImport)
             CatalogExpansion(expanded && flightsEnabled && !selectionMode) {
                 Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
                     TowerFlights(tower.id, revision, tower.nodeCount, selectedNodeIds, onNodeSelection, nodeSelectionMode)

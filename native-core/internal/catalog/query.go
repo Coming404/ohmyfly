@@ -92,17 +92,13 @@ func (s *Store) Summary(ctx context.Context) (Summary, error) {
 	if err != nil {
 		return result, err
 	}
-	changed, err := s.readTrend(ctx, tx, time.Now(), &result)
-	if err != nil {
+	if err = s.readTrend(ctx, tx, time.Now(), &result); err != nil {
 		return result, err
 	}
 	if err = tx.Commit(); err != nil {
 		return result, err
 	}
-	if changed {
-		err = s.saveTrend(ctx, result)
-	}
-	return result, err
+	return result, nil
 }
 
 func (s *Store) Page(ctx context.Context, kind string, anchor int64, backwards bool, revision, filterToken int64) (Page, error) {

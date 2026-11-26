@@ -129,7 +129,7 @@ private fun TowerFlightList(
                 CatalogExpansion(flight.id in expanded && !selectionMode) {
                     Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         HorizontalDivider()
-                        FlightDetails(flight, revision)
+                        FlightDetails(flight)
                     }
                 }
             }

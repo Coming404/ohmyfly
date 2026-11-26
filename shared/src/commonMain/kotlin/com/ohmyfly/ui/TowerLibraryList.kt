@@ -55,11 +55,14 @@ internal fun TowerLibraryList(listState: LazyListState, catalog: CatalogState, s
         items(count.coerceAtMost(Int.MAX_VALUE.toLong() - 1).toInt(), key = { "tower-slot:$it" }) { index ->
             val tower = catalog.towerWindow[index / 100]?.getOrNull(index % 100)
             if (tower == null) {
-                if (catalog.summary.towers > 0L) CatalogLoadingIndicator("正在加载塔台")
-                else CatalogTowerLoading()
+                if (catalog.summary.towers > 0L && index % 100 == 0) {
+                    CatalogLoadingIndicator("正在加载塔台", Modifier.fillParentMaxSize())
+                } else if (catalog.summary.towers == 0L) CatalogTowerLoading()
+                else Spacer(Modifier.height(1.dp))
             } else if (tower.id !in catalog.pendingRemoval) TowerCard(tower,
                 catalog.sourceTasks.values.any { it.parentId == tower.id }, importReady && catalog.ready,
-                phase = catalog.sourceTasks.values.firstOrNull { it.parentId == tower.id }?.phase,
+                progress = catalog.towerTaskProgress[tower.id],
+                onStop = { store.cancelTowerSync(tower.id) },
                 selected = tower.id in selectedTowerIds, selectionMode = selectionMode == CatalogSelectionMode.Towers,
                 onSelect = { if (selectionMode != CatalogSelectionMode.Towers) onEnterSelection()
                     onTowerSelection(toggleLongSelection(selectedTowerIds, tower.id)) },

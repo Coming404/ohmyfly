@@ -114,10 +114,22 @@ private fun SyncControl(busy: Boolean, enabled: Boolean, action: () -> Unit) {
     val colors = MiuixTheme.colorScheme
     val background = if (busy) colors.error else if (enabled) colors.primary else colors.surfaceContainer
     val content = if (busy) colors.onError else if (enabled) colors.onPrimary else colors.disabledOnSurface
-    Box(Modifier.heightIn(min = 44.dp).clip(AppCorners.Capsule).clickable(enabled = enabled,
-        role = Role.Button, onClick = hapticClick(action)), contentAlignment = Alignment.Center) {
-        Row(Modifier.background(background, AppCorners.Capsule).heightIn(min = 30.dp).padding(horizontal = 11.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+    Button(
+        onClick = hapticClick(action),
+        enabled = enabled,
+        modifier = Modifier.heightIn(min = 44.dp).clip(AppCorners.shape(AppCorners.Capsule)),
+        minWidth = 0.dp,
+        minHeight = 30.dp,
+        insideMargin = PaddingValues(horizontal = 11.dp),
+        colors = ButtonDefaults.buttonColors(
+            color = background,
+            disabledColor = colors.surfaceContainer,
+            contentColor = content,
+            disabledContentColor = colors.disabledOnSurface,
+        ),
+        cornerRadius = AppCorners.Capsule,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             if (busy) Box(Modifier.size(11.dp).background(content, AppCorners.shape(AppCorners.StopMark)))
             else Icon(SettingsIcons.Retry, null, Modifier.size(14.dp), tint = content)
             Text(if (busy) "全部停止" else "全部同步", fontSize = 12.sp, color = content)

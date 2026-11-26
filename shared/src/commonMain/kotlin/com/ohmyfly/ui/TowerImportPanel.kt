@@ -45,7 +45,7 @@ internal fun TowerImportPanel(
         onDismissRequest = { if (!draft.reading) onClose() }, backgroundColor = MiuixTheme.colorScheme.background,
         endAction = { IconButton(onClick = hapticClick(onClose), enabled = !draft.reading,
             modifier = Modifier.size(44.dp).background(MiuixTheme.colorScheme.surfaceContainer, AppCorners.Capsule), cornerRadius = AppCorners.Toolbar) {
-            Icon(DriftIcons.Clear, "关闭", Modifier.size(22.dp))
+            Icon(DriftIcons.Clear, "关闭", Modifier.size(22.dp), tint = appIconTint())
         } }) {
         Column(Modifier.fillMaxWidth().heightIn(max = LocalWindowInfo.current.containerDpSize.height * 0.76f)) {
             // 正文可滚动，提交区固定在抽屉底部；IME 高度只由 Miuix 处理。

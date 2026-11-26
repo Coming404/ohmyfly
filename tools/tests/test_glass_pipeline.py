@@ -57,9 +57,10 @@ class GlassPipelineTests(unittest.TestCase):
         self.assertIn('chromaticAberration', lens)
         self.assertIn('float base = max(1.0 - edge * edge * edge * edge, 0.0001)', lens)
         self.assertIn('float slope = edge * edge * edge / (base * y)', lens)
-        self.assertIn('refractionScale = LiquidGlassParameters.goldenRefractionScale',
-                      (COMMON / 'ui/GlassMaterialTuning.kt').read_text() +
-                      (GLASS / 'GlassEffects.kt').read_text() + lens)
+        self.assertIn('refractionScale = profile.refractionScale',
+                      (GLASS / 'GlassEffects.kt').read_text())
+        self.assertIn('Pill("pill", 10f, 38f, 0.2f, 0.25f, 0.03f, 0.618f)',
+                      (COMMON / 'settings/GlassLensProfile.kt').read_text())
         self.assertIn('float convexDisplacement(float x)', lens)
         self.assertIn('float discriminant = 1.0 - eta * eta', lens)
         self.assertIn('convexLens > 0.5', lens)

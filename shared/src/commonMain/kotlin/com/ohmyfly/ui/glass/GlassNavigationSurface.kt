@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -38,8 +37,6 @@ import com.ohmyfly.ui.LocalChromeAppearance
 import com.ohmyfly.ui.withSettings
 import com.ohmyfly.ui.NavigationBarShape
 import top.yukonga.miuix.kmp.blur.Backdrop
-import top.yukonga.miuix.kmp.blur.drawBackdrop
-import top.yukonga.miuix.kmp.blur.highlight.Highlight
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -57,7 +54,7 @@ internal fun GlassNavigationSurface(
     var focusedIndex by remember { mutableIntStateOf(-1) }
     val motion = LocalAppMotionAllowed.current
     val preset = rememberAnimatedGlassPreset(materialMode, dark, enabled, motion)
-        .withSettings(LocalChromeAppearance.current.materialSettings)
+        .withSettings(LocalChromeAppearance.current.materialSettings, dark)
     val response = rememberGlassNavigationGesture(
         selectedIndex = destination.ordinal,
         count = AppDestination.entries.size,
@@ -67,14 +64,11 @@ internal fun GlassNavigationSurface(
         onSelect = { onDestination(AppDestination.entries[it]) },
     )
     val highlight = rememberGlassHighlight(enabled, motion, preset)
-    val capsuleHighlight = rememberGlassHighlight(
-        enabled, motion, preset, extraDegrees = LiquidGlassParameters.capsuleLightOffsetDegrees,
-    )
+    val navigationPreset = preset.copy(convexLensEnabled = false)
     val surface = MiuixTheme.colorScheme.surface
     val tint = glassTint(surface, dark)
     val spot = if (enabled && preset.liquidResponse && motion) response.spot else null
     val tabsBackdrop = rememberLayerBackdrop()
-    val combined = rememberCombinedBackdrop(backdrop, tabsBackdrop)
     Box(
         modifier = modifier
             .onSizeChanged { response.width = it.width.toFloat() }
@@ -86,7 +80,7 @@ internal fun GlassNavigationSurface(
         Box(
             Modifier.matchParentSize().then(
                 if (enabled) Modifier.glassSurface(
-                    backdrop, NavigationBarShape, preset, tint, highlight,
+                    backdrop, NavigationBarShape, navigationPreset, tint, highlight,
                     pressProgress = { response.drag.pressProgress },
                     layerBlock = {
                         val scale = 1f + 16.dp.toPx() / size.width.coerceAtLeast(1f) * response.drag.pressProgress
@@ -114,7 +108,7 @@ internal fun GlassNavigationSurface(
                 modifier = Modifier.matchParentSize().clearAndSetSemantics {}
                     .graphicsLayer { alpha = 0f }
                     .layerBackdrop(tabsBackdrop)
-                    .glassSurface(backdrop, NavigationBarShape, preset, tint, highlight,
+                    .glassSurface(backdrop, NavigationBarShape, navigationPreset, tint, highlight,
                         pressProgress = { response.drag.pressProgress })
                     .clip(NavigationBarShape).then(spot?.modifier ?: Modifier)
                     .padding(horizontal = 4.dp),
@@ -125,7 +119,7 @@ internal fun GlassNavigationSurface(
                 }
             }
         }
-        GlassNavigationSelection(response, focusedIndex, enabled, combined, preset, capsuleHighlight, dark)
+        GlassNavigationSelection(response, focusedIndex, dark)
     }
 }
 
@@ -133,28 +127,21 @@ internal fun GlassNavigationSurface(
 private fun BoxScope.GlassNavigationSelection(
     response: GlassNavigationGesture,
     focusedIndex: Int,
-    enabled: Boolean,
-    backdrop: Backdrop,
-    preset: GlassPreset,
-    highlight: State<Highlight>,
     dark: Boolean,
 ) {
     if (response.tabWidth <= 0f) return
     val tabWidth = with(LocalDensity.current) { response.tabWidth.toDp() }
-    val capsuleShape = NavigationBarShape
     val indicatorInset = if (top.yukonga.miuix.kmp.utils.platform() == top.yukonga.miuix.kmp.utils.Platform.IOS) {
         com.ohmyfly.ui.ChromeMetrics.NavigationIndicatorInset
     } else 4.dp
     Box(Modifier.matchParentSize().padding(horizontal = 4.dp, vertical = indicatorInset).clearAndSetSemantics {}) {
-        val capsule = Modifier.fillMaxHeight().width(tabWidth).graphicsLayer {
+        Box(Modifier.fillMaxHeight().width(tabWidth).graphicsLayer {
             translationX = glassTabOffset(response.drag.value, response.tabWidth, response.ltr)
-        }
-        Box(
-            if (enabled) capsule.glassNavigationCapsule(backdrop, capsuleShape, response, preset, highlight, dark)
-            else capsule.background(MiuixTheme.colorScheme.primary.copy(alpha = 0.15f), capsuleShape),
-        )
+        }.background(
+            MiuixTheme.colorScheme.onSurface.copy(alpha = if (dark) 0.18f else 0.08f),
+            NavigationBarShape,
+        ))
     }
-    // Draw after the lens so the selected capsule cannot obscure keyboard focus.
     if (focusedIndex in AppDestination.entries.indices) {
         val focusShape = com.ohmyfly.shapes.AppCorners.shape(12.dp)
         Box(Modifier.matchParentSize().padding(4.dp).clearAndSetSemantics {}) {
@@ -163,46 +150,4 @@ private fun BoxScope.GlassNavigationSelection(
             }.border(2.dp, MiuixTheme.colorScheme.onSurface, focusShape))
         }
     }
-}
-
-/** The combined source is already color-controlled/blurred. Only the moving front lens is added. */
-private fun Modifier.glassNavigationCapsule(
-    backdrop: Backdrop,
-    shape: GlassShape,
-    response: GlassNavigationGesture,
-    preset: GlassPreset,
-    highlight: State<Highlight>,
-    dark: Boolean,
-): Modifier = drawBackdrop(
-    backdrop = backdrop,
-    shape = { shape },
-    effects = {
-        val press = response.drag.pressProgress
-        // Keep full sampling reach before the first frame of the press animation.
-        padding = maxOf(padding, preset.effectSamplingReachDp.dp.toPx())
-        lens(
-            if (preset.convexLensEnabled) preset.convexLensProfile.bezelWidthDp.dp.toPx()
-            else (preset.lensHeight + preset.pressLensHeight * press).dp.toPx(),
-            if (preset.convexLensEnabled) preset.convexLensProfile.thicknessDp.dp.toPx()
-            else (preset.lensAmount + preset.pressLensAmount * press).dp.toPx(),
-            depthEffect = preset.convexLensEnabled || (LiquidGlassParameters.depthEffectOnPress && press > 0f),
-            chromaticAberration = preset.chromaticAberration * press,
-            convexProfile = preset.convexLensProfile.takeIf { preset.convexLensEnabled },
-            glassThicknessDp = preset.convexLensProfile.thicknessDp,
-            refractionScale = LiquidGlassParameters.goldenRefractionScale,
-        )
-    },
-    highlight = { highlight.value },
-    layerBlock = {
-        val velocity = response.drag.velocity / 10f
-        scaleX = response.drag.scaleX / (1f - (velocity * 0.75f).coerceIn(-0.2f, 0.2f))
-        scaleY = response.drag.scaleY * (1f - (velocity * 0.25f).coerceIn(-0.2f, 0.2f))
-    },
-).innerShadow(shape) {
-    val press = response.drag.pressProgress
-    InnerShadow(
-        radius = LiquidGlassParameters.capsuleInnerShadowRadiusDp.dp,
-        color = Color.Black.copy(alpha = LiquidGlassParameters.capsuleInnerShadowAlpha),
-        alpha = 0.75f + press * 0.25f,
-    )
 }

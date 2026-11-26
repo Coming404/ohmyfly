@@ -14,6 +14,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ohmyfly.ui.appIconTint
 import com.ohmyfly.ui.hapticClick
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Icon
@@ -46,7 +47,7 @@ internal fun SettingsActionRow(
                 Icon(
                     imageVector = MiuixIcons.Basic.ArrowRight,
                     contentDescription = null,
-                    tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                    tint = appIconTint(),
                     modifier = Modifier.size(width = 10.dp, height = 16.dp).graphicsLayer {
                         scaleX = if (rtl) -1f else 1f
                     },

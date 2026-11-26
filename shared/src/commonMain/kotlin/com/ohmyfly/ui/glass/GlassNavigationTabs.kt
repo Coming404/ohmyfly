@@ -57,8 +57,7 @@ internal fun RowScope.GlassNavigationTabs(
         val selected = index == selectedIndex
         val interaction = remember { MutableInteractionSource() }
         val pressed by interaction.collectIsPressedAsState()
-        val tint = if (recording || selected) MiuixTheme.colorScheme.primary
-            else MiuixTheme.colorScheme.onSurfaceVariantSummary
+        val tint = if (recording || selected) MiuixTheme.colorScheme.primary else appIconTint()
         val color = if (!recording && pressed) tint.copy(alpha = 0.6f) else tint
         val input = if (recording) Modifier else Modifier
             .onFocusChanged { onFocusChange(index, it.isFocused) }

@@ -31,14 +31,14 @@ import kotlin.math.roundToLong
 
 @Composable
 internal fun FlightCard(flight: CatalogFlight, selected: Boolean, selectionMode: Boolean,
-    onSelect: () -> Unit, onDetails: () -> Unit, expanded: Boolean, revision: Long) {
+    onSelect: () -> Unit, onDetails: () -> Unit, expanded: Boolean) {
     // 卡片外轮廓再次裁剪内部行的按压指示，长按覆盖层与连续圆角保持一致。
     Card(Modifier.fillMaxWidth().clip(AppCorners.shape(AppCorners.Card)), cornerRadius = AppCorners.Card) {
         FlightRow(flight, selected, selectionMode, onSelect, onDetails, expanded, cornerRadius = AppCorners.Card)
         CatalogExpansion(expanded && !selectionMode) {
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 FlightDetailsDivider()
-                FlightDetails(flight, revision)
+                FlightDetails(flight)
             }
         }
     }
@@ -83,7 +83,7 @@ internal fun FlightRow(flight: CatalogFlight, selected: Boolean = false, selecti
                 fontSize = 12.sp, color = metricColor(download))
         }
         if (!selectionMode) Icon(MiuixIcons.Basic.ArrowRight, if (expanded) "收起详情" else "展开详情",
-            Modifier.size(16.dp).rotate(if (expanded) 90f else 0f), tint = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+            Modifier.size(16.dp).rotate(if (expanded) 90f else 0f), tint = appIconTint())
     }
 }
 

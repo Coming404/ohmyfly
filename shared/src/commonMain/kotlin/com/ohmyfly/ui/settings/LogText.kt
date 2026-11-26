@@ -10,7 +10,7 @@ private fun beijingTime(epochMillis: Long): String =
     (Instant.fromEpochMilliseconds(epochMillis) + 8.hours).toString().removeSuffix("Z")
 
 internal fun logTime(epochMillis: Long): String =
-    beijingTime(epochMillis).replace('T', ' ') + " +08:00"
+    beijingTime(epochMillis).substringBefore('.').replace('T', ' ')
 
 internal fun logFileName(file: LogFileInfo): String =
     beijingTime(file.createdMillis).substringBefore('.').replace("-", "")

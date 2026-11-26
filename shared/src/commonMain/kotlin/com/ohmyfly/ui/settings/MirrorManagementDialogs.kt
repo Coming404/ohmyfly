@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ohmyfly.ui.appIconTint
 import com.ohmyfly.ui.hapticClick
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
@@ -53,7 +54,7 @@ internal fun MirrorDeleteContent(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(MirrorIcons.Shield, null, Modifier.size(20.dp))
+                Icon(MirrorIcons.Shield, null, Modifier.size(20.dp), tint = appIconTint())
                 Text("保留", fontSize = 15.sp)
             }
             Row(

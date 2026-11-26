@@ -6,8 +6,12 @@ internal enum class GlassLensProfile(
     val label: String,
     val bezelWidthDp: Float,
     val thicknessDp: Float,
+    val blur: Float,
+    val lightFillAlpha: Float,
+    val darkFillAlpha: Float,
+    val refractionScale: Float,
 ) {
-    Pill("pill", 10f, 38f),
-    Control("control", 16f, 62f),
-    Card("card", 26f, 100f),
+    Pill("pill", 10f, 38f, 0.2f, 0.25f, 0.03f, 0.618f),
+    Control("control", 16f, 62f, 0.35f, 0.35f, 0.06f, 0.618f),
+    Card("card", 26f, 100f, 0.5f, 0.45f, 0.05f, 0.618f),
 }

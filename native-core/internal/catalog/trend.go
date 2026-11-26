@@ -1,4 +1,4 @@
-// 目录读取产生真实的每日观测值；未打开应用的日期保留为空。
+// 今日摘要在读取时显示当前观测；历史持久化由独立写操作完成。
 package catalog
 
 import (
@@ -19,7 +19,7 @@ type DailySummary struct {
 }
 
 // 七个连续自然日始终占七个横轴位置；只读数据库中实际存在的记录。
-func (s *Store) readTrend(ctx context.Context, tx *sql.Tx, now time.Time, result *Summary) (bool, error) {
+func (s *Store) readTrend(ctx context.Context, tx *sql.Tx, now time.Time, result *Summary) error {
 	first := now.AddDate(0, 0, -6)
 	result.Trend = make([]DailySummary, 7)
 	for i := range result.Trend {
@@ -28,14 +28,14 @@ func (s *Store) readTrend(ctx context.Context, tx *sql.Tx, now time.Time, result
 	today := &result.Trend[6]
 	rows, err := tx.QueryContext(ctx, `SELECT day,flights,fuel_bytes FROM tower_daily_summary WHERE day BETWEEN ? AND ? ORDER BY day`, result.Trend[0].Day, today.Day)
 	if err != nil {
-		return false, err
+		return err
 	}
 	defer rows.Close()
 	i := 0
 	for rows.Next() {
 		var d DailySummary
 		if err := rows.Scan(&d.Day, &d.Flights, &d.FuelBytes); err != nil {
-			return false, err
+			return err
 		}
 		for i < len(result.Trend) && result.Trend[i].Day < d.Day {
 			i++
@@ -45,11 +45,7 @@ func (s *Store) readTrend(ctx context.Context, tx *sql.Tx, now time.Time, result
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return false, err
-	}
-	unchanged := today.Flights != nil && *today.Flights == result.Flights && (today.FuelBytes != nil) == result.FuelReported
-	if unchanged && result.FuelReported {
-		unchanged = *today.FuelBytes == result.UsedTrafficBytes
+		return err
 	}
 	today.Flights = &result.Flights
 	if result.FuelReported {
@@ -57,7 +53,23 @@ func (s *Store) readTrend(ctx context.Context, tx *sql.Tx, now time.Time, result
 	} else {
 		today.FuelBytes = nil
 	}
-	return !unchanged, nil
+	return nil
+}
+
+// RecordTrend persists observations separately so Summary remains read-only.
+func (s *Store) RecordTrend(ctx context.Context, result Summary) error {
+	now := time.Now()
+	first := now.AddDate(0, 0, -6)
+	result.Trend = make([]DailySummary, 7)
+	for i := range result.Trend {
+		result.Trend[i].Day = first.AddDate(0, 0, i).Format(time.DateOnly)
+	}
+	today := &result.Trend[6]
+	today.Flights = &result.Flights
+	if result.FuelReported {
+		today.FuelBytes = &result.UsedTrafficBytes
+	}
+	return s.saveTrend(ctx, result)
 }
 
 // 聚合在只读连接完成，短写事务只保存仍是当前目录修订的快照。

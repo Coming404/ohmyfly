@@ -39,7 +39,10 @@ class PageHeaderTests(unittest.TestCase):
         self.assertIn('modifier = modifier.heightIn(min = ChromeMetrics.ToolbarButtonSize)', selection)
         self.assertNotIn('widthIn(max = 360.dp)', selection)
         self.assertIn('Modifier.offset(y = -ChromeMetrics.BottomToolbarLift)', (COMMON / 'App.kt').read_text())
-        self.assertIn('horizontalArrangement = Arrangement.SpaceBetween', footer)
+        self.assertIn('Modifier.fillMaxWidth().padding(horizontal = 4.dp)', footer)
+        self.assertIn('Box(Modifier.weight(1f), contentAlignment = Alignment.Center)', footer)
+        self.assertIn('if (loading) "停止"', footer)
+        self.assertIn('val ToolbarIconSize = 20.dp', metrics)
         self.assertIn('val BottomToolbarLift = 8.dp', metrics)
 
     def test_back_is_icon_only_with_rtl_and_accessible_touch_target(self):

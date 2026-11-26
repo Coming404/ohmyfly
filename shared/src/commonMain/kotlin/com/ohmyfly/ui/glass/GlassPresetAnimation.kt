@@ -20,12 +20,8 @@ internal fun interpolateGlassPreset(start: GlassPreset, end: GlassPreset, fracti
         saturation = mix(start.saturation, end.saturation),
         brightness = mix(start.brightness, end.brightness),
         surfaceAlpha = mix(start.surfaceAlpha, end.surfaceAlpha),
-        lensHeight = mix(start.lensHeight, end.lensHeight),
-        lensAmount = mix(start.lensAmount, end.lensAmount),
         highlightAlpha = mix(start.highlightAlpha, end.highlightAlpha),
         highlightBlur = mix(start.highlightBlur, end.highlightBlur),
-        pressLensHeight = mix(start.pressLensHeight, end.pressLensHeight),
-        pressLensAmount = mix(start.pressLensAmount, end.pressLensAmount),
         chromaticAberration = mix(start.chromaticAberration, end.chromaticAberration),
         samplingReachDp = mix(start.samplingReachDp, end.samplingReachDp),
         // Interaction policy changes immediately, independently of cosmetic interpolation.

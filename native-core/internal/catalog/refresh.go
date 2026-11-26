@@ -122,6 +122,26 @@ func (s *Store) Stage(ctx context.Context, id, generation int64, start int, node
 }
 
 func (s *Store) Commit(ctx context.Context, r Refresh) error {
+	_, err := s.CommitMeasured(ctx, r)
+	return err
+}
+
+// CommitMeasured exposes phase durations so callers can identify large-import bottlenecks.
+func (s *Store) CommitMeasured(ctx context.Context, r Refresh) (map[string]int64, error) {
+	timings := make(map[string]int64)
+	started := time.Now()
+	mark := func(name string) {
+		timings[name] = time.Since(started).Milliseconds()
+		started = time.Now()
+	}
+	err := s.commit(ctx, r, mark)
+	if err != nil {
+		mark("failed")
+	}
+	return timings, err
+}
+
+func (s *Store) commit(ctx context.Context, r Refresh, mark func(string)) error {
 	if r.Count < 0 {
 		return errors.New("invalid catalog refresh count")
 	}
@@ -129,6 +149,7 @@ func (s *Store) Commit(ctx context.Context, r Refresh) error {
 	if err != nil {
 		return err
 	}
+	mark("prepare")
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -151,9 +172,11 @@ func (s *Store) Commit(ctx context.Context, r Refresh) error {
 	if towerRule != rules.tower || outputRule != rules.output {
 		return ErrStale
 	}
+	mark("validate")
 	if err = classifyRefresh(ctx, tx, r.ID); err != nil {
 		return err
 	}
+	mark("classify")
 	added, updated, removed, err := importResult(ctx, tx, r)
 	if err != nil {
 		return err
@@ -171,6 +194,7 @@ func (s *Store) Commit(ctx context.Context, r Refresh) error {
 	if err = saveImportResult(ctx, tx, r.ID, added, updated, removed, 0, details); err != nil {
 		return err
 	}
+	mark("replace_nodes")
 	if err = applyNameRegions(ctx, tx, r.ID); err != nil {
 		return err
 	}
@@ -179,6 +203,7 @@ func (s *Store) Commit(ctx context.Context, r Refresh) error {
 	if err != nil {
 		return err
 	}
+	mark("regions")
 	if _, err = tx.ExecContext(ctx, "DELETE FROM refresh_nodes WHERE tower_id=?", r.ID); err != nil {
 		return err
 	}
@@ -188,7 +213,12 @@ func (s *Store) Commit(ctx context.Context, r Refresh) error {
 	if err = bump(ctx, tx); err != nil {
 		return err
 	}
-	return tx.Commit()
+	mark("cleanup")
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+	mark("commit")
+	return nil
 }
 
 func (s *Store) Fail(ctx context.Context, id, generation int64, failure, name string) error {

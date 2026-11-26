@@ -195,7 +195,7 @@ private fun AppSnackbar(data: SnackbarData, kind: AppMessageKind) {
                 Icon(
                     imageVector = DriftIcons.Clear,
                     contentDescription = "关闭通知",
-                    tint = foreground,
+                    tint = appIconTint(),
                     modifier = Modifier.padding(start = 8.dp).size(20.dp)
                         .clickable(indication = null, interactionSource = null) {
                             scope.launch { data.dismiss() }

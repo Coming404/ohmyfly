@@ -1,6 +1,7 @@
 package com.ohmyfly.ui.settings
 
 import com.ohmyfly.shapes.AppCorners
+import com.ohmyfly.ui.appIconTint
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,7 +35,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 internal fun SettingsLeadingIcon(icon: ImageVector) {
     Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp),
-        tint = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+        tint = appIconTint())
 }
 
 @Composable
@@ -52,7 +53,7 @@ internal fun SettingsSectionTitle(
     Row(modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = topPadding)
         .semantics(mergeDescendants = true) { heading() },
         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, Modifier.size(18.dp), tint = MiuixTheme.colorScheme.onSurface)
+        Icon(icon, null, Modifier.size(18.dp), tint = appIconTint())
         Text(text, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface)
     }
 }

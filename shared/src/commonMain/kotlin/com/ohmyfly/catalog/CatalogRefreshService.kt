@@ -1,6 +1,7 @@
 package com.ohmyfly.catalog
 
 import com.ohmyfly.settings.SubscriptionSettings
+import com.ohmyfly.logging.logger
 import com.ohmyfly.subscription.*
 import io.ktor.http.parseUrl
 import kotlinx.coroutines.CancellationException
@@ -27,7 +28,16 @@ internal class CatalogRefreshService(
     }
 
     private fun commit(ticket: RefreshTicket, block: JsonObjectBuilder.() -> Unit) {
-        try { request("commit", block) } catch (error: Exception) {
+        try {
+            val response = request("commit", block)
+            response["timingsMs"]?.jsonObject?.let { timings ->
+                if (timings.isNotEmpty()) logger.debug {
+                    "[塔台航班] Go 提交阶段耗时：" + timings.entries.joinToString("，") { (name, value) ->
+                        "$name=${value.jsonPrimitive.long} 毫秒"
+                    }
+                }
+            }
+        } catch (error: Exception) {
             val status = request("status") { put("id", ticket.id) }
             if (status.getValue("committed").jsonPrimitive.long == ticket.generation) return
             if (!status.getValue("exists").jsonPrimitive.boolean ||

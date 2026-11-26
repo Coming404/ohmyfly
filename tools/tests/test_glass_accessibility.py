@@ -48,7 +48,7 @@ class GlassAccessibilityTests(unittest.TestCase):
         self.assertIn('base.background(surface)', chrome)
         self.assertIn('rememberGlassGravity(enabled && motionAllowed && preset.highlightAlpha > 0f)', highlight)
 
-    def test_keyboard_focus_is_visible_above_the_lens_without_duplicate_targets(self):
+    def test_keyboard_focus_is_visible_above_the_static_capsule_without_duplicate_targets(self):
         tabs = (GLASS / 'GlassNavigationTabs.kt').read_text()
         surface = (GLASS / 'GlassNavigationSurface.kt').read_text()
         self.assertIn('if (recording) Modifier else Modifier', tabs)
@@ -56,10 +56,11 @@ class GlassAccessibilityTests(unittest.TestCase):
         self.assertIn('.selectable(', tabs)
         self.assertNotIn('.focusable(', tabs)
         self.assertIn('if (focused) focusedIndex = index else if (focusedIndex == index) focusedIndex = -1', surface)
+        self.assertNotIn('glassNavigationCapsule', surface)
         marker = surface.index('if (focusedIndex in AppDestination.entries.indices)')
-        self.assertLess(surface.index('capsule.glassNavigationCapsule'), marker)
-        self.assertNotIn('liquidCapsule', surface)
-        focus = surface[marker:surface.index('/** The combined source')]
+        selection = surface[:marker]
+        self.assertIn('onSurface.copy(alpha = if (dark) 0.18f else 0.08f)', selection)
+        focus = surface[marker:]
         self.assertIn('clearAndSetSemantics {}', focus)
         self.assertIn('glassTabOffset(focusedIndex.toFloat(), response.tabWidth, response.ltr)', focus)
         self.assertIn('.border(2.dp, MiuixTheme.colorScheme.onSurface, focusShape)', focus)

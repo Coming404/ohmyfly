@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ohmyfly.settings.GlassMaterialSettings
 import com.ohmyfly.settings.MaterialMode
@@ -21,7 +22,6 @@ import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.TooltipBox
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal data class ChromeAppearance(
     val enabled: Boolean,
@@ -41,7 +41,8 @@ internal fun InlineChromeIconButton(
     enabled: Boolean = true,
     busy: Boolean = false,
     background: Color = LocalAppSurfaceColors.current.page,
-    tint: Color = MiuixTheme.colorScheme.onSurface,
+    controlSize: Dp = ChromeMetrics.ControlSize,
+    iconSize: Dp = ChromeMetrics.ToolbarIconSize,
 ) {
     val style = LocalChromeAppearance.current
     val backdrop = rememberLayerBackdrop { drawRect(background) }
@@ -56,7 +57,7 @@ internal fun InlineChromeIconButton(
                 if (busy && LocalAppMotionAllowed.current) CircularProgressIndicator(
                     size = 18.dp, modifier = Modifier.semantics { contentDescription = label },
                 ) else Icon(icon, label, Modifier.size(ChromeMetrics.ToolbarIconSize),
-                    tint = if (enabled) tint else MiuixTheme.colorScheme.disabledOnSurface)
+                    tint = appIconTint().let { if (enabled) it else it.copy(alpha = 0.38f) })
             }
         }
     }

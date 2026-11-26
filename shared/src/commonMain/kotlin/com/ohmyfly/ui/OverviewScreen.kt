@@ -99,5 +99,5 @@ internal fun OverviewScreen(
 
 @Composable
 private fun OverviewIcon(icon: ImageVector) {
-    Icon(icon, contentDescription = null, tint = MiuixTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
+    Icon(icon, contentDescription = null, tint = appIconTint(), modifier = Modifier.size(24.dp))
 }

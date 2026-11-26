@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.logging.LogFileInfo
+import com.ohmyfly.ui.appIconTint
 import com.ohmyfly.ui.hapticClick
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
@@ -32,7 +33,7 @@ internal fun LogFileRow(file: LogFileInfo, name: String, expanded: Boolean, onCl
         .clickable(role = Role.Button, onClickLabel = if (expanded) "收起日志文件" else "展开日志文件",
             onClick = hapticClick(onClick)).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Icon(SettingsIcons.File, null, Modifier.size(20.dp), tint = muted)
+        Icon(SettingsIcons.File, null, Modifier.size(20.dp), tint = appIconTint())
         Text(name, Modifier.weight(1f), fontSize = 15.sp, lineHeight = 22.sp,
             fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(logBytes(file.bytes), fontSize = 12.sp, fontWeight = FontWeight.Normal,

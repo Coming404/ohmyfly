@@ -62,8 +62,7 @@ internal fun CatalogToolbarAction(
                 imageVector = icon,
                 contentDescription = label,
                 modifier = Modifier.size(ChromeMetrics.ToolbarIconSize),
-                tint = if (enabled) MiuixTheme.colorScheme.onSurface
-                    else MiuixTheme.colorScheme.disabledOnSurface,
+                tint = appIconTint().let { if (enabled) it else it.copy(alpha = 0.38f) },
             )
         }
     }

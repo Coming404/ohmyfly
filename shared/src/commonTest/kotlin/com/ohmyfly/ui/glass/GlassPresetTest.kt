@@ -9,30 +9,27 @@ import kotlin.test.assertTrue
 
 class GlassPresetTest {
     @Test
-    fun lensProfilesKeepGoldenRatioAndScaleByComponentSize() {
-        assertEquals(0.618f, LiquidGlassParameters.goldenRefractionScale)
-        assertEquals(10f, GlassLensProfile.Pill.bezelWidthDp)
-        assertEquals(38f, GlassLensProfile.Pill.thicknessDp)
-        assertEquals(16f, GlassLensProfile.Control.bezelWidthDp)
-        assertEquals(62f, GlassLensProfile.Control.thicknessDp)
-        assertEquals(26f, GlassLensProfile.Card.bezelWidthDp)
-        assertEquals(100f, GlassLensProfile.Card.thicknessDp)
+    fun upstreamProfilesMatchTheSharedLiquidGlassPresets() {
+        assertEquals(0.618f, GlassLensProfile.Pill.refractionScale)
+        assertEquals(0.2f, GlassLensProfile.Pill.blur)
+        assertEquals(0.25f, GlassLensProfile.Pill.lightFillAlpha)
+        assertEquals(0.03f, GlassLensProfile.Pill.darkFillAlpha)
+        assertEquals(0.35f, GlassLensProfile.Control.blur)
+        assertEquals(0.5f, GlassLensProfile.Card.blur)
     }
 
     @Test
-    fun liquidUsesCentralizedClearParameters() {
-        for (dark in listOf(false, true)) {
-            val preset = glassPreset(MaterialMode.LiquidGlass, dark)
-            assertEquals(LiquidGlassParameters.blurRadiusDp, preset.blur)
-            assertEquals(LiquidGlassParameters.saturation, preset.saturation)
-            assertEquals(LiquidGlassParameters.brightness, preset.brightness)
-            assertEquals(LiquidGlassParameters.fillAlpha, preset.surfaceAlpha)
-            assertEquals(LiquidGlassParameters.lensHeightDp, preset.lensHeight)
-            assertEquals(LiquidGlassParameters.lensAmountDp, preset.lensAmount)
-            assertEquals(LiquidGlassParameters.highlightAlpha, preset.highlightAlpha)
-            assertEquals(LiquidGlassParameters.highlightBlurDp, preset.highlightBlur)
-            assertTrue(preset.liquidResponse)
-        }
+    fun liquidUsesCentralizedUpstreamParameters() {
+        val light = glassPreset(MaterialMode.LiquidGlass, dark = false)
+        val dark = glassPreset(MaterialMode.LiquidGlass, dark = true)
+        assertEquals(0.2f, light.blur)
+        assertEquals(1.3f, light.saturation)
+        assertEquals(0f, light.brightness)
+        assertEquals(0.25f, light.surfaceAlpha)
+        assertEquals(0.03f, dark.surfaceAlpha)
+        assertEquals(LiquidGlassParameters.highlightAlpha, light.highlightAlpha)
+        assertEquals(LiquidGlassParameters.highlightBlurDp, light.highlightBlur)
+        assertTrue(light.liquidResponse)
     }
 
     @Test
@@ -41,8 +38,6 @@ class GlassPresetTest {
         assertFalse(preset.liquidResponse)
         assertEquals(0f, preset.surfaceAlpha)
         assertEquals(0f, preset.highlightAlpha)
-        assertEquals(0f, preset.lensHeight)
-        assertEquals(0f, preset.lensAmount)
     }
 
     @Test

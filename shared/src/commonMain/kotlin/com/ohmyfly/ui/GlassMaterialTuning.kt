@@ -5,10 +5,12 @@ import com.ohmyfly.settings.GlassMaterialSettings
 import com.ohmyfly.ui.glass.GlassPreset
 
 /** 色片透明度控制表面填充，高光透明度控制旧引擎的扩散高光。 */
-internal fun GlassPreset.withSettings(settings: GlassMaterialSettings): GlassPreset = copy(
-    surfaceAlpha = settings.secondLayerAlpha ?: surfaceAlpha,
+internal fun GlassPreset.withSettings(settings: GlassMaterialSettings, dark: Boolean): GlassPreset = copy(
+    surfaceAlpha = settings.secondLayerAlpha ?: if (settings.convexLensEnabled && liquidResponse) {
+        if (dark) settings.convexLensProfile.darkFillAlpha else settings.convexLensProfile.lightFillAlpha
+    } else surfaceAlpha,
     highlightAlpha = settings.thirdLayerAlpha ?: highlightAlpha,
-    blur = settings.blurRadiusDp ?: blur,
+    blur = settings.blurRadiusDp ?: if (settings.convexLensEnabled && liquidResponse) settings.convexLensProfile.blur else blur,
     convexLensEnabled = settings.convexLensEnabled,
     convexLensProfile = settings.convexLensProfile,
 )

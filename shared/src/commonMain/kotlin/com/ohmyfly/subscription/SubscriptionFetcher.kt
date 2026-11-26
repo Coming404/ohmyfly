@@ -122,12 +122,12 @@ internal class SubscriptionFetcher(
                 val bytes = response.bodyAsChannel().readRemaining(maxBytes + 1).readByteArray()
                 if (bytes.size > maxBytes) throw SubscriptionFetchException("订阅超过大小上限", false)
                 logger.info { "[订阅 $operation] 下载完成：服务器${declared?.let { "声明 $it 字节" } ?: "未声明内容长度"}，实际下载 ${bytes.size} 字节，总耗时 ${started.elapsedNow().inWholeMilliseconds} 毫秒" }
+                val body = bytes.decodeToString()
+                val name = if (resolveName) parseSubscriptionName(
+                    response.headers["profile-title"], response.headers[HttpHeaders.ContentDisposition], body,
+                ) else null
                 SubscriptionResponse(
-                    bytes.decodeToString(), parseSubscriptionUserInfo(response.headers[SubscriptionUsageHeader]),
-                    if (resolveName) parseSubscriptionName(
-                        response.headers["profile-title"], response.headers[HttpHeaders.ContentDisposition],
-                        bytes.decodeToString(),
-                    ) else null,
+                    body, parseSubscriptionUserInfo(response.headers[SubscriptionUsageHeader]), name,
                 )
             }
         } ?: throw SubscriptionFetchException("请求超时", retryable = true)

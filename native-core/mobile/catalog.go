@@ -66,6 +66,7 @@ type catalogRequest struct {
 	Final        bool                       `json:"final"`
 	Nodes        []catalog.Node             `json:"nodes"`
 	Refresh      catalog.Refresh            `json:"refresh"`
+	Observation  catalog.Summary            `json:"observation"`
 }
 
 // Catalog 仅暴露目录业务操作，不接受 SQL；跨语言批次同时限制条数和字节数。
@@ -122,6 +123,8 @@ func callCatalog(ctx context.Context, r catalogRequest) (any, error) {
 		return map[string]bool{"ok": true}, s.EndParse(ctx, r.ID)
 	case "summary":
 		return s.Summary(ctx)
+	case "recordTrend":
+		return map[string]bool{"ok": true}, s.RecordTrend(ctx, r.Observation)
 	case "page":
 		return s.Page(ctx, r.Kind, r.Anchor, r.Backwards, r.Revision, r.FilterToken)
 	case "towerFlights":
@@ -148,7 +151,8 @@ func callCatalog(ctx context.Context, r catalogRequest) (any, error) {
 	case "chunk":
 		return map[string]bool{"ok": true}, s.StageChunk(ctx, r.ID, r.Generation, r.Start, r.Offset, r.Payload, r.Final)
 	case "commit":
-		return map[string]bool{"ok": true}, s.Commit(ctx, r.Refresh)
+		timings, err := s.CommitMeasured(ctx, r.Refresh)
+		return map[string]any{"ok": true, "timingsMs": timings}, err
 	case "status":
 		return s.RefreshStatus(ctx, r.ID)
 	case "abort":

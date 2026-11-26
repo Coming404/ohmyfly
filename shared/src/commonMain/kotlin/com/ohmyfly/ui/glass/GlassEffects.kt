@@ -21,17 +21,18 @@ internal fun BackdropEffectScope.glassEffects(preset: GlassPreset, pressProgress
     padding = maxOf(padding, preset.effectSamplingReachDp.dp.toPx())
     colorControls(brightness = preset.brightness, saturation = preset.saturation)
     blur(preset.blur.dp.toPx())
-    lens(
-        if (preset.convexLensEnabled) preset.convexLensProfile.bezelWidthDp.dp.toPx()
-        else (preset.lensHeight + preset.pressLensHeight * press).dp.toPx(),
-        if (preset.convexLensEnabled) preset.convexLensProfile.thicknessDp.dp.toPx()
-        else (preset.lensAmount + preset.pressLensAmount * press).dp.toPx(),
-        depthEffect = preset.convexLensEnabled || (LiquidGlassParameters.depthEffectOnPress && press > 0f),
-        chromaticAberration = preset.chromaticAberration * press,
-        convexProfile = preset.convexLensProfile.takeIf { preset.convexLensEnabled },
-        glassThicknessDp = preset.convexLensProfile.thicknessDp,
-        refractionScale = LiquidGlassParameters.goldenRefractionScale,
-    )
+    if (preset.convexLensEnabled) {
+        val profile = preset.convexLensProfile
+        lens(
+            profile.bezelWidthDp.dp.toPx(),
+            profile.thicknessDp.dp.toPx(),
+            depthEffect = true,
+            chromaticAberration = preset.chromaticAberration * press,
+            convexProfile = profile,
+            glassThicknessDp = profile.thicknessDp,
+            refractionScale = profile.refractionScale,
+        )
+    }
 }
 
 /** Light glass is tinted white so it can only lift content; Miuix light surface (F7F7F7) grays white cards. */

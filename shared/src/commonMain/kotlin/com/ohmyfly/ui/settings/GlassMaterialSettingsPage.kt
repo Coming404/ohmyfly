@@ -41,6 +41,7 @@ import com.ohmyfly.settings.SettingsLimits
 import com.ohmyfly.ui.CatalogTextButton
 import com.ohmyfly.ui.LocalChromeAppearance
 import com.ohmyfly.ui.NavigationBarShape
+import com.ohmyfly.ui.appIconTint
 import com.ohmyfly.ui.chromeMaterial
 import com.ohmyfly.ui.hapticClick
 import com.ohmyfly.ui.glass.glassPreset
@@ -303,7 +304,7 @@ private fun PreviewNavigationItem(
             icon,
             contentDescription = label,
             modifier = Modifier.size(20.dp),
-            tint = if (selected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurface,
+            tint = if (selected) MiuixTheme.colorScheme.primary else appIconTint(),
         )
         Text(
             label,

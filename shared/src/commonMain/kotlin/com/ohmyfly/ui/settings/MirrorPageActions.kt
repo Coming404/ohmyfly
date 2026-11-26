@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.mirror.MirrorEntry
+import com.ohmyfly.ui.appIconTint
 import com.ohmyfly.ui.hapticClick
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -44,7 +45,7 @@ internal fun MirrorSourceHeader() {
         Icon(
             imageVector = MirrorIcons.List,
             contentDescription = null,
-            tint = MiuixTheme.colorScheme.onSurface,
+            tint = appIconTint(),
             modifier = Modifier.size(20.dp),
         )
         Text(

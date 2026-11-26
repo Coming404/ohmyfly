@@ -116,9 +116,10 @@ internal fun HeaderAction(
     onClick: () -> Unit,
     enabled: Boolean = true,
     iconModifier: Modifier = Modifier,
-    tint: Color = MiuixTheme.colorScheme.onSurface,
+    tint: Color? = null,
 ) {
     val surface = LocalHeaderSurface.current
+    val iconTint = tint ?: appIconTint()
     val interaction = remember { MutableInteractionSource() }
     TooltipBox(text = label) {
         // 可见玻璃面与点击区一致，独立按钮不再套用更小的内圆。
@@ -139,7 +140,7 @@ internal fun HeaderAction(
                 Icon(
                     icon,
                     contentDescription = label,
-                    tint = if (enabled) tint else tint.copy(alpha = 0.38f),
+                    tint = if (enabled) iconTint else iconTint.copy(alpha = 0.38f),
                     modifier = Modifier.size(ChromeMetrics.ToolbarIconSize).then(iconModifier),
                 )
             }

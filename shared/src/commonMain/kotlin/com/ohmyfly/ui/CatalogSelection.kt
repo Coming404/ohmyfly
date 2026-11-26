@@ -44,7 +44,7 @@ internal fun CatalogSelectionToolbar(
         Row(
             modifier = modifier.heightIn(min = ChromeMetrics.ToolbarButtonSize)
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 4.dp),
+                .padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(ChromeMetrics.ActionGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -96,11 +96,11 @@ private fun SelectionToolbarAction(
         cornerRadius = AppCorners.Toolbar,
     ) {
         Row(
-            Modifier.padding(horizontal = 2.dp),
+            Modifier.padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(ChromeMetrics.ActionGap),
         ) {
-            Icon(icon, null, Modifier.size(ChromeMetrics.ToolbarIconSize), tint = color)
+            Icon(icon, null, Modifier.size(22.dp), tint = if (label == "删除") color else appIconTint())
             Text(label, color = color, fontSize = ChromeMetrics.ToolbarLabelSize, fontWeight = FontWeight.SemiBold, maxLines = 1)
         }
     }
@@ -120,7 +120,7 @@ private fun SelectionTopAction(enabled: Boolean, label: String,
     ) {
         Row(Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(ChromeMetrics.ActionGap)) {
-            Icon(icon, null, Modifier.size(ChromeMetrics.ToolbarIconSize), tint = color)
+            Icon(icon, null, Modifier.size(ChromeMetrics.ToolbarIconSize), tint = appIconTint())
             Text(label, color = color, fontSize = ChromeMetrics.ToolbarLabelSize, fontWeight = FontWeight.SemiBold, maxLines = 1)
         }
     }

@@ -20,7 +20,9 @@ internal class CatalogStore(
 ) {
     internal fun call(action: String, block: JsonObjectBuilder.() -> Unit = {}): JsonObject =
         decodeCatalog(bridge(buildJsonObject { put("action", action); block() }.toString()))
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    internal val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    internal var trendWriteJob: Job? = null
+    internal var lastTrendObservation: CatalogSummary? = null
     private val pages = CatalogPages()
     private data class Position(
         val index: Int = 0, val anchor: Long = 0, val backwards: Boolean = false,
@@ -34,7 +36,8 @@ internal class CatalogStore(
     private var foreground = true
     private var pageJob: Job? = null
     private var initialization: Job? = null
-    private val operations = CatalogOperations(scope, worker, { change -> mutableState.update(change) }) { reload() }
+    internal val operations = CatalogOperations(scope, worker, { change -> mutableState.update(change) }) { reload() }
+    internal var runningBatch: CatalogBatchRunner? = null
     private var epoch = 0L
     private var filterJob: Job? = null
     private var filterSequence = 0L
@@ -42,7 +45,7 @@ internal class CatalogStore(
     private var measurementsSequence = 0L
     internal val syncResults = Channel<Pair<Int, Int>>(Channel.BUFFERED)
     private val fetcher = SubscriptionFetcher(createSubscriptionClient())
-    private fun batch(settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) =
+    internal fun batch(settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) =
         CatalogBatchRunner(settings, mirrors, fetcher, ::call,
             changed = { withContext(Dispatchers.Main) { reload(); pageJob?.join() } },
             finished = {
@@ -87,19 +90,25 @@ internal class CatalogStore(
             return
         }
         mutableState.update { it.copy(filterError = null, appliedFilter = value) }
-        queryFlights(if (debounce) 275L else 0L)
+        val preserveResults = state.value.matchCount != null
+        queryFlights(if (debounce) 275L else 0L, preserveResults = preserveResults)
     }
 
-    private fun queryFlights(wait: Long = 0L) {
+    private fun queryFlights(wait: Long = 0L, preserveResults: Boolean = false) {
         filterJob?.cancel()
         val sequence = ++filterSequence
         val revision = state.value.summary.revision
         val filter = state.value.appliedFilter
         if (active == "flights") { pageJob?.cancel(); epoch++ }
-        pages.clear("flights")
-        positions["flights"] = Position()
-        mutableState.update { it.copy(flights = emptyList(), flightWindow = emptyMap(), flightPage = 0, filterToken = 0,
-            matchCount = null, flightLoading = true, filterRevision = sequence) }
+        if (!preserveResults) {
+            pages.clear("flights")
+            positions["flights"] = Position()
+        }
+        mutableState.update { current ->
+            if (preserveResults) current.copy(filterToken = 0, flightLoading = false, filterRevision = sequence)
+            else current.copy(flights = emptyList(), flightWindow = emptyMap(), flightPage = 0, filterToken = 0,
+                matchCount = null, flightLoading = true, filterRevision = sequence)
+        }
         if (!opened || !foreground || !state.value.ready) return
         filterJob = scope.launch {
             try {
@@ -281,6 +290,7 @@ internal class CatalogStore(
             catalogJson.decodeFromJsonElement<CatalogSummary>(call("summary"))
         }
         if (token != reloadSequence || summary.revision < state.value.summary.revision) return
+        recordTrend(summary)
         val current = state.value
         if (!invalidate && current.ready && current.summary.revision == summary.revision) {
             mutableState.update { it.copy(summary = summary, ready = true, failure = null) }
@@ -288,15 +298,18 @@ internal class CatalogStore(
             active?.let { kind -> page(kind, if (kind == "towers") current.towerPage else current.flightPage) }
             return
         }
+        val preserveFlightResults = current.filterToken != 0L && current.matchCount != null
         pageJob?.cancel()
         epoch++
         pages.clear()
         positions.keys.forEach { positions[it] = Position() }
         mutableState.update { it.copy(summary = summary, ready = true, failure = null,
-            towers = emptyList(), flights = emptyList(), towerPage = 0, flightPage = 0,
-            towerMatchCount = null, towerLoading = true,
-            towerWindow = emptyMap(), flightWindow = emptyMap()) }
-        queryFlights()
+            towers = emptyList(), flights = if (preserveFlightResults) current.flights else emptyList(),
+            towerPage = 0, flightPage = 0, towerMatchCount = null, towerLoading = true,
+            matchCount = current.matchCount.takeIf { preserveFlightResults }, filterToken = 0,
+            flightLoading = !preserveFlightResults, towerWindow = emptyMap(),
+            flightWindow = if (preserveFlightResults) current.flightWindow else emptyMap()) }
+        queryFlights(preserveResults = preserveFlightResults)
         if (active == "towers") page("towers", 0)
     }
 
@@ -312,7 +325,7 @@ internal class CatalogStore(
 
     fun importSources(inputs: List<CatalogImportSource>, name: String, merge: Boolean,
         settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings, replaceId: Long? = null) = runOperation {
-        batch(settings, mirrors).importSources(inputs, merge, name, replaceId)
+        runBatch(settings, mirrors) { it.importSources(inputs, merge, name, replaceId) }
         check(state.value.taskFailed == 0) { "${state.value.taskFailed} 个来源导入失败，已保留上次成功数据" }
     }
 
@@ -395,15 +408,6 @@ internal class CatalogStore(
         } catch (_: Exception) { mutableState.update { it.copy(failure = "删除已完成，列表重读失败") } }
     }
 
-    fun cancelOperation() { operations.cancelAll() }
-
-    suspend fun syncAll(settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) = withContext(Dispatchers.Main) {
-        runOperation("sync:all") {
-            batch(settings, mirrors).sync(listOf(0L)) { state.value.pendingRemoval }
-            check(state.value.taskFailed == 0) { "${state.value.taskFailed} 个来源同步失败，已保留上次成功数据" }
-        }.await()
-    }
-
     fun updateTower(id: Long, address: String, name: String, onResult: (Boolean, String) -> Unit = { _, _ -> }) = scope.launch {
         try {
             withContext(worker) { call("updateTower") { put("id", id); put("address", address); put("name", name) } }
@@ -417,15 +421,6 @@ internal class CatalogStore(
         try { reload() }
         catch (e: CancellationException) { throw e }
         catch (_: Exception) { mutableState.update { it.copy(failure = "塔台已保存，列表重读失败") } }
-    }
-
-    fun refresh(id: Long, settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) =
-        refreshTowers(setOf(id), settings, mirrors)
-
-    // 批量任务由目录队列持有；UI 只提交一次，不按卡片生命周期逐个等待。
-    fun refreshTowers(ids: Set<Long>, settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) = runOperation("sync:${ids.sorted().joinToString(",")}") {
-        batch(settings, mirrors).sync(ids) { state.value.pendingRemoval }
-        check(state.value.taskFailed == 0) { "${state.value.taskFailed} 个来源同步失败，已保留上次成功数据" }
     }
 
     fun postponeRemoval(id: Long) {
@@ -467,7 +462,7 @@ internal class CatalogStore(
         } catch (_: Exception) { onResult(false, "塔台已删除，列表重读失败，请下拉重新读取") }
     }
 
-    private fun runOperation(key: String? = null, block: suspend () -> Unit): Deferred<Unit> {
+    internal fun runOperation(key: String? = null, block: suspend () -> Unit): Deferred<Unit> {
         check(opened && state.value.ready) { "塔台与航班数据尚未准备好，请稍后再试" }
         return operations.submit(key, block)
     }

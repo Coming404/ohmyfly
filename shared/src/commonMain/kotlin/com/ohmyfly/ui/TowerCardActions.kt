@@ -23,7 +23,8 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 头部来源和时间放在同一胶囊内，选择框按整个头部居中。 */
 @Composable
-internal fun TowerIdentity(tower: CatalogTower, loading: Boolean, selected: Boolean, selectionMode: Boolean, statusColor: Color) {
+internal fun TowerIdentity(tower: CatalogTower, loading: Boolean, progress: CatalogTaskProgress?,
+    selected: Boolean, selectionMode: Boolean, statusColor: Color) {
     val colors = MiuixTheme.colorScheme
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
         if (selectionMode) CatalogSelectionCheck(selected, Modifier.align(Alignment.CenterVertically))
@@ -37,7 +38,8 @@ internal fun TowerIdentity(tower: CatalogTower, loading: Boolean, selected: Bool
             Text(tower.name.ifBlank { "塔台 ${tower.id}" }, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
                 maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             val source = if (tower.sourceKind == "merged") "${tower.sourceCount} 个来源" else sourceLabel(tower.sourceKind)
-            Text(if (loading) "正在同步" else "$source ${catalogAge(tower.lastSuccessAt)}",
+            val syncProgress = progress?.takeIf { it.total > 0 }?.let { " ${it.completed} / ${it.total}" }.orEmpty()
+            Text(if (loading) "正在同步$syncProgress" else "$source ${catalogAge(tower.lastSuccessAt)}",
                 fontSize = 11.sp, color = colors.onSurfaceVariantSummary,
                 maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
@@ -49,17 +51,23 @@ internal fun TowerIdentity(tower: CatalogTower, loading: Boolean, selected: Bool
 @Composable
 internal fun TowerFooter(tower: CatalogTower, loading: Boolean, ready: Boolean, flightsEnabled: Boolean,
     expanded: Boolean, revision: Long, syncColor: Color, onExpand: () -> Unit, onRefresh: () -> Unit,
-    onEdit: () -> Unit, onRemove: () -> Unit, onSourceImport: (CatalogSource) -> Unit) {
+    onStop: () -> Unit, onEdit: () -> Unit, onRemove: () -> Unit, onSourceImport: (CatalogSource) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        Modifier.fillMaxWidth().padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TowerFooterAction("航班 ${tower.nodeCount}", DriftIcons.Nodes, Modifier, flightsEnabled,
-            MiuixTheme.colorScheme.primary, expanded, onExpand)
-        TowerFooterAction(if (tower.sourceKind == "http" || tower.sourceKind == "merged") "同步" else "重导入",
-            SettingsIcons.Retry, Modifier, ready && !loading, syncColor, onClick = onRefresh)
-        TowerMoreMenu(tower, loading, revision, Modifier, onEdit, onRemove, onSourceImport)
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            TowerFooterAction("航班 ${tower.nodeCount}", DriftIcons.Nodes, Modifier.fillMaxWidth(), flightsEnabled,
+                MiuixTheme.colorScheme.primary, expanded, onExpand)
+        }
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            TowerFooterAction(if (loading) "停止" else if (tower.sourceKind == "http" || tower.sourceKind == "merged") "同步" else "重导入",
+                if (loading) DriftIcons.Clear else SettingsIcons.Retry, Modifier.fillMaxWidth(), loading || ready,
+                syncColor, onClick = if (loading) onStop else onRefresh)
+        }
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            TowerMoreMenu(tower, loading, revision, Modifier, onEdit, onRemove, onSourceImport)
+        }
     }
 }
 
@@ -67,7 +75,7 @@ internal fun TowerFooter(tower: CatalogTower, loading: Boolean, ready: Boolean, 
 @Composable
 private fun TowerFooterAction(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
     modifier: Modifier, enabled: Boolean, color: Color, expanded: Boolean? = null, onClick: () -> Unit) {
-    Button(onClick = hapticClick(onClick), modifier = modifier.wrapContentWidth().clip(AppCorners.shape(AppCorners.Control)), enabled = enabled, minWidth = 0.dp,
+    Button(onClick = hapticClick(onClick), modifier = modifier.fillMaxWidth().clip(AppCorners.shape(AppCorners.Control)), enabled = enabled, minWidth = 0.dp,
         minHeight = ChromeMetrics.ToolbarButtonSize, insideMargin = PaddingValues(0.dp),
         colors = ButtonDefaults.buttonColors(color = Color.Transparent, disabledColor = Color.Transparent,
             contentColor = color, disabledContentColor = MiuixTheme.colorScheme.disabledOnSurface), cornerRadius = AppCorners.Control) {
@@ -140,7 +148,7 @@ internal fun TowerMoreMenu(tower: CatalogTower, loading: Boolean, revision: Long
             icon = { Icon(DriftIcons.Subscriptions, null, it) }))
         add(DropdownItem(text = "删除塔台", enabled = !loading, onClick = { panel = "delete" },
             icon = { Icon(MirrorIcons.Trash, null, it, tint = MiuixTheme.colorScheme.error) }))
-    }), modifier = modifier.wrapContentWidth().clip(AppCorners.shape(AppCorners.Control)),
+    }), modifier = modifier.fillMaxWidth().clip(AppCorners.shape(AppCorners.Control)),
         minWidth = 0.dp, minHeight = ChromeMetrics.ToolbarButtonSize,
         backgroundColor = Color.Transparent) {
         TowerFooterLabel("更多", MirrorIcons.More, MiuixTheme.colorScheme.primary)

@@ -9,13 +9,9 @@ internal data class GlassPreset(
     val saturation: Float,
     val brightness: Float,
     val surfaceAlpha: Float,
-    val lensHeight: Float,
-    val lensAmount: Float,
     val highlightAlpha: Float,
     val highlightBlur: Float,
     val liquidResponse: Boolean = false,
-    val pressLensHeight: Float = LiquidGlassParameters.pressLensHeightDp,
-    val pressLensAmount: Float = LiquidGlassParameters.pressLensAmountDp,
     val chromaticAberration: Float = LiquidGlassParameters.pressChromaticAberration,
     val samplingReachDp: Float = LiquidGlassParameters.samplingReachDp,
     val convexLensEnabled: Boolean = false,
@@ -26,24 +22,20 @@ internal data class GlassPreset(
             samplingReachDp,
             if (convexLensEnabled) {
                 (convexLensProfile.bezelWidthDp + convexLensProfile.thicknessDp) *
-                    LiquidGlassParameters.goldenRefractionScale + blur + 2f
+                    convexLensProfile.refractionScale + blur + 2f
             } else samplingReachDp,
         )
 }
 
-/** 默认值按 Glasmio Clear 的无色填充与中性图像处理设置。 */
+/** 默认液态玻璃配方取自 liquid-glass 的 pill、control、card presets。 */
 internal object LiquidGlassParameters {
-    const val blurRadiusDp = 4f
-    const val saturation = 1.06f
+    const val blurRadiusDp = 0.2f
+    const val saturation = 1.3f
     const val brightness = 0f
-    const val fillAlpha = 0f
-    const val lensHeightDp = 24f
-    const val lensAmountDp = 24f
+    const val fillAlphaLight = 0.25f
+    const val fillAlphaDark = 0.03f
     const val highlightAlpha = 0.75f
     const val highlightBlurDp = 2f
-    const val pressLensHeightDp = 10f
-    const val pressLensAmountDp = 14f
-    const val depthEffectOnPress = true
     const val pressChromaticAberration = 0.5f
     const val samplingReachDp = 40f
     const val highlightWidthDp = 1f
@@ -58,10 +50,6 @@ internal object LiquidGlassParameters {
     const val secondaryLightZ = -0.5f
     const val dualPeakHighlight = true
     const val panelLightOffsetDegrees = -45f
-    const val capsuleLightOffsetDegrees = 90f
-    const val capsuleInnerShadowRadiusDp = 8f
-    const val capsuleInnerShadowAlpha = 0.12f
-    const val goldenRefractionScale = 0.618f
 }
 
 internal fun glassPreset(mode: MaterialMode, dark: Boolean): GlassPreset = when (mode) {
@@ -69,9 +57,7 @@ internal fun glassPreset(mode: MaterialMode, dark: Boolean): GlassPreset = when 
         blur = LiquidGlassParameters.blurRadiusDp,
         saturation = LiquidGlassParameters.saturation,
         brightness = LiquidGlassParameters.brightness,
-        surfaceAlpha = LiquidGlassParameters.fillAlpha,
-        lensHeight = LiquidGlassParameters.lensHeightDp,
-        lensAmount = LiquidGlassParameters.lensAmountDp,
+        surfaceAlpha = if (dark) LiquidGlassParameters.fillAlphaDark else LiquidGlassParameters.fillAlphaLight,
         highlightAlpha = LiquidGlassParameters.highlightAlpha,
         highlightBlur = LiquidGlassParameters.highlightBlurDp,
         liquidResponse = true,
@@ -82,8 +68,6 @@ internal fun glassPreset(mode: MaterialMode, dark: Boolean): GlassPreset = when 
         saturation = 1f,
         brightness = 0f,
         surfaceAlpha = 0f,
-        lensHeight = 0f,
-        lensAmount = 0f,
         highlightAlpha = 0f,
         highlightBlur = 0f,
     )

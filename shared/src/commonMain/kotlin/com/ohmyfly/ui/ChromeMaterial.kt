@@ -40,7 +40,7 @@ internal fun Modifier.chromeMaterial(
     val surface = MiuixTheme.colorScheme.surface
     val motion = LocalAppMotionAllowed.current
     val preset = rememberAnimatedGlassPreset(materialMode, dark, enabled, motion)
-        .withSettings(settings)
+        .withSettings(settings, dark)
     val outline = shape
     val highlight = rememberGlassHighlight(enabled, motion, preset)
     val spot = if (enabled && preset.liquidResponse && motion) {

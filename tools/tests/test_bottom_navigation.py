@@ -96,25 +96,21 @@ class BottomNavigationTests(unittest.TestCase):
         self.assertIn('if (glassEnabled) Modifier.layerBackdrop(backdrop) else Modifier', app)
         self.assertIn('glassEffectsEnabled(reduceTransparency, glassShaderSupported(), systemReduceTransparency)', app)
 
-    def test_tabs_and_capsule_share_one_smooth_boundary(self):
+    def test_navigation_selection_stays_neutral_and_outside_lens_distortion(self):
         surface = (GLASS / 'GlassNavigationSurface.kt').read_text()
         ch = (UI / 'ChromeMaterial.kt').read_text()
         shape = (GLASS / 'GlassShape.kt').read_text()
         self.assertIn('NavigationBarShape', surface)
-        self.assertIn('val capsuleShape = NavigationBarShape', surface)
         outline = (UI / 'NavigationBarShape.kt').read_text()
         self.assertIn('AppCorners.Capsule', outline)
         self.assertIn('-size.minDimension * 0.5f', outline)
         self.assertNotIn('cornerPoint(', shape)
         self.assertIn('p - clamp(p, -extent, extent)', shape)
         self.assertIn('glassSurface(', surface)
-        self.assertIn('glassNavigationCapsule(', surface)
-        selection = surface.split('private fun BoxScope.GlassNavigationSelection(', 1)[1].split(
-            '/** The combined source', 1,
-        )[0]
-        self.assertIn('if (enabled) capsule.glassNavigationCapsule(', selection)
-        self.assertNotIn('response.drag.pressProgress > 0f) {\n            Box(capsule.glassNavigationCapsule', selection)
-        self.assertIn('rememberCombinedBackdrop(backdrop, tabsBackdrop)', surface)
+        selection = surface.split('private fun BoxScope.GlassNavigationSelection(', 1)[1]
+        self.assertIn('onSurface.copy(alpha = if (dark) 0.18f else 0.08f)', selection)
+        self.assertNotIn('glassNavigationCapsule', surface)
+        self.assertNotIn('rememberCombinedBackdrop', surface)
         self.assertIn('.layerBackdrop(tabsBackdrop)', surface)
         self.assertNotIn('liquidCapsule(', surface)
         self.assertNotIn('ChromeBackdrop', surface)
@@ -126,10 +122,11 @@ class BottomNavigationTests(unittest.TestCase):
         self.assertIn('private val ChromeShape = NavigationBarShape', ch)
         self.assertIn('fun tile(', shape)
         self.assertNotIn('ChromeMetrics.OutlineWidth', surface)
-        self.assertIn('highlight = { highlight.value }', surface)
-        self.assertIn('(preset.lensHeight + preset.pressLensHeight * press)', surface)
-        self.assertIn('InnerShadow(', surface)
-        self.assertNotIn('response.drag.pressProgress.coerceIn(0f, 1f) }', surface)
+        self.assertIn('val highlight = rememberGlassHighlight(enabled, motion, preset)', surface)
+        effects = (GLASS / 'GlassEffects.kt').read_text()
+        self.assertIn('if (preset.convexLensEnabled)', effects)
+        self.assertNotIn('(preset.lensHeight + preset.pressLensHeight * press)', effects)
+        self.assertNotIn('InnerShadow(', surface)
         for shared in ('rememberAnimatedGlassPreset(materialMode, dark, enabled, motion)', 'glassSurface(', 'val outline = shape'):
             with self.subTest(shared=shared):
                 self.assertIn(shared, ch)

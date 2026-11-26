@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
@@ -21,7 +23,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ohmyfly.ui.DriftIcons
 import com.ohmyfly.ui.hapticClick
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Icon
@@ -30,8 +31,7 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** App icon blue; the brand tile stays fixed while the rest of the UI follows the theme. */
-private val BrandBlue = Color(0xFF346DF1)
+/** 品牌卡片始终展示应用在浅色或深色主题下对应的实际启动图标。 */
 private val SponsorPink = Color(0xFFFF2D55)
 private const val MOTTO = "每条线路，都值得一次起飞～"
 
@@ -61,9 +61,8 @@ internal fun SettingsBoardingPass(version: String, onSponsor: () -> Unit) {
 
 @Composable
 private fun BrandTile() {
-    Box(Modifier.size(52.dp).background(BrandBlue, AppCorners.tile(52.dp)), contentAlignment = Alignment.Center) {
-        Icon(DriftIcons.BrandMark, contentDescription = null, modifier = Modifier.size(30.dp), tint = Color.White)
-    }
+    val dark = MiuixTheme.colorScheme.background.luminance() < 0.5f
+    BrandAppIcon(dark, Modifier.size(52.dp).clip(AppCorners.tile(52.dp)))
 }
 
 @Composable

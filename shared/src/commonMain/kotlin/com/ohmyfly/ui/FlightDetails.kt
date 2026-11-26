@@ -24,8 +24,8 @@ internal fun FlightDetailsDivider() {
 }
 
 @Composable
-internal fun FlightDetails(flight: CatalogFlight, revision: Long) {
-    var config by remember(flight.id, revision) { mutableStateOf<JsonObject?>(null) }
+internal fun FlightDetails(flight: CatalogFlight) {
+    var config by remember(flight.id) { mutableStateOf<JsonObject?>(null) }
     var history by remember(flight.id) { mutableStateOf<CatalogResultPage?>(null) }
     var failure by remember(flight.id) { mutableStateOf<String?>(null) }
     var cursor by remember(flight.id) { mutableStateOf(0L) }
@@ -37,7 +37,7 @@ internal fun FlightDetails(flight: CatalogFlight, revision: Long) {
     var moving by remember(flight.id) { mutableStateOf(false) }
     var sharing by remember(flight.id) { mutableStateOf(false) }
     val messages = LocalAppMessages.current
-    LaunchedEffect(flight.id, revision, flight.measurements, cursor, retry) {
+    LaunchedEffect(flight.id, flight.measurements, cursor, retry) {
         loading = true
         failure = null
         try {
@@ -54,7 +54,7 @@ internal fun FlightDetails(flight: CatalogFlight, revision: Long) {
             FlightSummary(flight, config)
             CatalogAction("移动到分组", DriftIcons.Nodes) { moving = true }
             FlightDetailsDivider()
-            if (loading) CircularProgressIndicator()
+            if (showHistory && loading) CircularProgressIndicator()
             failure?.let {
                 CatalogNotice(it)
                 CatalogTextButton("重试", onClick = hapticClick { retry++ })

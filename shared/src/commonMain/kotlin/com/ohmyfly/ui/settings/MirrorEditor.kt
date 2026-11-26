@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.mirror.MirrorEntry
 import com.ohmyfly.mirror.MirrorProbeTarget
+import com.ohmyfly.ui.appIconTint
 import com.ohmyfly.ui.hapticClick
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Icon
@@ -143,9 +144,8 @@ private fun MirrorPrefixRow() {
 
 @Composable
 private fun EditorLabel(text: String, icon: ImageVector) {
-    val iconColor = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurfaceVariantSummary
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(16.dp))
+        Icon(icon, contentDescription = null, tint = appIconTint(), modifier = Modifier.size(16.dp))
         Text(text, fontSize = 13.sp, fontWeight = FontWeight.Normal, color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurface)
     }
 }

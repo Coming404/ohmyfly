@@ -18,8 +18,6 @@ class GlassPresetAnimationTest {
             assertEquals(end.saturation, actual.saturation, 0.00001f)
             assertEquals(end.brightness, actual.brightness, 0.00001f)
             assertEquals(end.surfaceAlpha, actual.surfaceAlpha, 0.00001f)
-            assertEquals(end.lensHeight, actual.lensHeight, 0.00001f)
-            assertEquals(end.lensAmount, actual.lensAmount, 0.00001f)
             assertEquals(end.highlightAlpha, actual.highlightAlpha, 0.00001f)
             assertEquals(end.highlightBlur, actual.highlightBlur, 0.00001f)
         }
@@ -31,7 +29,6 @@ class GlassPresetAnimationTest {
         val soft = glassPreset(MaterialMode.Expressive, false)
         val middle = interpolateGlassPreset(liquid, soft, 0.5f)
         assertEquals((liquid.blur + soft.blur) / 2f, middle.blur)
-        assertEquals((liquid.lensAmount + soft.lensAmount) / 2f, middle.lensAmount)
         assertFalse(middle.liquidResponse)
         assertTrue(interpolateGlassPreset(soft, liquid, 0f).liquidResponse)
     }

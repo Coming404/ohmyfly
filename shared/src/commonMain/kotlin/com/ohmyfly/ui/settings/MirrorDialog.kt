@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ohmyfly.ui.DriftIcons
+import com.ohmyfly.ui.appIconTint
 import com.ohmyfly.ui.hapticClick
 import kotlinx.coroutines.flow.collect
 import top.yukonga.miuix.kmp.basic.Icon
@@ -88,7 +89,7 @@ internal fun MirrorDialog(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MiuixTheme.colorScheme.onSurface,
+                    tint = appIconTint(),
                     modifier = Modifier.size(20.dp),
                 )
                 Text(
@@ -108,7 +109,7 @@ internal fun MirrorDialog(
                         Icon(
                             imageVector = DriftIcons.Clear,
                             contentDescription = "关闭",
-                            tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                            tint = appIconTint(),
                             modifier = Modifier.size(20.dp),
                         )
                     }

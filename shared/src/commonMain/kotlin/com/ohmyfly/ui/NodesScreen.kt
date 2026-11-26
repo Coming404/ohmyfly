@@ -71,7 +71,7 @@ private fun FlightLibraryList(listState: LazyListState, catalog: CatalogState, s
                     }
                 }
                 !catalog.ready || catalog.matchCount == null -> if (catalog.summary.flights > 0L) {
-                    CatalogLoadingIndicator("正在加载航班")
+                    CatalogLoadingIndicator("正在加载航班", Modifier.fillParentMaxSize())
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         repeat(7) { CatalogLoading("正在筛选…") }
@@ -84,12 +84,14 @@ private fun FlightLibraryList(listState: LazyListState, catalog: CatalogState, s
         items(count.coerceAtMost(Int.MAX_VALUE.toLong() - 1).toInt(), key = { "flight-slot:$it" }) { index ->
             val flight = catalog.flightWindow[index / 100]?.getOrNull(index % 100)
             if (flight == null) {
-                if (catalog.summary.flights > 0L) CatalogLoadingIndicator("正在加载航班")
-                else CatalogLoading()
+                if (catalog.summary.flights > 0L && index % 100 == 0) {
+                    CatalogLoadingIndicator("正在加载航班", Modifier.fillParentMaxSize())
+                } else if (catalog.summary.flights == 0L) CatalogLoading()
+                else Spacer(Modifier.height(1.dp))
             } else FlightCard(flight, flight.id.toString() in selectedIds,
                 onSelect = { if (!inSelection) onEnterSelection(); onSelection(toggleSelection(selectedIds, flight.id.toString())) },
                 onDetails = { expanded = if (flight.id in expanded) expanded - flight.id else expanded + flight.id },
-                expanded = flight.id in expanded, revision = catalog.summary.revision, selectionMode = inSelection)
+                expanded = flight.id in expanded, selectionMode = inSelection)
         }
         }
         if (catalog.failure == null && catalog.ready && catalog.matchCount != null && count == 0L) {
