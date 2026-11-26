@@ -117,7 +117,7 @@ private fun SyncControl(busy: Boolean, enabled: Boolean, action: () -> Unit) {
     Button(
         onClick = hapticClick(action),
         enabled = enabled,
-        modifier = Modifier.heightIn(min = 44.dp).clip(AppCorners.shape(AppCorners.Capsule)),
+        modifier = Modifier.heightIn(min = 44.dp).clip(AppCorners.Capsule),
         minWidth = 0.dp,
         minHeight = 30.dp,
         insideMargin = PaddingValues(horizontal = 11.dp),
@@ -127,7 +127,7 @@ private fun SyncControl(busy: Boolean, enabled: Boolean, action: () -> Unit) {
             contentColor = content,
             disabledContentColor = colors.disabledOnSurface,
         ),
-        cornerRadius = AppCorners.Capsule,
+        cornerRadius = AppCorners.Toolbar,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             if (busy) Box(Modifier.size(11.dp).background(content, AppCorners.shape(AppCorners.StopMark)))

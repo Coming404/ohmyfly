@@ -19,6 +19,8 @@ class SettingsHomeTests(unittest.TestCase):
         self.assertIn('MiuixTheme.colorScheme.background.luminance() < 0.5f', card)
         self.assertTrue((ROOT / 'shared/src/androidMain/kotlin/com/ohmyfly/ui/settings/BrandAppIcon.android.kt').is_file())
         self.assertTrue((ROOT / 'shared/src/iosMain/kotlin/com/ohmyfly/ui/settings/BrandAppIcon.ios.kt').is_file())
+        self.assertTrue((ROOT / 'androidApp/src/main/res/drawable-nodpi/brand_app_icon_light.png').is_file())
+        self.assertTrue((ROOT / 'androidApp/src/main/res/drawable-nodpi/brand_app_icon_dark.png').is_file())
         self.assertIn('Text(version, fontSize = 12.sp', card)
         self.assertIn('onClick = hapticClick(onSponsor)', card)
         self.assertNotIn('Perforation', card)

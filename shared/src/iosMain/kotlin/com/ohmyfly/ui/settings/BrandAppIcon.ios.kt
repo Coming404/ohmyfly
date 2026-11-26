@@ -7,7 +7,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.UIKitView
 import platform.UIKit.UIImage
 import platform.UIKit.UIImageView
-import platform.UIKit.UIViewContentModeScaleAspectFill
 
 @Composable
 internal actual fun BrandAppIcon(dark: Boolean, modifier: Modifier) {
@@ -16,7 +15,6 @@ internal actual fun BrandAppIcon(dark: Boolean, modifier: Modifier) {
         factory = {
             UIImageView().apply {
                 image = UIImage.imageNamed(name)
-                contentMode = UIViewContentModeScaleAspectFill
                 clipsToBounds = true
             }
         },

@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ohmyfly.catalog.appCatalog
+import com.ohmyfly.catalog.refreshTowers
 import com.ohmyfly.settings.AppSettings
 import com.ohmyfly.subscription.SubscriptionMirrorSettings
 import com.ohmyfly.ui.settings.MirrorIcons
