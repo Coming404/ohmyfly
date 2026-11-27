@@ -176,7 +176,7 @@ class SubscriptionFailuresTest {
         try {
             val importer = SubscriptionImporter(SubscriptionFetcher(client), { error("must not parse") })
             val result = importer.importSubscription("https://sub.example/p", SubscriptionSettings(userAgent = "a|b", retries = 5))
-            assertEquals("订阅请求失败", result.failure)
+            assertEquals("塔台请求失败：网络连接中断，请检查网络后重试", result.failure)
             assertEquals(2, requests)
         } finally { client.close() }
     }

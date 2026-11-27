@@ -10,7 +10,7 @@ import kotlin.test.assertNull
 
 class SubscriptionUserAgentsTest {
     @Test
-    fun allBuiltInProfilesAreFetchedAndParsedInOrder() = runTest {
+    fun allBuiltInProfilesAreFetchedAndIdenticalBodiesParsedOnce() = runTest {
         val agents = mutableListOf<String?>()
         var parsed = 0
         val client = subscriptionClient { request ->
@@ -24,7 +24,8 @@ class SubscriptionUserAgentsTest {
             assertEquals(listOf<String?>(
                 "mihomo/1.19.33", "v2rayN/7.20.4", "clash-verge/v2.5.2",
             ), agents)
-            assertEquals(3, parsed)
+            assertEquals(1, parsed)
+            kotlin.test.assertTrue(testScheduler.currentTime in 100L..200L)
         } finally { client.close() }
     }
 

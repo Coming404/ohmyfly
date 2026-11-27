@@ -93,7 +93,7 @@ internal class CatalogRefreshService(
             if (result.failure != null) {
                 val name = ticket.name.ifBlank { parseUrl(ticket.address)!!.host }
                 val reason = subscriptionFailureDescription(result.failure)
-                failed(reason)
+                failed(if (result.failure.startsWith("HTTP ")) "塔台请求失败：$reason" else reason)
                 logCatalogFailure("同步“$name”", IllegalArgumentException(reason))
                 request("fail") { put("id", id); put("generation", ticket.generation)
                     put("failure", reason); put("name", name) }

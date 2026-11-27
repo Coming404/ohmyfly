@@ -31,6 +31,10 @@ internal const val MozillaSubscriptionUserAgent =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
         "Chrome/120.0.0.0 Safari/537.36"
 
+// UA 切换间隔单独维护，不改变同一 UA 的重试与线路回退策略。
+internal const val SubscriptionUserAgentDelayMinMillis = 50L
+internal const val SubscriptionUserAgentDelayMaxMillis = 100L
+
 // 空设置仍需有稳定兜底，具体默认值由设置模型统一维护。
 internal val BuiltInSubscriptionUserAgents = SubscriptionSettings().userAgent.split('|').distinct().take(4)
 

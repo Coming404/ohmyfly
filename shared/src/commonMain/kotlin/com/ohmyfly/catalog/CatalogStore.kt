@@ -249,7 +249,7 @@ internal class CatalogStore(
             val snapshot = state.value
             val pageEpoch = epoch
             val ids = snapshot.flights.map { it.id }
-            if (ids.isEmpty() || snapshot.flightLoading) return@withContext
+            if (ids.isEmpty() || snapshot.flightLoading || snapshot.filterToken == 0L) return@withContext
             val batch = try {
                 withContext(worker) {
                     catalogJson.decodeFromJsonElement<CatalogMeasurementBatch>(call("measurements") {

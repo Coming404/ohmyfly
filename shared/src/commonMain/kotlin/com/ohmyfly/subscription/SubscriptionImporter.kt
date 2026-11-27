@@ -174,6 +174,14 @@ internal class SubscriptionImporter(
         val urls = subscriptionRequestUrls(url, headers, mirrors)
         try {
         attempts@ for ((agentIndex, userAgent) in agents.withIndex()) {
+            if (agentIndex > 0) {
+                val pause = kotlin.random.Random.nextLong(
+                    SubscriptionUserAgentDelayMinMillis, SubscriptionUserAgentDelayMaxMillis + 1,
+                )
+                if (remainingBudget() <= pause) break@attempts
+                phase("等待请求")
+                kotlinx.coroutines.delay(pause)
+            }
             routes@ for (requestUrl in urls) {
                 var retries = 0
                 while (true) {
@@ -232,7 +240,7 @@ internal class SubscriptionImporter(
             throw e
         } catch (e: SubscriptionFetchException) {
             logger.debug { "[订阅 $operation] 请求失败：${subscriptionFailureDescription(e.message.orEmpty())}；${if (e.retryable) "该错误允许在剩余预算内重试" else "该错误不再重试"}" }
-            return ParsedAttempt(failure = "塔台请求失败：${subscriptionFailureDescription(e.message.orEmpty())}", retryable = e.retryable)
+            return ParsedAttempt(failure = e.message, retryable = e.retryable)
         } catch (error: Exception) {
             logger.error { "[订阅 $operation] 网络请求失败：${catalogExceptionDetails(error)}" }
             return ParsedAttempt(failure = subscriptionRequestFailure(error))
@@ -267,7 +275,7 @@ internal class SubscriptionImporter(
         } catch (error: Exception) {
             logger.error { "[订阅 $operation] 解析失败：${catalogExceptionDetails(error)}" }
             // NativeCore 错误可能含订阅凭据，不把异常原文放进塔台状态。
-            ParsedAttempt(failure = "塔台内容解析失败：格式无法识别或节点字段无效")
+            ParsedAttempt(failure = "订阅解析失败")
         }
     }
 }

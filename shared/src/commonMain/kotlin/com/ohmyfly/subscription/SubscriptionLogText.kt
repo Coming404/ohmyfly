@@ -11,6 +11,8 @@ internal fun subscriptionUserAgentDescription(value: String?): String = when (va
 }
 
 internal fun subscriptionFailureDescription(reason: String): String = when (reason) {
+    "订阅请求失败" -> "塔台请求失败：网络连接中断，请检查网络后重试"
+    "订阅解析失败" -> "塔台内容解析失败：格式无法识别或节点字段无效"
     "HTTP 401" -> "服务器要求身份验证（HTTP 401）"
     "HTTP 403" -> "服务器拒绝访问（HTTP 403）"
     "HTTP 404" -> "服务器未找到订阅资源（HTTP 404）"

@@ -44,7 +44,7 @@ class SettingsSessionLoggingTest {
         } finally { logs.close() }
     }
 
-    @Test fun finalResultWaitsForReadbackAndSurvivesInfoLogEvent() = runTest {
+    @Test fun finalResultWaitsForReadbackAndUsesDebugLogEvent() = runTest {
         val logs = SettingsLogCapture()
         var disk = AppSettings(logging = com.ohmyfly.logging.LogPolicy(level = LogLevel.Detail))
         var reads = 0
@@ -64,7 +64,7 @@ class SettingsSessionLoggingTest {
             write.complete(Unit)
             runCurrent()
             assertFalse(logs.messages.any { it.contains("已保存并读回确认") })
-            KotlinLoggingConfiguration.direct.logLevel = Level.INFO
+            KotlinLoggingConfiguration.direct.logLevel = Level.DEBUG
             read.complete(Unit)
             runCurrent()
             val results = logs.messages.filter { it.contains("已保存并读回确认") }

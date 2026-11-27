@@ -41,6 +41,7 @@ internal fun TowerIdentity(tower: CatalogTower, loading: Boolean, progress: Cata
             val syncProgress = tasks.joinToString("；") { task ->
                 val phase = when (task.phase) {
                     "排队" -> "等待同步"
+                    "等待请求" -> "等待请求下个 UA"
                     "下载" -> "正在请求塔台"
                     "读取" -> "正在读取文件"
                     "等待解析" -> "等待解析"
