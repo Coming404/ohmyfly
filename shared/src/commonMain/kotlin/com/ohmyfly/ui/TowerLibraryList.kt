@@ -44,9 +44,10 @@ internal fun TowerLibraryList(listState: LazyListState, catalog: CatalogState, s
         contentPadding = contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (searchOpen) item("search") {
-            androidx.compose.animation.AnimatedVisibility(visibleState = searchVisibility) {
+            CatalogSearchVisibility(searchVisibility) { focusReady ->
                 CatalogSearch(catalog.towerSearch, "按塔台名称搜索",
-                    state = searchState, active = searchActive, onQuery = store::updateTowerSearch)
+                    state = searchState, active = searchActive, focusReady = focusReady,
+                    onClear = { store.updateTowerSearch("") }, onQuery = store::updateTowerSearch)
             }
         }
         if (showControl) item("control") {

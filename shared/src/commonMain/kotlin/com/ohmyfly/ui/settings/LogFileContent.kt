@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -143,9 +144,11 @@ private fun LogTextWindow(state: LogPageState, content: LogContentSnapshot, acti
 @Composable
 private fun LogCopyButton(state: LogPageState, entries: List<LogEntry>, active: Boolean) {
     val messages = LocalAppMessages.current
-    LogIconButton("复制已加载文本", SettingsIcons.Copy,
+    top.yukonga.miuix.kmp.basic.IconButton(
         enabled = active && !state.clearing && entries.isNotEmpty(),
-        background = com.ohmyfly.ui.LocalAppSurfaceColors.current.card) {
+        modifier = Modifier.size(com.ohmyfly.ui.ChromeMetrics.ControlSize),
+        backgroundColor = androidx.compose.ui.graphics.Color.Transparent,
+        onClick = {
         // 点击时立即写入系统剪贴板；切到其他应用不必等待下一帧或页面协程。
         try {
             val text = logText(entries)
@@ -154,6 +157,10 @@ private fun LogCopyButton(state: LogPageState, entries: List<LogEntry>, active: 
         } catch (_: Exception) {
             messages.show(AppMessageKind.Failure, "日志复制失败，请重试")
         }
+    }) {
+        top.yukonga.miuix.kmp.basic.Icon(SettingsIcons.Copy, "复制已加载文本",
+            Modifier.size(com.ohmyfly.ui.ChromeMetrics.LogCopyIconSize),
+            tint = com.ohmyfly.ui.appIconTint())
     }
 }
 

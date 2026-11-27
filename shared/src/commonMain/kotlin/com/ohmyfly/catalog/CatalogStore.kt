@@ -14,7 +14,7 @@ import kotlinx.serialization.json.*
 internal val appCatalog = CatalogStore()
 
 internal class CatalogStore(
-    internal val worker: CoroutineDispatcher = Dispatchers.Default,
+    internal val worker: CoroutineDispatcher = Dispatchers.IO,
     private val bridge: (String) -> String = ::nativeCatalog,
     private val open: () -> String = ::openNativeCatalog,
 ) {
@@ -47,7 +47,7 @@ internal class CatalogStore(
     private val fetcher = SubscriptionFetcher(createSubscriptionClient())
     internal fun batch(settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) =
         CatalogBatchRunner(settings, mirrors, fetcher, ::call,
-            changed = { withContext(Dispatchers.Main) { reload(); pageJob?.join() } },
+            changed = { withContext(Dispatchers.Main) { reload() } },
             finished = {
                 val result = state.value
                 logger.debug { "[塔台航班] 批次结束：${result.taskCompleted} 个来源，${result.taskFailed} 个失败；当前 ${result.summary.towers} 个塔台，${result.summary.flights} 个航班" }
@@ -109,7 +109,7 @@ internal class CatalogStore(
             else current.copy(flights = emptyList(), flightWindow = emptyMap(), flightPage = 0, filterToken = 0,
                 matchCount = null, flightLoading = true, filterRevision = sequence)
         }
-        if (!opened || !foreground || !state.value.ready) return
+        if (!opened || !foreground || !state.value.ready || active != "flights") return
         filterJob = scope.launch {
             try {
                 delay(wait)
@@ -290,10 +290,13 @@ internal class CatalogStore(
 
     private suspend fun reload(invalidate: Boolean = false) {
         val token = ++reloadSequence
-        val summary = withContext(worker) {
-            catalogJson.decodeFromJsonElement<CatalogSummary>(call("summary"))
+        val filtering = active == "flights"
+        val (summary, groups) = withContext(worker) {
+            catalogJson.decodeFromJsonElement<CatalogSummary>(call("summary")) to
+                if (filtering) null else catalogJson.decodeFromJsonElement<CatalogGroups>(call("groups"))
         }
         if (token != reloadSequence || summary.revision < state.value.summary.revision) return
+        if (groups?.revision == summary.revision) mutableState.update { it.copy(groups = groups) }
         recordTrend(summary)
         val current = state.value
         if (!invalidate && current.ready && current.summary.revision == summary.revision) {
@@ -370,18 +373,18 @@ internal class CatalogStore(
             mutableState.update { it.copy(flightFilter = it.flightFilter.copy(groupId = 0),
                 appliedFilter = it.appliedFilter.copy(groupId = 0)) }
         }
-        try { refreshView(invalidate = true)
-        } catch (e: CancellationException) { throw e
-        } catch (e: Exception) {
-            val reason = logCatalogFailure("分组保存后刷新列表", e)
-            mutableState.update { it.copy(failure = "分组已保存，列表重读失败：$reason") }
-        }
         onResult(true, when (action) {
             "groupCreate" -> "分组已添加"
             "groupRename" -> "分组已重命名"
             "groupDelete" -> "分组已删除，航班已移至全部"
             else -> "节点已移动"
         })
+        try { reload(invalidate = true)
+        } catch (e: CancellationException) { throw e
+        } catch (e: Exception) {
+            val reason = logCatalogFailure("分组保存后刷新列表", e)
+            mutableState.update { it.copy(failure = "分组已保存，列表重读失败：$reason") }
+        }
     }
 
     // 写入确认与目录重读分别报告，不把刷新失败误报成写入失败。
@@ -392,10 +395,10 @@ internal class CatalogStore(
             } }
         } catch (e: CancellationException) { throw e
         } catch (e: Exception) { onResult(false, "操作未确认：${logCatalogFailure("变更节点 $mode", e)}"); return@launch }
-        try { refreshView(invalidate = true)
+        onResult(true, when (mode) { "enable" -> "已启用"; "disable" -> "已停用"; else -> "已删除" })
+        try { reload(invalidate = true)
         } catch (e: CancellationException) { throw e
         } catch (e: Exception) { mutableState.update { it.copy(failure = "操作已保存，列表重读失败：${logCatalogFailure("节点变更后刷新", e)}") } }
-        onResult(true, when (mode) { "enable" -> "已启用"; "disable" -> "已停用"; else -> "已删除" })
     }
 
     // 批量删除结束后仅重读一次，失败保留未完成选择供重试。

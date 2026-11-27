@@ -16,21 +16,26 @@ import top.yukonga.miuix.kmp.blur.highlight.Highlight
 
 internal fun BackdropEffectScope.glassEffects(preset: GlassPreset, pressProgress: Float = 0f) {
     val press = if (preset.liquidResponse) pressProgress.coerceIn(0f, 1f) else 0f
-    // Melox reserves the full press/lens reach before blurring. Miuix blur(4dp) already
-    // supplies sigma=4dp*0.45 on each platform; do not reuse Android's BlurEffect conversion on iOS.
     padding = maxOf(padding, preset.effectSamplingReachDp.dp.toPx())
     colorControls(brightness = preset.brightness, saturation = preset.saturation)
-    blur(preset.blur.dp.toPx())
+    blur(preset.effectiveBlurDp.dp.toPx())
     if (preset.convexLensEnabled) {
         val profile = preset.convexLensProfile
         lens(
-            profile.bezelWidthDp.dp.toPx(),
-            profile.thicknessDp.dp.toPx(),
+            refractionHeight = profile.bezelWidthDp.dp.toPx(),
+            refractionAmount = size.minDimension * 0.5f * profile.interiorRefractionGain *
+                (1f + LiquidGlassParameters.pressMagnification * press),
             depthEffect = true,
-            chromaticAberration = preset.chromaticAberration * press,
+            chromaticAberration = preset.effectiveChromaticAberration,
             convexProfile = profile,
-            glassThicknessDp = profile.thicknessDp,
+            glassThicknessDp = profile.effectiveThicknessDp,
             refractionScale = profile.refractionScale,
+        )
+    } else if (preset.liquidResponse) {
+        // 常态保留背景折射；按压镜片由选中区域单独采样，避免整条导航一起放大。
+        lens(
+            refractionHeight = LiquidGlassParameters.restingRefractionDp.dp.toPx(),
+            refractionAmount = LiquidGlassParameters.restingRefractionDp.dp.toPx(),
         )
     }
 }
@@ -52,5 +57,7 @@ internal fun Modifier.glassSurface(
     effects = { glassEffects(preset, pressProgress()) },
     highlight = { highlight.value },
     layerBlock = layerBlock,
-    onDrawSurface = { drawRect(surface.copy(alpha = preset.surfaceAlpha)) },
+    onDrawSurface = {
+        drawRect((preset.effectiveSurfaceColor ?: surface).copy(alpha = preset.effectiveSurfaceAlpha))
+    },
 )

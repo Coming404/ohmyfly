@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import com.ohmyfly.catalog.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.put
@@ -42,7 +43,7 @@ private fun TowerFlightWindow(id: Long, revision: Long, expectedCount: Long, sel
             var batch = cached?.key?.plus(1) ?: 0
             var anchor = cached?.value?.flights?.lastOrNull()?.id ?: 0
             while (batch <= target) {
-                val loaded = withContext(Dispatchers.Default) {
+                val loaded = withContext(Dispatchers.IO) {
                     catalogJson.decodeFromJsonElement<CatalogPage>(catalogCall("towerFlights") {
                         put("id", id); put("revision", revision); put("anchor", anchor)
                     })

@@ -11,22 +11,23 @@ class GlassPresetTest {
     @Test
     fun upstreamProfilesMatchTheSharedLiquidGlassPresets() {
         assertEquals(0.618f, GlassLensProfile.Pill.refractionScale)
-        assertEquals(0.2f, GlassLensProfile.Pill.blur)
-        assertEquals(0.25f, GlassLensProfile.Pill.lightFillAlpha)
-        assertEquals(0.03f, GlassLensProfile.Pill.darkFillAlpha)
-        assertEquals(0.35f, GlassLensProfile.Control.blur)
-        assertEquals(0.5f, GlassLensProfile.Card.blur)
+        for (profile in GlassLensProfile.entries) {
+            assertEquals(6f, profile.recipeBlurDp)
+            assertEquals(0.70f, profile.refractionStrength)
+            assertEquals(0.50f, profile.depthFraction)
+            assertEquals(0.22f, profile.dispersion)
+        }
     }
 
     @Test
     fun liquidUsesCentralizedUpstreamParameters() {
         val light = glassPreset(MaterialMode.LiquidGlass, dark = false)
         val dark = glassPreset(MaterialMode.LiquidGlass, dark = true)
-        assertEquals(0.2f, light.blur)
-        assertEquals(1.3f, light.saturation)
+        assertEquals(2f, light.blur)
+        assertEquals(1.5f, light.saturation)
         assertEquals(0f, light.brightness)
-        assertEquals(0.25f, light.surfaceAlpha)
-        assertEquals(0.03f, dark.surfaceAlpha)
+        assertEquals(0.4f, light.surfaceAlpha)
+        assertEquals(0.4f, dark.surfaceAlpha)
         assertEquals(LiquidGlassParameters.highlightAlpha, light.highlightAlpha)
         assertEquals(LiquidGlassParameters.highlightBlurDp, light.highlightBlur)
         assertTrue(light.liquidResponse)

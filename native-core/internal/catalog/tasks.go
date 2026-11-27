@@ -131,7 +131,7 @@ func changed(result sql.Result) error {
 func (s *Store) Task(ctx context.Context, id int64) (Task, error) {
 	var task Task
 	var settings string
-	err := s.db.QueryRowContext(ctx, `SELECT id,mode,settings,status,created_at,started_at,finished_at,reason
+	err := s.readDB.QueryRowContext(ctx, `SELECT id,mode,settings,status,created_at,started_at,finished_at,reason
  FROM flight_tasks WHERE id=?`, id).Scan(&task.ID, &task.Mode, &settings, &task.Status, &task.CreatedAt, &task.StartedAt, &task.FinishedAt, &task.Reason)
 	task.Settings = json.RawMessage(settings)
 	return task, err

@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.ohmyfly.catalog.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 import top.yukonga.miuix.kmp.basic.*
@@ -41,7 +42,7 @@ internal fun FlightDetails(flight: CatalogFlight) {
         loading = true
         failure = null
         try {
-            if (config == null) config = withContext(Dispatchers.Default) {
+            if (config == null) config = withContext(Dispatchers.IO) {
                 catalogCall("detail") { put("id", flight.id) }
             }
             history = readCatalogResults(nodeId = flight.id, before = cursor, limit = 20)

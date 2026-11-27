@@ -143,6 +143,9 @@ func prepareNode(input refreshInput, tower, output flight.DeduplicationConfig) (
 }
 
 func (s *Store) savePrepared(ctx context.Context, r Refresh, values []preparedNode) error {
+	if err := s.WaitForInteraction(ctx); err != nil {
+		return err
+	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err

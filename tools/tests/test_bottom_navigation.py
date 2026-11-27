@@ -110,7 +110,7 @@ class BottomNavigationTests(unittest.TestCase):
         selection = surface.split('private fun BoxScope.GlassNavigationSelection(', 1)[1]
         self.assertIn('onSurface.copy(alpha = if (dark) 0.18f else 0.08f)', selection)
         self.assertNotIn('glassNavigationCapsule', surface)
-        self.assertNotIn('rememberCombinedBackdrop', surface)
+        self.assertIn('rememberCombinedBackdrop(backdrop, tabsBackdrop)', surface)
         self.assertIn('.layerBackdrop(tabsBackdrop)', surface)
         self.assertNotIn('liquidCapsule(', surface)
         self.assertNotIn('ChromeBackdrop', surface)
@@ -126,7 +126,7 @@ class BottomNavigationTests(unittest.TestCase):
         effects = (GLASS / 'GlassEffects.kt').read_text()
         self.assertIn('if (preset.convexLensEnabled)', effects)
         self.assertNotIn('(preset.lensHeight + preset.pressLensHeight * press)', effects)
-        self.assertNotIn('InnerShadow(', surface)
+        self.assertIn('if (progress > 0f) InnerShadow(', surface)
         for shared in ('rememberAnimatedGlassPreset(materialMode, dark, enabled, motion)', 'glassSurface(', 'val outline = shape'):
             with self.subTest(shared=shared):
                 self.assertIn(shared, ch)

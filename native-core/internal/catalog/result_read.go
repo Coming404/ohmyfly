@@ -19,7 +19,7 @@ func (s *Store) Results(ctx context.Context, nodeID, taskID, before int64, limit
 	if nodeID < 0 || taskID < 0 || (nodeID <= 0) == (taskID <= 0) || before < 0 || limit < 1 || limit > 100 {
 		return result, errors.New("invalid results cursor")
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.readDB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return result, err
 	}

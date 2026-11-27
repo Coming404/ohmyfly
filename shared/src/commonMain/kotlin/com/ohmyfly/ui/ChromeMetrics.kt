@@ -12,6 +12,7 @@ internal object ChromeMetrics {
     val LogBodySize = 12.sp
     val LogLineHeight = 18.sp
     val LogRecordGap = 0.dp
+    val LogCopyIconSize = 14.dp
     val ToolbarButtonSize = 44.dp
     val ToolbarIconSize = 20.dp
     val ToolbarLabelSize = 13.sp

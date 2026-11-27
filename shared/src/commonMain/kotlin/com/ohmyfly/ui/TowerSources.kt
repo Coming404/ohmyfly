@@ -10,6 +10,7 @@ import com.ohmyfly.catalog.*
 import com.ohmyfly.ui.settings.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 import top.yukonga.miuix.kmp.basic.Text
@@ -24,7 +25,7 @@ internal fun TowerSources(parentId: Long, revision: Long, onImport: (CatalogSour
     LaunchedEffect(parentId, revision, anchor) {
         loading = true; failure = false
         try {
-            sources = withContext(Dispatchers.Default) {
+            sources = withContext(Dispatchers.IO) {
                 catalogJson.decodeFromJsonElement<List<CatalogSource>>(catalogCall("sources") {
                     put("id", parentId); put("anchor", anchor)
                 }.getValue("sources"))

@@ -57,8 +57,9 @@ private fun FlightLibraryList(listState: LazyListState, catalog: CatalogState, s
         contentPadding = contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (searchOpen) item("search") {
-            androidx.compose.animation.AnimatedVisibility(visibleState = searchVisibility) {
-                CatalogSearch(catalog.flightFilter.search, "搜索航班", searchState, searchActive) {
+            CatalogSearchVisibility(searchVisibility) { focusReady ->
+                CatalogSearch(catalog.flightFilter.search, "搜索航班", searchState, searchActive,
+                    focusReady = focusReady, onClear = { appCatalog.updateFlightFilter(FlightFilter()) }) {
                     appCatalog.updateFlightFilter(catalog.flightFilter.copy(search = it), debounce = true)
                 }
             }

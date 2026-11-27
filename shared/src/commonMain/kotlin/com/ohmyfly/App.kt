@@ -333,7 +333,7 @@ private fun AppFrame(
                         shape = { RectangleShape },
                         effects = {
                             progressiveBlur(
-                                4.dp.toPx(),
+                                com.ohmyfly.ui.glass.LiquidGlassParameters.topBlurRadiusDp.dp.toPx(),
                                 gradient = ProgressiveBlur.Top.copy(curve = 0.25f),
                             )
                         },
@@ -429,10 +429,9 @@ private fun AppPager(
 ) {
     val catalog by subscriptionTowerStore.state.collectAsState()
     val pageStateHolder = rememberSaveableStateHolder()
-    HorizontalPager(
+    CatalogPager(
         state = pagerState,
         modifier = Modifier.fillMaxSize(),
-        userScrollEnabled = false,
     ) { page ->
         val searchActive = AppDestination.entries[page] == destination &&
             pagerState.settledPage == page && !pagerState.isScrollInProgress

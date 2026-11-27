@@ -15,8 +15,9 @@ import (
 const catalogVersion = 4
 
 type Store struct {
-	db     *sql.DB
-	readDB *sql.DB
+	interactions interactionGate
+	db           *sql.DB
+	readDB       *sql.DB
 }
 
 func Open(ctx context.Context, path string) (*Store, error) {

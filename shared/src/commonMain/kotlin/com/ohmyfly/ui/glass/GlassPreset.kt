@@ -1,6 +1,7 @@
 // 液态玻璃参数统一在此维护，设置页只覆盖已开放的可调项。
 package com.ohmyfly.ui.glass
 
+import androidx.compose.ui.graphics.Color
 import com.ohmyfly.settings.MaterialMode
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 
@@ -16,7 +17,29 @@ internal data class GlassPreset(
     val samplingReachDp: Float = LiquidGlassParameters.samplingReachDp,
     val convexLensEnabled: Boolean = false,
     val convexLensProfile: com.ohmyfly.settings.GlassLensProfile = com.ohmyfly.settings.GlassLensProfile.Pill,
+    val blurIsExplicit: Boolean = false,
+    val surfaceAlphaIsExplicit: Boolean = false,
+    val fillColor: Color? = null,
+    val lightAngleDegrees: Float? = null,
+    val directLightIntensity: Float = 1f,
+    val ambientLightIntensity: Float = LiquidGlassParameters.secondaryLightIntensity,
 ) {
+    val effectiveBlurDp: Float
+        get() = if (blurIsExplicit) blur else if (liquidResponse) {
+            if (convexLensEnabled) convexLensProfile.recipeBlurDp else LiquidGlassParameters.meloxBlurDp
+        } else blur
+
+    val effectiveSurfaceAlpha: Float
+        get() = if (surfaceAlphaIsExplicit) surfaceAlpha else if (convexLensEnabled) {
+            LiquidGlassParameters.convexFillAlpha
+        } else surfaceAlpha
+
+    val effectiveSurfaceColor: Color?
+        get() = fillColor
+
+    val effectiveChromaticAberration: Float
+        get() = if (convexLensEnabled) convexLensProfile.dispersion else chromaticAberration
+
     val effectSamplingReachDp: Float
         get() = maxOf(
             samplingReachDp,
@@ -29,11 +52,26 @@ internal data class GlassPreset(
 
 /** 默认液态玻璃配方取自 liquid-glass 的 pill、control、card presets。 */
 internal object LiquidGlassParameters {
-    const val blurRadiusDp = 0.2f
-    const val saturation = 1.3f
+    const val blurRadiusDp = 2f
+    const val meloxBlurDp = 2f
+    const val restingRefractionDp = 24f
+    const val pressRefractionHeightDp = 10f
+    const val pressRefractionAmountDp = 14f
+    const val pressMagnification = 0.2f
+    const val selectionShadowRadiusDp = 8f
+    const val selectionShadowAlpha = 0.15f
+    const val topBlurRadiusDp = 4f
+    const val convexFillAlpha = 0.2f
+    val convexFillColor = Color(0xFFC4C4C4)
+    const val convexBrightness = 0.15f
+    const val convexSaturation = 1.2f
+    const val convexLightAngleDegrees = 45f
+    const val convexDirectLightIntensity = 0.6f
+    const val convexAmbientLightIntensity = 0f
+    const val saturation = 1.5f
     const val brightness = 0f
-    const val fillAlphaLight = 0.25f
-    const val fillAlphaDark = 0.03f
+    const val fillAlphaLight = 0.4f
+    const val fillAlphaDark = 0.4f
     const val highlightAlpha = 0.75f
     const val highlightBlurDp = 2f
     const val pressChromaticAberration = 0.5f

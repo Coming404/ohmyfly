@@ -150,6 +150,9 @@ func (s *Store) commit(ctx context.Context, r Refresh, mark func(string)) error 
 		return err
 	}
 	mark("prepare")
+	if err := s.WaitForInteraction(ctx); err != nil {
+		return err
+	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err

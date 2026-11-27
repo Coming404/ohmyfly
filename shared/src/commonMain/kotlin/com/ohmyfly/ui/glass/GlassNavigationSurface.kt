@@ -37,6 +37,7 @@ import com.ohmyfly.ui.LocalChromeAppearance
 import com.ohmyfly.ui.withSettings
 import com.ohmyfly.ui.NavigationBarShape
 import top.yukonga.miuix.kmp.blur.Backdrop
+import top.yukonga.miuix.kmp.blur.drawBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -65,9 +66,11 @@ internal fun GlassNavigationSurface(
     )
     val highlight = rememberGlassHighlight(enabled, motion, preset)
     val surface = MiuixTheme.colorScheme.surface
-    val tint = glassTint(surface, dark)
+    val tint = if (preset.convexLensEnabled) glassTint(surface, dark)
+        else MiuixTheme.colorScheme.surfaceContainer
     val spot = if (enabled && preset.liquidResponse && motion) response.spot else null
     val tabsBackdrop = rememberLayerBackdrop()
+    val selectionBackdrop = rememberCombinedBackdrop(backdrop, tabsBackdrop)
     Box(
         modifier = modifier
             .onSizeChanged { response.width = it.width.toFloat() }
@@ -109,16 +112,16 @@ internal fun GlassNavigationSurface(
                     .layerBackdrop(tabsBackdrop)
                     .glassSurface(backdrop, NavigationBarShape, preset, tint, highlight,
                         pressProgress = { response.drag.pressProgress })
-                    .clip(NavigationBarShape).then(spot?.modifier ?: Modifier)
+                    .clip(NavigationBarShape)
                     .padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 GlassNavigationTabs(destination.ordinal, {}, recording = true) {
-                    1f + 0.2f * response.drag.pressProgress
+                    1f + LiquidGlassParameters.pressMagnification * response.drag.pressProgress
                 }
             }
         }
-        GlassNavigationSelection(response, focusedIndex, dark)
+        GlassNavigationSelection(response, focusedIndex, dark, selectionBackdrop, preset, enabled)
     }
 }
 
@@ -127,6 +130,9 @@ private fun BoxScope.GlassNavigationSelection(
     response: GlassNavigationGesture,
     focusedIndex: Int,
     dark: Boolean,
+    backdrop: Backdrop,
+    preset: GlassPreset,
+    enabled: Boolean,
 ) {
     if (response.tabWidth <= 0f) return
     val tabWidth = with(LocalDensity.current) { response.tabWidth.toDp() }
@@ -134,12 +140,40 @@ private fun BoxScope.GlassNavigationSelection(
         com.ohmyfly.ui.ChromeMetrics.NavigationIndicatorInset
     } else 4.dp
     Box(Modifier.matchParentSize().padding(horizontal = 4.dp, vertical = indicatorInset).clearAndSetSemantics {}) {
-        Box(Modifier.fillMaxHeight().width(tabWidth).graphicsLayer {
+        val pillShape = NavigationBarShape
+        val selectionFill = MiuixTheme.colorScheme.onSurface.copy(alpha = if (dark) 0.18f else 0.08f)
+        val pill = Modifier.fillMaxHeight().width(tabWidth).graphicsLayer {
             translationX = glassTabOffset(response.drag.value, response.tabWidth, response.ltr)
-        }.background(
-            MiuixTheme.colorScheme.onSurface.copy(alpha = if (dark) 0.18f else 0.08f),
-            NavigationBarShape,
-        ))
+        }
+        val pillModifier = if (enabled) {
+            pill.drawBackdrop(
+                backdrop = backdrop,
+                shape = { pillShape },
+                effects = {
+                    val progress = if (preset.liquidResponse) response.drag.pressProgress else 0f
+                    lens(
+                        LiquidGlassParameters.pressRefractionHeightDp.dp.toPx() * progress,
+                        LiquidGlassParameters.pressRefractionAmountDp.dp.toPx() * progress,
+                        depthEffect = true,
+                        chromaticAberration = preset.effectiveChromaticAberration,
+                    )
+                },
+                onDrawSurface = {
+                    val progress = response.drag.pressProgress
+                    drawRect(selectionFill.copy(alpha = selectionFill.alpha * (1f - progress)))
+                },
+            ).innerShadow(pillShape) {
+                val progress = if (preset.liquidResponse) response.drag.pressProgress else 0f
+                if (progress > 0f) InnerShadow(
+                    radius = LiquidGlassParameters.selectionShadowRadiusDp.dp * progress,
+                    color = Color.Black.copy(alpha = LiquidGlassParameters.selectionShadowAlpha),
+                    alpha = progress,
+                ) else null
+            }.clip(pillShape)
+        } else {
+            pill.background(selectionFill, pillShape)
+        }
+        Box(pillModifier)
     }
     if (focusedIndex in AppDestination.entries.indices) {
         val focusShape = com.ohmyfly.shapes.AppCorners.shape(12.dp)

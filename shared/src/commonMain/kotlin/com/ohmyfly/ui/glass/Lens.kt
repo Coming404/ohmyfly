@@ -135,7 +135,7 @@ half4 main(float2 coord) {
     float2 centeredCoord = (coord + offset) - halfSize;
     float3 boundary = glassBoundary(centeredCoord, halfSize, cornerTile);
     float sd = boundary.z;
-    if (-sd >= refractionHeight) {
+    if (convexLens < 0.5 && -sd >= refractionHeight) {
         return content.eval(coord);
     }
     sd = min(sd, 0.0);
@@ -147,8 +147,12 @@ half4 main(float2 coord) {
     float2 centerDir = centeredCoord / max(length(centeredCoord), 0.001);
     float2 normal = boundary.xy + (depthEffect * (1.0 - convexLens)) * centerDir;
     float2 grad = normal / max(length(normal), 0.001);
+    float2 normalized = centeredCoord / max(halfSize, float2(0.001));
+    float dome = max(1.0 - dot(normalized, normalized), 0.0);
+    float interiorGain = clamp(abs(refractionAmount) / max(min(halfSize.x, halfSize.y), 0.001), 0.0, 0.3);
+    float2 interiorOffset = convexLens > 0.5 ? -centeredCoord * (interiorGain * dome) : float2(0.0);
 
-    float2 refractedCoord = coord + d * grad;
+    float2 refractedCoord = coord + d * grad + interiorOffset;
     return content.eval(refractedCoord);
 }
 """
@@ -178,7 +182,7 @@ half4 main(float2 coord) {
     float2 centeredCoord = (coord + offset) - halfSize;
     float3 boundary = glassBoundary(centeredCoord, halfSize, cornerTile);
     float sd = boundary.z;
-    if (-sd >= refractionHeight) {
+    if (convexLens < 0.5 && -sd >= refractionHeight) {
         return content.eval(coord);
     }
     sd = min(sd, 0.0);
@@ -190,9 +194,17 @@ half4 main(float2 coord) {
     float2 centerDir = centeredCoord / max(length(centeredCoord), 0.001);
     float2 normal = boundary.xy + (depthEffect * (1.0 - convexLens)) * centerDir;
     float2 grad = normal / max(length(normal), 0.001);
+    float2 normalized = centeredCoord / max(halfSize, float2(0.001));
+    float dome = max(1.0 - dot(normalized, normalized), 0.0);
+    float interiorGain = clamp(abs(refractionAmount) / max(min(halfSize.x, halfSize.y), 0.001), 0.0, 0.3);
+    float2 interiorOffset = convexLens > 0.5 ? -centeredCoord * (interiorGain * dome) : float2(0.0);
 
-    float2 refractedCoord = coord + d * grad;
-    float dispersionIntensity = chromaticAberration * ((centeredCoord.x * centeredCoord.y) / (halfSize.x * halfSize.y));
+    float2 refractedCoord = coord + d * grad + interiorOffset;
+    float dispersionPosition = max(
+        abs(centeredCoord.x) / max(halfSize.x, 0.001),
+        abs(centeredCoord.y) / max(halfSize.y, 0.001)
+    );
+    float dispersionIntensity = chromaticAberration * smoothstep(0.0, 1.0, dispersionPosition);
     float2 dispersedCoord = d * grad * dispersionIntensity;
 
     half4 color = half4(0.0);

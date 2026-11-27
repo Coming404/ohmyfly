@@ -43,6 +43,7 @@ import com.ohmyfly.ui.LocalChromeAppearance
 import com.ohmyfly.ui.NavigationBarShape
 import com.ohmyfly.ui.appIconTint
 import com.ohmyfly.ui.chromeMaterial
+import com.ohmyfly.ui.withSettings
 import com.ohmyfly.ui.hapticClick
 import com.ohmyfly.ui.glass.glassPreset
 import com.ohmyfly.ui.glass.glassShaderSupported
@@ -61,12 +62,13 @@ internal fun GlassMaterialSettingsPage(
     padding: PaddingValues,
 ) {
     val appearance = LocalChromeAppearance.current
-    val referencePreset = glassPreset(MaterialMode.LiquidGlass, appearance.dark)
     val currentSettings = settings.glassMaterial
+    val referencePreset = glassPreset(MaterialMode.LiquidGlass, appearance.dark)
+        .withSettings(currentSettings, appearance.dark)
     val initialValues = GlassMaterialSettings(
-        secondLayerAlpha = currentSettings.secondLayerAlpha ?: referencePreset.surfaceAlpha,
+        secondLayerAlpha = currentSettings.secondLayerAlpha ?: referencePreset.effectiveSurfaceAlpha,
         thirdLayerAlpha = currentSettings.thirdLayerAlpha ?: referencePreset.highlightAlpha,
-        blurRadiusDp = currentSettings.blurRadiusDp ?: referencePreset.blur,
+        blurRadiusDp = currentSettings.blurRadiusDp ?: referencePreset.effectiveBlurDp,
         convexLensEnabled = currentSettings.convexLensEnabled,
         convexLensProfile = currentSettings.convexLensProfile,
     )
@@ -77,7 +79,7 @@ internal fun GlassMaterialSettingsPage(
         item {
             SettingsPageIntro(
                 SettingsPage.Glass.title,
-                "调节升级前的玻璃参数，修改后即时预览。",
+                "调整当前玻璃配方，修改后即时预览。",
             )
         }
         item { SettingsSectionTitle("实时预览", SettingsIcons.Material) }
@@ -98,11 +100,26 @@ internal fun GlassMaterialSettingsPage(
             SettingsCard {
                 ToggleSetting(
                     title = "凸透镜折射",
-                    summary = "增强静止玻璃的立体折射感",
+                    summary = if (previewSettings.convexLensEnabled) {
+                        "凸面折射与固定光源"
+                    } else {
+                        "柔和折射与按压放大"
+                    },
                     value = previewSettings.convexLensEnabled,
                     leadingIcon = SettingsIcons.Material,
                     onChange = { enabled ->
-                        previewSettings = previewSettings.copy(convexLensEnabled = enabled)
+                        val recipe = glassPreset(MaterialMode.LiquidGlass, appearance.dark).withSettings(
+                            GlassMaterialSettings(
+                                convexLensEnabled = enabled,
+                                convexLensProfile = previewSettings.convexLensProfile,
+                            ),
+                            appearance.dark,
+                        )
+                        previewSettings = previewSettings.copy(
+                            convexLensEnabled = enabled,
+                            secondLayerAlpha = currentSettings.secondLayerAlpha ?: recipe.effectiveSurfaceAlpha,
+                            blurRadiusDp = currentSettings.blurRadiusDp ?: recipe.effectiveBlurDp,
+                        )
                         onChange("凸透镜折射") {
                             it.copy(glassMaterial = it.glassMaterial.copy(convexLensEnabled = enabled))
                         }
@@ -161,7 +178,7 @@ internal fun GlassMaterialSettingsPage(
                         onValueChange = { previewSettings = previewSettings.copy(secondLayerAlpha = it) },
                         onValueChangeFinished = {
                             val next = previewSettings.secondLayerAlpha
-                            val current = currentSettings.secondLayerAlpha ?: referencePreset.surfaceAlpha
+                            val current = currentSettings.secondLayerAlpha ?: referencePreset.effectiveSurfaceAlpha
                             if (next != null && next != current) {
                                 onChange("表面填充透明度") {
                                     it.copy(glassMaterial = it.glassMaterial.copy(secondLayerAlpha = next))
@@ -189,7 +206,7 @@ internal fun GlassMaterialSettingsPage(
                     )
                     GlassMaterialSlider(
                         title = "背景模糊半径",
-                        value = previewSettings.blurRadiusDp ?: referencePreset.blur,
+                        value = previewSettings.blurRadiusDp ?: referencePreset.effectiveBlurDp,
                         range = SettingsLimits.glassBlurRadiusDp.toFloatRange(),
                         valueLabel = { "${(it * 10f).roundToInt() / 10f} dp" },
                         minLabel = "0 dp",
@@ -197,7 +214,7 @@ internal fun GlassMaterialSettingsPage(
                         onValueChange = { previewSettings = previewSettings.copy(blurRadiusDp = it) },
                         onValueChangeFinished = {
                             val next = previewSettings.blurRadiusDp
-                            val current = currentSettings.blurRadiusDp ?: referencePreset.blur
+                            val current = currentSettings.blurRadiusDp ?: referencePreset.effectiveBlurDp
                             if (next != null && next != current) {
                                 onChange("背景模糊半径") {
                                     it.copy(glassMaterial = it.glassMaterial.copy(blurRadiusDp = next))

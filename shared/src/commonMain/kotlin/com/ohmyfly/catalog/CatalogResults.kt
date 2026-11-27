@@ -2,6 +2,7 @@ package com.ohmyfly.catalog
 
 import com.ohmyfly.settings.SpeedSettings
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 
@@ -42,12 +43,12 @@ private suspend fun CatalogStore.resultWrite(action: String, request: JsonObject
     measurementsChanged()
 }
 
-internal suspend fun readCatalogTask(taskId: Long): CatalogTask = withContext(Dispatchers.Default) {
+internal suspend fun readCatalogTask(taskId: Long): CatalogTask = withContext(Dispatchers.IO) {
     catalogJson.decodeFromJsonElement<CatalogTask>(catalogCall("task") { put("id", taskId) })
 }
 
 internal suspend fun readCatalogResults(nodeId: Long = 0, taskId: Long = 0, before: Long = 0, limit: Int = 100): CatalogResultPage =
-    withContext(Dispatchers.Default) {
+    withContext(Dispatchers.IO) {
         catalogJson.decodeFromJsonElement<CatalogResultPage>(catalogCall("results") {
             put("nodeId", nodeId); put("taskId", taskId); put("anchor", before); put("limit", limit)
         })

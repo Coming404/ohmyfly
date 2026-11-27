@@ -37,7 +37,7 @@ func (s *Store) Measurements(ctx context.Context, nodes []int64, revision int64)
 	if len(nodes) > 100 {
 		return result, errors.New("measurement batch exceeds 100 nodes")
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.readDB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return result, err
 	}

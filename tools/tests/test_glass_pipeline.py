@@ -27,10 +27,10 @@ class GlassPipelineTests(unittest.TestCase):
             self.assertIn(f'import platform.UIKit.{constant}\n', ios)
         self.assertNotIn('UIInterfaceOrientation.UIInterfaceOrientation', ios)
         self.assertNotIn('UISceneActivationState.UISceneActivationState', ios)
-        for operation in ('colorControls(', 'blur(preset.blur.dp.toPx())', 'lens('):
+        for operation in ('colorControls(', 'blur(preset.effectiveBlurDp.dp.toPx())', 'lens('):
             self.assertIn(operation, effects)
         self.assertEqual(1, effects.count('effects = { glassEffects('))
-        self.assertIn('onDrawSurface = { drawRect(surface.copy(alpha = preset.surfaceAlpha)) }', effects)
+        self.assertIn('drawRect((preset.effectiveSurfaceColor ?: surface).copy(alpha = preset.effectiveSurfaceAlpha))', effects)
         self.assertNotIn('textureBlur(', effects)
         catalog = (ROOT / 'gradle/libs.versions.toml').read_text()
         dependencies = (ROOT / 'shared/build.gradle.kts').read_text()
@@ -59,7 +59,7 @@ class GlassPipelineTests(unittest.TestCase):
         self.assertIn('float slope = edge * edge * edge / (base * y)', lens)
         self.assertIn('refractionScale = profile.refractionScale',
                       (GLASS / 'GlassEffects.kt').read_text())
-        self.assertIn('Pill("pill", 10f, 38f, 0.2f, 0.25f, 0.03f, 0.618f)',
+        self.assertIn('Pill("pill", 10f, 38f, 0.618f)',
                       (COMMON / 'settings/GlassLensProfile.kt').read_text())
         self.assertIn('float convexDisplacement(float x)', lens)
         self.assertIn('float discriminant = 1.0 - eta * eta', lens)

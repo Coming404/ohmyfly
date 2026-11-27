@@ -46,7 +46,7 @@ class GlassAccessibilityTests(unittest.TestCase):
         self.assertLess(surface.index('if (enabled) {'), surface.index('.layerBackdrop(tabsBackdrop)'))
         self.assertIn('else Modifier.background(surface, NavigationBarShape)', surface)
         self.assertIn('base.background(surface)', chrome)
-        self.assertIn('rememberGlassGravity(enabled && motionAllowed && preset.highlightAlpha > 0f)', highlight)
+        self.assertIn('enabled && motionAllowed && preset.highlightAlpha > 0f && preset.lightAngleDegrees == null', highlight)
 
     def test_keyboard_focus_is_visible_above_the_static_capsule_without_duplicate_targets(self):
         tabs = (GLASS / 'GlassNavigationTabs.kt').read_text()

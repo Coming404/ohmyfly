@@ -93,6 +93,18 @@ func Catalog(request string) string {
 			return encodeError(err)
 		}
 	}
+	// 只覆盖短交互写入；读取走 WAL，不参加导入与交互之间的让行。
+	switch r.Action {
+	case "groupCreate", "groupRename", "groupDelete", "groupMove", "updateTower", "nodeChange",
+		"remove", "removeTowers", "beginFilter", "stageFilter", "commitFilter", "taskCreate":
+		finish := catalogStore.BeginInteraction()
+		defer finish()
+	case "parseBegin", "parseChunk", "queuePush", "queuePop", "parseEnd", "stageParsed", "stage", "chunk",
+		"begin", "commit", "abort", "fail", "addSources", "resolveName", "recordTrend":
+		if err := catalogStore.WaitForInteraction(ctx); err != nil {
+			return encodeError(err)
+		}
+	}
 	value, err := callCatalog(ctx, r)
 	if err != nil {
 		if errors.Is(err, catalog.ErrStale) {
@@ -188,6 +200,9 @@ func callCatalog(ctx context.Context, r catalogRequest) (any, error) {
 		yamlText, err := s.ExportYAML(ctx, r.NodeIDs)
 		return map[string]string{"yaml": yamlText}, err
 	case "groups":
+		if r.FilterTicket.Token == 0 {
+			return s.Groups(ctx, nil)
+		}
 		return s.Groups(ctx, &r.FilterTicket)
 	case "groupCreate":
 		return s.CreateGroup(ctx, r.Name)

@@ -14,7 +14,7 @@ type RefreshStatus struct {
 
 func (s *Store) RefreshStatus(ctx context.Context, id int64) (RefreshStatus, error) {
 	var status RefreshStatus
-	err := s.db.QueryRowContext(ctx, "SELECT generation,committed_generation FROM towers WHERE id=?", id).Scan(&status.Generation, &status.Committed)
+	err := s.readDB.QueryRowContext(ctx, "SELECT generation,committed_generation FROM towers WHERE id=?", id).Scan(&status.Generation, &status.Committed)
 	if errors.Is(err, sql.ErrNoRows) {
 		return status, nil
 	}

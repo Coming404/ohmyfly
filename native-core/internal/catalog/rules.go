@@ -73,7 +73,7 @@ func checkFilter(ctx context.Context, tx *sql.Tx, ticket FilterTicket, ready boo
 const effectiveNodes = `EXISTS(SELECT 1 FROM tower_nodes t WHERE t.node_id=n.id AND t.eligible=1)`
 
 func (s *Store) FilterInputs(ctx context.Context, ticket FilterTicket, after int64) ([]FilterInput, error) {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.readDB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return nil, err
 	}

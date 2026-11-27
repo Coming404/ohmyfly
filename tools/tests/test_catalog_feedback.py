@@ -55,7 +55,7 @@ class CatalogFeedbackTests(unittest.TestCase):
     def test_glass_profiles_match_upstream_and_navigation_text_stays_flat(self):
         profiles = (ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly/settings/GlassLensProfile.kt').read_text()
         nav = (UI / 'glass/GlassNavigationSurface.kt').read_text()
-        self.assertIn('Pill("pill", 10f, 38f, 0.2f, 0.25f, 0.03f, 0.618f)', profiles)
+        self.assertIn('Pill("pill", 10f, 38f, 0.618f)', profiles)
         self.assertNotIn('copy(convexLensEnabled = false)', nav)
         self.assertEqual(2, nav.count('backdrop, NavigationBarShape, preset, tint, highlight'))
         self.assertNotIn('glassNavigationCapsule', nav)

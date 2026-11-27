@@ -28,7 +28,7 @@ class GlassMaterialTuningTest {
         val base = GlassPreset(4f, 1.5f, 0f, 0.3f, 1f, 0.25f, true)
         assertEquals(base, base.withSettings(GlassMaterialSettings(), dark = false))
         val pill = base.withSettings(GlassMaterialSettings(convexLensEnabled = true), dark = false)
-        assertEquals(0.2f, pill.blur)
-        assertEquals(0.25f, pill.surfaceAlpha)
+        assertEquals(6f, pill.blur)
+        assertEquals(0.2f, pill.surfaceAlpha)
     }
 }

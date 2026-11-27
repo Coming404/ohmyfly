@@ -49,6 +49,9 @@ func (w *ParseWriter) Flush(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	if err := w.store.WaitForInteraction(ctx); err != nil {
+		return err
+	}
 	tx, err := w.store.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err

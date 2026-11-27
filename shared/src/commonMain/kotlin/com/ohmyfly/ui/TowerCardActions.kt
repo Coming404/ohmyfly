@@ -70,21 +70,16 @@ internal fun TowerFooter(tower: CatalogTower, loading: Boolean, ready: Boolean, 
     expanded: Boolean, revision: Long, syncColor: Color, onExpand: () -> Unit, onRefresh: () -> Unit,
     onStop: () -> Unit, onEdit: () -> Unit, onRemove: () -> Unit, onSourceImport: (CatalogSource) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        Modifier.fillMaxWidth().padding(horizontal = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            TowerFooterAction("航班 ${tower.nodeCount}", DriftIcons.Nodes, Modifier.fillMaxWidth(), flightsEnabled,
-                MiuixTheme.colorScheme.primary, expanded, onExpand)
-        }
-        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            TowerFooterAction(if (loading) "停止" else if (tower.sourceKind == "http" || tower.sourceKind == "merged") "同步" else "重导入",
-                if (loading) DriftIcons.Clear else SettingsIcons.Retry, Modifier.fillMaxWidth(), loading || ready,
-                syncColor, onClick = if (loading) onStop else onRefresh)
-        }
-        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            TowerMoreMenu(tower, loading, revision, Modifier, onEdit, onRemove, onSourceImport)
-        }
+        TowerFooterAction("航班 ${tower.nodeCount}", DriftIcons.Nodes, Modifier, flightsEnabled,
+            MiuixTheme.colorScheme.primary, expanded, onExpand)
+        TowerFooterAction(if (loading) "停止" else if (tower.sourceKind == "http" || tower.sourceKind == "merged") "同步" else "重导",
+            if (loading) DriftIcons.Clear else SettingsIcons.Retry, Modifier, loading || ready,
+            if (loading) MiuixTheme.colorScheme.error else syncColor, onClick = if (loading) onStop else onRefresh)
+        TowerMoreMenu(tower, loading, revision, Modifier, onEdit, onRemove, onSourceImport)
     }
 }
 
@@ -92,7 +87,7 @@ internal fun TowerFooter(tower: CatalogTower, loading: Boolean, ready: Boolean, 
 @Composable
 private fun TowerFooterAction(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
     modifier: Modifier, enabled: Boolean, color: Color, expanded: Boolean? = null, onClick: () -> Unit) {
-    Button(onClick = hapticClick(onClick), modifier = modifier.fillMaxWidth().clip(AppCorners.shape(AppCorners.Control)), enabled = enabled, minWidth = 0.dp,
+    Button(onClick = hapticClick(onClick), modifier = modifier.wrapContentWidth().clip(AppCorners.shape(AppCorners.Control)), enabled = enabled, minWidth = 0.dp,
         minHeight = ChromeMetrics.ToolbarButtonSize, insideMargin = PaddingValues(0.dp),
         colors = ButtonDefaults.buttonColors(color = Color.Transparent, disabledColor = Color.Transparent,
             contentColor = color, disabledContentColor = MiuixTheme.colorScheme.disabledOnSurface), cornerRadius = AppCorners.Control) {
@@ -104,7 +99,7 @@ private fun TowerFooterAction(text: String, icon: androidx.compose.ui.graphics.v
 @Composable
 private fun TowerFooterLabel(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
     color: Color, expanded: Boolean? = null) {
-    Row(Modifier.fillMaxWidth().heightIn(min = ChromeMetrics.ToolbarButtonSize),
+    Row(Modifier.heightIn(min = ChromeMetrics.ToolbarButtonSize),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(ChromeMetrics.ActionGap, Alignment.CenterHorizontally)) {
         Icon(icon, null, Modifier.size(ChromeMetrics.ToolbarIconSize), tint = color)
@@ -166,7 +161,7 @@ internal fun TowerMoreMenu(tower: CatalogTower, loading: Boolean, revision: Long
             icon = { Icon(DriftIcons.Subscriptions, null, it) }))
         add(DropdownItem(text = "删除塔台", enabled = !loading, onClick = { panel = "delete" },
             icon = { Icon(MirrorIcons.Trash, null, it, tint = MiuixTheme.colorScheme.error) }))
-    }), modifier = modifier.fillMaxWidth().clip(AppCorners.shape(AppCorners.Control)),
+    }), modifier = modifier.wrapContentWidth().clip(AppCorners.shape(AppCorners.Control)),
         minWidth = 0.dp, minHeight = ChromeMetrics.ToolbarButtonSize,
         cornerRadius = AppCorners.Control, backgroundColor = Color.Transparent) {
         TowerFooterLabel("更多", MirrorIcons.More, MiuixTheme.colorScheme.primary)

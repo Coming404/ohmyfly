@@ -44,11 +44,14 @@ internal fun rememberGlassHighlight(
     preset: GlassPreset,
     extraDegrees: Float = LiquidGlassParameters.panelLightOffsetDegrees,
 ): State<Highlight> {
-    val gravity = rememberGlassGravity(enabled && motionAllowed && preset.highlightAlpha > 0f)
-    // Neither gravity nor the angle is read by composition/layout. Quantization suppresses draw invalidations.
+    val gravity = rememberGlassGravity(
+        enabled && motionAllowed && preset.highlightAlpha > 0f && preset.lightAngleDegrees == null,
+    )
+    // Fixed recipe lighting skips sensor input; the other recipe follows device gravity.
     return remember(gravity, preset, extraDegrees) {
         derivedStateOf {
-            val angle = quantizedGravityAngle(gravity.value) + (extraDegrees * PI / 180.0).toFloat()
+            val angle = preset.lightAngleDegrees?.let { (it * PI / 180.0).toFloat() }
+                ?: (quantizedGravityAngle(gravity.value) + (extraDegrees * PI / 180.0).toFloat())
             Highlight(
                 width = LiquidGlassParameters.highlightWidthDp.dp,
                 alpha = preset.highlightAlpha,
@@ -62,7 +65,7 @@ internal fun rememberGlassHighlight(
                             LiquidGlassParameters.primaryLightY - sin(angle),
                             LiquidGlassParameters.primaryLightZ,
                         ),
-                        intensity = LiquidGlassParameters.primaryLightIntensity,
+                        intensity = preset.directLightIntensity,
                     ),
                     secondaryLight = LightSource(
                         LightPosition(
@@ -70,7 +73,7 @@ internal fun rememberGlassHighlight(
                             LiquidGlassParameters.secondaryLightY,
                             LiquidGlassParameters.secondaryLightZ,
                         ),
-                        intensity = LiquidGlassParameters.secondaryLightIntensity,
+                        intensity = preset.ambientLightIntensity,
                     ),
                     dualPeak = LiquidGlassParameters.dualPeakHighlight,
                 )),

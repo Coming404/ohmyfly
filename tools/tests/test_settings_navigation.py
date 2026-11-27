@@ -80,9 +80,9 @@ class SettingsNavigationTests(unittest.TestCase):
                       (COMMON / 'ui/NodesScreen.kt').read_text())
         self.assertIn('LaunchedEffect(catalog.appliedFilter) { listState.scrollToItem(0) }',
                       (COMMON / 'ui/NodesScreen.kt').read_text())
-        self.assertIn('4.dp.toPx()', app)
+        self.assertIn('LiquidGlassParameters.topBlurRadiusDp.dp.toPx()', app)
         self.assertNotIn('settings.glassMaterial.blurRadiusDp ?: glassPreset(MaterialMode.LiquidGlass, dark).blur', app)
-        self.assertIn('userScrollEnabled = false', app)
+        self.assertIn('userScrollEnabled = false', (COMMON / 'ui/CatalogPager.kt').read_text())
         self.assertIn('springAnimateToPage(targetPage)', app)
         self.assertIn('systemMotionScale * AppNavigationDurationMultiplier', app)
         self.assertIn('AppNavigationDurationMultiplier = 1.35f', (COMMON / 'ui/AppMotion.kt').read_text())
