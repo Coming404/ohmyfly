@@ -22,6 +22,23 @@ internal fun subscriptionFailureDescription(reason: String): String = when (reas
     else -> reason
 }
 
+// 网络异常按用户能采取行动的原因分类，不将凭据或底层异常链放入通知。
+internal fun subscriptionRequestFailure(error: Throwable): String {
+    val causes = generateSequence(error) { it.cause }.take(6).toList()
+    val response = causes.filterIsInstance<io.ktor.client.plugins.ResponseException>().firstOrNull()
+    if (response != null) return "塔台请求失败：${subscriptionFailureDescription("HTTP ${response.response.status.value}")}"
+    val detail = causes.joinToString(" ") { "${it::class.simpleName} ${it.message}" }.lowercase()
+    val reason = when {
+        "timeout" in detail || "timed out" in detail -> "服务器响应超时"
+        "unknownhost" in detail || "resolve" in detail || "name resolution" in detail -> "无法解析服务器地址"
+        "certificate" in detail || "ssl" in detail || "tls" in detail -> "安全连接建立失败，请检查服务器证书"
+        "refused" in detail -> "服务器拒绝连接"
+        "offline" in detail || "not connected" in detail -> "当前网络不可用"
+        else -> "网络连接中断，请检查网络后重试"
+    }
+    return "塔台请求失败：$reason"
+}
+
 internal fun subscriptionSkipDescription(reason: String): String = when (reason) {
     "malformed link" -> "链接格式不完整，缺少合法的协议前缀和 :// 分隔符"
     "invalid base64" -> "Base64 内容无法解码"

@@ -31,7 +31,7 @@ class CatalogFeedbackTests(unittest.TestCase):
         card = (UI / 'TowerCard.kt').read_text()
         footer = (UI / 'TowerCardActions.kt').read_text()
         self.assertIn('towerTaskProgress: Map<Long, CatalogTaskProgress>', contract)
-        self.assertIn('" ${it.completed} / ${it.total}"', footer)
+        self.assertIn('" ${task.completed} / ${task.total}"', footer)
         self.assertIn('progress = catalog.towerTaskProgress[tower.id]', (UI / 'TowerLibraryList.kt').read_text())
         self.assertIn('if (loading) "停止"', footer)
         self.assertIn('store.cancelTowerSync(tower.id)', (UI / 'TowerLibraryList.kt').read_text())
@@ -56,7 +56,8 @@ class CatalogFeedbackTests(unittest.TestCase):
         profiles = (ROOT / 'shared/src/commonMain/kotlin/com/ohmyfly/settings/GlassLensProfile.kt').read_text()
         nav = (UI / 'glass/GlassNavigationSurface.kt').read_text()
         self.assertIn('Pill("pill", 10f, 38f, 0.2f, 0.25f, 0.03f, 0.618f)', profiles)
-        self.assertIn('val navigationPreset = preset.copy(convexLensEnabled = false)', nav)
+        self.assertNotIn('copy(convexLensEnabled = false)', nav)
+        self.assertEqual(2, nav.count('backdrop, NavigationBarShape, preset, tint, highlight'))
         self.assertNotIn('glassNavigationCapsule', nav)
 
     def test_large_subscription_body_is_decoded_once(self):

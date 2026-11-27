@@ -29,7 +29,8 @@ internal fun TowerLibraryList(listState: LazyListState, catalog: CatalogState, s
     val mirrors = SubscriptionMirrorSettings(settings.mirrorEnabled, settings.mirrors, settings.selectedMirrorId)
     val count = catalog.towerMatchCount ?: 0
     val hasStatus = catalog.failure != null || catalog.towerMatchCount == null
-    val searchOpen = searchState.expanded
+    val searchVisibility = rememberSearchVisibility(searchState.expanded)
+    val searchOpen = searchVisibility.currentState || searchVisibility.targetState
     val showControl = catalog.summary.towers > 0
     val headerCount = (if (showControl) 1 else 0) + (if (searchOpen) 1 else 0) + (if (hasStatus) 1 else 0)
     // 用户打开搜索时滚回输入框；恢复页面或滚动重建搜索项不再请求焦点。
@@ -43,8 +44,10 @@ internal fun TowerLibraryList(listState: LazyListState, catalog: CatalogState, s
         contentPadding = contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (searchOpen) item("search") {
-            CatalogSearch(catalog.towerSearch, "按塔台名称搜索",
-                state = searchState, active = searchActive, onQuery = store::updateTowerSearch)
+            androidx.compose.animation.AnimatedVisibility(visibleState = searchVisibility) {
+                CatalogSearch(catalog.towerSearch, "按塔台名称搜索",
+                    state = searchState, active = searchActive, onQuery = store::updateTowerSearch)
+            }
         }
         if (showControl) item("control") {
             TowerControl(catalog, importReady, onCancel = store::cancelOperation, onSync = onSync)
@@ -62,6 +65,7 @@ internal fun TowerLibraryList(listState: LazyListState, catalog: CatalogState, s
             } else if (tower.id !in catalog.pendingRemoval) TowerCard(tower,
                 catalog.sourceTasks.values.any { it.parentId == tower.id }, importReady && catalog.ready,
                 progress = catalog.towerTaskProgress[tower.id],
+                tasks = catalog.sourceTasks.values.filter { it.parentId == tower.id },
                 onStop = { store.cancelTowerSync(tower.id) },
                 selected = tower.id in selectedTowerIds, selectionMode = selectionMode == CatalogSelectionMode.Towers,
                 onSelect = { if (selectionMode != CatalogSelectionMode.Towers) onEnterSelection()

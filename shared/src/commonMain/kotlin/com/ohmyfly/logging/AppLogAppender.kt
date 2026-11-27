@@ -13,8 +13,7 @@ internal class AppLogAppender(private val append: (LogEntry) -> Unit) : Appender
         val text = loggingEvent.message.orEmpty()
         append(LogEntry(
             id = newLogId(), timestampMillis = Clock.System.now().toEpochMilliseconds(),
-            level = if (loggingEvent.level == Level.DEBUG || loggingEvent.level == Level.TRACE)
-                LogLevel.Detail else LogLevel.Info,
+            level = LogLevel.Detail,
             module = loggingEvent.loggerName.take(80),
             message = if (text.length > 8192) text.take(8192) + "…[已截断]" else text,
         ))

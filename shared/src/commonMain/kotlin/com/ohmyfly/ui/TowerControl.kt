@@ -12,7 +12,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.PathParser
@@ -114,25 +113,17 @@ private fun SyncControl(busy: Boolean, enabled: Boolean, action: () -> Unit) {
     val colors = MiuixTheme.colorScheme
     val background = if (busy) colors.error else if (enabled) colors.primary else colors.surfaceContainer
     val content = if (busy) colors.onError else if (enabled) colors.onPrimary else colors.disabledOnSurface
-    Button(
-        onClick = hapticClick(action),
-        enabled = enabled,
-        modifier = Modifier.heightIn(min = 44.dp).clip(AppCorners.Capsule),
-        minWidth = 0.dp,
-        minHeight = 30.dp,
-        insideMargin = PaddingValues(horizontal = 11.dp),
-        colors = ButtonDefaults.buttonColors(
-            color = background,
-            disabledColor = colors.surfaceContainer,
-            contentColor = content,
-            disabledContentColor = colors.disabledOnSurface,
-        ),
-        cornerRadius = AppCorners.Toolbar,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+    Box(Modifier.heightIn(min = ChromeMetrics.ControlSize).clip(AppCorners.Capsule)
+        .clickable(enabled = enabled, role = Role.Button, onClick = hapticClick(action)),
+        contentAlignment = Alignment.Center) {
+        Row(Modifier.height(ChromeMetrics.CompactActionHeight)
+            .background(background, AppCorners.Capsule)
+            .padding(horizontal = ChromeMetrics.CompactActionInset),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(ChromeMetrics.ActionGap)) {
             if (busy) Box(Modifier.size(11.dp).background(content, AppCorners.shape(AppCorners.StopMark)))
             else Icon(SettingsIcons.Retry, null, Modifier.size(14.dp), tint = content)
-            Text(if (busy) "全部停止" else "全部同步", fontSize = 12.sp, color = content)
+            Text(if (busy) "全部停止" else "全部同步", fontSize = ChromeMetrics.CompactActionLabel, color = content)
         }
     }
 }

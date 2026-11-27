@@ -29,7 +29,7 @@ internal class MirrorResourceFetcher(private val transport: MirrorTransport) {
         expectedSha256: String? = null,
         enabled: Boolean = true,
     ): MirrorFetchResult {
-        logger.info { "[资源] 获取 ${logTarget(originalUrl)}；${if (enabled) "已启用镜像，列表中有 ${mirrors.size} 个候选" else "镜像已停用，仅使用直连"}；最多等待 ${timeoutMillis} 毫秒，最多接收 ${maxBytes} 字节；${if (expectedSha256 != null) "将校验内容摘要" else "未指定内容摘要"}" }
+        logger.debug { "[资源] 获取 ${logTarget(originalUrl)}；${if (enabled) "已启用镜像，列表中有 ${mirrors.size} 个候选" else "镜像已停用，仅使用直连"}；最多等待 ${timeoutMillis} 毫秒，最多接收 ${maxBytes} 字节；${if (expectedSha256 != null) "将校验内容摘要" else "未指定内容摘要"}" }
         githubResourceError(originalUrl)?.let { throw MirrorFetchException(it) }
         require(timeoutMillis > 0) { "超时必须为正数" }
         require(maxBytes > 0) { "大小上限必须为正数" }
@@ -48,7 +48,7 @@ internal class MirrorResourceFetcher(private val transport: MirrorTransport) {
             logger.debug { "[资源] 尝试${if (entry == null) "直连" else "镜像"} ${logTarget(url)}，此前失败 ${failed.size} 条" }
             when (val outcome = attempt(url, timeoutMillis, maxBytes, expectedSha256)) {
                 is Outcome.Ok -> {
-                    logger.info { "[资源] 获取成功 ${logTarget(url)}，HTTP ${outcome.response.statusCode}，${outcome.response.body.size}B，此前失败 ${failed.size} 条" }
+                    logger.debug { "[资源] 获取成功 ${logTarget(url)}，HTTP ${outcome.response.statusCode}，${outcome.response.body.size}B，此前失败 ${failed.size} 条" }
                     return MirrorFetchResult(outcome.response, entry?.id, failed.toList())
                 }
                 is Outcome.Fail -> {
@@ -57,7 +57,7 @@ internal class MirrorResourceFetcher(private val transport: MirrorTransport) {
                 }
             }
         }
-        logger.info { "[资源] 全部候选失败，共 ${failed.size} 条" }
+        logger.debug { "[资源] 全部候选失败，共 ${failed.size} 条" }
         throw MirrorFetchException("所有线路均失败（共尝试 ${failed.size} 条），请检查网络或稍后重试")
     }
 
@@ -71,11 +71,11 @@ internal class MirrorResourceFetcher(private val transport: MirrorTransport) {
         logger.debug { "[资源] 镜像已停用，仅尝试直连 ${logTarget(originalUrl)}" }
         return when (val outcome = attempt(originalUrl, timeoutMillis, maxBytes, expectedSha256)) {
             is Outcome.Ok -> {
-                logger.info { "[资源] 直连获取成功，${outcome.response.body.size}B" }
+                logger.debug { "[资源] 直连获取成功，${outcome.response.body.size}B" }
                 MirrorFetchResult(outcome.response, null, emptyList())
             }
             is Outcome.Fail -> {
-                logger.info { "[资源] 镜像已停用且直连失败" }
+                logger.debug { "[资源] 镜像已停用且直连失败" }
                 throw MirrorFetchException("镜像已停用，直连请求失败，请检查网络或稍后重试")
             }
         }
@@ -104,7 +104,7 @@ internal class MirrorResourceFetcher(private val transport: MirrorTransport) {
             }
             Outcome.Ok(checkNotNull(response))
         } catch (cancel: CancellationException) {
-            logger.info { "[资源] 请求已取消，不再尝试后续线路" }
+            logger.debug { "[资源] 请求已取消，不再尝试后续线路" }
             throw cancel
         } catch (_: MirrorTimeoutException) {
             logger.debug { "[资源] ${logTarget(url)} 网络请求超时" }

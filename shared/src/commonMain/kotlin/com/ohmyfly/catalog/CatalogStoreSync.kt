@@ -18,13 +18,15 @@ internal suspend fun CatalogStore.runBatch(
 
 internal fun CatalogStore.cancelTowerSync(id: Long) { runningBatch?.cancelTower(id) }
 
-internal fun CatalogStore.cancelOperation() { operations.cancelAll() }
+internal fun CatalogStore.cancelOperation() {
+    operations.cancelAll()
+    runningBatch?.cancelNative()
+}
 
 internal suspend fun CatalogStore.syncAll(settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) =
     withContext(Dispatchers.Main) {
         runOperation("sync:all") {
             runBatch(settings, mirrors) { it.sync(listOf(0L)) { state.value.pendingRemoval } }
-            check(state.value.taskFailed == 0) { "${state.value.taskFailed} 个来源同步失败，已保留上次成功数据" }
         }.await()
     }
 
@@ -36,5 +38,4 @@ internal fun CatalogStore.refreshTowers(
     ids: Set<Long>, settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings,
 ) = runOperation("sync:${ids.sorted().joinToString(",")}") {
     runBatch(settings, mirrors) { it.sync(ids) { state.value.pendingRemoval } }
-    check(state.value.taskFailed == 0) { "${state.value.taskFailed} 个来源同步失败，已保留上次成功数据" }
 }

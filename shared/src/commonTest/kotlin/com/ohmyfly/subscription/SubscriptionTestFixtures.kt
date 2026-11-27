@@ -107,6 +107,12 @@ internal class TestCatalogStore(importer: SubscriptionImporter) {
                 put("exists", rows.containsKey(id)); put("generation", rows[id]?.generation ?: 0)
                 put("committed", rows[id]?.committed ?: 0)
             }
+            "resolveName" -> {
+                checkGeneration(id, input.getValue("generation").jsonPrimitive.long)
+                val row = rows.getValue(id)
+                row.value = row.value.copy(name = row.value.name.ifBlank { input.getValue("name").jsonPrimitive.content })
+                publish()
+            }
             "abort" -> staged.remove(id)
             "stage" -> {
                 checkGeneration(id, input.getValue("generation").jsonPrimitive.long)

@@ -44,7 +44,9 @@ private fun FlightLibraryList(listState: LazyListState, catalog: CatalogState, s
     LaunchedEffect(catalog.appliedFilter) { listState.scrollToItem(0) }
     val count = catalog.matchCount ?: 0
     val hasStatus = catalog.failure != null || !catalog.ready || catalog.matchCount == null || catalog.measurementsFailure != null
-    val headerCount = 1 + (if (searchState.expanded) 1 else 0) + (if (hasStatus) 1 else 0)
+    val searchVisibility = rememberSearchVisibility(searchState.expanded)
+    val searchOpen = searchVisibility.currentState || searchVisibility.targetState
+    val headerCount = 1 + (if (searchOpen) 1 else 0) + (if (hasStatus) 1 else 0)
     LaunchedEffect(searchState.focusRequested, searchActive) {
         if (searchState.focusRequested && searchActive) listState.scrollToItem(0)
     }
@@ -54,9 +56,11 @@ private fun FlightLibraryList(listState: LazyListState, catalog: CatalogState, s
         LazyColumn(Modifier.fillMaxSize(), state = listState,
         contentPadding = contentPadding.withPageSpacing(LocalLayoutDirection.current, horizontal = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (searchState.expanded) item("search") {
-            CatalogSearch(catalog.flightFilter.search, "搜索航班", searchState, searchActive) {
-                appCatalog.updateFlightFilter(catalog.flightFilter.copy(search = it), debounce = true)
+        if (searchOpen) item("search") {
+            androidx.compose.animation.AnimatedVisibility(visibleState = searchVisibility) {
+                CatalogSearch(catalog.flightFilter.search, "搜索航班", searchState, searchActive) {
+                    appCatalog.updateFlightFilter(catalog.flightFilter.copy(search = it), debounce = true)
+                }
             }
         }
         item("groups") { FlightGroups(catalog) }

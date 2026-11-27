@@ -50,7 +50,16 @@ internal data class CatalogTower(
     val warnings: JsonArray = JsonArray(emptyList()), val lastAttemptAt: Long? = null, val lastSuccessAt: Long? = null,
     val address: String = "", val availableNodeCount: Long = 0,
     val importResult: CatalogImportResult = CatalogImportResult(),
-)
+) {
+    val displayName: String get() = name.ifBlank {
+        io.ktor.http.parseUrl(address)?.takeIf { sourceKind == "http" }?.host
+            ?: when (sourceKind) {
+                "merged" -> "合并塔台"
+                "file" -> "配置文件"
+                else -> "粘贴内容"
+            }
+    }
+}
 
 @Serializable
 internal data class CatalogFlight(val id: Long, val name: String, val type: String, val server: String, val port: Int,
@@ -69,6 +78,8 @@ internal data class CatalogPage(
 @Serializable
 internal data class RefreshTicket(val id: Long, val generation: Long, val address: String, val name: String)
 
+internal data class CatalogSyncResult(val total: Int, val failed: Int, val messages: List<String>)
+
 internal data class CatalogTaskProgress(val completed: Int = 0, val total: Int = 0)
 
 internal data class CatalogState(
@@ -81,6 +92,7 @@ internal data class CatalogState(
     val sourceTasks: Map<Long, CatalogSourceTask> = emptyMap(),
     val towerTaskProgress: Map<Long, CatalogTaskProgress> = emptyMap(),
     val taskTotal: Int = 0, val taskCompleted: Int = 0, val taskFailed: Int = 0,
+    val taskMessages: List<String> = emptyList(),
     val operationFailure: String? = null,
     val queuedBatches: Int = 0, val stopping: Boolean = false, val stopped: Boolean = false,
     val pendingRemoval: Set<Long> = emptySet(),

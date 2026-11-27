@@ -28,7 +28,7 @@ class LogTextTest {
 
     @Test fun copyContainsOnlyLoadedEntriesAndPreservesMultilineBody() {
         val row = LogEntry("one", 1_700_000_000_001, LogLevel.Info, "test", "第一行\n第二行")
-        assertEquals("2023-11-15 06:13:20  信息\n第一行\n第二行", logText(listOf(row)))
+        assertEquals("2023-11-15 06:13:20  详情\n第一行\n第二行", logText(listOf(row)))
         assertEquals("", logText(emptyList()))
     }
 }

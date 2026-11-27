@@ -33,7 +33,10 @@ internal data class CatalogSource(
     }
 }
 
-internal data class CatalogSourceTask(val parentId: Long, val phase: String, val name: String)
+internal data class CatalogSourceTask(
+    val parentId: Long, val phase: String, val name: String,
+    val completed: Int = 0, val total: Int = 0,
+)
 
 // 固定数量工作协程消费有界通道；解析许可只覆盖整份正文解析，不覆盖事务等待。
 internal class CatalogBatchRunner(
@@ -48,11 +51,19 @@ internal class CatalogBatchRunner(
     private val parses = Semaphore(settings.parseConcurrency)
     private val cancelledTowers = MutableStateFlow<Set<Long>>(emptySet())
     private val activeSources = MutableStateFlow<Map<Long, Pair<Long, Job>>>(emptyMap())
+    private val nativeOperations = MutableStateFlow<Map<Long, Pair<Long, Long>>>(emptyMap())
     private data class Work(val source: CatalogSource, val read: (suspend () -> SubscriptionBody)?)
 
     fun cancelTower(parentId: Long) {
         cancelledTowers.update { it + parentId }
         activeSources.value.values.filter { it.first == parentId }.forEach { it.second.cancel() }
+        cancelNative(parentId)
+    }
+
+    fun cancelNative(parentId: Long? = null) {
+        nativeOperations.value.values.filter { parentId == null || it.first == parentId }.forEach { (_, id) ->
+            request("operationCancel") { put("id", id) }
+        }
     }
 
     suspend fun importSources(inputs: List<CatalogImportSource>, merge: Boolean, name: String, replaceId: Long? = null) {
@@ -112,7 +123,7 @@ internal class CatalogBatchRunner(
 
     private suspend fun execute(produce: suspend (Channel<Work>) -> Unit) = coroutineScope {
         update { it.copy(taskTotal = 0, taskCompleted = 0, taskFailed = 0,
-            towerTaskProgress = emptyMap(), sourceTasks = emptyMap()) }
+            towerTaskProgress = emptyMap(), sourceTasks = emptyMap(), taskMessages = emptyList()) }
         val queue = Channel<Work>(settings.towerConcurrency)
         val producer = launch { try { produce(queue) } finally { queue.close() } }
         val workers = List(settings.towerConcurrency) {
@@ -125,8 +136,31 @@ internal class CatalogBatchRunner(
     private suspend fun processIsolated(work: Work) = supervisorScope {
         var started = false
         val task = launch(start = CoroutineStart.LAZY) {
-            started = true
-            process(work)
+            val operation = request("operationBegin") {}.getValue("id").jsonPrimitive.long
+            nativeOperations.update { it + (work.source.id to (work.source.parentId to operation)) }
+            val scopedRequest: CatalogRequest = { action, block ->
+                request(action) { block(); put("operationId", operation) }
+            }
+            val monitor = launch(Dispatchers.Default) {
+                while (isActive) {
+                    delay(250)
+                    val status = request("operationStatus") { put("id", operation) }
+                    val phase = status.getValue("phase").jsonPrimitive.content
+                    if (phase.isNotBlank()) update { state ->
+                        val taskState = state.sourceTasks[work.source.id]
+                        if (taskState == null) state else state.copy(sourceTasks = state.sourceTasks +
+                            (work.source.id to taskState.copy(phase = phase,
+                                completed = status.getValue("completed").jsonPrimitive.int,
+                                total = status.getValue("total").jsonPrimitive.int)))
+                    }
+                }
+            }
+            try { ensureActive(); started = true; process(work, scopedRequest) }
+            finally {
+                monitor.cancel()
+                request("operationEnd") { put("id", operation) }
+                nativeOperations.update { it - work.source.id }
+            }
         }
         activeSources.update { it + (work.source.id to (work.source.parentId to task)) }
         task.start()
@@ -157,12 +191,12 @@ internal class CatalogBatchRunner(
         catch (e: Exception) { logCatalogFailure("刷新塔台卡片", e) }
     }
 
-    private suspend fun process(work: Work) {
+    private suspend fun process(work: Work, sourceRequest: CatalogRequest) {
         val source = work.source
         var stage = "准备"
         var stageStarted = TimeSource.Monotonic.markNow()
         val displayName = source.displayName()
-        logger.info { "[塔台航班] 正在处理“$displayName”" }
+        logger.debug { "[塔台航班] 正在处理“$displayName”" }
         fun phase(value: String) {
             val elapsed = stageStarted.elapsedNow().inWholeMilliseconds
             logger.debug { "[塔台航班] “$displayName”阶段：$stage，耗时 ${elapsed} 毫秒" }
@@ -173,6 +207,7 @@ internal class CatalogBatchRunner(
                 (source.id to CatalogSourceTask(source.parentId, value, displayName))) }
         }
         var failed = false
+        var outcome = "同步完成"
         var publishAfter = true
         try {
             if (source.parentId in cancelledTowers.value) {
@@ -184,26 +219,32 @@ internal class CatalogBatchRunner(
                 phase("等待解析")
                 parses.withPermit {
                     phase("解析")
-                    try { parseCatalogSubscription(content) } finally { phase("处理") }
+                    try { parseCatalogSubscription(content, sourceRequest) } finally { phase("处理") }
                 }
+            }, phase = ::phase, progress = { completed, total ->
+                update { state -> state.copy(sourceTasks = state.sourceTasks +
+                    (source.id to CatalogSourceTask(source.parentId, "处理", displayName, completed, total))) }
             }, queue = ::CatalogProviderQueue)
-            val service = CatalogRefreshService(importer, request) { phase("提交") }
+            val service = CatalogRefreshService(importer, sourceRequest, failed = { outcome = it }) { phase("提交") }
             if (work.read != null) service.importBody(work.read.invoke(), settings, source.id)
             else if (!service.refresh(source.id, settings, mirrors)) {
                 failed = true
                 return
             }
-            logger.info { "[塔台航班] “$displayName”同步完成" }
+            logger.debug { "[塔台航班] “$displayName”同步完成" }
         } catch (e: CancellationException) {
             publishAfter = false
-            logger.info { "[塔台航班] “$displayName”同步已取消" }
+            logger.debug { "[塔台航班] “$displayName”同步已取消" }
             throw e
         } catch (_: CatalogStaleException) {
             // 删除已使来源失效，不重新创建或提交旧结果。
         } catch (e: Exception) {
+            if (!currentCoroutineContext().isActive) publishAfter = false
+            currentCoroutineContext().ensureActive()
             failed = true
             val reason = logCatalogFailure("同步“$displayName”时的${stage}阶段", e)
-            recordFailure(source.id, "$stage：$reason")
+            outcome = "$stage 失败：$reason"
+            recordFailure(source.id, outcome)
         } finally {
             val elapsed = stageStarted.elapsedNow().inWholeMilliseconds
             logger.debug { "[塔台航班] “$displayName”阶段：$stage，耗时 ${elapsed} 毫秒" }
@@ -212,6 +253,11 @@ internal class CatalogBatchRunner(
                     val progress = state.towerTaskProgress[source.parentId] ?: CatalogTaskProgress()
                     state.copy(taskCompleted = state.taskCompleted + 1,
                         taskFailed = state.taskFailed + if (failed) 1 else 0,
+                        taskMessages = if (!publishAfter) state.taskMessages else {
+                            val message = "“$displayName”$outcome"
+                            if (failed) (listOf(message) + state.taskMessages).take(3)
+                            else (state.taskMessages + message).take(3)
+                        },
                         towerTaskProgress = state.towerTaskProgress +
                             (source.parentId to progress.copy(completed = progress.completed + 1)),
                         sourceTasks = state.sourceTasks - source.id)

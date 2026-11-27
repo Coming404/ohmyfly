@@ -32,6 +32,6 @@ internal fun logBytes(bytes: Long): String = when {
     else -> "${bytes / 1_048_576}.${bytes % 1_048_576 * 10 / 1_048_576} MiB"
 }
 
-internal fun logText(entries: List<LogEntry>): String = entries.joinToString("\n\n") {
-    "${logTime(it.timestampMillis)}  ${it.level.label}\n${it.message}"
+internal fun logText(entries: List<LogEntry>): String = entries.joinToString("\n") {
+    "${logTime(it.timestampMillis)}  详情\n${it.message}"
 }

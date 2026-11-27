@@ -45,8 +45,8 @@ class LogFilesTests(unittest.TestCase):
         self.assertIn('heightIn(min = 96.dp, max = maxHeight)', text)
         self.assertNotIn('height(360.dp)', text)
         self.assertIn('state.more(', text)
-        self.assertIn('fontSize = 14.sp', text)
-        self.assertIn('fontSize = 12.sp', text)
+        self.assertIn('fontSize = com.ohmyfly.ui.ChromeMetrics.LogBodySize', text)
+        self.assertIn('lineHeight = com.ohmyfly.ui.ChromeMetrics.LogLineHeight', text)
         self.assertIn('FontWeight.Normal', text)
 
     def test_only_single_file_scan_remains(self):

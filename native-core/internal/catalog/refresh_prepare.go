@@ -43,6 +43,7 @@ func (s *Store) prepareRefresh(ctx context.Context, r Refresh) (preparedRules, e
 	if err = json.Unmarshal([]byte(rules.output), &output); err != nil {
 		return rules, err
 	}
+	reportRefresh(ctx, "准备入库", 0, r.Count)
 	for next := 0; next < r.Count; {
 		inputs, err := s.refreshInputs(ctx, r, next)
 		if err != nil {
@@ -53,6 +54,9 @@ func (s *Store) prepareRefresh(ctx context.Context, r Refresh) (preparedRules, e
 		}
 		values := make([]preparedNode, 0, len(inputs))
 		for _, input := range inputs {
+			if err := ctx.Err(); err != nil {
+				return rules, err
+			}
 			if input.ordinal != next || next >= r.Count {
 				return rules, errors.New("noncontiguous catalog refresh")
 			}
@@ -66,7 +70,9 @@ func (s *Store) prepareRefresh(ctx context.Context, r Refresh) (preparedRules, e
 		if err = s.savePrepared(ctx, r, values); err != nil {
 			return rules, err
 		}
+		reportRefresh(ctx, "准备入库", next, r.Count)
 	}
+	reportRefresh(ctx, "提交", 0, 0)
 	return rules, nil
 }
 
@@ -137,10 +143,6 @@ func prepareNode(input refreshInput, tower, output flight.DeduplicationConfig) (
 }
 
 func (s *Store) savePrepared(ctx context.Context, r Refresh, values []preparedNode) error {
-	data, err := json.Marshal(values)
-	if err != nil {
-		return err
-	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -149,18 +151,29 @@ func (s *Store) savePrepared(ctx context.Context, r Refresh, values []preparedNo
 	if err = checkTicket(ctx, tx, r.ID, r.Generation); err != nil {
 		return err
 	}
-	_, err = tx.ExecContext(ctx, `UPDATE refresh_nodes SET content_hash=json_extract(j.value,'$.hash'),
- name=json_extract(j.value,'$.name'),advanced_key=json_extract(j.value,'$.advanced'),eligible=json_extract(j.value,'$.eligible')
- FROM json_each(?) j WHERE tower_id=? AND generation=? AND ordinal=json_extract(j.value,'$.ordinal')`, string(data), r.ID, r.Generation)
+	// 按完整主键更新，避免每个暂存节点重复扫描整批 JSON 虚拟表。
+	update, err := tx.PrepareContext(ctx, `UPDATE refresh_nodes SET content_hash=?,name=?,advanced_key=?,eligible=?
+ WHERE tower_id=? AND generation=? AND ordinal=?`)
 	if err != nil {
 		return err
 	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO refresh_prepared(tower_id,generation,ordinal,config,output_key,source)
- SELECT ?,?,json_extract(value,'$.ordinal'),json_extract(value,'$.config'),json_extract(value,'$.output'),json_extract(value,'$.source')
- FROM json_each(?) WHERE true ON CONFLICT(tower_id,generation,ordinal) DO UPDATE SET
- config=excluded.config,output_key=excluded.output_key,source=excluded.source`, r.ID, r.Generation, string(data))
+	defer update.Close()
+	insert, err := tx.PrepareContext(ctx, `INSERT INTO refresh_prepared(tower_id,generation,ordinal,config,output_key,source)
+ VALUES(?,?,?,?,?,?) ON CONFLICT(tower_id,generation,ordinal) DO UPDATE SET
+ config=excluded.config,output_key=excluded.output_key,source=excluded.source`)
 	if err != nil {
 		return err
+	}
+	defer insert.Close()
+	for _, value := range values {
+		if _, err = update.ExecContext(ctx, value.Hash, value.Name, value.Advanced, value.Eligible,
+			r.ID, r.Generation, value.Ordinal); err != nil {
+			return err
+		}
+		if _, err = insert.ExecContext(ctx, r.ID, r.Generation, value.Ordinal,
+			value.Config, value.Output, value.Source); err != nil {
+			return err
+		}
 	}
 	return tx.Commit()
 }

@@ -30,6 +30,7 @@ func OpenCatalog(path string) string {
 }
 
 type catalogRequest struct {
+	OperationID  int64                      `json:"operationId"`
 	GroupID      int64                      `json:"groupId"`
 	Scope        catalog.FlightScope        `json:"scope"`
 	References   []catalog.ParsedReference  `json:"references"`
@@ -83,7 +84,16 @@ func Catalog(request string) string {
 	if catalogStore == nil {
 		return encodeError(errors.New("目录数据库尚未打开"))
 	}
-	value, err := callCatalog(context.Background(), r)
+	ctx := context.Background()
+	// 清理操作必须能在来源取消后释放暂存记录。
+	if r.OperationID != 0 && r.Action != "abort" && r.Action != "parseEnd" && r.Action != "status" {
+		var err error
+		ctx, err = catalogOperationContext(r.OperationID)
+		if err != nil {
+			return encodeError(err)
+		}
+	}
+	value, err := callCatalog(ctx, r)
 	if err != nil {
 		if errors.Is(err, catalog.ErrStale) {
 			return `{"error":"目录已更新，请重新加载","stale":true}`
@@ -100,6 +110,10 @@ func Catalog(request string) string {
 func callCatalog(ctx context.Context, r catalogRequest) (any, error) {
 	s := catalogStore
 	switch r.Action {
+	case "operationBegin":
+		return map[string]int64{"id": beginCatalogOperation()}, nil
+	case "operationCancel", "operationEnd", "operationStatus":
+		return controlCatalogOperation(r.Action, r.ID), nil
 	case "setDedup":
 		return map[string]bool{"ok": true}, s.SetDedup(ctx, r.Dedup)
 	case "setTowerDedup":
@@ -140,6 +154,8 @@ func callCatalog(ctx context.Context, r catalogRequest) (any, error) {
 	case "add":
 		id, err := s.Add(ctx, r.Address, r.Name)
 		return map[string]int64{"id": id}, err
+	case "resolveName":
+		return map[string]bool{"ok": true}, s.ResolveTowerName(ctx, r.ID, r.Generation, r.Name)
 	case "updateTower":
 		return map[string]bool{"ok": true}, s.UpdateTower(ctx, r.ID, r.Address, r.Name)
 	case "begin":

@@ -13,7 +13,7 @@ import platform.darwin.NSObjectProtocol
 private val catalogObservers = mutableListOf<NSObjectProtocol>()
 
 internal actual fun openNativeCatalog(): String {
-    com.ohmyfly.logging.logger.info { "[原生核心] iOS 构建版本：${com.ohmyfly.nativecore.nativeCoreVersion()}" }
+    com.ohmyfly.logging.logger.debug { "[原生核心] iOS 构建版本：${com.ohmyfly.nativecore.nativeCoreVersion()}" }
     val base = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, true)
         .first() as String
     val path = "$base/catalog"

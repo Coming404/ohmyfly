@@ -17,6 +17,10 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import top.yukonga.miuix.kmp.basic.InputField
 
 @Composable
+internal fun rememberSearchVisibility(expanded: Boolean): androidx.compose.animation.core.MutableTransitionState<Boolean> =
+    remember { androidx.compose.animation.core.MutableTransitionState(false) }.apply { targetState = expanded }
+
+@Composable
 internal fun CatalogSearch(
     query: String,
     label: String,

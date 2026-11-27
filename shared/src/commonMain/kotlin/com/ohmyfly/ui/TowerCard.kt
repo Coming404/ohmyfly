@@ -25,7 +25,8 @@ import kotlin.time.Instant
 internal fun TowerCard(
     tower: CatalogTower, loading: Boolean, ready: Boolean, expanded: Boolean, revision: Long,
     onExpand: () -> Unit, onRefresh: () -> Unit, onStop: () -> Unit, onRemove: () -> Unit,
-    progress: CatalogTaskProgress? = null, onSourceImport: (CatalogSource) -> Unit = {},
+    progress: CatalogTaskProgress? = null, tasks: List<CatalogSourceTask> = emptyList(),
+    onSourceImport: (CatalogSource) -> Unit = {},
     onEdit: () -> Unit = {},
     selected: Boolean = false, selectionMode: Boolean = false, onSelect: () -> Unit = {},
     selectedNodeIds: Set<String> = emptySet(), onNodeSelection: (Set<String>) -> Unit = {},
@@ -47,7 +48,7 @@ internal fun TowerCard(
     ) {
         Column(Modifier.fillMaxWidth().catalogSelectionSurface(selected, AppCorners.Card)) {
             Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 14.dp)) {
-                TowerIdentity(tower, loading, progress, selected, selectionMode, syncColor)
+                TowerIdentity(tower, loading, progress, tasks, selected, selectionMode, syncColor)
                 if (loading) {
                     val ratio = progress?.let { if (it.total == 0) 0f else it.completed.toFloat() / it.total }
                         ?.coerceIn(0f, 1f) ?: 0f

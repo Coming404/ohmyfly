@@ -47,11 +47,12 @@ func parseLink(text string) (map[string]any, bool, bool, error) {
 	case "tg":
 		node, err = parseTelegramProxyLink(normalized)
 	case "http", "https":
-		// Plain http(s) lines may be subscription URLs, so only t.me proxy links are handled here.
-		if !isTelegramHTTPProxyLink(normalized) {
-			return nil, false, false, nil
+		if isTelegramHTTPProxyLink(normalized) {
+			node, err = parseTelegramProxyLink(normalized)
+		} else {
+			// 此入口处理正文中的代理链接；来源地址由订阅下载入口处理。
+			node, err = parseHTTPProxyLink(normalized)
 		}
-		node, err = parseTelegramProxyLink(normalized)
 	case "ssh":
 		node, err = parseSSHLink(normalized)
 	default:

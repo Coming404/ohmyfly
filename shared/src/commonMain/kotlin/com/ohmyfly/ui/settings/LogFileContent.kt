@@ -110,7 +110,7 @@ private fun LogTextWindow(state: LogPageState, content: LogContentSnapshot, acti
     SelectionContainer {
         LazyColumn(state = list, modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp, max = maxHeight)
             .nestedScroll(scroll),
-            contentPadding = PaddingValues(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            contentPadding = PaddingValues(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(com.ohmyfly.ui.ChromeMetrics.LogRecordGap)) {
             item("window-start") {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.weight(1f)) {
@@ -121,9 +121,10 @@ private fun LogTextWindow(state: LogPageState, content: LogContentSnapshot, acti
             }
             items(entries, key = { it.id }) { entry ->
                 Column {
-                    Text("${logTime(entry.timestampMillis)}  ${entry.level.label}", fontSize = 12.sp,
-                        lineHeight = 19.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-                    Text(entry.message, fontSize = 14.sp, lineHeight = 22.sp, fontWeight = FontWeight.Normal)
+                    Text("${logTime(entry.timestampMillis)}  详情", fontSize = com.ohmyfly.ui.ChromeMetrics.LogBodySize,
+                        lineHeight = com.ohmyfly.ui.ChromeMetrics.LogLineHeight, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+                    Text(entry.message, fontSize = com.ohmyfly.ui.ChromeMetrics.LogBodySize,
+                        lineHeight = com.ohmyfly.ui.ChromeMetrics.LogLineHeight, fontWeight = FontWeight.Normal)
                 }
             }
             item("window-end") {

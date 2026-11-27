@@ -21,7 +21,7 @@ import top.yukonga.miuix.kmp.overlay.OverlayBottomSheet
 
 @Composable
 internal fun TowerEditSheet(tower: CatalogTower, store: CatalogStore, onClose: () -> Unit) {
-    var name by remember(tower.id) { mutableStateOf(tower.name) }
+    var name by remember(tower.id) { mutableStateOf(tower.displayName) }
     var address by remember(tower.id) { mutableStateOf(tower.address) }
     var failure by remember(tower.id) { mutableStateOf<String?>(null) }
     var saving by remember(tower.id) { mutableStateOf(false) }

@@ -28,8 +28,8 @@ internal object AppLog {
     }
 
     suspend fun configure(policy: LogPolicy) {
-        worker.configure(policy)
-        KotlinLoggingConfiguration.direct.logLevel = if (policy.level == LogLevel.Info) Level.INFO else Level.DEBUG
+        worker.configure(policy.copy(level = LogLevel.Detail))
+        KotlinLoggingConfiguration.direct.logLevel = Level.DEBUG
     }
     suspend fun files(): List<LogFileInfo> = worker.files()
     suspend fun filePage(file: LogFileInfo, level: LogLevel, cursor: LogFileCursor?): LogFilePage =
@@ -38,7 +38,7 @@ internal object AppLog {
     suspend fun flush() = worker.flush()
 
     internal fun initialize(directory: () -> Path): Boolean = worker.start(directory).also { started ->
-        if (started) logger.info { "[应用] 启动，日志文件等待已保存的配置" }
+        if (started) logger.debug { "[应用] 启动，日志文件等待已保存的配置" }
     }
 
     internal fun background() {

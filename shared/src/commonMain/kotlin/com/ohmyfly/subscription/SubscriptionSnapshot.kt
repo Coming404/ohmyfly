@@ -37,7 +37,10 @@ internal fun hasUsableSubscriptionSnapshot(parsed: NativeSubscription): Boolean 
 
 private data class NodeAnchor(val type: String, val server: String, val port: Int)
 private data class NodeFields(val anchor: NodeAnchor, val fields: Map<String, String>)
-private data class Snapshot(val nodes: List<NodeFields>, val protocols: Int, val fields: Int, val errors: Int)
+private data class Snapshot(
+    val nodes: List<NodeFields>, val anchors: List<NodeAnchor>, val sizes: List<Int>,
+    val protocols: Int, val fields: Int, val errors: Int,
+)
 
 private fun nodeFields(node: NativeSubscriptionNode): NodeFields? {
     if (infoName.containsMatchIn(node.name.trim())) return null
@@ -60,6 +63,8 @@ private fun nodeFields(node: NativeSubscriptionNode): NodeFields? {
 private fun summarize(parsed: NativeSubscription): Snapshot {
     val candidates = if (looksLikeClientUpdatePlaceholderNodes(parsed.nodes)) emptyList() else parsed.nodes
     val indices = mutableListOf<Int>()
+    val anchors = mutableListOf<NodeAnchor>()
+    val sizes = mutableListOf<Int>()
     val hashes = mutableMapOf<Int, MutableList<Int>>()
     val protocols = mutableSetOf<String>()
     var fields = 0
@@ -70,13 +75,14 @@ private fun summarize(parsed: NativeSubscription): Snapshot {
         // 标量索引常驻；完整字段每次只加载当前记录和一个同哈希候选。
         if (bucket.none { nodeFields(candidates[it])!!.fields == value.fields }) {
             bucket += index; indices += index; fields += value.fields.size
+            anchors += value.anchor; sizes += value.fields.size
         }
     }
     val records = object : AbstractList<NodeFields>() {
         override val size: Int get() = indices.size
         override fun get(index: Int): NodeFields = nodeFields(candidates[indices[index]])!!
     }
-    return Snapshot(records, protocols.size, fields, parsed.skipped)
+    return Snapshot(records, anchors, sizes, protocols.size, fields, parsed.skipped)
 }
 
 private fun isSubset(left: NodeFields, right: NodeFields): Boolean =
@@ -84,11 +90,11 @@ private fun isSubset(left: NodeFields, right: NodeFields): Boolean =
 
 private fun covers(left: Snapshot, right: Snapshot): Boolean {
     if (left.nodes.size > right.nodes.size) return false
-    val sizes = right.nodes.indices.map { right.nodes[it].fields.size }
+    val sizes = right.sizes
     val groups = mutableMapOf<NodeAnchor, MutableList<Int>>()
-    right.nodes.indices.forEach { index -> groups.getOrPut(right.nodes[index].anchor) { mutableListOf() }.add(index) }
+    right.anchors.forEachIndexed { index, anchor -> groups.getOrPut(anchor) { mutableListOf() }.add(index) }
     groups.values.forEach { it.sortBy { index -> sizes[index] } }
-    val leftSizes = left.nodes.indices.map { left.nodes[it].fields.size }
+    val leftSizes = left.sizes
     var comparisons = 0
     for (ordinal in left.nodes.indices.sortedByDescending { leftSizes[it] }) {
         val node = left.nodes[ordinal]

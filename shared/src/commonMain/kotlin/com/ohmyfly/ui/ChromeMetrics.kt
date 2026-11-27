@@ -6,6 +6,12 @@ import androidx.compose.ui.unit.sp
 
 internal object ChromeMetrics {
     val ControlSize = 44.dp
+    val CompactActionHeight = 28.dp
+    val CompactActionInset = 8.dp
+    val CompactActionLabel = 11.sp
+    val LogBodySize = 12.sp
+    val LogLineHeight = 18.sp
+    val LogRecordGap = 0.dp
     val ToolbarButtonSize = 44.dp
     val ToolbarIconSize = 20.dp
     val ToolbarLabelSize = 13.sp

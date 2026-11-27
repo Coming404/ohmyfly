@@ -16,7 +16,7 @@ internal class MirrorProbe(private val transport: MirrorTransport) {
             validateMirror(it)?.let { error -> return failed(error) }
             buildMirrorUrl(it, resource)
         } ?: resource
-        logger.info { "[镜像探测] HEAD ${logTarget(target)}，超时 ${MirrorProbeTarget.timeoutMillis}ms" }
+        logger.debug { "[镜像探测] HEAD ${logTarget(target)}，超时 ${MirrorProbeTarget.timeoutMillis}ms" }
         return try {
             val response = withTimeoutOrNull(MirrorProbeTarget.timeoutMillis) {
                 transport.head(target, MirrorProbeTarget.timeoutMillis)
@@ -33,7 +33,7 @@ internal class MirrorProbe(private val transport: MirrorTransport) {
                 }
             }
         } catch (cancel: CancellationException) {
-            logger.info { "[镜像探测] ${logTarget(target)} 已取消" }
+            logger.debug { "[镜像探测] ${logTarget(target)} 已取消" }
             throw cancel
         } catch (_: MirrorTimeoutException) {
             logger.debug { "[镜像探测] ${logTarget(target)} 网络请求超时" }

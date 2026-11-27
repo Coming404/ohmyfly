@@ -24,7 +24,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /** 头部来源和时间放在同一胶囊内，选择框按整个头部居中。 */
 @Composable
 internal fun TowerIdentity(tower: CatalogTower, loading: Boolean, progress: CatalogTaskProgress?,
-    selected: Boolean, selectionMode: Boolean, statusColor: Color) {
+    tasks: List<CatalogSourceTask>, selected: Boolean, selectionMode: Boolean, statusColor: Color) {
     val colors = MiuixTheme.colorScheme
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
         if (selectionMode) CatalogSelectionCheck(selected, Modifier.align(Alignment.CenterVertically))
@@ -35,11 +35,27 @@ internal fun TowerIdentity(tower: CatalogTower, loading: Boolean, progress: Cata
                 else -> colors.primary
             })
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(tower.name.ifBlank { "塔台 ${tower.id}" }, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+            Text(tower.displayName, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
                 maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             val source = if (tower.sourceKind == "merged") "${tower.sourceCount} 个来源" else sourceLabel(tower.sourceKind)
-            val syncProgress = progress?.takeIf { it.total > 0 }?.let { " ${it.completed} / ${it.total}" }.orEmpty()
-            Text(if (loading) "正在同步$syncProgress" else "$source ${catalogAge(tower.lastSuccessAt)}",
+            val syncProgress = tasks.joinToString("；") { task ->
+                val phase = when (task.phase) {
+                    "排队" -> "等待同步"
+                    "下载" -> "正在请求塔台"
+                    "读取" -> "正在读取文件"
+                    "等待解析" -> "等待解析"
+                    "解析" -> "正在解析"
+                    "比较" -> "正在比较订阅内容"
+                    "处理" -> "正在整理航班"
+                    "准备入库" -> "正在准备入库"
+                    "提交" -> "正在提交"
+                    else -> "正在准备"
+                }
+                val count = if (task.total > 0) " ${task.completed} / ${task.total}"
+                    else if (task.completed > 0) " ${task.completed} 个" else ""
+                if (tasks.size > 1) "${task.name}：$phase$count" else "$phase$count"
+            }.ifBlank { "等待同步" }
+            Text(if (loading) syncProgress else "$source ${catalogAge(tower.lastSuccessAt)}",
                 fontSize = 11.sp, color = colors.onSurfaceVariantSummary,
                 maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
@@ -87,7 +103,8 @@ private fun TowerFooterAction(text: String, icon: androidx.compose.ui.graphics.v
 @Composable
 private fun TowerFooterLabel(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
     color: Color, expanded: Boolean? = null) {
-    Row(verticalAlignment = Alignment.CenterVertically,
+    Row(Modifier.fillMaxWidth().heightIn(min = ChromeMetrics.ToolbarButtonSize),
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(ChromeMetrics.ActionGap, Alignment.CenterHorizontally)) {
         Icon(icon, null, Modifier.size(ChromeMetrics.ToolbarIconSize), tint = color)
         Text(text, color = color, fontSize = ChromeMetrics.ToolbarLabelSize,
@@ -150,7 +167,7 @@ internal fun TowerMoreMenu(tower: CatalogTower, loading: Boolean, revision: Long
             icon = { Icon(MirrorIcons.Trash, null, it, tint = MiuixTheme.colorScheme.error) }))
     }), modifier = modifier.fillMaxWidth().clip(AppCorners.shape(AppCorners.Control)),
         minWidth = 0.dp, minHeight = ChromeMetrics.ToolbarButtonSize,
-        backgroundColor = Color.Transparent) {
+        cornerRadius = AppCorners.Control, backgroundColor = Color.Transparent) {
         TowerFooterLabel("更多", MirrorIcons.More, MiuixTheme.colorScheme.primary)
     }
     if (panel == "result") TowerImportResultSheet(tower) { panel = "" }

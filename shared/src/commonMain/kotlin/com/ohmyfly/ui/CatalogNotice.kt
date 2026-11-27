@@ -37,13 +37,13 @@ internal fun CatalogNotice(text: String, kind: CatalogNoticeKind = CatalogNotice
     }
     Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
         .background(background, AppCorners.shape(AppCorners.Card)).padding(horizontal = 14.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(if (kind == CatalogNoticeKind.Success) DriftIcons.Check else MirrorIcons.Alert,
             contentDescription = when (kind) {
                 CatalogNoticeKind.Error -> "错误"
                 CatalogNoticeKind.Warning -> "提示"
                 CatalogNoticeKind.Success -> "成功"
-            }, modifier = Modifier.padding(top = 2.dp).size(18.dp), tint = foreground)
+            }, modifier = Modifier.size(18.dp), tint = foreground)
         Text(text, modifier = Modifier.weight(1f), color = foreground, autoSize = CatalogTextSizing.Notice)
     }
 }

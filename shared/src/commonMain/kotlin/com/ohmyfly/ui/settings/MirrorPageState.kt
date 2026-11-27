@@ -97,7 +97,7 @@ internal class MirrorPageState(
                         current.mirrors.map { if (it.id == entry.id) entry else it }
                     } else current.mirrors + entry)
                 }
-                logger.info {
+                logger.debug {
                     val result = when (outcome) {
                         is SettingsWriteResult.Confirmed -> "已保存并读回确认"
                         SettingsWriteResult.Uncertain -> "已提交，但未能读回确认"
@@ -157,7 +157,7 @@ internal class MirrorPageState(
 
     fun delete(id: String) {
         if (deleting) return
-        logger.info { "[镜像管理] 请求删除镜像，删除后重新选择可用来源" }
+        logger.debug { "[镜像管理] 请求删除镜像，删除后重新选择可用来源" }
         deleting = true
         deleteError = null
         scope.launch {

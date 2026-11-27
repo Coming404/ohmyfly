@@ -43,15 +43,15 @@ internal class CatalogStore(
     private var filterSequence = 0L
     private var reloadSequence = 0L
     private var measurementsSequence = 0L
-    internal val syncResults = Channel<Pair<Int, Int>>(Channel.BUFFERED)
+    internal val syncResults = Channel<CatalogSyncResult>(Channel.BUFFERED)
     private val fetcher = SubscriptionFetcher(createSubscriptionClient())
     internal fun batch(settings: SubscriptionSettings, mirrors: SubscriptionMirrorSettings) =
         CatalogBatchRunner(settings, mirrors, fetcher, ::call,
             changed = { withContext(Dispatchers.Main) { reload(); pageJob?.join() } },
             finished = {
                 val result = state.value
-                logger.info { "[塔台航班] 批次结束：${result.taskCompleted} 个来源，${result.taskFailed} 个失败；当前 ${result.summary.towers} 个塔台，${result.summary.flights} 个航班" }
-                syncResults.trySend(result.taskCompleted to result.taskFailed)
+                logger.debug { "[塔台航班] 批次结束：${result.taskCompleted} 个来源，${result.taskFailed} 个失败；当前 ${result.summary.towers} 个塔台，${result.summary.flights} 个航班" }
+                syncResults.trySend(CatalogSyncResult(result.taskCompleted, result.taskFailed, result.taskMessages))
             },
         ) { change -> mutableState.update(change) }
 
@@ -115,7 +115,11 @@ internal class CatalogStore(
                 delay(wait)
                 val result = withContext(worker) { queryFlightFilter(revision, filter) }
                 if (sequence != filterSequence || revision != state.value.summary.revision || !foreground) return@launch
+                // 新过滤令牌不能复用旧窗口，否则命中旧缓存后被令牌校验丢弃，列表不再加载。
+                pages.clear("flights")
+                positions["flights"] = Position()
                 mutableState.update { it.copy(filterToken = result.token, matchCount = result.count,
+                    flightPage = 0, flightWindow = emptyMap(),
                     groups = result.groups, protocols = result.protocols, flightLoading = active == "flights", failure = null) }
                 if (active == "flights") page("flights", 0)
             } catch (e: CancellationException) { throw e

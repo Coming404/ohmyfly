@@ -17,6 +17,7 @@ internal typealias CatalogRequest = (String, JsonObjectBuilder.() -> Unit) -> Js
 internal class CatalogRefreshService(
     private val importer: SubscriptionImporter,
     private val request: CatalogRequest = ::catalogCall,
+    private val failed: (String) -> Unit = {},
     private val committing: () -> Unit = {},
 ) {
     suspend fun add(address: String, settings: SubscriptionSettings, name: String = "",
@@ -86,10 +87,13 @@ internal class CatalogRefreshService(
         try {
             require(!ticket.address.startsWith("local:")) { "本地塔台请重新选择文件或粘贴正文" }
             val result = importer.importSubscription(ticket.address, effective, ticket.name.isBlank(), mirrors,
-                writer::append, displayName = ticket.name)
+                writer::append, displayName = ticket.name, resolvedName = { name ->
+                    request("resolveName") { put("id", id); put("generation", ticket.generation); put("name", name) }
+                })
             if (result.failure != null) {
                 val name = ticket.name.ifBlank { parseUrl(ticket.address)!!.host }
                 val reason = subscriptionFailureDescription(result.failure)
+                failed(reason)
                 logCatalogFailure("同步“$name”", IllegalArgumentException(reason))
                 request("fail") { put("id", id); put("generation", ticket.generation)
                     put("failure", reason); put("name", name) }

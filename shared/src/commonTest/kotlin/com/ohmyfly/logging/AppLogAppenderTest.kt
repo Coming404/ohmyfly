@@ -25,7 +25,7 @@ class AppLogAppenderTest {
             assertEquals(2, entries.size)
             assertTrue(entries.all { it.timestampMillis in before..after })
             assertEquals("业务记录", entries[0].message)
-            assertEquals(LogLevel.Info, entries[0].level)
+            assertEquals(LogLevel.Detail, entries[0].level)
             assertEquals(LogLevel.Detail, entries[1].level)
             assertEquals("详".repeat(8192) + "…[已截断]", entries[1].message)
         } finally {
